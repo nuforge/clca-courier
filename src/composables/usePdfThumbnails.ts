@@ -2,10 +2,7 @@ import { ref, computed } from 'vue';
 import WebViewer, { type WebViewerInstance } from '@pdftron/webviewer';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker (reference public file, don't import)
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-}
+// Note: PDF.js worker will be configured at runtime to avoid Vite build issues
 
 interface ThumbnailCache {
   [url: string]: string; // base64 image data
@@ -96,8 +93,20 @@ export function usePdfThumbnails() {
     try {
       console.log('🔄 Attempting PDF.js thumbnail generation for:', url);
 
+      // Configure PDF.js worker at runtime to avoid Vite build issues
+      if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        // Use dynamic path construction to avoid Vite processing the import
+        const workerPath = new URL('/pdf.worker.min.js', window.location.origin).href;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+        console.log('📝 PDF.js worker configured:', workerPath);
+      }
+
       // Load the PDF document using PDF.js
-      const loadingTask = pdfjsLib.getDocument(url);
+      const loadingTask = pdfjsLib.getDocument({
+        url: url,
+        // Add CORS settings for better compatibility
+        withCredentials: false,
+      });
       const pdf = await loadingTask.promise;
 
       // Get the first page
