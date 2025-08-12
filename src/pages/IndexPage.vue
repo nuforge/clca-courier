@@ -63,7 +63,6 @@ const quickLinks: QuickLink[] = [
       <!-- Hero Section -->
       <div class="row justify-center q-mb-xl">
         <div class="col-12 col-md-10 col-lg-8 text-center">
-          <q-img src="/courier-logo.svg" style="height: 120px; max-width: 300px" class="q-mb-md" fit="contain" />
           <div class="text-h3 text-weight-light q-mb-md">
             Welcome to The Courier
           </div>

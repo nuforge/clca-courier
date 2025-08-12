@@ -106,7 +106,7 @@ export default defineConfig((ctx) => {
       config: {
         dark: 'auto', // or Boolean true/false
         brand: {
-          primary: '#2B75B1',
+          primary: '#1976d2',
           secondary: '#9E3E3B',
           accent: '#3E3E3E',
           dark: '#1D1D1D',
@@ -116,6 +116,7 @@ export default defineConfig((ctx) => {
           warning: '#FB8C00',
 
           background: '#161616',
+          clcablue: '#002436',
         },
       },
 

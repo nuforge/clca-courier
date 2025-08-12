@@ -1,3 +1,13 @@
 // app global css in SCSS form
 @use './reset' as *;
 @use './typography' as *;
+@use './colors' as *;
+
+a {
+  color: var(--q-primary);
+  text-decoration: none;
+  &:hover {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+}

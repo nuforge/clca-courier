@@ -71,9 +71,14 @@ async function initializeViewer() {
         'stampToolGroupButton',
         'fileAttachmentToolGroupButton',
         'calloutToolGroupButton',
+        'toolbarGroup-Annotate',
+        'toolbarGroup-Shapes',
         'undo',
         'redo'
       ])
+
+      const LayoutMode = webviewerInstance.UI.LayoutMode;
+      webviewerInstance.UI.setLayoutMode(LayoutMode.FacingCover);
 
       loading.value = false
       emit('ready', webviewerInstance)
