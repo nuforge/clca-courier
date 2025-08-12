@@ -9,7 +9,7 @@ const $q = useQuasar()
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat bordered class="q-mb-md">
+          <q-card flat class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-bulletin-board" class="q-mr-sm" />
@@ -22,9 +22,9 @@ const $q = useQuasar()
             </q-card-section>
           </q-card>
 
-          <div class="row q-gutter-md">
+          <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat bordered>
+              <q-card flat>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-tag" class="q-mr-sm" />
@@ -57,7 +57,7 @@ const $q = useQuasar()
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat bordered>
+              <q-card flat>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-tools" class="q-mr-sm" />

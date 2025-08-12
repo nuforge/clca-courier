@@ -18,7 +18,7 @@ function showArticleDetail(article: NewsItem) {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat bordered class="q-mb-md">
+          <q-card flat class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-newspaper" class="q-mr-sm" />
@@ -35,9 +35,9 @@ function showArticleDetail(article: NewsItem) {
           <!-- Featured News -->
           <div v-if="siteStore.featuredNews.length > 0">
             <div class="text-h5 q-mb-md">Featured News</div>
-            <div class="row q-gutter-md q-mb-xl">
+            <div class="row q-col-gutter-md q-mb-xl">
               <div class="col-12 col-md-6" v-for="article in siteStore.featuredNews" :key="article.id">
-                <q-card flat bordered class="full-height">
+                <q-card flat class="full-height">
                   <q-card-section>
                     <div class="text-overline text-primary">{{ article.category.toUpperCase() }}</div>
                     <div class="text-h6 q-mb-sm">{{ article.title }}</div>
@@ -60,7 +60,7 @@ function showArticleDetail(article: NewsItem) {
 
           <!-- All News -->
           <div class="text-h5 q-mb-md">All News & Updates</div>
-          <q-card flat bordered class="q-mb-md">
+          <q-card flat class="q-mb-md">
             <q-card-section>
               <q-list separator>
                 <q-item v-for="article in siteStore.newsItems" :key="article.id" clickable

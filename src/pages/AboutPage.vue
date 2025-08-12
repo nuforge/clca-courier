@@ -24,7 +24,7 @@ function contribute() {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat bordered class="q-mb-md">
+          <q-card flat class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-information" class="q-mr-sm" />
@@ -37,9 +37,9 @@ function contribute() {
             </q-card-section>
           </q-card>
 
-          <div class="row q-gutter-md">
+          <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat bordered>
+              <q-card flat>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-target" class="q-mr-sm" />
@@ -55,7 +55,7 @@ function contribute() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat bordered>
+              <q-card flat>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-history" class="q-mr-sm" />
@@ -71,13 +71,13 @@ function contribute() {
             </div>
 
             <div class="col-12">
-              <q-card flat bordered>
+              <q-card flat>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-eye" class="q-mr-sm" />
                     What We Cover
                   </div>
-                  <div class="row q-gutter-md">
+                  <div class="row q-col-gutter-md">
                     <div class="col-12 col-sm-6 col-md-3">
                       <q-item>
                         <q-item-section side>
@@ -132,33 +132,33 @@ function contribute() {
             </div>
           </div>
 
-          <q-card flat bordered class="q-mt-lg">
+          <q-card flat class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Community Statistics</div>
-              <div class="row q-gutter-md text-center">
+              <div class="row q-col-gutter-md text-center">
                 <div class="col-12 col-sm-6 col-md-3">
-                  <q-card flat bordered class="q-pa-md">
+                  <q-card flat class="q-pa-md">
                     <q-icon name="mdi-home-group" size="2em" color="primary" />
                     <div class="text-h5 text-weight-bold q-mt-sm">450+</div>
                     <div class="text-caption">Households</div>
                   </q-card>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
-                  <q-card flat bordered class="q-pa-md">
+                  <q-card flat class="q-pa-md">
                     <q-icon name="mdi-water" size="2em" color="blue" />
                     <div class="text-h5 text-weight-bold q-mt-sm">3</div>
                     <div class="text-caption">Beautiful Lakes</div>
                   </q-card>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
-                  <q-card flat bordered class="q-pa-md">
+                  <q-card flat class="q-pa-md">
                     <q-icon name="mdi-calendar-multiple" size="2em" color="green" />
                     <div class="text-h5 text-weight-bold q-mt-sm">12</div>
                     <div class="text-caption">Issues Per Year</div>
                   </q-card>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
-                  <q-card flat bordered class="q-pa-md">
+                  <q-card flat class="q-pa-md">
                     <q-icon name="mdi-clock" size="2em" color="orange" />
                     <div class="text-h5 text-weight-bold q-mt-sm">29</div>
                     <div class="text-caption">Years Publishing</div>
@@ -168,7 +168,7 @@ function contribute() {
             </q-card-section>
           </q-card>
 
-          <q-card flat bordered class="q-mt-lg">
+          <q-card flat class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Get Involved</div>
               <p class="text-body2 q-mb-md">

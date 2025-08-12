@@ -81,7 +81,7 @@ function onPdfViewerError(error: string) {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat bordered class="q-mb-md">
+          <q-card flat class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-archive" class="q-mr-sm" />
@@ -127,14 +127,14 @@ function onPdfViewerError(error: string) {
             </q-card>
           </q-dialog>
 
-          <q-card flat bordered>
+          <q-card flat>
             <q-card-section>
               <div class="text-h6 q-mb-md">Available Issues</div>
               <q-separator class="q-mb-md" />
 
-              <div class="row q-gutter-md">
+              <div class="row q-col-gutter-md">
                 <div class="col-12 col-sm-6 col-md-4" v-for="issue in archivedIssues" :key="issue.id">
-                  <q-card flat bordered class="cursor-pointer hover-card" @click="openIssue(issue)">
+                  <q-card flat class="cursor-pointer hover-card" @click="openIssue(issue)">
                     <q-card-section class="text-center">
                       <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" class="q-mb-sm" />
                       <div class="text-weight-medium">{{ issue.title }}</div>
