@@ -1,5 +1,8 @@
 <script setup lang="ts">
-// Account page component
+import { useTheme } from '../composables/useTheme';
+
+// Use the theme composable
+const { isDarkMode, toggleDarkMode } = useTheme();
 </script>
 
 <template>
@@ -22,8 +25,32 @@
 
           <q-card>
             <q-card-section>
-              <div class="text-h6">Settings</div>
-              <div class="text-body1 q-mt-md">
+              <div class="text-h6 q-mb-md">Settings</div>
+
+              <!-- Theme Toggle Section -->
+              <div class="setting-item q-mb-md">
+                <div class="row items-center justify-between">
+                  <div class="col">
+                    <div class="text-subtitle1">Theme</div>
+                    <div class="text-body2 text-grey-6">
+                      Choose between light and dark mode
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn :icon="isDarkMode ? 'mdi-brightness-7' : 'mdi-brightness-4'"
+                      :label="isDarkMode ? 'Light Mode' : 'Dark Mode'" @click="toggleDarkMode" unelevated
+                      :color="isDarkMode ? 'orange' : 'primary'" class="q-px-md">
+                      <q-tooltip>
+                        Switch to {{ isDarkMode ? 'light' : 'dark' }} mode
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+              </div>
+
+              <q-separator class="q-my-md" />
+
+              <div class="text-body1">
                 Additional account configuration options will be added in the future.
               </div>
             </q-card-section>
@@ -36,4 +63,28 @@
 
 
 <style lang="scss" scoped>
-// Account page specific styles</style>
+.setting-item {
+  padding: 8px 0;
+
+  .text-subtitle1 {
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .text-body2 {
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 599px) {
+  .setting-item .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    .col-auto {
+      width: 100%;
+    }
+  }
+}
+</style>

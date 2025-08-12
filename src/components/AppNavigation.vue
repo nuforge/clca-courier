@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue';
 import NavigationItem from './NavigationItem.vue';
 import { useNavigation } from '../composables/useNavigation';
-import { useSiteStore } from '../stores/site-store-simple';
 import type { NavigationItem as NavigationItemType } from './NavigationItem.vue';
 
 interface Props {
@@ -19,9 +18,6 @@ const emit = defineEmits<Emits>();
 // Use the navigation composable
 const { navigationItems } = useNavigation();
 
-// Use the site store for theme functionality
-const siteStore = useSiteStore();
-
 // Mini state for collapsed sidebar
 const isMini = ref(false);
 
@@ -33,22 +29,17 @@ const accountItem: NavigationItemType = {
 };
 
 // Computed properties
-const isDarkMode = computed(() => siteStore.isDarkMode);
+// None needed for navigation-specific functionality
 
 // Toggle mini mode
 const toggleMini = () => {
   isMini.value = !isMini.value;
 };
 
-// Theme toggle function
-const toggleDarkMode = () => {
-  siteStore.toggleDarkMode();
-};
-
 // Create a computed property for two-way binding
 const isOpen = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value: boolean) => emit('update:modelValue', value)
 });
 </script>
 
@@ -69,23 +60,10 @@ const isOpen = computed({
       </q-list>
 
       <q-space class="q-my-xl" />
-      <!-- Bottom section with Account and Theme toggle -->
+      <!-- Bottom section with Account -->
       <div class="bottom-section ">
         <!-- Account Link -->
         <NavigationItem :item="accountItem" :mini="isMini" />
-
-        <!-- Theme Toggle -->
-        <q-item clickable v-ripple @click="toggleDarkMode" class="nav-item q-ml-md">
-          <q-item-section avatar>
-            <q-icon :name="isDarkMode ? 'mdi-brightness-7' : 'mdi-brightness-4'" />
-          </q-item-section>
-          <q-item-section v-if="!isMini">
-            <q-item-label>{{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}</q-item-label>
-          </q-item-section>
-          <q-tooltip v-if="isMini" anchor="center right" self="center left" :offset="[10, 0]">
-            {{ isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode' }}
-          </q-tooltip>
-        </q-item>
       </div>
     </div>
   </q-drawer>
