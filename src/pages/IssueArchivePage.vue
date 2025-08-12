@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
 import { usePdfViewer } from '../composables/usePdfViewer'
@@ -30,13 +30,30 @@ const thumbnails = ref<Record<string, string>>({}) // Changed to string keys
 const loadingThumbnails = ref<Set<number>>(new Set())
 
 onMounted(() => {
-  if (archivedIssues.value.length > 0) {
-    // Generate thumbnails for all issues
+  // Initial load if data is already available
+  if (archivedIssues.value.length > 0 && !siteStore.isLoading) {
     for (const issue of archivedIssues.value) {
       void loadThumbnail(issue)
     }
   }
 })
+
+// Watch for when data becomes available after async loading
+watch(
+  () => [archivedIssues.value.length, siteStore.isLoading] as const,
+  async ([issuesLength, isLoading]) => {
+    // When data is loaded and we have issues, generate thumbnails
+    if (issuesLength > 0 && !isLoading) {
+      // Small delay to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      for (const issue of archivedIssues.value) {
+        void loadThumbnail(issue)
+      }
+    }
+  },
+  { immediate: true }
+)
 
 async function loadThumbnail(issue: PdfDocument) {
   const issueKey = String(issue.id); // Convert to string for consistent key handling
@@ -86,7 +103,6 @@ async function regenerateIssueThumbnail(issue: PdfDocument, event?: Event) {
 }
 
 function openIssue(issue: PdfDocument) {
-  console.log('IssueArchivePage: openIssue called with:', issue); // Debug log
   openDocument(issue)
 }
 

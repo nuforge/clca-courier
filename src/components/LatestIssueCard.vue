@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { usePdfViewer } from '../composables/usePdfViewer'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
@@ -12,7 +12,7 @@ const { mini = false } = defineProps<Props>();
 
 const siteStore = useSiteStore()
 const { openDocument } = usePdfViewer()
-const { getThumbnail } = usePdfThumbnails()
+const { getThumbnail, regenerateThumbnail } = usePdfThumbnails()
 
 // Get the latest issue from the store
 const latestIssue = computed(() => siteStore.latestIssue)
@@ -32,16 +32,23 @@ const cardClasses = computed(() => {
 
 // Load thumbnail for the latest issue
 const loadThumbnail = async () => {
-  if (!latestIssue.value) return
+  if (!latestIssue.value) {
+    console.log('LatestIssueCard: No latest issue available');
+    return;
+  }
 
+  console.log('LatestIssueCard: Loading thumbnail for:', latestIssue.value.title, 'URL:', latestIssue.value.url);
   loadingThumbnail.value = true
   try {
     const thumbnailData = await getThumbnail(latestIssue.value.url)
     if (thumbnailData) {
       thumbnail.value = thumbnailData
+      console.log('LatestIssueCard: Thumbnail loaded successfully for:', latestIssue.value.title);
+    } else {
+      console.warn('LatestIssueCard: No thumbnail data returned for:', latestIssue.value.title);
     }
   } catch (error) {
-    console.error('Failed to load thumbnail for latest issue:', error)
+    console.error('LatestIssueCard: Failed to load thumbnail for latest issue:', error)
   } finally {
     loadingThumbnail.value = false
   }
@@ -54,12 +61,59 @@ const openLatestIssue = () => {
   }
 }
 
-// Load thumbnail when component mounts
+// Manual thumbnail refresh for debugging
+const refreshThumbnail = async (event?: Event) => {
+  if (event) {
+    event.stopPropagation(); // Prevent card click
+  }
+
+  if (!latestIssue.value) return;
+
+  console.log('LatestIssueCard: Manual thumbnail refresh triggered');
+  thumbnail.value = null; // Clear current thumbnail
+  loadingThumbnail.value = true;
+
+  try {
+    const thumbnailData = await regenerateThumbnail(latestIssue.value.url);
+    if (thumbnailData) {
+      thumbnail.value = thumbnailData;
+      console.log('LatestIssueCard: Manual refresh successful');
+    }
+  } catch (error) {
+    console.error('LatestIssueCard: Manual refresh failed:', error);
+  } finally {
+    loadingThumbnail.value = false;
+  }
+}
+
+// Load thumbnail when component mounts or when latest issue becomes available
 onMounted(() => {
-  if (latestIssue.value) {
+  // Initial load if data is already available
+  if (latestIssue.value && !siteStore.isLoading) {
     void loadThumbnail()
   }
 })
+
+// Watch for when the latest issue becomes available after async loading
+watch(
+  () => [latestIssue.value, siteStore.isLoading] as const,
+  async ([issue, isLoading]) => {
+    console.log('LatestIssueCard watcher triggered:', {
+      hasIssue: !!issue,
+      isLoading,
+      issueTitle: issue?.title
+    });
+
+    // When we have an issue and data is loaded, generate thumbnail
+    if (issue && !isLoading) {
+      // Small delay to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('LatestIssueCard: Triggering thumbnail load from watcher');
+      void loadThumbnail()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -84,15 +138,25 @@ onMounted(() => {
         </div>
 
         <!-- Thumbnail -->
-        <div class="text-center">
-          <img v-if="thumbnail" :src="thumbnail" :alt="latestIssue.title" class="rounded shadow-2"
-            style="max-height: 160px; max-width: 200px; object-fit: contain;" />
+        <div class="text-center thumbnail-container">
+          <div v-if="thumbnail" class="thumbnail-wrapper">
+            <img :src="thumbnail" :alt="latestIssue.title" class="rounded shadow-2"
+              style="max-height: 160px; max-width: 200px; object-fit: contain;" />
+            <q-btn flat dense size="xs" icon="mdi-refresh" color="white" @click="refreshThumbnail($event)"
+              class="thumbnail-refresh-btn" title="Regenerate thumbnail">
+              <q-tooltip>Regenerate thumbnail</q-tooltip>
+            </q-btn>
+          </div>
           <div v-else-if="loadingThumbnail" class="thumbnail-placeholder">
             <q-spinner color="white" size="2em" />
             <div class="text-caption q-mt-sm">Loading...</div>
           </div>
           <div v-else class="thumbnail-placeholder">
             <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" />
+            <q-btn flat dense size="sm" icon="mdi-refresh" color="white" @click="refreshThumbnail($event)"
+              class="q-mt-xs" title="Generate thumbnail">
+              <q-tooltip>Generate thumbnail</q-tooltip>
+            </q-btn>
           </div>
         </div>
       </q-card-section>
@@ -145,5 +209,32 @@ onMounted(() => {
   justify-content: center;
   flex-direction: column;
   min-height: 100px;
+}
+
+.thumbnail-container {
+  position: relative;
+  display: inline-block;
+}
+
+.thumbnail-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.thumbnail-refresh-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.thumbnail-wrapper:hover .thumbnail-refresh-btn {
+  opacity: 1;
 }
 </style>
