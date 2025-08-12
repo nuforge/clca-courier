@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useQuasar } from 'quasar'
 import { useSiteStore } from '../stores/site-store-simple'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
-import PdfViewer from '../components/PdfViewer.vue'
-import type { WebViewerInstance } from '@pdftron/webviewer'
+import { usePdfViewer } from '../composables/usePdfViewer'
+import type { PdfDocument } from '../composables/usePdfViewer'
 
-const $q = useQuasar()
 const siteStore = useSiteStore()
 const { getThumbnail, regenerateThumbnail } = usePdfThumbnails()
+const { openDocument } = usePdfViewer()
 
 // Computed property for card theme classes
 const cardClasses = computed(() => {
@@ -24,47 +23,14 @@ const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 )
 
-interface ArchivedIssue {
-  id: number
-  title: string
-  date: string
-  pages: number
-  url: string
-  filename: string
-}
+// Get archived issues from the store
+const archivedIssues = computed(() => siteStore.archivedIssues)
 
-const archivedIssues = ref<ArchivedIssue[]>([
-  {
-    id: 1,
-    title: 'July 2025 Edition',
-    date: 'July 2025',
-    pages: 12,
-    url: '/issues/7.2025.pdf',
-    filename: '7.2025.pdf'
-  },
-  {
-    id: 2,
-    title: 'June 2025 Edition',
-    date: 'June 2025',
-    pages: 10,
-    url: '/issues/Courier - 2025.06 - June.pdf',
-    filename: 'Courier - 2025.06 - June.pdf'
-  }
-])
-
-const selectedIssue = ref<ArchivedIssue | null>(null)
-const showViewer = ref(false)
-const pdfViewerRef = ref<InstanceType<typeof PdfViewer> | null>(null)
 const thumbnails = ref<Record<string, string>>({}) // Changed to string keys
 const loadingThumbnails = ref<Set<number>>(new Set())
 
 onMounted(() => {
-  // Clear localStorage cache for testing - force regeneration
-  localStorage.clear();
-
   if (archivedIssues.value.length > 0) {
-    selectedIssue.value = archivedIssues.value[0] || null
-
     // Generate thumbnails for all issues
     for (const issue of archivedIssues.value) {
       void loadThumbnail(issue)
@@ -72,7 +38,7 @@ onMounted(() => {
   }
 })
 
-async function loadThumbnail(issue: ArchivedIssue) {
+async function loadThumbnail(issue: PdfDocument) {
   const issueKey = String(issue.id); // Convert to string for consistent key handling
   if (thumbnails.value[issueKey]) return
 
@@ -90,7 +56,7 @@ async function loadThumbnail(issue: ArchivedIssue) {
   }
 }
 
-async function regenerateIssueThumbnail(issue: ArchivedIssue, event?: Event) {
+async function regenerateIssueThumbnail(issue: PdfDocument, event?: Event) {
   if (event) {
     event.stopPropagation(); // Prevent card click
   }
@@ -109,61 +75,19 @@ async function regenerateIssueThumbnail(issue: ArchivedIssue, event?: Event) {
     if (thumbnail) {
       thumbnails.value[issueKey] = thumbnail;
       console.log('Thumbnail regenerated successfully for:', issue.title);
-      $q.notify({
-        message: 'Thumbnail regenerated successfully',
-        type: 'positive',
-        icon: 'mdi-check'
-      });
     } else {
       console.warn('Failed to regenerate thumbnail for:', issue.title);
-      $q.notify({
-        message: 'Failed to regenerate thumbnail',
-        type: 'negative',
-        icon: 'mdi-alert'
-      });
     }
   } catch (error) {
     console.error('Error regenerating thumbnail for', issue.title, error);
-    $q.notify({
-      message: 'Error regenerating thumbnail',
-      caption: error instanceof Error ? error.message : 'Unknown error',
-      type: 'negative',
-      icon: 'mdi-alert'
-    });
   } finally {
     loadingThumbnails.value.delete(issue.id);
   }
 }
 
-function openIssue(issue: ArchivedIssue) {
-  selectedIssue.value = issue
-  showViewer.value = true
-}
-
-function switchDocument(issue: ArchivedIssue) {
-  if (selectedIssue.value?.id !== issue.id) {
-    selectedIssue.value = issue
-    if (pdfViewerRef.value) {
-      pdfViewerRef.value.loadDocument(issue.url)
-    }
-  }
-}
-
-function closeViewer() {
-  showViewer.value = false
-}
-
-function onPdfViewerReady(instance: WebViewerInstance) {
-  console.log('PDF Viewer ready:', instance)
-}
-
-function onPdfViewerError(error: string) {
-  $q.notify({
-    message: 'Error loading PDF viewer',
-    caption: error,
-    type: 'negative',
-    icon: 'mdi-alert'
-  })
+function openIssue(issue: PdfDocument) {
+  console.log('IssueArchivePage: openIssue called with:', issue); // Debug log
+  openDocument(issue)
 }
 
 </script>
@@ -185,39 +109,6 @@ function onPdfViewerError(error: string) {
               </p>
             </q-card-section>
           </q-card>
-
-          <!-- PDF Viewer Dialog -->
-          <q-dialog v-model="showViewer" maximized>
-            <q-card>
-              <q-toolbar class="bg-primary">
-                <q-toolbar-title>
-                  <q-icon name="mdi-file-pdf-box" class="q-mr-sm" />
-                  {{ selectedIssue?.title }}
-                </q-toolbar-title>
-
-                <!-- Document switcher -->
-                <q-btn-dropdown color="white" text-color="primary" label="Switch Document" icon="mdi-swap-horizontal"
-                  class="q-mr-md">
-                  <q-list>
-                    <q-item v-for="issue in archivedIssues" :key="issue.id" clickable v-close-popup
-                      @click="switchDocument(issue)" :class="{ 'bg-grey-2': selectedIssue?.id === issue.id }">
-                      <q-item-section>
-                        <q-item-label>{{ issue.title }}</q-item-label>
-                        <q-item-label caption>{{ issue.date }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
-
-                <q-btn flat icon="mdi-close" @click="closeViewer" />
-              </q-toolbar>
-
-              <q-card-section class="q-pa-none" style="height: calc(100vh - 50px);">
-                <PdfViewer v-if="selectedIssue" ref="pdfViewerRef" :document-url="selectedIssue.url"
-                  @ready="onPdfViewerReady" @error="onPdfViewerError" />
-              </q-card-section>
-            </q-card>
-          </q-dialog>
 
           <q-card flat :class="cardClasses">
             <q-card-section>

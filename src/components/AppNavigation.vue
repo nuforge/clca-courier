@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import NavigationItem from './NavigationItem.vue';
+import LatestIssueCard from './LatestIssueCard.vue';
 import { useNavigation } from '../composables/useNavigation';
 import type { NavigationItem as NavigationItemType } from './NavigationItem.vue';
 
@@ -60,7 +61,12 @@ const isOpen = computed({
       </q-list>
 
       <q-space class="q-my-lg" />
-      
+
+      <!-- Latest Issue Card -->
+      <div class="latest-issue-section q-px-md">
+        <LatestIssueCard />
+      </div>
+
       <q-space class="q-my-lg" />
       <!-- Bottom section with Account -->
       <div class="bottom-section ">
@@ -83,6 +89,12 @@ const isOpen = computed({
   }
 }
 
+.latest-issue-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 // Ensure proper spacing in mini mode
 .q-drawer--mini {
   .q-item {
@@ -92,6 +104,10 @@ const isOpen = computed({
   .q-separator {
     margin-left: 0.5rem;
     margin-right: 0.5rem;
+  }
+
+  .latest-issue-section {
+    overflow: hidden;
   }
 }
 </style>

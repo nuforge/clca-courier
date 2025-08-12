@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import BaseLayout from '../components/BaseLayout.vue';
+import GlobalPdfViewer from '../components/GlobalPdfViewer.vue';
 
 const searchText = ref('');
 </script>
@@ -8,6 +9,9 @@ const searchText = ref('');
 <template>
   <BaseLayout v-model:search="searchText">
     <router-view />
+
+    <!-- Global PDF Viewer - available on all pages -->
+    <GlobalPdfViewer />
   </BaseLayout>
 </template>
 

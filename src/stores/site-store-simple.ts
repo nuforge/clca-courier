@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { Classified, NewsItem, Event } from '../components/models';
+import type { PdfDocument } from '../composables/usePdfViewer';
 
 // Hard-coded data for now - easy to switch to API later
 export const useSiteStore = defineStore('site', () => {
@@ -113,6 +114,26 @@ export const useSiteStore = defineStore('site', () => {
     issuesPerYear: 12,
   });
 
+  // Issue/Newsletter data
+  const archivedIssues = ref<PdfDocument[]>([
+    {
+      id: 1,
+      title: 'July 2025 Edition',
+      date: 'July 2025',
+      pages: 12,
+      url: '/issues/7.2025.pdf',
+      filename: '7.2025.pdf',
+    },
+    {
+      id: 2,
+      title: 'June 2025 Edition',
+      date: 'June 2025',
+      pages: 10,
+      url: '/issues/Courier - 2025.06 - June.pdf',
+      filename: 'Courier - 2025.06 - June.pdf',
+    },
+  ]);
+
   // Computed values
   const featuredNews = computed(() => newsItems.value.filter((item) => item.featured).slice(0, 3));
 
@@ -128,6 +149,12 @@ export const useSiteStore = defineStore('site', () => {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(0, 5),
   );
+
+  // Get the latest issue (most recent)
+  const latestIssue = computed(() => {
+    if (archivedIssues.value.length === 0) return null;
+    return archivedIssues.value[0]; // Assuming they're sorted by date, newest first
+  });
 
   // Actions
   function toggleDarkMode() {
@@ -152,11 +179,13 @@ export const useSiteStore = defineStore('site', () => {
     classifieds,
     events,
     communityStats,
+    archivedIssues,
 
     // Computed
     featuredNews,
     recentClassifieds,
     upcomingEvents,
+    latestIssue,
 
     // Actions
     toggleDarkMode,
