@@ -12,6 +12,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contact', component: () => import('pages/ContactPage.vue') },
       { path: '/about', component: () => import('pages/AboutPage.vue') },
+      { path: '/account', component: () => import('pages/AccountPage.vue') },
     ],
   },
 

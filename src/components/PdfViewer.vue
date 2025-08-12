@@ -73,6 +73,9 @@ async function initializeViewer() {
         'calloutToolGroupButton',
         'toolbarGroup-Annotate',
         'toolbarGroup-Shapes',
+        'toolbarGroup-Forms',
+        'toolbarGroup-Edit',
+        'toolbarGroup-FillAndSign',
         'undo',
         'redo'
       ])

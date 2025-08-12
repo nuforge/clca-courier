@@ -82,8 +82,7 @@ const quickLinks: QuickLink[] = [
           <div class="text-h5 text-center q-mb-lg">Explore Our Sections</div>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-sm-6 col-md-4" v-for="item in quickLinks" :key="item.title">
-              <q-card flat :class="cardClasses" class="cursor-pointer full-height" @click="$router.push(item.link)"
-                v-ripple>
+              <q-card :class="cardClasses" class="cursor-pointer full-height" @click="$router.push(item.link)" v-ripple>
                 <q-card-section class="text-center q-pa-lg">
                   <q-icon :name="item.icon" size="3em" :color="item.color" class="q-mb-md" />
                   <div class="text-h6 q-mb-sm">{{ item.title }}</div>
@@ -101,7 +100,7 @@ const quickLinks: QuickLink[] = [
           <div class="text-h5 text-center q-mb-lg">Latest Updates</div>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-sm">
                     <q-icon name="mdi-calendar" class="q-mr-sm" />
@@ -127,7 +126,7 @@ const quickLinks: QuickLink[] = [
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-sm">
                     <q-icon name="mdi-bulletin-board" class="q-mr-sm" />

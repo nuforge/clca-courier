@@ -1,20 +1,3 @@
-<template>
-  <q-layout :view="viewConfig">
-    <slot name="header">
-      <AppHeader v-if="showHeader" v-model="searchValue" :show-menu-button="!!showMenuButton"
-        @toggle-drawer="toggleDrawer" />
-    </slot>
-
-    <slot name="navigation">
-      <AppNavigation v-if="showNavigation" v-model="drawerOpen" />
-    </slot>
-
-    <q-page-container :class="pageContainerClasses">
-      <slot />
-    </q-page-container>
-  </q-layout>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
@@ -61,6 +44,23 @@ const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
 };
 </script>
+
+<template>
+  <q-layout :view="viewConfig">
+    <slot name="header">
+      <AppHeader v-if="showHeader" v-model="searchValue" :show-menu-button="!!showMenuButton"
+        @toggle-drawer="toggleDrawer" />
+    </slot>
+
+    <slot name="navigation">
+      <AppNavigation v-if="showNavigation" v-model="drawerOpen" />
+    </slot>
+
+    <q-page-container :class="pageContainerClasses">
+      <slot />
+    </q-page-container>
+  </q-layout>
+</template>
 
 <style lang="scss" scoped>
 // Base layout styles can go here</style>

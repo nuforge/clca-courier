@@ -1,15 +1,3 @@
-<template>
-  <q-item :to="item.link" clickable v-ripple exact-active-class="nav-item-active" :class="navItemClasses">
-    <q-item-section avatar>
-      <q-icon :name="item.icon" />
-    </q-item-section>
-
-    <q-item-section>
-      <q-item-label>{{ item.title }}</q-item-label>
-    </q-item-section>
-  </q-item>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
@@ -22,6 +10,7 @@ export interface NavigationItem {
 
 interface Props {
   item: NavigationItem;
+  mini?: boolean;
 }
 
 defineProps<Props>();
@@ -35,10 +24,28 @@ const navItemClasses = computed(() => [
 ]);
 </script>
 
+<template>
+  <q-item :to="item.link" clickable v-ripple exact-active-class="nav-item-active" :class="navItemClasses">
+    <q-item-section avatar>
+      <q-icon :name="item.icon" />
+    </q-item-section>
+
+    <q-item-section v-if="!mini">
+      <q-item-label>{{ item.title }}</q-item-label>
+    </q-item-section>
+
+    <!-- Tooltip for mini mode -->
+    <q-tooltip v-if="mini" anchor="center right" self="center left" :offset="[10, 0]">
+      {{ item.title }}
+    </q-tooltip>
+  </q-item>
+</template>
+
+
 <style lang="scss" scoped>
 .nav-item {
-  border-bottom-left-radius: 8px;
-  border-top-left-radius: 8px;
+  border-bottom-left-radius: 10px;
+  border-top-left-radius: 10px;
   transition: all 0.3s ease;
   color: white;
 
