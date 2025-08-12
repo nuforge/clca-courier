@@ -118,7 +118,7 @@ export const useSiteStore = defineStore('site', () => {
   const archivedIssues = ref<PdfDocument[]>([
     {
       id: 1,
-      title: 'July 2025 Edition',
+      title: 'July 2025',
       date: 'July 2025',
       pages: 12,
       url: '/issues/7.2025.pdf',
@@ -126,7 +126,7 @@ export const useSiteStore = defineStore('site', () => {
     },
     {
       id: 2,
-      title: 'June 2025 Edition',
+      title: 'June 2025',
       date: 'June 2025',
       pages: 10,
       url: '/issues/Courier - 2025.06 - June.pdf',

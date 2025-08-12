@@ -63,7 +63,7 @@ const isOpen = computed({
       <q-space class="q-my-lg" />
 
       <!-- Latest Issue Card -->
-      <div class="latest-issue-section q-px-md">
+      <div class="latest-issue-section q-ml-lg">
         <LatestIssueCard />
       </div>
 
@@ -89,11 +89,7 @@ const isOpen = computed({
   }
 }
 
-.latest-issue-section {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+.latest-issue-section {}
 
 // Ensure proper spacing in mini mode
 .q-drawer--mini {

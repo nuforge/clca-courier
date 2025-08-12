@@ -1,36 +1,3 @@
-<template>
-    <q-card v-if="latestIssue" :class="cardClasses" class="cursor-pointer hover-card q-mb-md latest-issue-card"
-        @click="openLatestIssue">
-        <q-card-section class="text-center q-pa-md">
-            <div class="text-h6 q-mb-md text-weight-medium">
-                <q-icon name="mdi-newspaper" class="q-mr-sm" />
-                Latest Issue
-            </div>
-
-            <!-- Thumbnail -->
-            <div class="thumbnail-container q-mb-sm">
-                <div v-if="thumbnail" class="thumbnail-wrapper">
-                    <q-img :src="thumbnail" :alt="latestIssue.title" class="thumbnail-image" fit="contain" />
-                </div>
-                <div v-else-if="loadingThumbnail" class="thumbnail-placeholder">
-                    <q-spinner color="primary" size="2em" />
-                    <div class="text-caption q-mt-sm">Loading...</div>
-                </div>
-                <div v-else class="thumbnail-placeholder">
-                    <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" />
-                </div>
-            </div>
-
-            <div class="text-weight-medium">{{ latestIssue.title }}</div>
-            <div class="text-caption" :class="greyTextClass">{{ latestIssue.date }}</div>
-            <div class="text-caption q-mt-sm">{{ latestIssue.pages }} pages</div>
-
-            <q-btn color="primary" label="Read Now" icon="mdi-eye" size="sm" class="q-mt-md full-width"
-                @click.stop="openLatestIssue" />
-        </q-card-section>
-    </q-card>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
@@ -50,88 +17,98 @@ const loadingThumbnail = ref(false)
 
 // Computed styles
 const cardClasses = computed(() => {
-    if (siteStore.isDarkMode) {
-        return 'bg-dark text-white q-dark'
-    } else {
-        return 'bg-white text-dark'
-    }
+  if (siteStore.isDarkMode) {
+    return 'bg-dark text-white q-dark'
+  } else {
+    return 'bg-white text-dark'
+  }
 })
-
-const greyTextClass = computed(() =>
-    siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
-)
 
 // Load thumbnail for the latest issue
 const loadThumbnail = async () => {
-    if (!latestIssue.value) return
+  if (!latestIssue.value) return
 
-    loadingThumbnail.value = true
-    try {
-        const thumbnailData = await getThumbnail(latestIssue.value.url)
-        if (thumbnailData) {
-            thumbnail.value = thumbnailData
-        }
-    } catch (error) {
-        console.error('Failed to load thumbnail for latest issue:', error)
-    } finally {
-        loadingThumbnail.value = false
+  loadingThumbnail.value = true
+  try {
+    const thumbnailData = await getThumbnail(latestIssue.value.url)
+    if (thumbnailData) {
+      thumbnail.value = thumbnailData
     }
+  } catch (error) {
+    console.error('Failed to load thumbnail for latest issue:', error)
+  } finally {
+    loadingThumbnail.value = false
+  }
 }
 
 // Open the latest issue in the PDF viewer
 const openLatestIssue = () => {
-    if (latestIssue.value) {
-        openDocument(latestIssue.value)
-    }
+  if (latestIssue.value) {
+    openDocument(latestIssue.value)
+  }
 }
 
 // Load thumbnail when component mounts
 onMounted(() => {
-    if (latestIssue.value) {
-        void loadThumbnail()
-    }
+  if (latestIssue.value) {
+    void loadThumbnail()
+  }
 })
 </script>
 
+<template>
+  <q-card flat v-if="latestIssue" :class="cardClasses" class="cursor-pointer q-mb-md latest-issue-card" dark
+    @click="openLatestIssue">
+    <q-card-section class="text-center q-pa-md bg-primary text-white ">
+      <div class="header-container q-mb-md">
+        <span class="text-h5">Latest Issue</span>
+        <q-space />
+        <span class="q-ml-sm">{{ latestIssue.title }}</span>
+      </div>
+
+      <!-- Thumbnail -->
+      <div class="text-center">
+        <img v-if="thumbnail" :src="thumbnail" :alt="latestIssue.title" class="rounded shadow-2"
+          style="max-height: 200px; max-width: 200px; object-fit: contain;" />
+        <div v-else-if="loadingThumbnail" class="thumbnail-placeholder">
+          <q-spinner color="white" size="2em" />
+          <div class="text-caption q-mt-sm">Loading...</div>
+        </div>
+        <div v-else class="thumbnail-placeholder">
+          <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" />
+        </div>
+      </div>
+    </q-card-section>
+  </q-card>
+</template>
+
+
 <style lang="scss" scoped>
 .latest-issue-card {
-    max-width: 200px;
-    transition: all 0.3s ease;
-}
+  transition: all 0.3s ease;
+  border-radius: 10px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 
-.hover-card:hover {
+  &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
-.thumbnail-container {
-    height: 120px;
-    width: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    margin: 0 auto;
-}
-
-.thumbnail-wrapper {
-    position: relative;
-    display: inline-block;
-}
-
-.thumbnail-image {
-    width: 60px;
-    height: 90px;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
 .thumbnail-placeholder {
-    height: 90px;
-    width: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 100px;
 }
 </style>
