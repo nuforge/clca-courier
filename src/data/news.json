@@ -1,0 +1,52 @@
+[
+  {
+    "id": "news-001",
+    "title": "Community Board Meeting Scheduled for August 15th",
+    "summary": "Join us for our monthly community board meeting to discuss upcoming projects and community concerns.",
+    "content": "The Conashaugh Lakes Community Association will be holding its monthly board meeting on August 15th at 7:00 PM at the community center. This month's agenda includes discussions about the upcoming lake cleanup initiative, new safety protocols for the swimming areas, and updates on the road maintenance project.\n\nAll residents are encouraged to attend and voice their concerns or suggestions. Light refreshments will be provided.\n\nFor more information, please contact the community office at (570) 555-0123.",
+    "author": "Community Board",
+    "date": "2025-08-10",
+    "category": "announcement",
+    "featured": true
+  },
+  {
+    "id": "news-002",
+    "title": "Lake Cleanup Day - Volunteers Needed",
+    "summary": "Help keep our lakes beautiful! Volunteer for our annual lake cleanup day on August 20th.",
+    "content": "Our annual lake cleanup day is scheduled for Saturday, August 20th, starting at 9:00 AM. We're looking for volunteers to help remove debris, invasive plants, and litter from around all three lakes.\n\nVolunteers should meet at the main beach area and bring work gloves, water bottles, and sun protection. All cleanup supplies will be provided by the association.\n\nLunch will be provided for all volunteers, and community service hours will be documented for students who need them.\n\nTo sign up, please call the community office or email cleanup@conaslakes.org.",
+    "author": "Environmental Committee",
+    "date": "2025-08-08",
+    "category": "event",
+    "featured": true
+  },
+  {
+    "id": "news-003",
+    "title": "New Speed Limits on Community Roads",
+    "summary": "Effective immediately, new speed limits have been implemented on all community roads for safety.",
+    "content": "In response to resident concerns about vehicle safety, the community board has implemented new speed limits throughout the development:\n\n• Main roads: 25 mph (reduced from 30 mph)\n• Residential streets: 15 mph (reduced from 20 mph)\n• Near recreation areas: 10 mph\n\nThese changes are effective immediately and will be enforced by community patrol and local law enforcement. Speed limit signs have been posted throughout the community.\n\nWe ask all residents and visitors to be mindful of these new limits, especially during peak times when children and families are active in the area.",
+    "author": "Safety Committee",
+    "date": "2025-08-05",
+    "category": "announcement",
+    "featured": false
+  },
+  {
+    "id": "news-004",
+    "title": "Summer Concert Series Continues",
+    "summary": "Don't miss the remaining concerts in our summer series featuring local musicians.",
+    "content": "Our summer concert series continues with three more performances this month:\n\n• August 17th: The Pocono Folk Trio - Traditional folk music\n• August 24th: Jazz on the Lake - Contemporary jazz ensemble\n• August 31st: Summer's End Band - Classic rock covers\n\nAll concerts are held at the main pavilion starting at 7:00 PM. Bring your lawn chairs and blankets. Food trucks will be available starting at 6:00 PM.\n\nConcerts are free for all residents and their guests. In case of rain, performances will be moved to the community center.",
+    "author": "Recreation Committee",
+    "date": "2025-08-07",
+    "category": "event",
+    "featured": true
+  },
+  {
+    "id": "news-005",
+    "title": "Water Quality Report - Excellent Results",
+    "summary": "Latest water quality testing shows excellent results across all three lakes.",
+    "content": "We're pleased to report that our quarterly water quality testing has shown excellent results for all three lakes. The testing, conducted by certified environmental specialists, measured:\n\n• pH levels: Within optimal range (7.2-7.8)\n• Dissolved oxygen: Excellent (8-12 mg/L)\n• Bacterial levels: Well below safety thresholds\n• Clarity: Above average for natural lakes\n\nThese results indicate that our lakes remain safe for swimming, fishing, and other recreational activities. The community's ongoing conservation efforts, including the shoreline protection program and storm water management, continue to maintain our lakes' health.\n\nDetailed reports are available at the community office for residents who wish to review the complete data.",
+    "author": "Environmental Committee",
+    "date": "2025-08-03",
+    "category": "news",
+    "featured": false
+  }
+]

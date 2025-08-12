@@ -1,3 +1,47 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+
+interface ArchivedIssue {
+    id: number
+    title: string
+    date: string
+    pages: number
+    url?: string
+}
+
+const archivedIssues = ref<ArchivedIssue[]>([
+    {
+        id: 1,
+        title: 'Summer 2025 Edition',
+        date: 'July 2025',
+        pages: 12
+    },
+    {
+        id: 2,
+        title: 'Spring 2025 Edition',
+        date: 'April 2025',
+        pages: 10
+    },
+    {
+        id: 3,
+        title: 'Winter 2024 Edition',
+        date: 'December 2024',
+        pages: 8
+    }
+])
+
+function openIssue(issue: ArchivedIssue) {
+    $q.notify({
+        message: `Opening ${issue.title}`,
+        caption: 'Archive feature coming soon!',
+        icon: 'mdi-information'
+    })
+}
+</script>
+
 <template>
     <q-page padding>
         <div class="q-pa-md">
@@ -46,47 +90,3 @@
         </div>
     </q-page>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useQuasar } from 'quasar'
-
-const $q = useQuasar()
-
-interface ArchivedIssue {
-    id: number
-    title: string
-    date: string
-    pages: number
-    url?: string
-}
-
-const archivedIssues = ref<ArchivedIssue[]>([
-    {
-        id: 1,
-        title: 'Summer 2025 Edition',
-        date: 'July 2025',
-        pages: 12
-    },
-    {
-        id: 2,
-        title: 'Spring 2025 Edition',
-        date: 'April 2025',
-        pages: 10
-    },
-    {
-        id: 3,
-        title: 'Winter 2024 Edition',
-        date: 'December 2024',
-        pages: 8
-    }
-])
-
-function openIssue(issue: ArchivedIssue) {
-    $q.notify({
-        message: `Opening ${issue.title}`,
-        caption: 'Archive feature coming soon!',
-        icon: 'mdi-information'
-    })
-}
-</script>

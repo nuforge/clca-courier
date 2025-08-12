@@ -1,0 +1,109 @@
+[
+  {
+    "id": "classified-001",
+    "title": "Kayak for Sale - Almost New",
+    "description": "Barely used single-person kayak in excellent condition. Includes paddle and life vest. Perfect for exploring our beautiful lakes. Only used a handful of times.",
+    "price": "$350",
+    "category": "for-sale",
+    "contact": {
+      "name": "Mike Johnson",
+      "email": "mjohnson@email.com",
+      "phone": "(570) 555-0156"
+    },
+    "datePosted": "2025-08-10",
+    "featured": true
+  },
+  {
+    "id": "classified-002",
+    "title": "Professional Lawn Care Services",
+    "description": "Experienced lawn care professional offering mowing, trimming, leaf removal, and seasonal cleanup. Serving Conashaugh Lakes community for over 5 years. Fully insured and reliable.",
+    "category": "services",
+    "contact": {
+      "name": "Green Thumb Landscaping",
+      "email": "contact@greenthumbpa.com",
+      "phone": "(570) 555-0198"
+    },
+    "datePosted": "2025-08-09",
+    "featured": true
+  },
+  {
+    "id": "classified-003",
+    "title": "Dock Space Available for Rent",
+    "description": "Private dock space available on Lake 2. Perfect for small to medium boats. Includes electricity hookup and storage locker. Available immediately.",
+    "price": "$200/month",
+    "category": "for-sale",
+    "contact": {
+      "name": "Sarah Mitchell",
+      "email": "smitchell@email.com",
+      "phone": "(570) 555-0142"
+    },
+    "datePosted": "2025-08-08",
+    "featured": false
+  },
+  {
+    "id": "classified-004",
+    "title": "Babysitting Services Available",
+    "description": "Responsible high school student available for babysitting. Have experience with children ages 3-12. CPR certified and excellent references available.",
+    "category": "services",
+    "contact": {
+      "name": "Emma Davis",
+      "email": "emma.davis@email.com",
+      "phone": "(570) 555-0167"
+    },
+    "datePosted": "2025-08-07",
+    "featured": false
+  },
+  {
+    "id": "classified-005",
+    "title": "Looking for Fishing Buddy",
+    "description": "Retired gentleman seeking fishing companion for early morning trips. Have boat and all equipment. Just looking for good company and someone to share fishing stories with.",
+    "category": "wanted",
+    "contact": {
+      "name": "Robert Chen",
+      "email": "rchen@email.com",
+      "phone": "(570) 555-0134"
+    },
+    "datePosted": "2025-08-06",
+    "featured": false
+  },
+  {
+    "id": "classified-006",
+    "title": "Free Firewood - You Haul",
+    "description": "Large pile of seasoned firewood available for free. Recently had several trees removed and have more wood than we can use. You must pick up and haul yourself.",
+    "category": "free",
+    "contact": {
+      "name": "The Williams Family",
+      "email": "williams.family@email.com",
+      "phone": "(570) 555-0189"
+    },
+    "datePosted": "2025-08-05",
+    "featured": false
+  },
+  {
+    "id": "classified-007",
+    "title": "Pontoon Boat for Sale",
+    "description": "2019 Sun Tracker Party Barge 20ft pontoon boat. Low hours, well maintained, includes cover and trailer. Perfect for family fun on the lakes.",
+    "price": "$18,500",
+    "category": "for-sale",
+    "contact": {
+      "name": "Tom Anderson",
+      "email": "tanderson@email.com",
+      "phone": "(570) 555-0176"
+    },
+    "datePosted": "2025-08-04",
+    "featured": true
+  },
+  {
+    "id": "classified-008",
+    "title": "House Cleaning Service",
+    "description": "Professional house cleaning service with 10+ years experience. Weekly, bi-weekly, or monthly service available. Eco-friendly products used. Fully bonded and insured.",
+    "category": "services",
+    "contact": {
+      "name": "Sparkle Clean Services",
+      "email": "info@sparklecleanpa.com",
+      "phone": "(570) 555-0155"
+    },
+    "datePosted": "2025-08-03",
+    "featured": false
+  }
+]

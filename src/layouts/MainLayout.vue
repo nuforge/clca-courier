@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useSiteStore } from '../stores/site-store-simple';
 
+const siteStore = useSiteStore();
 const leftDrawerOpen = ref(false);
 
 function toggleLeftDrawer() {
@@ -61,17 +63,19 @@ const navigationItems: NavigationItem[] = [
 
         <q-toolbar-title> The Courier </q-toolbar-title>
 
+        <q-btn flat round dense :icon="siteStore.isDarkMode ? 'mdi-brightness-7' : 'mdi-brightness-4'"
+          @click="siteStore.toggleDarkMode"
+          :title="siteStore.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" />
+
         <div>Quasar v{{ $q.version }}</div>
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
+    <q-drawer v-model="leftDrawerOpen" show-if-above :class="siteStore.isDarkMode ? 'bg-dark' : 'bg-white'">
       <q-list>
-        <q-item-label header class="text-grey-8">
-          Navigation
-        </q-item-label>
 
-        <q-item v-for="item in navigationItems" :key="item.title" :to="item.link" clickable v-ripple>
+        <q-item v-for="item in navigationItems" :key="item.title" :to="item.link" clickable v-ripple
+          exact-active-class="nav-item-active" class="nav-item">
           <q-item-section avatar>
             <q-icon :name="item.icon" />
           </q-item-section>
@@ -83,8 +87,49 @@ const navigationItems: NavigationItem[] = [
       </q-list>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container :class="siteStore.isDarkMode ? 'bg-dark-page' : 'bg-white'">
       <router-view />
     </q-page-container>
   </q-layout>
 </template>
+
+<style lang="scss" scoped>
+.nav-item {
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(var(--q-primary-rgb), 0.1);
+  }
+}
+
+.nav-item-active {
+  background-color: var(--q-page-background, white);
+  font-weight: 600;
+
+  :deep(.q-item__label) {
+    color: var(--q-on-surface, var(--q-dark));
+  }
+
+  :deep(.q-item__section--avatar .q-icon) {
+    color: var(--q-primary);
+  }
+}
+
+// Ensure proper contrast in dark mode
+body.body--dark .nav-item-active {
+  background-color: var(--q-dark-page, #121212);
+
+  :deep(.q-item__label) {
+    color: var(--q-on-dark-surface, white);
+  }
+}
+
+// Ensure proper contrast in light mode
+body.body--light .nav-item-active {
+  background-color: white;
+
+  :deep(.q-item__label) {
+    color: var(--q-dark, #1d1d1d);
+  }
+}
+</style>

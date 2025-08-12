@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+</script>
+
 <template>
   <q-page padding>
     <div class="q-pa-md">
@@ -92,9 +98,3 @@
     </div>
   </q-page>
 </template>
-
-<script setup lang="ts">
-import { useQuasar } from 'quasar'
-
-const $q = useQuasar()
-</script>

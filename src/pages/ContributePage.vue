@@ -1,3 +1,45 @@
+<script setup lang="ts">
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+
+function submitArticle() {
+    $q.notify({
+        message: 'Article submission form',
+        caption: 'Feature coming soon!',
+        icon: 'mdi-file-document-edit',
+        color: 'primary'
+    })
+}
+
+function submitPhotos() {
+    $q.notify({
+        message: 'Photo upload feature',
+        caption: 'Feature coming soon!',
+        icon: 'mdi-camera',
+        color: 'secondary'
+    })
+}
+
+function postEvent() {
+    $q.notify({
+        message: 'Event posting form',
+        caption: 'Feature coming soon!',
+        icon: 'mdi-calendar-plus',
+        color: 'accent'
+    })
+}
+
+function shareIdeas() {
+    $q.notify({
+        message: 'Ideas submission form',
+        caption: 'Feature coming soon!',
+        icon: 'mdi-lightbulb',
+        color: 'positive'
+    })
+}
+</script>
+
 <template>
     <q-page padding>
         <div class="q-pa-md">
@@ -134,45 +176,3 @@
         </div>
     </q-page>
 </template>
-
-<script setup lang="ts">
-import { useQuasar } from 'quasar'
-
-const $q = useQuasar()
-
-function submitArticle() {
-    $q.notify({
-        message: 'Article submission form',
-        caption: 'Feature coming soon!',
-        icon: 'mdi-file-document-edit',
-        color: 'primary'
-    })
-}
-
-function submitPhotos() {
-    $q.notify({
-        message: 'Photo upload feature',
-        caption: 'Feature coming soon!',
-        icon: 'mdi-camera',
-        color: 'secondary'
-    })
-}
-
-function postEvent() {
-    $q.notify({
-        message: 'Event posting form',
-        caption: 'Feature coming soon!',
-        icon: 'mdi-calendar-plus',
-        color: 'accent'
-    })
-}
-
-function shareIdeas() {
-    $q.notify({
-        message: 'Ideas submission form',
-        caption: 'Feature coming soon!',
-        icon: 'mdi-lightbulb',
-        color: 'positive'
-    })
-}
-</script>

@@ -1,3 +1,54 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+
+const form = ref({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+})
+
+const submitting = ref(false)
+
+const subjectOptions = [
+    'General Inquiry',
+    'Article Submission',
+    'Photo Submission',
+    'Event Announcement',
+    'Advertising',
+    'Technical Issue',
+    'Feedback',
+    'Other'
+]
+
+async function onSubmit() {
+    submitting.value = true
+
+    // Simulate form submission
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    $q.notify({
+        message: 'Message sent successfully!',
+        caption: 'We\'ll get back to you soon.',
+        color: 'positive',
+        icon: 'mdi-check-circle'
+    })
+
+    // Reset form
+    form.value = {
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+    }
+
+    submitting.value = false
+}
+</script>
+
 <template>
     <q-page padding>
         <div class="q-pa-md">
@@ -164,54 +215,3 @@
         </div>
     </q-page>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useQuasar } from 'quasar'
-
-const $q = useQuasar()
-
-const form = ref({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-})
-
-const submitting = ref(false)
-
-const subjectOptions = [
-    'General Inquiry',
-    'Article Submission',
-    'Photo Submission',
-    'Event Announcement',
-    'Advertising',
-    'Technical Issue',
-    'Feedback',
-    'Other'
-]
-
-async function onSubmit() {
-    submitting.value = true
-
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    $q.notify({
-        message: 'Message sent successfully!',
-        caption: 'We\'ll get back to you soon.',
-        color: 'positive',
-        icon: 'mdi-check-circle'
-    })
-
-    // Reset form
-    form.value = {
-        name: '',
-        email: '',
-        subject: '',
-        message: ''
-    }
-
-    submitting.value = false
-}
-</script>

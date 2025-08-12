@@ -1,3 +1,18 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useSiteStore } from '../stores/site-store-simple';
+import type { NewsItem } from '../components/models';
+
+const siteStore = useSiteStore();
+const showDialog = ref(false);
+const selectedArticle = ref<NewsItem | null>(null);
+
+function showArticleDetail(article: NewsItem) {
+  selectedArticle.value = article;
+  showDialog.value = true;
+}
+</script>
+
 <template>
   <q-page padding>
     <div class="q-pa-md">
@@ -11,45 +26,62 @@
               </div>
               <p class="text-body1">
                 Stay informed with the latest news and updates from the Conashaugh Lakes community.
-                This section will feature important announcements, community events, and relevant news
+                This section features important announcements, community events, and relevant news
                 that affects our residents.
               </p>
             </q-card-section>
           </q-card>
 
+          <!-- Featured News -->
+          <div v-if="siteStore.featuredNews.length > 0">
+            <div class="text-h5 q-mb-md">Featured News</div>
+            <div class="row q-gutter-md q-mb-xl">
+              <div class="col-12 col-md-6" v-for="article in siteStore.featuredNews" :key="article.id">
+                <q-card flat bordered class="full-height">
+                  <q-card-section>
+                    <div class="text-overline text-primary">{{ article.category.toUpperCase() }}</div>
+                    <div class="text-h6 q-mb-sm">{{ article.title }}</div>
+                    <div class="text-body2 text-grey-7 q-mb-md">{{ article.summary }}</div>
+                    <div class="text-caption text-grey-6">
+                      By {{ article.author }} • {{ new Date(article.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) }}
+                    </div>
+                  </q-card-section>
+                  <q-card-actions>
+                    <q-btn flat color="primary" label="Read More" @click="showArticleDetail(article)" />
+                  </q-card-actions>
+                </q-card>
+              </div>
+            </div>
+          </div>
+
+          <!-- All News -->
+          <div class="text-h5 q-mb-md">All News & Updates</div>
           <q-card flat bordered class="q-mb-md">
             <q-card-section>
-              <div class="text-h6 q-mb-sm">Recent Updates</div>
-              <q-separator class="q-mb-md" />
-
               <q-list separator>
-                <q-item>
+                <q-item v-for="article in siteStore.newsItems" :key="article.id" clickable
+                  @click="showArticleDetail(article)">
                   <q-item-section>
-                    <q-item-label class="text-weight-medium">Community Meeting Notice</q-item-label>
-                    <q-item-label caption>August 10, 2025</q-item-label>
-                    <q-item-label class="q-mt-sm">
-                      The monthly community meeting will be held on August 15th at 7 PM in the community center.
+                    <q-item-label class="text-weight-medium">{{ article.title }}</q-item-label>
+                    <q-item-label caption>
+                      {{ article.category.toUpperCase() }} •
+                      {{ new Date(article.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) }} •
+                      By {{ article.author }}
+                    </q-item-label>
+                    <q-item-label class="q-mt-sm text-body2">
+                      {{ article.summary }}
                     </q-item-label>
                   </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">Lake Activities Schedule</q-item-label>
-                    <q-item-label caption>August 8, 2025</q-item-label>
-                    <q-item-label class="q-mt-sm">
-                      Summer lake activities schedule has been updated. Check the community board for details.
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">Road Maintenance Update</q-item-label>
-                    <q-item-label caption>August 5, 2025</q-item-label>
-                    <q-item-label class="q-mt-sm">
-                      Scheduled road maintenance will begin Monday, August 12th. Please plan alternative routes.
-                    </q-item-label>
+                  <q-item-section side>
+                    <q-icon name="chevron_right" color="grey" />
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -58,9 +90,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Article Detail Dialog -->
+    <q-dialog v-model="showDialog" position="right" full-height>
+      <q-card style="width: 500px; max-width: 90vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ selectedArticle?.title }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section v-if="selectedArticle">
+          <div class="text-overline text-primary q-mb-sm">{{ selectedArticle.category.toUpperCase() }}
+          </div>
+          <div class="text-caption text-grey-6 q-mb-md">
+            By {{ selectedArticle.author }} • {{ new
+              Date(selectedArticle.date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }) }}
+          </div>
+          <div class="text-body1" style="white-space: pre-line;">{{ selectedArticle.content }}</div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
-
-<script setup lang="ts">
-// No additional logic needed for this page
-</script>

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "event-001",
+    "title": "Community Board Meeting",
+    "description": "Monthly community board meeting to discuss ongoing projects, community concerns, and upcoming initiatives. All residents welcome.",
+    "date": "2025-08-15",
+    "time": "7:00 PM",
+    "location": "Community Center",
+    "organizer": "Community Board"
+  },
+  {
+    "id": "event-002",
+    "title": "Summer Concert: Pocono Folk Trio",
+    "description": "Enjoy an evening of traditional folk music with the talented Pocono Folk Trio. Bring your lawn chairs and blankets!",
+    "date": "2025-08-17",
+    "time": "7:00 PM",
+    "location": "Main Pavilion",
+    "organizer": "Recreation Committee"
+  },
+  {
+    "id": "event-003",
+    "title": "Lake Cleanup Day",
+    "description": "Annual volunteer lake cleanup day. Help keep our lakes beautiful! All supplies provided, lunch included for volunteers.",
+    "date": "2025-08-20",
+    "time": "9:00 AM",
+    "location": "Main Beach Area",
+    "organizer": "Environmental Committee"
+  },
+  {
+    "id": "event-004",
+    "title": "Summer Concert: Jazz on the Lake",
+    "description": "Contemporary jazz ensemble performing lakeside. Food trucks available starting at 6:00 PM.",
+    "date": "2025-08-24",
+    "time": "7:00 PM",
+    "location": "Main Pavilion",
+    "organizer": "Recreation Committee"
+  },
+  {
+    "id": "event-005",
+    "title": "Children's Fishing Derby",
+    "description": "Annual fishing contest for kids 12 and under. Prizes for biggest fish, most fish, and participation. All equipment provided.",
+    "date": "2025-08-27",
+    "time": "8:00 AM",
+    "location": "Lake 1 Fishing Pier",
+    "organizer": "Youth Committee"
+  },
+  {
+    "id": "event-006",
+    "title": "Summer Concert: Summer's End Band",
+    "description": "Close out our summer concert series with classic rock covers from Summer's End Band. Final concert of the season!",
+    "date": "2025-08-31",
+    "time": "7:00 PM",
+    "location": "Main Pavilion",
+    "organizer": "Recreation Committee"
+  },
+  {
+    "id": "event-007",
+    "title": "Labor Day Picnic",
+    "description": "Community-wide Labor Day celebration with games, food, and activities for the whole family. Potluck style - bring a dish to share!",
+    "date": "2025-09-01",
+    "time": "12:00 PM",
+    "location": "Community Park",
+    "organizer": "Social Committee"
+  },
+  {
+    "id": "event-008",
+    "title": "Fall Newsletter Submission Deadline",
+    "description": "Deadline for submitting articles, photos, and announcements for the fall issue of The Courier newsletter.",
+    "date": "2025-09-10",
+    "time": "11:59 PM",
+    "location": "Submit via email or community office",
+    "organizer": "Editorial Team"
+  },
+  {
+    "id": "event-009",
+    "title": "Community Yard Sale",
+    "description": "Annual community-wide yard sale. Reserve your spot early! Maps will be available at the entrance.",
+    "date": "2025-09-14",
+    "time": "8:00 AM - 3:00 PM",
+    "location": "Throughout Community",
+    "organizer": "Social Committee"
+  },
+  {
+    "id": "event-010",
+    "title": "Fall Foliage Photography Walk",
+    "description": "Guided photography walk to capture the beautiful fall colors around our lakes. All skill levels welcome, bring your camera or phone.",
+    "date": "2025-10-05",
+    "time": "10:00 AM",
+    "location": "Meet at Community Center",
+    "organizer": "Photography Club"
+  }
+]
