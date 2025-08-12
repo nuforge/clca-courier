@@ -1,12 +1,8 @@
 <template>
   <q-layout :view="viewConfig">
     <slot name="header">
-      <AppHeader 
-        v-if="showHeader" 
-        v-model="searchValue" 
-        :show-menu-button="!!showMenuButton"
-        @toggle-drawer="toggleDrawer" 
-      />
+      <AppHeader v-if="showHeader" v-model="searchValue" :show-menu-button="!!showMenuButton"
+        @toggle-drawer="toggleDrawer" />
     </slot>
 
     <slot name="navigation">

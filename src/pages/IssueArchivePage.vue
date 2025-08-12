@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useSiteStore } from '../stores/site-store-simple'
+import { usePdfThumbnails } from '../composables/usePdfThumbnails'
 import PdfViewer from '../components/PdfViewer.vue'
 import type { WebViewerInstance } from '@pdftron/webviewer'
 
 const $q = useQuasar()
 const siteStore = useSiteStore()
+const { getThumbnail } = usePdfThumbnails()
 
 // Computed property for card theme classes
 const cardClasses = computed(() => {
@@ -20,7 +22,9 @@ const cardClasses = computed(() => {
 
 const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
-); interface ArchivedIssue {
+)
+
+interface ArchivedIssue {
   id: number
   title: string
   date: string
@@ -51,12 +55,36 @@ const archivedIssues = ref<ArchivedIssue[]>([
 const selectedIssue = ref<ArchivedIssue | null>(null)
 const showViewer = ref(false)
 const pdfViewerRef = ref<InstanceType<typeof PdfViewer> | null>(null)
+const thumbnails = ref<Record<number, string>>({})
+const loadingThumbnails = ref<Set<number>>(new Set())
 
 onMounted(() => {
   if (archivedIssues.value.length > 0) {
     selectedIssue.value = archivedIssues.value[0] || null
+
+    // Generate thumbnails for all issues
+    for (const issue of archivedIssues.value) {
+      void loadThumbnail(issue)
+    }
   }
 })
+
+async function loadThumbnail(issue: ArchivedIssue) {
+  if (thumbnails.value[issue.id]) return
+
+  loadingThumbnails.value.add(issue.id)
+
+  try {
+    const thumbnail = await getThumbnail(issue.url)
+    if (thumbnail) {
+      thumbnails.value[issue.id] = thumbnail
+    }
+  } catch (error) {
+    console.error('Failed to load thumbnail for', issue.title, error)
+  } finally {
+    loadingThumbnails.value.delete(issue.id)
+  }
+}
 
 function openIssue(issue: ArchivedIssue) {
   selectedIssue.value = issue
@@ -150,7 +178,19 @@ function onPdfViewerError(error: string) {
                 <div class="col-12 col-sm-6 col-md-4" v-for="issue in archivedIssues" :key="issue.id">
                   <q-card flat :class="cardClasses" class="cursor-pointer hover-card" @click="openIssue(issue)">
                     <q-card-section class="text-center">
-                      <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" class="q-mb-sm" />
+                      <!-- Thumbnail or placeholder -->
+                      <div class="thumbnail-container q-mb-sm">
+                        <q-img v-if="thumbnails[issue.id]" :src="thumbnails[issue.id]" :alt="issue.title"
+                          class="thumbnail-image" fit="contain" />
+                        <div v-else-if="loadingThumbnails.has(issue.id)" class="thumbnail-placeholder">
+                          <q-spinner color="primary" size="2em" />
+                          <div class="text-caption q-mt-sm">Generating thumbnail...</div>
+                        </div>
+                        <div v-else class="thumbnail-placeholder">
+                          <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" />
+                        </div>
+                      </div>
+
                       <div class="text-weight-medium">{{ issue.title }}</div>
                       <div class="text-caption" :class="greyTextClass">{{ issue.date }}</div>
                       <div class="text-caption q-mt-sm">{{ issue.pages }} pages</div>
@@ -181,5 +221,28 @@ function onPdfViewerError(error: string) {
 .hover-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.thumbnail-container {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.thumbnail-image {
+  max-width: 80px;
+  max-height: 120px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-placeholder {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
 </style>
