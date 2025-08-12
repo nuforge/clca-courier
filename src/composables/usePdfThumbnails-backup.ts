@@ -1,11 +1,5 @@
 import { ref, computed } from 'vue';
 import WebViewer, { type WebViewerInstance } from '@pdftron/webviewer';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker (reference public file, don't import)
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-}
 
 interface ThumbnailCache {
   [url: string]: string; // base64 image data
@@ -92,55 +86,6 @@ export function usePdfThumbnails() {
     return '';
   };
 
-  const generatePDFJSThumbnail = async (url: string): Promise<string | null> => {
-    try {
-      console.log('🔄 Attempting PDF.js thumbnail generation for:', url);
-
-      // Load the PDF document using PDF.js
-      const loadingTask = pdfjsLib.getDocument(url);
-      const pdf = await loadingTask.promise;
-
-      // Get the first page
-      const page = await pdf.getPage(1);
-
-      // Set up the canvas
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-
-      if (!context) {
-        console.warn('❌ PDF.js: Could not get canvas context');
-        return null;
-      }
-
-      // Calculate scale to fit desired thumbnail size
-      const viewport = page.getViewport({ scale: 1 });
-      const targetWidth = 200;
-      const targetHeight = 280;
-      const scale = Math.min(targetWidth / viewport.width, targetHeight / viewport.height);
-      const scaledViewport = page.getViewport({ scale });
-
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
-
-      // Render the page
-      const renderContext = {
-        canvasContext: context,
-        viewport: scaledViewport,
-      };
-
-      await page.render(renderContext).promise;
-
-      // Convert to base64
-      const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
-      console.log('✅ PDF.js thumbnail generated successfully');
-
-      return thumbnail;
-    } catch (error) {
-      console.warn('❌ PDF.js thumbnail generation failed:', error);
-      return null;
-    }
-  };
-
   const generateActualThumbnail = async (url: string): Promise<string | null> => {
     return new Promise((resolve) => {
       // Create a hidden container for WebViewer
@@ -167,11 +112,34 @@ export function usePdfThumbnails() {
         }
       };
 
-      // Set timeout to prevent hanging
+      // Set timeout to prevent hanging - increased for non-linearized PDFs
       const timeoutId = setTimeout(() => {
         cleanup();
         resolve(null);
-      }, 10000);
+      }, 15000);
+
+      // Suppress specific WebViewer warnings
+      const originalConsoleWarn = console.warn;
+      const originalConsoleLog = console.log;
+
+      const suppressWarnings = (...args: unknown[]) => {
+        const message = args[0]?.toString() || '';
+        if (
+          message.includes('WebAssembly threads') ||
+          message.includes('Content-Encoding') ||
+          message.includes('linearized') ||
+          message.includes('demo mode') ||
+          message.includes('PDFNet is running') ||
+          message.includes('Permission:') ||
+          message.includes('Thank you for downloading WebViewer')
+        ) {
+          return; // Suppress these specific warnings
+        }
+        originalConsoleWarn.apply(console, args);
+      };
+
+      console.warn = suppressWarnings;
+      console.log = suppressWarnings;
 
       WebViewer(
         {
@@ -181,6 +149,11 @@ export function usePdfThumbnails() {
           enableMeasurement: false,
           enableFilePicker: false,
           ui: 'legacy',
+          // Optimize for non-linearized PDFs
+          streaming: false,
+          useDownloader: false,
+          // Add license key from environment if available
+          licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY || '',
           disabledElements: [
             'header',
             'toolsHeader',
@@ -205,6 +178,8 @@ export function usePdfThumbnails() {
           const { documentViewer } = instance.Core;
 
           documentViewer.addEventListener('documentLoadError', () => {
+            console.warn = originalConsoleWarn;
+            console.log = originalConsoleLog;
             clearTimeout(timeoutId);
             cleanup();
             resolve(null);
@@ -216,37 +191,16 @@ export function usePdfThumbnails() {
               documentViewer.setCurrentPage(1, true);
               documentViewer.setFitMode(documentViewer.FitMode.FitPage);
 
-              // Wait for rendering
-              await new Promise((resolve) => setTimeout(resolve, 2000));
+              // Wait longer for rendering, especially for non-linearized PDFs
+              await new Promise((resolve) => setTimeout(resolve, 3000));
 
               // Get canvas with PDF content
               const canvasElements = container.querySelectorAll('canvas');
               let bestCanvas: HTMLCanvasElement | null = null;
 
-              // Check license type for canvas access restrictions
-              const licenseKey = import.meta.env.VITE_PDFTRON_LICENSE_KEY || '';
-              const isDemoLicense = licenseKey.startsWith('demo:') || licenseKey === '';
-              console.log(`License type: ${isDemoLicense ? 'Demo/Trial' : 'Production'}`);
-
               // Find the largest canvas (likely the main content)
               for (const canvas of canvasElements) {
-                console.log(`Canvas size: ${canvas.width}x${canvas.height}`);
-
                 if (canvas.width > 50 && canvas.height > 50) {
-                  // For demo licenses, test canvas data access
-                  if (isDemoLicense) {
-                    try {
-                      const testCtx = canvas.getContext('2d');
-                      if (testCtx) {
-                        testCtx.getImageData(0, 0, 1, 1); // Test canvas data access
-                        console.log('✅ Canvas data access: ALLOWED');
-                      }
-                    } catch {
-                      console.log('❌ Canvas data access: RESTRICTED (demo mode limitation)');
-                      continue; // Skip this canvas as it's restricted
-                    }
-                  }
-
                   if (
                     !bestCanvas ||
                     canvas.width * canvas.height > bestCanvas.width * bestCanvas.height
@@ -283,6 +237,9 @@ export function usePdfThumbnails() {
                   ctx.drawImage(bestCanvas, x, y, scaledWidth, scaledHeight);
 
                   const thumbnail = thumbnailCanvas.toDataURL('image/jpeg', 0.8);
+
+                  console.warn = originalConsoleWarn;
+                  console.log = originalConsoleLog;
                   clearTimeout(timeoutId);
                   cleanup();
                   resolve(thumbnail);
@@ -291,11 +248,15 @@ export function usePdfThumbnails() {
               }
 
               // If we get here, no suitable canvas was found
+              console.warn = originalConsoleWarn;
+              console.log = originalConsoleLog;
               clearTimeout(timeoutId);
               cleanup();
               resolve(null);
             } catch (error) {
               console.error('Error generating actual thumbnail:', error);
+              console.warn = originalConsoleWarn;
+              console.log = originalConsoleLog;
               clearTimeout(timeoutId);
               cleanup();
               resolve(null);
@@ -303,6 +264,8 @@ export function usePdfThumbnails() {
           });
         })
         .catch(() => {
+          console.warn = originalConsoleWarn;
+          console.log = originalConsoleLog;
           clearTimeout(timeoutId);
           cleanup();
           resolve(null);
@@ -311,57 +274,27 @@ export function usePdfThumbnails() {
   };
 
   const getThumbnail = async (url: string): Promise<string | null> => {
-    console.log('🔍 Starting optimized three-tier thumbnail generation for:', url);
-
     const cached = loadThumbnailFromCache(url);
     if (cached) {
-      console.log('✅ Using cached thumbnail');
       return cached;
     }
 
-    // OPTIMIZED THREE-TIER FALLBACK SYSTEM
-    // Tier 1: Try PDF.js first (fast, free, no license restrictions)
-    console.log('🎯 Tier 1: Attempting PDF.js thumbnail (fastest, most reliable)...');
+    // Try to generate actual PDF thumbnail first
     try {
-      const pdfJSThumbnail = await generatePDFJSThumbnail(url);
-      if (pdfJSThumbnail) {
-        console.log('✅ Tier 1 SUCCESS: PDF.js thumbnail generated');
-        localStorage.setItem(`pdf-thumb-${url}`, pdfJSThumbnail);
-        thumbnailCache.value[url] = pdfJSThumbnail;
-        return pdfJSThumbnail;
+      const actualThumbnail = await generateActualThumbnail(url);
+      if (actualThumbnail) {
+        // Cache the actual thumbnail
+        localStorage.setItem(`pdf-thumb-${url}`, actualThumbnail);
+        thumbnailCache.value[url] = actualThumbnail;
+        return actualThumbnail;
       }
-      console.log('⚠️ Tier 1 FAILED: PDF.js could not generate thumbnail');
-    } catch (error) {
-      console.warn('❌ Tier 1 ERROR: PDF.js thumbnail generation failed:', error);
+    } catch {
+      console.warn('Failed to generate actual PDF thumbnail for', url, '- using fallback');
     }
 
-    // Tier 2: Try WebViewer as fallback (higher quality but demo license limitations)
-    console.log('🎯 Tier 2: Attempting WebViewer thumbnail (fallback for quality)...');
-    try {
-      const webViewerThumbnail = await generateActualThumbnail(url);
-      if (webViewerThumbnail) {
-        console.log('✅ Tier 2 SUCCESS: WebViewer thumbnail generated');
-        localStorage.setItem(`pdf-thumb-${url}`, webViewerThumbnail);
-        thumbnailCache.value[url] = webViewerThumbnail;
-        return webViewerThumbnail;
-      }
-      console.log('⚠️ Tier 2 FAILED: WebViewer could not generate thumbnail');
-    } catch (error) {
-      console.warn('❌ Tier 2 ERROR: WebViewer thumbnail generation failed:', error);
-    }
-
-    // Tier 3: Generate styled fallback placeholder (always works)
-    console.log('🎯 Tier 3: Generating styled fallback placeholder...');
-    try {
-      const fallbackThumbnail = generateFallbackThumbnail(url);
-      console.log('✅ Tier 3 SUCCESS: Fallback placeholder generated');
-      localStorage.setItem(`pdf-thumb-${url}`, fallbackThumbnail);
-      thumbnailCache.value[url] = fallbackThumbnail;
-      return fallbackThumbnail;
-    } catch (error) {
-      console.error('❌ Tier 3 ERROR: Even fallback generation failed:', error);
-      return null;
-    }
+    // Fall back to styled placeholder
+    const fallback = generateFallbackThumbnail(url);
+    return fallback;
   };
 
   const clearCache = () => {

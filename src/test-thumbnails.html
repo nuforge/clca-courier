@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Thumbnail Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .test-item {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .thumbnail {
+        width: 200px;
+        height: 280px;
+        border: 1px solid #ccc;
+        display: inline-block;
+        margin: 10px;
+      }
+      .log {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>PDF Thumbnail Generation Test</h1>
+
+      <div class="test-item">
+        <h3>Test 1: July 2025 Edition</h3>
+        <button onclick="testThumbnail('/issues/7.2025.pdf', 'test1')">Generate Thumbnail</button>
+        <div id="test1-log" class="log"></div>
+        <div id="test1-result"></div>
+      </div>
+
+      <div class="test-item">
+        <h3>Test 2: June 2025 Edition</h3>
+        <button onclick="testThumbnail('/issues/Courier - 2025.06 - June.pdf', 'test2')">
+          Generate Thumbnail
+        </button>
+        <div id="test2-log" class="log"></div>
+        <div id="test2-result"></div>
+      </div>
+
+      <div class="test-item">
+        <h3>WebViewer Demo Mode Check</h3>
+        <button onclick="checkDemoMode()">Check Demo Mode Status</button>
+        <div id="demo-log" class="log"></div>
+      </div>
+    </div>
+
+    <script>
+      function log(testId, message) {
+        const logElement = document.getElementById(`${testId}-log`);
+        logElement.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+      }
+
+      function checkDemoMode() {
+        log('demo', 'Checking WebViewer demo mode status...');
+
+        // Create a temporary container
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-1000px';
+        container.style.top = '0';
+        container.style.width = '400px';
+        container.style.height = '400px';
+        document.body.appendChild(container);
+
+        // Capture console messages
+        const originalConsoleWarn = console.warn;
+        const originalConsoleLog = console.log;
+
+        const messages = [];
+        console.warn = (...args) => {
+          messages.push(`WARN: ${args.join(' ')}`);
+        };
+        console.log = (...args) => {
+          messages.push(`LOG: ${args.join(' ')}`);
+        };
+
+        // Try to initialize WebViewer
+        WebViewer(
+          {
+            path: '/webviewer',
+            licenseKey: '', // Empty for demo mode test
+          },
+          container,
+        )
+          .then((instance) => {
+            console.warn = originalConsoleWarn;
+            console.log = originalConsoleLog;
+
+            log('demo', 'WebViewer initialized successfully');
+            messages.forEach((msg) => log('demo', msg));
+
+            // Check for demo mode messages
+            const demoMessages = messages.filter(
+              (msg) =>
+                msg.includes('demo mode') ||
+                msg.includes('PDFNet is running') ||
+                msg.includes('trial') ||
+                msg.includes('license'),
+            );
+
+            if (demoMessages.length > 0) {
+              log('demo', 'DEMO MODE DETECTED:');
+              demoMessages.forEach((msg) => log('demo', `  ${msg}`));
+            } else {
+              log('demo', 'No demo mode messages detected');
+            }
+
+            // Cleanup
+            setTimeout(() => {
+              try {
+                instance.UI.dispose();
+                document.body.removeChild(container);
+              } catch (e) {
+                log('demo', `Cleanup error: ${e.message}`);
+              }
+            }, 1000);
+          })
+          .catch((error) => {
+            console.warn = originalConsoleWarn;
+            console.log = originalConsoleLog;
+            log('demo', `WebViewer initialization failed: ${error.message}`);
+            document.body.removeChild(container);
+          });
+      }
+
+      async function testThumbnail(url, testId) {
+        log(testId, `Starting thumbnail generation for: ${url}`);
+
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-2000px';
+        container.style.top = '0';
+        container.style.width = '600px';
+        container.style.height = '800px';
+        container.style.visibility = 'hidden';
+        document.body.appendChild(container);
+
+        let instance = null;
+        const cleanup = () => {
+          try {
+            if (container.parentNode) {
+              document.body.removeChild(container);
+            }
+            if (instance) {
+              instance.UI.dispose();
+            }
+          } catch (e) {
+            log(testId, `Cleanup error: ${e.message}`);
+          }
+        };
+
+        const timeoutId = setTimeout(() => {
+          log(testId, 'Timeout reached - thumbnail generation failed');
+          cleanup();
+        }, 20000);
+
+        try {
+          log(testId, 'Initializing WebViewer...');
+
+          instance = await WebViewer(
+            {
+              path: '/webviewer',
+              initialDoc: url,
+              enableRedaction: false,
+              enableMeasurement: false,
+              enableFilePicker: false,
+              ui: 'legacy',
+              streaming: false,
+              useDownloader: false,
+              licenseKey: '',
+              disabledElements: [
+                'header',
+                'toolsHeader',
+                'leftPanel',
+                'leftPanelButton',
+                'searchButton',
+                'menuButton',
+                'toolsButton',
+                'pageNavOverlay',
+              ],
+            },
+            container,
+          );
+
+          log(testId, 'WebViewer initialized, waiting for document...');
+
+          const { documentViewer } = instance.Core;
+
+          documentViewer.addEventListener('documentLoadError', (err) => {
+            log(testId, `Document load error: ${err}`);
+            clearTimeout(timeoutId);
+            cleanup();
+          });
+
+          documentViewer.addEventListener('documentLoaded', async () => {
+            try {
+              log(testId, 'Document loaded, processing...');
+
+              await documentViewer.getDocument().getDocumentCompletePromise();
+              documentViewer.setCurrentPage(1, true);
+              documentViewer.setFitMode(documentViewer.FitMode.FitPage);
+              documentViewer.refreshAll();
+              documentViewer.updateView();
+
+              log(testId, 'Waiting for rendering...');
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+
+              const canvasElements = container.querySelectorAll('canvas');
+              log(testId, `Found ${canvasElements.length} canvas elements`);
+
+              let bestCanvas = null;
+              for (const canvas of canvasElements) {
+                log(testId, `Canvas: ${canvas.width}x${canvas.height}`);
+                if (canvas.width > 100 && canvas.height > 100) {
+                  if (
+                    !bestCanvas ||
+                    canvas.width * canvas.height > bestCanvas.width * bestCanvas.height
+                  ) {
+                    bestCanvas = canvas;
+                  }
+                }
+              }
+
+              if (bestCanvas) {
+                log(testId, `Using canvas: ${bestCanvas.width}x${bestCanvas.height}`);
+
+                const thumbnailCanvas = document.createElement('canvas');
+                const ctx = thumbnailCanvas.getContext('2d');
+
+                thumbnailCanvas.width = 200;
+                thumbnailCanvas.height = 280;
+
+                const scale = Math.min(200 / bestCanvas.width, 280 / bestCanvas.height);
+                const scaledWidth = bestCanvas.width * scale;
+                const scaledHeight = bestCanvas.height * scale;
+                const x = (200 - scaledWidth) / 2;
+                const y = (280 - scaledHeight) / 2;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 200, 280);
+                ctx.drawImage(bestCanvas, x, y, scaledWidth, scaledHeight);
+
+                const thumbnail = thumbnailCanvas.toDataURL('image/jpeg', 0.8);
+
+                const img = document.createElement('img');
+                img.src = thumbnail;
+                img.className = 'thumbnail';
+                img.alt = `Thumbnail for ${url}`;
+
+                const resultDiv = document.getElementById(`${testId}-result`);
+                resultDiv.innerHTML = '';
+                resultDiv.appendChild(img);
+
+                log(testId, 'SUCCESS: Thumbnail generated!');
+              } else {
+                log(testId, 'FAILED: No suitable canvas found');
+              }
+
+              clearTimeout(timeoutId);
+              cleanup();
+            } catch (error) {
+              log(testId, `Error during processing: ${error.message}`);
+              clearTimeout(timeoutId);
+              cleanup();
+            }
+          });
+        } catch (error) {
+          log(testId, `WebViewer initialization failed: ${error.message}`);
+          clearTimeout(timeoutId);
+          cleanup();
+        }
+      }
+
+      // Load WebViewer script dynamically
+      function loadWebViewer() {
+        return new Promise((resolve, reject) => {
+          if (window.WebViewer) {
+            resolve();
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = '/webviewer/webviewer.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Initialize when page loads
+      window.addEventListener('load', async () => {
+        try {
+          log('demo', 'Loading WebViewer...');
+          await loadWebViewer();
+          log('demo', 'WebViewer loaded successfully');
+        } catch (error) {
+          log('demo', `Failed to load WebViewer: ${error.message}`);
+        }
+      });
+    </script>
+  </body>
+</html>

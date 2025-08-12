@@ -28,7 +28,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  licenseKey: 'qfUY16w5a406CX1SOSKl'
+  licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY || ''
 })
 
 const emit = defineEmits<{

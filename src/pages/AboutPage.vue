@@ -143,7 +143,7 @@ function contribute() {
             </div>
           </div>
 
-          <q-card :class="cardClasses" class="q-mt-lg">
+          <q-card flat :class="cardClasses" class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Community Statistics</div>
               <div class="row q-col-gutter-md text-center">

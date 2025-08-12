@@ -63,6 +63,18 @@ export default defineConfig((ctx) => {
       // extendViteConf (viteConf) {},
       // viteVuePluginOptions: {},
 
+      extendViteConf(viteConf) {
+        // Add compression support for WebViewer files
+        if (viteConf.server) {
+          viteConf.server.middlewareMode = false;
+          viteConf.server.headers = {
+            ...viteConf.server.headers,
+            'Cross-Origin-Embedder-Policy': 'require-corp',
+            'Cross-Origin-Opener-Policy': 'same-origin',
+          };
+        }
+      },
+
       vitePlugins: [
         [
           '@intlify/unplugin-vue-i18n/vite',
@@ -99,6 +111,10 @@ export default defineConfig((ctx) => {
     devServer: {
       // https: true,
       open: false, // opens browser window automatically
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      },
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
