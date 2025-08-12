@@ -176,7 +176,7 @@ function onPdfViewerError(error: string) {
 
               <div class="row q-col-gutter-md">
                 <div class="col-12 col-sm-6 col-md-4" v-for="issue in archivedIssues" :key="issue.id">
-                  <q-card flat :class="cardClasses" class="cursor-pointer hover-card" @click="openIssue(issue)">
+                  <q-card :class="cardClasses" class="cursor-pointer hover-card" @click="openIssue(issue)">
                     <q-card-section class="text-center">
                       <!-- Thumbnail or placeholder -->
                       <div class="thumbnail-container q-mb-sm">

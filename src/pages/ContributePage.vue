@@ -73,7 +73,7 @@ function shareIdeas() {
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
@@ -91,7 +91,7 @@ function shareIdeas() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-camera" class="q-mr-sm" />
@@ -109,7 +109,7 @@ function shareIdeas() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-calendar" class="q-mr-sm" />
@@ -126,7 +126,7 @@ function shareIdeas() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-lightbulb" class="q-mr-sm" />
@@ -143,7 +143,7 @@ function shareIdeas() {
             </div>
           </div>
 
-          <q-card flat :class="cardClasses" class="q-mt-lg">
+          <q-card :class="cardClasses" class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Submission Guidelines</div>
               <q-list>

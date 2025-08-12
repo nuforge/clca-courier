@@ -37,7 +37,7 @@ const cardClasses = computed(() => {
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-tag" class="q-mr-sm" />
@@ -70,7 +70,7 @@ const cardClasses = computed(() => {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-tools" class="q-mr-sm" />

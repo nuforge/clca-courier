@@ -79,7 +79,7 @@ async function onSubmit() {
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">Contact Information</div>
 
@@ -137,7 +137,7 @@ async function onSubmit() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat :class="cardClasses">
+              <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">Send us a Message</div>
 
@@ -178,7 +178,7 @@ async function onSubmit() {
             </div>
           </div>
 
-          <q-card flat :class="cardClasses" class="q-mt-lg">
+          <q-card :class="cardClasses" class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Editorial Team</div>
               <div class="row q-col-gutter-md">

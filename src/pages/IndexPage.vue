@@ -155,7 +155,7 @@ const quickLinks: QuickLink[] = [
       <!-- Community Stats -->
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat :class="cardClasses">
+          <q-card :class="cardClasses">
             <q-card-section>
               <div class="text-h6 text-center q-mb-md">Our Community</div>
               <div class="row text-center">

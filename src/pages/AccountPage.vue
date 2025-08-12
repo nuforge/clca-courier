@@ -14,7 +14,7 @@ const { isDarkMode, toggleDarkMode } = useTheme();
             <q-icon name="mdi-account-circle" class="q-mr-sm" />
             Account
           </div>
-          <q-card class="q-mb-md">
+          <q-card flat class="q-mb-md">
             <q-card-section>
               <div class="text-h6">User Profile</div>
               <div class="text-body1 q-mt-md">
