@@ -119,7 +119,9 @@ export const useSiteStore = defineStore('site', () => {
   function toggleDarkMode() {
     const $q = useQuasar();
     isDarkMode.value = !isDarkMode.value;
-    $q.dark.set(isDarkMode.value);
+    if ($q.dark) {
+      $q.dark.set(isDarkMode.value);
+    }
   }
 
   function toggleMenu() {
@@ -129,7 +131,9 @@ export const useSiteStore = defineStore('site', () => {
   function setDarkMode(value: boolean) {
     isDarkMode.value = value;
     const $q = useQuasar();
-    $q.dark.set(value);
+    if ($q.dark) {
+      $q.dark.set(value);
+    }
   }
 
   return {

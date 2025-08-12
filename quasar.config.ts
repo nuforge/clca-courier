@@ -133,6 +133,7 @@ export default defineConfig((ctx) => {
       plugins: [
         'Dialog',
         'Notify', // Add Notify plugin
+        'Dark', // Add Dark plugin for dark mode support
       ],
     },
 
