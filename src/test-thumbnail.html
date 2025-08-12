@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Thumbnail Test</title>
+  </head>
+  <body>
+    <h1>Thumbnail Generation Test</h1>
+    <button onclick="generateTest()">Generate Test Thumbnail</button>
+    <div id="result"></div>
+    <div id="image-container"></div>
+
+    <script>
+      function generateTest() {
+        console.log('Generating test thumbnail...');
+
+        // Create a nice-looking PDF placeholder
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 280;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          // Create gradient background
+          const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+          gradient.addColorStop(0, '#f8f9fa');
+          gradient.addColorStop(1, '#e9ecef');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 200, 280);
+
+          // Add border
+          ctx.strokeStyle = '#dee2e6';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(1, 1, 198, 278);
+
+          // Add document icon area
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(30, 50, 140, 100);
+          ctx.strokeStyle = '#dee2e6';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(30, 50, 140, 100);
+
+          // Add folded corner effect
+          ctx.fillStyle = '#e9ecef';
+          ctx.beginPath();
+          ctx.moveTo(150, 50);
+          ctx.lineTo(170, 50);
+          ctx.lineTo(170, 70);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = '#dee2e6';
+          ctx.stroke();
+
+          // Add PDF text
+          ctx.fillStyle = '#dc3545';
+          ctx.font = 'bold 20px Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('PDF', 100, 110);
+
+          // Add filename
+          ctx.fillStyle = '#6c757d';
+          ctx.font = '11px Arial, sans-serif';
+          const filename = 'test.pdf';
+          ctx.fillText(filename, 100, 180);
+
+          ctx.font = '9px Arial, sans-serif';
+          ctx.fillText('Click to view full document', 100, 210);
+
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+
+          console.log('Generated thumbnail:', thumbnail.substring(0, 100) + '...');
+          document.getElementById('result').innerHTML = `
+                    <p>Thumbnail generated successfully!</p>
+                    <p>Length: ${thumbnail.length}</p>
+                    <p>Type: ${typeof thumbnail}</p>
+                    <p>Starts with: ${thumbnail.substring(0, 50)}...</p>
+                `;
+
+          const img = document.createElement('img');
+          img.src = thumbnail;
+          img.style.maxWidth = '200px';
+          img.style.border = '1px solid #ccc';
+          document.getElementById('image-container').innerHTML = '';
+          document.getElementById('image-container').appendChild(img);
+        } else {
+          console.log('Failed to get canvas context');
+          document.getElementById('result').innerHTML =
+            '<p style="color: red;">Failed to get canvas context</p>';
+        }
+      }
+    </script>
+  </body>
+</html>

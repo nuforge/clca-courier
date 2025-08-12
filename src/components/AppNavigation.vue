@@ -59,7 +59,9 @@ const isOpen = computed({
         <NavigationItem v-for="item in navigationItems" :key="item.title" :item="item" :mini="isMini" />
       </q-list>
 
-      <q-space class="q-my-xl" />
+      <q-space class="q-my-lg" />
+      
+      <q-space class="q-my-lg" />
       <!-- Bottom section with Account -->
       <div class="bottom-section ">
         <!-- Account Link -->
