@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
+import { useQuasar } from 'quasar'
 import WebViewer from '@pdftron/webviewer'
 import type { WebViewerInstance } from '@pdftron/webviewer'
 
@@ -27,7 +28,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  licenseKey: 'demo:1234567890'
+  licenseKey: 'qfUY16w5a406CX1SOSKl'
 })
 
 const emit = defineEmits<{
@@ -40,6 +41,9 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 let webviewerInstance: WebViewerInstance | null = null
 
+// Get Quasar instance and store for theme management
+const $q = useQuasar()
+
 async function initializeViewer() {
   if (!viewerElement.value) return
 
@@ -48,13 +52,15 @@ async function initializeViewer() {
 
   try {
     webviewerInstance = await WebViewer({
-      path: '/webviewer/lib',
+      path: '/webviewer',
       initialDoc: props.documentUrl,
       licenseKey: props.licenseKey
     }, viewerElement.value)
 
     if (webviewerInstance) {
-      webviewerInstance.UI.setTheme('light')
+      // Set theme based on Quasar's dark mode state
+      const theme = $q.dark.isActive ? 'dark' : 'light'
+      webviewerInstance.UI.setTheme(theme)
 
       // Simplify toolbar - just keep basic viewing tools
       webviewerInstance.UI.disableElements([
@@ -104,6 +110,14 @@ function loadDocument(url: string) {
 watch(() => props.documentUrl, (newUrl) => {
   if (webviewerInstance && newUrl) {
     loadDocument(newUrl)
+  }
+})
+
+// Watch for dark mode changes and update WebViewer theme
+watch(() => $q.dark.isActive, (isDark) => {
+  if (webviewerInstance) {
+    const theme = isDark ? 'dark' : 'light'
+    webviewerInstance.UI.setTheme(theme)
   }
 })
 

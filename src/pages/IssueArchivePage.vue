@@ -97,7 +97,7 @@ function onPdfViewerError(error: string) {
           <!-- PDF Viewer Dialog -->
           <q-dialog v-model="showViewer" maximized>
             <q-card>
-              <q-toolbar class="bg-primary text-white">
+              <q-toolbar class="bg-primary">
                 <q-toolbar-title>
                   <q-icon name="mdi-file-pdf-box" class="q-mr-sm" />
                   {{ selectedIssue?.title }}
