@@ -1,22 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { useTheme } from '../composables/useTheme';
 import { useSiteStore } from '../stores/site-store-simple';
 
+const { cardClasses, textClasses } = useTheme();
 const siteStore = useSiteStore();
 
-// Computed property for card theme classes
-const cardClasses = computed(() => {
-  // Use specific classes that ensure proper theming for all child components
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
-
-const greyTextClass = computed(() =>
-  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
-); interface QuickLink {
+interface QuickLink {
   title: string;
   description: string;
   icon: string;
@@ -98,7 +87,7 @@ const quickLinks: QuickLink[] = [
                 <q-card-section class="text-center q-pa-lg">
                   <q-icon :name="item.icon" size="3em" :color="item.color" class="q-mb-md" />
                   <div class="text-h6 q-mb-sm">{{ item.title }}</div>
-                  <div class="text-body2" :class="greyTextClass">{{ item.description }}</div>
+                  <div class="text-body2" :class="textClasses.secondary">{{ item.description }}</div>
                 </q-card-section>
               </q-card>
             </div>
