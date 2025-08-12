@@ -1,7 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useSiteStore } from '../stores/site-store-simple'
 
 const $q = useQuasar()
+const siteStore = useSiteStore()
+
+// Computed property for card theme classes
+const cardClasses = computed(() => {
+  // Use specific classes that ensure proper theming for all child components
+  if (siteStore.isDarkMode) {
+    return 'bg-dark text-white q-dark';
+  } else {
+    return 'bg-white text-dark';
+  }
+});
 
 function submitArticle() {
   $q.notify({
@@ -45,7 +58,7 @@ function shareIdeas() {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat class="q-mb-md">
+          <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-pencil" class="q-mr-sm" />
@@ -60,7 +73,7 @@ function shareIdeas() {
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
@@ -78,7 +91,7 @@ function shareIdeas() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-camera" class="q-mr-sm" />
@@ -96,7 +109,7 @@ function shareIdeas() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-calendar" class="q-mr-sm" />
@@ -113,7 +126,7 @@ function shareIdeas() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-lightbulb" class="q-mr-sm" />
@@ -130,7 +143,7 @@ function shareIdeas() {
             </div>
           </div>
 
-          <q-card flat class="q-mt-lg">
+          <q-card flat :class="cardClasses" class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Submission Guidelines</div>
               <q-list>

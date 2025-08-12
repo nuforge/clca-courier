@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { NewsItem } from '../components/models';
 
@@ -7,7 +7,19 @@ const siteStore = useSiteStore();
 const showDialog = ref(false);
 const selectedArticle = ref<NewsItem | null>(null);
 
-function showArticleDetail(article: NewsItem) {
+// Computed property for card theme classes
+const cardClasses = computed(() => {
+  // Use specific classes that ensure proper theming for all child components
+  if (siteStore.isDarkMode) {
+    return 'bg-dark text-white q-dark';
+  } else {
+    return 'bg-white text-dark';
+  }
+});
+
+const greyTextClass = computed(() =>
+  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
+); function showArticleDetail(article: NewsItem) {
   selectedArticle.value = article;
   showDialog.value = true;
 }
@@ -18,7 +30,7 @@ function showArticleDetail(article: NewsItem) {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat class="q-mb-md">
+          <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-newspaper" class="q-mr-sm" />
@@ -37,12 +49,12 @@ function showArticleDetail(article: NewsItem) {
             <div class="text-h5 q-mb-md">Featured News</div>
             <div class="row q-col-gutter-md q-mb-xl">
               <div class="col-12 col-md-6" v-for="article in siteStore.featuredNews" :key="article.id">
-                <q-card flat class="full-height">
+                <q-card flat :class="cardClasses" class="full-height">
                   <q-card-section>
                     <div class="text-overline text-primary">{{ article.category.toUpperCase() }}</div>
                     <div class="text-h6 q-mb-sm">{{ article.title }}</div>
-                    <div class="text-body2 text-grey-7 q-mb-md">{{ article.summary }}</div>
-                    <div class="text-caption text-grey-6">
+                    <div class="text-body2 q-mb-md" :class="greyTextClass">{{ article.summary }}</div>
+                    <div class="text-caption" :class="greyTextClass">
                       By {{ article.author }} • {{ new Date(article.date).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -60,7 +72,7 @@ function showArticleDetail(article: NewsItem) {
 
           <!-- All News -->
           <div class="text-h5 q-mb-md">All News & Updates</div>
-          <q-card flat class="q-mb-md">
+          <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
               <q-list separator>
                 <q-item v-for="article in siteStore.newsItems" :key="article.id" clickable
@@ -93,7 +105,7 @@ function showArticleDetail(article: NewsItem) {
 
     <!-- Article Detail Dialog -->
     <q-dialog v-model="showDialog" position="right" full-height>
-      <q-card style="width: 500px; max-width: 90vw;">
+      <q-card :class="cardClasses" style="width: 500px; max-width: 90vw;">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ selectedArticle?.title }}</div>
           <q-space />
@@ -103,7 +115,7 @@ function showArticleDetail(article: NewsItem) {
         <q-card-section v-if="selectedArticle">
           <div class="text-overline text-primary q-mb-sm">{{ selectedArticle.category.toUpperCase() }}
           </div>
-          <div class="text-caption text-grey-6 q-mb-md">
+          <div class="text-caption q-mb-md" :class="greyTextClass">
             By {{ selectedArticle.author }} • {{ new
               Date(selectedArticle.date).toLocaleDateString('en-US', {
                 year: 'numeric',

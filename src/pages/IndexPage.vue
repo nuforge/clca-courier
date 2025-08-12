@@ -1,9 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 
 const siteStore = useSiteStore();
 
-interface QuickLink {
+// Computed property for card theme classes
+const cardClasses = computed(() => {
+  // Use specific classes that ensure proper theming for all child components
+  if (siteStore.isDarkMode) {
+    return 'bg-dark text-white q-dark';
+  } else {
+    return 'bg-white text-dark';
+  }
+});
+
+const greyTextClass = computed(() =>
+  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
+); interface QuickLink {
   title: string;
   description: string;
   icon: string;
@@ -80,11 +93,12 @@ const quickLinks: QuickLink[] = [
           <div class="text-h5 text-center q-mb-lg">Explore Our Sections</div>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-sm-6 col-md-4" v-for="item in quickLinks" :key="item.title">
-              <q-card flat class="cursor-pointer full-height" @click="$router.push(item.link)" v-ripple>
+              <q-card flat :class="cardClasses" class="cursor-pointer full-height" @click="$router.push(item.link)"
+                v-ripple>
                 <q-card-section class="text-center q-pa-lg">
                   <q-icon :name="item.icon" size="3em" :color="item.color" class="q-mb-md" />
                   <div class="text-h6 q-mb-sm">{{ item.title }}</div>
-                  <div class="text-body2 text-grey-7">{{ item.description }}</div>
+                  <div class="text-body2" :class="greyTextClass">{{ item.description }}</div>
                 </q-card-section>
               </q-card>
             </div>
@@ -98,7 +112,7 @@ const quickLinks: QuickLink[] = [
           <div class="text-h5 text-center q-mb-lg">Latest Updates</div>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-sm">
                     <q-icon name="mdi-calendar" class="q-mr-sm" />
@@ -124,7 +138,7 @@ const quickLinks: QuickLink[] = [
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-sm">
                     <q-icon name="mdi-bulletin-board" class="q-mr-sm" />
@@ -153,7 +167,7 @@ const quickLinks: QuickLink[] = [
       <!-- Community Stats -->
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat>
+          <q-card flat :class="cardClasses">
             <q-card-section>
               <div class="text-h6 text-center q-mb-md">Our Community</div>
               <div class="row text-center">

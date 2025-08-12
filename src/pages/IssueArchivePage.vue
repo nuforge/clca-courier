@@ -1,12 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useSiteStore } from '../stores/site-store-simple'
 import PdfViewer from '../components/PdfViewer.vue'
 import type { WebViewerInstance } from '@pdftron/webviewer'
 
 const $q = useQuasar()
+const siteStore = useSiteStore()
 
-interface ArchivedIssue {
+// Computed property for card theme classes
+const cardClasses = computed(() => {
+  // Use specific classes that ensure proper theming for all child components
+  if (siteStore.isDarkMode) {
+    return 'bg-dark text-white q-dark';
+  } else {
+    return 'bg-white text-dark';
+  }
+});
+
+const greyTextClass = computed(() =>
+  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
+); interface ArchivedIssue {
   id: number
   title: string
   date: string
@@ -81,7 +95,7 @@ function onPdfViewerError(error: string) {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat class="q-mb-md">
+          <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-archive" class="q-mr-sm" />
@@ -127,18 +141,18 @@ function onPdfViewerError(error: string) {
             </q-card>
           </q-dialog>
 
-          <q-card flat>
+          <q-card flat :class="cardClasses">
             <q-card-section>
               <div class="text-h6 q-mb-md">Available Issues</div>
               <q-separator class="q-mb-md" />
 
               <div class="row q-col-gutter-md">
                 <div class="col-12 col-sm-6 col-md-4" v-for="issue in archivedIssues" :key="issue.id">
-                  <q-card flat class="cursor-pointer hover-card" @click="openIssue(issue)">
+                  <q-card flat :class="cardClasses" class="cursor-pointer hover-card" @click="openIssue(issue)">
                     <q-card-section class="text-center">
                       <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" class="q-mb-sm" />
                       <div class="text-weight-medium">{{ issue.title }}</div>
-                      <div class="text-caption text-grey-6">{{ issue.date }}</div>
+                      <div class="text-caption" :class="greyTextClass">{{ issue.date }}</div>
                       <div class="text-caption q-mt-sm">{{ issue.pages }} pages</div>
                       <q-btn color="primary" label="View PDF" icon="mdi-eye" size="sm" class="q-mt-md"
                         @click.stop="openIssue(issue)" />
@@ -149,7 +163,7 @@ function onPdfViewerError(error: string) {
 
               <div class="text-center q-mt-lg" v-if="archivedIssues.length === 0">
                 <q-icon name="mdi-archive-outline" size="4em" color="grey-5" />
-                <div class="text-grey-6 q-mt-md">No archived issues available yet</div>
+                <div :class="greyTextClass" class="q-mt-md">No archived issues available yet</div>
               </div>
             </q-card-section>
           </q-card>

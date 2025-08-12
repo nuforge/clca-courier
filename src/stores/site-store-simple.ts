@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { Classified, NewsItem, Event } from '../components/models';
 
@@ -8,6 +8,20 @@ export const useSiteStore = defineStore('site', () => {
   // Site state
   const isDarkMode = ref(false);
   const isMenuOpen = ref(false);
+
+  // Initialize Quasar instance
+  const $q = useQuasar();
+
+  // Watch for changes to isDarkMode and sync with Quasar
+  watch(
+    isDarkMode,
+    (newValue) => {
+      if ($q.dark) {
+        $q.dark.set(newValue);
+      }
+    },
+    { immediate: true },
+  );
 
   // Hard-coded sample data
   const newsItems = ref<NewsItem[]>([
@@ -117,11 +131,8 @@ export const useSiteStore = defineStore('site', () => {
 
   // Actions
   function toggleDarkMode() {
-    const $q = useQuasar();
     isDarkMode.value = !isDarkMode.value;
-    if ($q.dark) {
-      $q.dark.set(isDarkMode.value);
-    }
+    // The watcher will handle syncing with Quasar
   }
 
   function toggleMenu() {
@@ -130,10 +141,7 @@ export const useSiteStore = defineStore('site', () => {
 
   function setDarkMode(value: boolean) {
     isDarkMode.value = value;
-    const $q = useQuasar();
-    if ($q.dark) {
-      $q.dark.set(value);
-    }
+    // The watcher will handle syncing with Quasar
   }
 
   return {

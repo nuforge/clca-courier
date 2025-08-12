@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useSiteStore } from '../stores/site-store-simple'
 
 const $q = useQuasar()
+const siteStore = useSiteStore()
 
-const form = ref({
+// Computed property for card theme classes
+const cardClasses = computed(() => {
+  // Use specific classes that ensure proper theming for all child components
+  if (siteStore.isDarkMode) {
+    return 'bg-dark text-white q-dark';
+  } else {
+    return 'bg-white text-dark';
+  }
+}); const form = ref({
   name: '',
   email: '',
   subject: '',
@@ -54,7 +64,7 @@ async function onSubmit() {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat class="q-mb-md">
+          <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-phone" class="q-mr-sm" />
@@ -69,7 +79,7 @@ async function onSubmit() {
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">Contact Information</div>
 
@@ -127,7 +137,7 @@ async function onSubmit() {
             </div>
 
             <div class="col-12 col-md-6">
-              <q-card flat>
+              <q-card flat :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-md">Send us a Message</div>
 
@@ -168,7 +178,7 @@ async function onSubmit() {
             </div>
           </div>
 
-          <q-card flat class="q-mt-lg">
+          <q-card flat :class="cardClasses" class="q-mt-lg">
             <q-card-section>
               <div class="text-h6 q-mb-md">Editorial Team</div>
               <div class="row q-col-gutter-md">

@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 
 const siteStore = useSiteStore();
+const leftDrawerOpen = ref(false);
+
 
 interface NavigationItem {
   title: string;
@@ -68,7 +71,7 @@ const navigationItems: NavigationItem[] = [
       </q-toolbar>
     </q-header>
 
-    <q-drawer show-if-above>
+    <q-drawer v-model="leftDrawerOpen" show-if-above class="bg-dark">
       <q-list>
         <q-item v-for="item in navigationItems" :key="item.title" :to="item.link" clickable v-ripple
           exact-active-class="nav-item-active" :class="['nav-item', 'q-ml-md', { 'dark-mode': siteStore.isDarkMode }]">
@@ -90,10 +93,20 @@ const navigationItems: NavigationItem[] = [
 </template>
 
 <style lang="scss" scoped>
+.logo-link {
+  text-decoration: none;
+
+  &:hover {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+}
+
 .nav-item {
   border-bottom-left-radius: 8px;
   border-top-left-radius: 8px;
   transition: all 0.3s ease;
+  color: white;
 
   &:hover {
     background-color: rgba(var(--q-primary-rgb), 0.1);
