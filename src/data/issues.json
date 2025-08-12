@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "title": "July 2025",
+    "date": "July 2025",
+    "pages": 12,
+    "url": "/issues/7.2025.pdf",
+    "filename": "7.2025.pdf"
+  },
+  {
+    "id": 2,
+    "title": "June 2025",
+    "date": "June 2025",
+    "pages": 10,
+    "url": "/issues/Courier - 2025.06 - June.pdf",
+    "filename": "Courier - 2025.06 - June.pdf"
+  },
+  {
+    "id": 3,
+    "title": "Winter 2022",
+    "date": "Winter 2022",
+    "pages": 16,
+    "url": "/issues/Conashaugh Winter 2022 Web.pdf",
+    "filename": "Conashaugh Winter 2022 Web.pdf"
+  },
+  {
+    "id": 4,
+    "title": "Summer 2022",
+    "date": "Summer 2022",
+    "pages": 14,
+    "url": "/issues/CONASHAUGH SUMMER 2022 Web.pdf",
+    "filename": "CONASHAUGH SUMMER 2022 Web.pdf"
+  },
+  {
+    "id": 5,
+    "title": "Winter 2021",
+    "date": "Winter 2021",
+    "pages": 18,
+    "url": "/issues/CONASHAUGH WINTER 2021.pdf",
+    "filename": "CONASHAUGH WINTER 2021.pdf"
+  },
+  {
+    "id": 6,
+    "title": "Winter 2019",
+    "date": "Winter 2019",
+    "pages": 15,
+    "url": "/issues/CL WINTER 2019 WEB.pdf",
+    "filename": "CL WINTER 2019 WEB.pdf"
+  },
+  {
+    "id": 7,
+    "title": "Winter 2018",
+    "date": "Winter 2018",
+    "pages": 13,
+    "url": "/issues/CL WINTER 2018 web.pdf",
+    "filename": "CL WINTER 2018 web.pdf"
+  }
+]

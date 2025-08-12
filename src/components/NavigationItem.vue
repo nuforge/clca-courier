@@ -63,6 +63,11 @@ const navItemClasses = computed(() => [
 
     :deep(.q-item__label) {
       color: var(--q-dark, #1d1d1d);
+
+      &:hover {
+
+        color: white;
+      }
     }
   }
 
