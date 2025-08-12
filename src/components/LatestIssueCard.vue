@@ -86,7 +86,7 @@ onMounted(() => {
         <!-- Thumbnail -->
         <div class="text-center">
           <img v-if="thumbnail" :src="thumbnail" :alt="latestIssue.title" class="rounded shadow-2"
-            style="max-height: 200px; max-width: 200px; object-fit: contain;" />
+            style="max-height: 160px; max-width: 200px; object-fit: contain;" />
           <div v-else-if="loadingThumbnail" class="thumbnail-placeholder">
             <q-spinner color="white" size="2em" />
             <div class="text-caption q-mt-sm">Loading...</div>
@@ -107,6 +107,7 @@ onMounted(() => {
   border-radius: 10px;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+  display: inline-block;
 
   &:hover {
     transform: translateY(-2px);

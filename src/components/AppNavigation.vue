@@ -63,13 +63,13 @@ const isOpen = computed({
       <q-space class="q-my-lg" />
 
       <!-- Latest Issue Card -->
-      <div class="latest-issue-section q-ml-lg">
+      <div class="latest-issue-section">
         <LatestIssueCard :mini="isMini" />
       </div>
 
       <q-space class="q-my-lg" />
       <!-- Bottom section with Account -->
-      <div class="bottom-section ">
+      <div class="bottom-section">
         <!-- Account Link -->
         <NavigationItem :item="accountItem" :mini="isMini" />
       </div>
@@ -106,5 +106,11 @@ const isOpen = computed({
     display: flex;
     justify-content: center;
   }
+}
+
+// Ensure right alignment for full mode
+.latest-issue-section {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
