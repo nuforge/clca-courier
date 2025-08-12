@@ -67,17 +67,11 @@ const navigationItems: NavigationItem[] = [
 
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
       <q-list>
-        <q-item-label header class="text-grey-8"> 
+        <q-item-label header class="text-grey-8">
           Navigation
         </q-item-label>
 
-        <q-item
-          v-for="item in navigationItems"
-          :key="item.title"
-          :to="item.link"
-          clickable
-          v-ripple
-        >
+        <q-item v-for="item in navigationItems" :key="item.title" :to="item.link" clickable v-ripple>
           <q-item-section avatar>
             <q-icon :name="item.icon" />
           </q-item-section>

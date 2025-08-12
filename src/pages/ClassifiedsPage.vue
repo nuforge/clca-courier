@@ -24,7 +24,7 @@
                     <q-icon name="mdi-tag" class="q-mr-sm" />
                     For Sale
                   </div>
-                  
+
                   <q-list separator>
                     <q-item>
                       <q-item-section>
@@ -57,7 +57,7 @@
                     <q-icon name="mdi-tools" class="q-mr-sm" />
                     Services
                   </div>
-                  
+
                   <q-list separator>
                     <q-item>
                       <q-item-section>
@@ -85,12 +85,7 @@
           </div>
 
           <div class="q-mt-lg text-center">
-            <q-btn 
-              color="primary" 
-              icon="mdi-plus" 
-              label="Post New Ad" 
-              @click="$q.notify('Feature coming soon!')"
-            />
+            <q-btn color="primary" icon="mdi-plus" label="Post New Ad" @click="$q.notify('Feature coming soon!')" />
           </div>
         </div>
       </div>

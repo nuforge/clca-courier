@@ -4,34 +4,15 @@
       <!-- Hero Section -->
       <div class="row justify-center q-mb-xl">
         <div class="col-12 col-md-10 col-lg-8 text-center">
-          <q-img
-            src="/courier-logo.svg"
-            style="height: 120px; max-width: 300px"
-            class="q-mb-md"
-            fit="contain"
-          />
+          <q-img src="/courier-logo.svg" style="height: 120px; max-width: 300px" class="q-mb-md" fit="contain" />
           <div class="text-h3 text-weight-light q-mb-md">
             Welcome to The Courier
           </div>
           <div class="text-h6 text-grey-7 q-mb-lg">
             Your source for Conashaugh Lakes community news and updates
           </div>
-          <q-btn
-            color="primary"
-            size="lg"
-            icon="mdi-newspaper"
-            label="Latest News"
-            to="/news"
-            class="q-mr-sm"
-          />
-          <q-btn
-            color="secondary"
-            size="lg"
-            icon="mdi-pencil"
-            label="Contribute"
-            to="/contribute"
-            outline
-          />
+          <q-btn color="primary" size="lg" icon="mdi-newspaper" label="Latest News" to="/news" class="q-mr-sm" />
+          <q-btn color="secondary" size="lg" icon="mdi-pencil" label="Contribute" to="/contribute" outline />
         </div>
       </div>
 
@@ -40,25 +21,10 @@
         <div class="col-12 col-md-10 col-lg-8">
           <div class="text-h5 text-center q-mb-lg">Explore Our Sections</div>
           <div class="row q-gutter-md">
-            <div 
-              class="col-12 col-sm-6 col-md-4"
-              v-for="item in quickLinks"
-              :key="item.title"
-            >
-              <q-card
-                flat
-                bordered
-                class="cursor-pointer full-height"
-                @click="$router.push(item.link)"
-                v-ripple
-              >
+            <div class="col-12 col-sm-6 col-md-4" v-for="item in quickLinks" :key="item.title">
+              <q-card flat bordered class="cursor-pointer full-height" @click="$router.push(item.link)" v-ripple>
                 <q-card-section class="text-center q-pa-lg">
-                  <q-icon 
-                    :name="item.icon" 
-                    size="3em" 
-                    :color="item.color"
-                    class="q-mb-md"
-                  />
+                  <q-icon :name="item.icon" size="3em" :color="item.color" class="q-mb-md" />
                   <div class="text-h6 q-mb-sm">{{ item.title }}</div>
                   <div class="text-body2 text-grey-7">{{ item.description }}</div>
                 </q-card-section>
@@ -95,13 +61,7 @@
                     </q-item>
                   </q-list>
                   <div class="text-center q-mt-md">
-                    <q-btn 
-                      color="primary" 
-                      label="View All Events" 
-                      size="sm" 
-                      outline
-                      to="/news"
-                    />
+                    <q-btn color="primary" label="View All Events" size="sm" outline to="/news" />
                   </div>
                 </q-card-section>
               </q-card>
@@ -129,13 +89,7 @@
                     </q-item>
                   </q-list>
                   <div class="text-center q-mt-md">
-                    <q-btn 
-                      color="secondary" 
-                      label="Browse Classifieds" 
-                      size="sm" 
-                      outline
-                      to="/classifieds"
-                    />
+                    <q-btn color="secondary" label="Browse Classifieds" size="sm" outline to="/classifieds" />
                   </div>
                 </q-card-section>
               </q-card>

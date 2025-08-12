@@ -21,7 +21,7 @@
             <q-card-section>
               <div class="text-h6 q-mb-sm">Recent Updates</div>
               <q-separator class="q-mb-md" />
-              
+
               <q-list separator>
                 <q-item>
                   <q-item-section>
