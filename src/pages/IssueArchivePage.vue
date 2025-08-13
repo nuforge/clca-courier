@@ -140,6 +140,10 @@ function openIssue(issue: PdfDocument) {
                         <div v-if="thumbnails[String(issue.id)]" class="thumbnail-wrapper">
                           <q-img :src="thumbnails[String(issue.id)]" :alt="issue.title" class="thumbnail-image"
                             fit="contain" />
+                          <div class="thumbnail-overlay">
+                            <q-icon name="mdi-eye" size="2em" color="white" />
+                            <div class="text-white text-weight-medium q-mt-xs">View PDF</div>
+                          </div>
                           <q-btn flat dense size="xs" icon="mdi-refresh" color="primary"
                             @click="regenerateIssueThumbnail(issue, $event)" class="thumbnail-refresh-btn"
                             title="Regenerate thumbnail">
@@ -161,9 +165,6 @@ function openIssue(issue: PdfDocument) {
 
                       <div class="text-weight-medium">{{ issue.title }}</div>
                       <div class="text-caption" :class="greyTextClass">{{ issue.date }}</div>
-                      <div class="text-caption q-mt-sm">{{ issue.pages }} pages</div>
-                      <q-btn color="primary" label="View PDF" icon="mdi-eye" size="sm" class="q-mt-md"
-                        @click.stop="openIssue(issue)" />
                     </q-card-section>
                   </q-card>
                 </div>
@@ -211,6 +212,27 @@ function openIssue(issue: PdfDocument) {
   height: 120px;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.thumbnail-wrapper:hover .thumbnail-overlay {
+  opacity: 1;
 }
 
 .thumbnail-refresh-btn {
