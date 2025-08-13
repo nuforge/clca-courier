@@ -53,7 +53,7 @@ const navItemClasses = computed(() => [
   // Apply Century Gothic font to navigation labels
   :deep(.q-item__label) {
     font-family: 'Outfit', 'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Futura', 'Trebuchet MS', sans-serif;
-    font-weight: 400;
+    font-weight: 300;
   }
 
   &:hover {
