@@ -2,12 +2,11 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
-import { usePdfViewer } from '../composables/usePdfViewer'
+import IssueCard from '../components/IssueCard.vue'
 import type { PdfDocument } from '../composables/usePdfViewer'
 
 const siteStore = useSiteStore()
 const { getThumbnail, regenerateThumbnail } = usePdfThumbnails()
-const { openDocument } = usePdfViewer()
 
 // Computed property for card theme classes
 const cardClasses = computed(() => {
@@ -102,10 +101,6 @@ async function regenerateIssueThumbnail(issue: PdfDocument, event?: Event) {
   }
 }
 
-function openIssue(issue: PdfDocument) {
-  openDocument(issue)
-}
-
 </script>
 
 <template>
@@ -133,40 +128,8 @@ function openIssue(issue: PdfDocument) {
 
               <div class="row q-col-gutter-md">
                 <div class="col-12 col-sm-6 col-md-4" v-for="issue in archivedIssues" :key="issue.id">
-                  <q-card :class="cardClasses" class="cursor-pointer hover-card" @click="openIssue(issue)">
-                    <q-card-section class="text-center">
-                      <!-- Thumbnail or placeholder -->
-                      <div class="thumbnail-container q-mb-sm">
-                        <div v-if="thumbnails[String(issue.id)]" class="thumbnail-wrapper">
-                          <q-img :src="thumbnails[String(issue.id)]" :alt="issue.title" class="thumbnail-image"
-                            fit="contain" />
-                          <div class="thumbnail-overlay">
-                            <q-icon name="mdi-eye" size="2em" color="white" />
-                            <div class="text-white text-weight-medium q-mt-xs">View PDF</div>
-                          </div>
-                          <q-btn flat dense size="xs" icon="mdi-refresh" color="primary"
-                            @click="regenerateIssueThumbnail(issue, $event)" class="thumbnail-refresh-btn"
-                            title="Regenerate thumbnail">
-                            <q-tooltip>Regenerate thumbnail</q-tooltip>
-                          </q-btn>
-                        </div>
-                        <div v-else-if="loadingThumbnails.has(issue.id)" class="thumbnail-placeholder">
-                          <q-spinner color="primary" size="2em" />
-                          <div class="text-caption q-mt-sm">Generating thumbnail...</div>
-                        </div>
-                        <div v-else class="thumbnail-placeholder">
-                          <q-icon name="mdi-file-pdf-box" size="3em" color="red-6" />
-                          <q-btn flat dense size="sm" icon="mdi-refresh" color="primary"
-                            @click="regenerateIssueThumbnail(issue, $event)" class="q-mt-xs" title="Generate thumbnail">
-                            <q-tooltip>Generate thumbnail</q-tooltip>
-                          </q-btn>
-                        </div>
-                      </div>
-
-                      <div class="text-weight-medium">{{ issue.title }}</div>
-                      <div class="text-caption" :class="greyTextClass">{{ issue.date }}</div>
-                    </q-card-section>
-                  </q-card>
+                  <IssueCard :issue="issue" :thumbnail="thumbnails[String(issue.id)] || undefined"
+                    :is-loading="loadingThumbnails.has(issue.id)" @regenerate-thumbnail="regenerateIssueThumbnail" />
                 </div>
               </div>
 
@@ -183,81 +146,5 @@ function openIssue(issue: PdfDocument) {
 </template>
 
 <style scoped>
-.hover-card {
-  transition: all 0.3s ease;
-}
-
-.hover-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.thumbnail-container {
-  height: 140px;
-  width: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  margin: 0 auto;
-}
-
-.thumbnail-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.thumbnail-image {
-  width: 80px;
-  height: 120px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.thumbnail-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.thumbnail-wrapper:hover .thumbnail-overlay {
-  opacity: 1;
-}
-
-.thumbnail-refresh-btn {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  min-height: 20px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.thumbnail-wrapper:hover .thumbnail-refresh-btn {
-  opacity: 1;
-}
-
-.thumbnail-placeholder {
-  height: 120px;
-  width: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-}
+/* Main page styles only - card styles moved to IssueCard component */
 </style>
