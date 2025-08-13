@@ -1,29 +1,17 @@
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
-import { useQuasar } from 'quasar';
+import { ref, computed } from 'vue';
 import type { Classified, NewsItem, Event } from '../components/models';
 import type { PdfDocument } from '../composables/usePdfViewer';
 import { dataService, type CommunityStats } from '../services/data-service';
+import { useUserSettings } from '../composables/useUserSettings';
 
 export const useSiteStore = defineStore('site', () => {
+  // Initialize user settings
+  const userSettings = useUserSettings();
+
   // Site state
-  const isDarkMode = ref(false);
   const isMenuOpen = ref(false);
   const isLoading = ref(true);
-
-  // Initialize Quasar instance
-  const $q = useQuasar();
-
-  // Watch for changes to isDarkMode and sync with Quasar
-  watch(
-    isDarkMode,
-    (newValue) => {
-      if ($q.dark) {
-        $q.dark.set(newValue);
-      }
-    },
-    { immediate: true },
-  );
 
   // Data loaded from JSON files (simulating API)
   const newsItems = ref<NewsItem[]>([]);
@@ -61,8 +49,7 @@ export const useSiteStore = defineStore('site', () => {
 
   // Actions
   function toggleDarkMode() {
-    isDarkMode.value = !isDarkMode.value;
-    // The watcher will handle syncing with Quasar
+    void userSettings.toggleDarkMode();
   }
 
   function toggleMenu() {
@@ -70,8 +57,8 @@ export const useSiteStore = defineStore('site', () => {
   }
 
   function setDarkMode(value: boolean) {
-    isDarkMode.value = value;
-    // The watcher will handle syncing with Quasar
+    const theme = value ? 'dark' : 'light';
+    void userSettings.setTheme(theme);
   }
 
   // Data loading functions (simulating API calls)
@@ -137,7 +124,7 @@ export const useSiteStore = defineStore('site', () => {
 
   return {
     // State
-    isDarkMode,
+    isDarkMode: userSettings.isDarkMode,
     isMenuOpen,
     isLoading,
     newsItems,
@@ -145,6 +132,13 @@ export const useSiteStore = defineStore('site', () => {
     events,
     communityStats,
     archivedIssues,
+
+    // User Settings
+    userSettings: userSettings.userSettings,
+    currentTheme: userSettings.currentTheme,
+    notificationSettings: userSettings.notificationSettings,
+    displaySettings: userSettings.displaySettings,
+    pdfSettings: userSettings.pdfSettings,
 
     // Computed
     featuredNews,
@@ -161,5 +155,11 @@ export const useSiteStore = defineStore('site', () => {
     loadClassifieds,
     loadEvents,
     loadArchivedIssues,
+
+    // Settings actions
+    updateUserSettings: userSettings.updateSettings,
+    resetUserSettings: userSettings.resetSettings,
+    exportUserSettings: userSettings.exportSettings,
+    importUserSettings: userSettings.importSettings,
   };
 });
