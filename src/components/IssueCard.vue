@@ -53,6 +53,8 @@ function handleRegenerateThumbnail(event: Event) {
 <template>
   <q-card :class="cardClasses" class="cursor-pointer hover-card" @click="handleCardClick">
     <q-card-section class="text-center">
+
+      <div class="text-weight-medium">{{ issue.title }}</div>
       <!-- Thumbnail or placeholder -->
       <div class="thumbnail-container q-mb-sm">
         <div v-if="thumbnail" class="thumbnail-wrapper">
@@ -79,14 +81,8 @@ function handleRegenerateThumbnail(event: Event) {
         </div>
       </div>
 
-      <div class="text-weight-medium">{{ issue.title }}</div>
       <div class="text-caption" :class="greyTextClass">{{ issue.date }}</div>
 
-      <!-- Subtle indicator that this is clickable for details -->
-      <div class="text-caption q-mt-xs" :class="greyTextClass">
-        <q-icon name="mdi-information-outline" size="xs" class="q-mr-xs" />
-        Click for details
-      </div>
     </q-card-section>
   </q-card>
 </template>

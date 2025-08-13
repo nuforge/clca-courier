@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 import { useSiteStore } from '../stores/site-store-simple'
 
-const $q = useQuasar()
+const router = useRouter()
 const siteStore = useSiteStore()
 
 // Computed property for card theme classes
@@ -17,39 +17,19 @@ const cardClasses = computed(() => {
 });
 
 function submitArticle() {
-  $q.notify({
-    message: 'Article submission form',
-    caption: 'Feature coming soon!',
-    icon: 'mdi-file-document-edit',
-    color: 'primary'
-  })
+  void router.push('/contribute/article')
 }
 
 function submitPhotos() {
-  $q.notify({
-    message: 'Photo upload feature',
-    caption: 'Feature coming soon!',
-    icon: 'mdi-camera',
-    color: 'secondary'
-  })
+  void router.push('/contribute/photo')
 }
 
 function postEvent() {
-  $q.notify({
-    message: 'Event posting form',
-    caption: 'Feature coming soon!',
-    icon: 'mdi-calendar-plus',
-    color: 'accent'
-  })
+  void router.push('/contribute/event')
 }
 
 function shareIdeas() {
-  $q.notify({
-    message: 'Ideas submission form',
-    caption: 'Feature coming soon!',
-    icon: 'mdi-lightbulb',
-    color: 'positive'
-  })
+  void router.push('/contribute/ideas')
 }
 </script>
 
