@@ -260,24 +260,34 @@ function formatFileSize(pages: number): string {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 300px;
+  min-height: 200px;
+  max-height: 400px;
+  padding: 1rem;
 }
 
 .large-thumbnail-wrapper {
   position: relative;
   display: inline-block;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .large-thumbnail-image {
-  width: 200px;
-  height: 280px;
+  max-width: 200px;
+  max-height: 200px;
+  min-width: 120px;
+  min-height: 160px;
+  width: auto;
+  height: auto;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .large-thumbnail-placeholder {
-  width: 200px;
-  height: 280px;
+  min-width: 150px;
+  min-height: 200px;
+  max-width: 200px;
+  max-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,13 +315,22 @@ function formatFileSize(pages: number): string {
 
 @media (max-width: 600px) {
   .large-thumbnail-image {
-    width: 150px;
-    height: 210px;
+    max-width: 150px;
+    max-height: 150px;
+    min-width: 100px;
+    min-height: 130px;
   }
 
   .large-thumbnail-placeholder {
-    width: 150px;
-    height: 210px;
+    min-width: 120px;
+    min-height: 160px;
+    max-width: 150px;
+    max-height: 150px;
+  }
+
+  .thumbnail-container {
+    min-height: 160px;
+    max-height: 200px;
   }
 }
 </style>
