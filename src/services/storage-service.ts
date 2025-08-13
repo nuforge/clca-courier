@@ -73,6 +73,16 @@ class StorageService {
     this.initPromise = this.initializeDB();
   }
 
+  // Helper method to ensure data is serializable for IndexedDB
+  private serializeForIndexedDB<T>(data: T): T {
+    try {
+      return JSON.parse(JSON.stringify(data));
+    } catch (error) {
+      console.warn('Failed to serialize data for IndexedDB:', error);
+      throw new Error('Data contains non-serializable values');
+    }
+  }
+
   // Initialize IndexedDB
   private async initializeDB(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -180,12 +190,15 @@ class StorageService {
     try {
       await this.ensureInitialized();
       if (this.db) {
-        await this.saveToIndexedDB(SETTINGS_STORE, {
+        // Ensure data is serializable by converting to plain object
+        const serializedData = this.serializeForIndexedDB({
           id: 'default',
           userId: 'default',
           data: updatedSettings,
           timestamp: Date.now(),
         });
+
+        await this.saveToIndexedDB(SETTINGS_STORE, serializedData);
       }
     } catch (error) {
       console.error('Failed to save settings to IndexedDB:', error);
@@ -289,7 +302,9 @@ class StorageService {
     try {
       await this.ensureInitialized();
       if (this.db) {
-        await this.saveToIndexedDB(CACHE_STORE, cacheItem);
+        // Ensure cache data is serializable
+        const serializedItem = this.serializeForIndexedDB(cacheItem);
+        await this.saveToIndexedDB(CACHE_STORE, serializedItem);
       }
     } catch (error) {
       console.error('Failed to cache data:', error);

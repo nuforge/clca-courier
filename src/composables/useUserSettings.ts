@@ -3,6 +3,11 @@ import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { storageService, type UserSettings, DEFAULT_SETTINGS } from '../services/storage-service';
 
+// Helper function to convert reactive objects to plain objects for storage
+function toPlainObject<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 // Global reactive state for settings
 const userSettings = ref<UserSettings>(DEFAULT_SETTINGS);
 const isSettingsLoaded = ref(false);
@@ -120,7 +125,9 @@ export const useUserSettings = () => {
   // Reset to defaults
   async function resetSettings() {
     userSettings.value = { ...DEFAULT_SETTINGS };
-    await storageService.saveUserSettings(userSettings.value);
+    // Convert reactive object to plain object to avoid DataCloneError
+    const plainSettings = toPlainObject(userSettings.value);
+    await storageService.saveUserSettings(plainSettings);
   }
 
   // Export/Import
