@@ -1,0 +1,637 @@
+import { ref, computed } from 'vue';
+
+export interface RoadProperties {
+  id: string;
+  name: string;
+  color: string;
+  strokeWidth: number;
+  isHighlighted: boolean;
+  isSelected: boolean;
+}
+
+export interface MapTheme {
+  name: string;
+  defaultColor: string;
+  highlightColor: string;
+  selectedColor: string;
+  defaultStrokeWidth: number;
+  highlightStrokeWidth: number;
+}
+
+export const useInteractiveMap = () => {
+  // Reactive state
+  const selectedRoadId = ref<string | null>(null);
+  const highlightedRoadId = ref<string | null>(null);
+  const currentTheme = ref<MapTheme>({
+    name: 'Default',
+    defaultColor: '#323232',
+    highlightColor: '#ff6b35',
+    selectedColor: '#4ecdc4',
+    defaultStrokeWidth: 2,
+    highlightStrokeWidth: 4,
+  });
+
+  // Available themes
+  const themes = ref<MapTheme[]>([
+    {
+      name: 'Default',
+      defaultColor: '#323232',
+      highlightColor: '#ff6b35',
+      selectedColor: '#4ecdc4',
+      defaultStrokeWidth: 2,
+      highlightStrokeWidth: 4,
+    },
+    {
+      name: 'Blue Ocean',
+      defaultColor: '#2c3e50',
+      highlightColor: '#3498db',
+      selectedColor: '#9b59b6',
+      defaultStrokeWidth: 2,
+      highlightStrokeWidth: 4,
+    },
+    {
+      name: 'Forest',
+      defaultColor: '#27ae60',
+      highlightColor: '#f39c12',
+      selectedColor: '#e74c3c',
+      defaultStrokeWidth: 2,
+      highlightStrokeWidth: 4,
+    },
+    {
+      name: 'Night Mode',
+      defaultColor: '#95a5a6',
+      highlightColor: '#f1c40f',
+      selectedColor: '#e67e22',
+      defaultStrokeWidth: 3,
+      highlightStrokeWidth: 5,
+    },
+  ]);
+
+  // Extract road data from the SVG structure
+  const roads = ref<RoadProperties[]>([
+    {
+      id: 'indian-run-court',
+      name: 'Indian Run Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'conklin-lane',
+      name: 'Conklin Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'geronimo-path',
+      name: 'Geronimo Path',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'wappinger-court',
+      name: 'Wappinger Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'pikewood-lane',
+      name: 'Pikewood Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'bobwood-lane',
+      name: 'Bobwood Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'cowaw-road',
+      name: 'Cowaw Road',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'denege-circle',
+      name: 'Denege Circle',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'oak-lane',
+      name: 'Oak Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'water-lily-terrace',
+      name: 'Water Lily Terrace',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'mohegan-trail',
+      name: 'Mohegan Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'conashaugh-trail',
+      name: 'Conashaugh Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'philwood-lane',
+      name: 'Philwood Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'seneca-drive',
+      name: 'Seneca Drive',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'flatbrook-court',
+      name: 'Flatbrook Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'flatbrook-way',
+      name: 'Flatbrook Way',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'overbrook-run',
+      name: 'Overbrook Run',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'cayuga-trail',
+      name: 'Cayuga Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'senaca-court',
+      name: 'Senaca Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'gwinnet-road',
+      name: 'Gwinnet Road',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'cree-trail',
+      name: 'Cree Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'sandy-pine-trail',
+      name: 'Sandy Pine Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'hay-road',
+      name: 'Hay Road',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'oneida-way',
+      name: 'Oneida Way',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'braxton-way',
+      name: 'Braxton Way',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'iroquois-trail',
+      name: 'Iroquois Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'middleton-drive',
+      name: 'Middleton Drive',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'walton-way',
+      name: 'Walton Way',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'pine-grove-circle',
+      name: 'Pine Grove Circle',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'pine-brook-lane',
+      name: 'Pine Brook Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'whipple-way',
+      name: 'Whipple Way',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'bennett-lane',
+      name: 'Bennett Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'rock-hill-lane',
+      name: 'Rock Hill Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'hart-court',
+      name: 'Hart Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'brook-park-court',
+      name: 'Brook Park Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'white-tail-lane',
+      name: 'White Tail Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'juneo-court',
+      name: 'Juneo Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'island-terrace',
+      name: 'Island Terrace',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'lenape-drive',
+      name: 'Lenape Drive',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'beaver-run',
+      name: 'Beaver Run',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'pequot-court',
+      name: 'Pequot Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'bushkill-court',
+      name: 'Bushkill Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'bushkill-lane',
+      name: 'Bushkill Lane',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'hiawatha-trail',
+      name: 'Hiawatha Trail',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'stockton-drive',
+      name: 'Stockton Drive',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'whitherspoon-court',
+      name: 'Whitherspoon Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'rodney-road',
+      name: 'Rodney Road',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'floyd-court',
+      name: 'Floyd Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'barlette-drive',
+      name: 'Barlette Drive',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'overbrook-court',
+      name: 'Overbrook Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'heyward-court',
+      name: 'Heyward Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'black-oak-court',
+      name: 'Black Oak Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'nanticoke-court',
+      name: 'Nanticoke Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+    {
+      id: 'montavk-court',
+      name: 'Montavk Court',
+      color: currentTheme.value.defaultColor,
+      strokeWidth: currentTheme.value.defaultStrokeWidth,
+      isHighlighted: false,
+      isSelected: false,
+    },
+  ]);
+
+  // Computed properties
+  const selectedRoad = computed(() => roads.value.find((road) => road.id === selectedRoadId.value));
+
+  const highlightedRoad = computed(() =>
+    roads.value.find((road) => road.id === highlightedRoadId.value),
+  );
+
+  // Methods
+  const selectRoad = (roadId: string | null) => {
+    // Clear previous selection
+    roads.value.forEach((road) => {
+      road.isSelected = false;
+      road.color = currentTheme.value.defaultColor;
+      road.strokeWidth = currentTheme.value.defaultStrokeWidth;
+    });
+
+    selectedRoadId.value = roadId;
+
+    if (roadId) {
+      const road = roads.value.find((r) => r.id === roadId);
+      if (road) {
+        road.isSelected = true;
+        road.color = currentTheme.value.selectedColor;
+        road.strokeWidth = currentTheme.value.highlightStrokeWidth;
+      }
+    }
+  };
+
+  const highlightRoad = (roadId: string | null) => {
+    // Clear previous highlight
+    roads.value.forEach((road) => {
+      if (!road.isSelected) {
+        road.isHighlighted = false;
+        road.color = currentTheme.value.defaultColor;
+        road.strokeWidth = currentTheme.value.defaultStrokeWidth;
+      }
+    });
+
+    highlightedRoadId.value = roadId;
+
+    if (roadId) {
+      const road = roads.value.find((r) => r.id === roadId);
+      if (road && !road.isSelected) {
+        road.isHighlighted = true;
+        road.color = currentTheme.value.highlightColor;
+        road.strokeWidth = currentTheme.value.highlightStrokeWidth;
+      }
+    }
+  };
+
+  const setTheme = (theme: MapTheme) => {
+    currentTheme.value = theme;
+
+    // Update all roads with new theme colors
+    roads.value.forEach((road) => {
+      if (road.isSelected) {
+        road.color = theme.selectedColor;
+        road.strokeWidth = theme.highlightStrokeWidth;
+      } else if (road.isHighlighted) {
+        road.color = theme.highlightColor;
+        road.strokeWidth = theme.highlightStrokeWidth;
+      } else {
+        road.color = theme.defaultColor;
+        road.strokeWidth = theme.defaultStrokeWidth;
+      }
+    });
+  };
+
+  const getRoadProperties = (roadId: string): RoadProperties | undefined => {
+    return roads.value.find((road) => road.id === roadId);
+  };
+
+  const clearSelection = () => {
+    selectRoad(null);
+    highlightRoad(null);
+  };
+
+  const searchRoads = (query: string) => {
+    const searchTerm = query.toLowerCase();
+    return roads.value.filter(
+      (road) =>
+        road.name.toLowerCase().includes(searchTerm) || road.id.toLowerCase().includes(searchTerm),
+    );
+  };
+
+  // Find intersections (roads that might connect)
+  const findIntersections = (roadId: string) => {
+    // This is a simplified intersection detection
+    // In a real application, you might parse the SVG path data to find actual intersections
+    const road = roads.value.find((r) => r.id === roadId);
+    if (!road) return [];
+
+    // For now, return roads with similar name patterns (same area/theme)
+    const roadName = road.name.toLowerCase();
+    const intersectingRoads = roads.value.filter((r) => {
+      if (r.id === roadId) return false;
+
+      const otherName = r.name.toLowerCase();
+
+      // Look for common street types or area names
+      const commonWords = ['court', 'lane', 'drive', 'way', 'trail', 'run', 'circle', 'terrace'];
+      const roadWords = roadName.split(' ');
+      const otherWords = otherName.split(' ');
+
+      return roadWords.some((word) => otherWords.includes(word) && commonWords.includes(word));
+    });
+
+    return intersectingRoads.slice(0, 5); // Limit to 5 potential intersections
+  };
+
+  return {
+    // State
+    roads,
+    selectedRoadId,
+    highlightedRoadId,
+    currentTheme,
+    themes,
+
+    // Computed
+    selectedRoad,
+    highlightedRoad,
+
+    // Methods
+    selectRoad,
+    highlightRoad,
+    setTheme,
+    getRoadProperties,
+    clearSelection,
+    searchRoads,
+    findIntersections,
+  };
+};

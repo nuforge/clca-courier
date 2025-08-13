@@ -19,8 +19,13 @@ export const useNavigation = () => {
     },
     {
       title: 'Issue Archive',
-      icon: 'mdi-archive',
+      icon: 'mdi-bookshelf',
       link: '/archive',
+    },
+    {
+      title: 'Interactive Map',
+      icon: 'mdi-map',
+      link: '/map',
     },
     {
       title: 'Contribute',

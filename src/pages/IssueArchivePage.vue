@@ -111,7 +111,7 @@ async function regenerateIssueThumbnail(issue: PdfDocument, event?: Event) {
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
               <div class="text-h4 q-mb-md">
-                <q-icon name="mdi-archive" class="q-mr-sm" />
+                <q-icon name="mdi-bookshelf" class="q-mr-sm" />
                 Issue Archive
               </div>
               <p class="text-body1">
@@ -134,7 +134,7 @@ async function regenerateIssueThumbnail(issue: PdfDocument, event?: Event) {
               </div>
 
               <div class="text-center q-mt-lg" v-if="archivedIssues.length === 0">
-                <q-icon name="mdi-archive-outline" size="4em" color="grey-5" />
+                <q-icon name="mdi-bookshelf" size="4em" color="grey-5" />
                 <div :class="greyTextClass" class="q-mt-md">No archived issues available yet</div>
               </div>
             </q-card-section>
