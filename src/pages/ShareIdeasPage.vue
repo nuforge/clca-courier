@@ -89,16 +89,8 @@ function openEmail() {
   window.open('mailto:ideas@conashaughlakes.com?subject=Community Ideas & Suggestions', '_blank')
 }
 
-function openFacebook() {
-  window.open('https://www.facebook.com/groups/conashaughcommunity', '_blank')
-}
-
 function openDiscord() {
   window.open('https://discord.gg/EB8uRwhyp4', '_blank')
-}
-
-function openReddit() {
-  window.open('https://www.reddit.com/r/conashaughlakes', '_blank')
 }
 
 function openSurvey() {
