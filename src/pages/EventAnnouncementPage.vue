@@ -93,7 +93,7 @@ function openEmail() {
 }
 
 function openDiscord() {
-    window.open('https://discord.gg/conashaugh-courier', '_blank')
+    window.open('https://discord.gg/EB8uRwhyp4', '_blank')
 }
 
 function openCanva() {
