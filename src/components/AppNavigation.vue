@@ -50,7 +50,7 @@ const isOpen = computed({
     <!-- Toggle button -->
     <div class="flex justify-end q-pa-sm">
       <q-btn flat round dense :icon="isMini ? 'mdi-chevron-right' : 'mdi-chevron-left'" @click="toggleMini"
-        class="text-white" size="sm" />
+        class="text-grey-6" size="sm" />
     </div>
 
     <!-- Scrollable navigation area -->
@@ -60,14 +60,14 @@ const isOpen = computed({
         <NavigationItem v-for="item in navigationItems" :key="item.title" :item="item" :mini="isMini" />
       </q-list>
 
-      <q-space class="q-my-lg" />
+      <q-space class="q-mt-lg" />
 
       <!-- Latest Issue Card -->
       <div class="latest-issue-section">
         <LatestIssueCard :mini="isMini" />
       </div>
 
-      <q-space class="q-my-lg" />
+      <q-space class="q-mtlg" />
       <!-- Bottom section with Account -->
       <div class="bottom-section">
         <!-- Account Link -->
