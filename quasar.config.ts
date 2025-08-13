@@ -132,7 +132,7 @@ export default defineConfig((ctx) => {
           warning: '#FB8C00',
 
           background: '#161616',
-          clcablue: '#002436',
+          clcablue: '#00537C',
         },
       },
 
