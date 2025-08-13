@@ -19,6 +19,7 @@ const siteStore = useSiteStore();
 
 const navItemClasses = computed(() => [
   'nav-item',
+  'nav-menu-font',
   'q-ml-md',
   { 'dark-mode': siteStore.isDarkMode }
 ]);
@@ -48,6 +49,12 @@ const navItemClasses = computed(() => [
   border-top-left-radius: 10px;
   transition: all 0.3s ease;
   color: white;
+
+  // Apply Century Gothic font to navigation labels
+  :deep(.q-item__label) {
+    font-family: 'Outfit', 'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Futura', 'Trebuchet MS', sans-serif;
+    font-weight: 400;
+  }
 
   &:hover {
     background-color: rgba(var(--q-primary-rgb), 0.1);

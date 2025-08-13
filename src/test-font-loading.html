@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Font Loading Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .century-gothic-font {
+        font-family:
+          'Outfit', 'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Futura', 'Trebuchet MS',
+          sans-serif;
+        font-weight: 400;
+        font-size: 18px;
+        margin: 20px;
+        padding: 20px;
+        border: 1px solid #ccc;
+      }
+      .default-font {
+        font-family: sans-serif;
+        font-size: 18px;
+        margin: 20px;
+        padding: 20px;
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Font Loading Test</h1>
+    <div class="century-gothic-font">
+      This text should use Outfit (Century Gothic alternative) font for navigation menu items:
+      <ul>
+        <li>Home</li>
+        <li>News & Updates</li>
+        <li>Classifieds & Ads</li>
+        <li>Issue Archive</li>
+        <li>Contribute</li>
+        <li>Contact</li>
+        <li>About</li>
+        <li>Account</li>
+      </ul>
+    </div>
+    <div class="default-font">
+      This text uses the default sans-serif font for comparison:
+      <ul>
+        <li>Home</li>
+        <li>News & Updates</li>
+        <li>Classifieds & Ads</li>
+        <li>Issue Archive</li>
+        <li>Contribute</li>
+        <li>Contact</li>
+        <li>About</li>
+        <li>Account</li>
+      </ul>
+    </div>
+
+    <script>
+      // Check if fonts are loaded
+      document.fonts.ready.then(function () {
+        console.log('All fonts loaded');
+        console.log(
+          'Available fonts:',
+          Array.from(document.fonts).map((font) => font.family),
+        );
+      });
+
+      // Test if Outfit font is loaded
+      if (document.fonts.check('1em Outfit')) {
+        console.log('Outfit font is available');
+      } else {
+        console.log('Outfit font is not available, fallback fonts will be used');
+      }
+    </script>
+  </body>
+</html>

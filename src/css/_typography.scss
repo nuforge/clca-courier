@@ -1,3 +1,7 @@
+// Font family variables
+$font-family-century-gothic:
+  'Outfit', 'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Futura', 'Trebuchet MS', sans-serif;
+
 h1,
 h2,
 h3,
@@ -33,4 +37,10 @@ h5,
 }
 .text-h6 {
   font-size: 0.8rem;
+}
+
+// Navigation font styling
+.nav-menu-font {
+  font-family: $font-family-century-gothic;
+  font-weight: 400;
 }

@@ -78,6 +78,14 @@ const isOpen = computed({
 </template>
 
 <style lang="scss" scoped>
+// Navigation drawer font styling
+.navigation-drawer {
+  :deep(.q-item__label) {
+    font-family: 'Outfit', 'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Futura', 'Trebuchet MS', sans-serif;
+    font-weight: 400;
+  }
+}
+
 .nav-item {
   border-bottom-left-radius: 8px;
   border-top-left-radius: 8px;
