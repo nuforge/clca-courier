@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSiteStore } from '../stores/site-store-simple'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
@@ -40,6 +40,16 @@ const greyTextClass = computed(() =>
 onMounted(() => {
   loadIssueDetails()
 })
+
+// Watch for route parameter changes to handle navigation between issues
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) {
+      loadIssueDetails()
+    }
+  }
+)
 
 function loadIssueDetails() {
   // Find the issue in archived issues
