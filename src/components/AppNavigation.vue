@@ -46,7 +46,7 @@ const isOpen = computed({
 
 <template>
   <q-drawer v-model="isOpen" show-if-above class="bg-dark navigation-drawer" :mini="isMini" :width="280"
-    :mini-width="60" mini-to-overlay>
+    :mini-width="60">
     <!-- Toggle button -->
     <div class="flex justify-end q-pa-sm">
       <q-btn flat round dense :icon="isMini ? 'mdi-chevron-right' : 'mdi-chevron-left'" @click="toggleMini"

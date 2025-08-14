@@ -1,7 +1,7 @@
 <template>
-  <q-page class="fit">
-    <!-- Full Screen Map Container -->
-    <div class="absolute-full">
+  <q-page class="map-page">
+    <!-- Map Container -->
+    <div class="map-container">
       <InteractiveMapSVGRefactored ref="mapRef" class="fit" />
 
       <!-- Roads Panel - Collapsible Overlay -->
@@ -276,6 +276,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Map Page Layout */
+.map-page {
+  padding: 0;
+}
+
+.map-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 80px);
+  /* Account for header */
+  overflow: hidden;
+  transition: all 0.3s ease;
+  /* Smooth transition when drawer opens/closes */
+}
+
 /* Roads Overlay Panel */
 .roads-overlay {
   position: absolute;
@@ -289,7 +304,7 @@ onMounted(() => {
   z-index: 1000;
   /* Higher than drawer */
   transition: all 0.3s ease;
-  /* Account for: header(80px) + top margin(16px) + bottom margin(16px) + extra padding(20px) */
+  /* Account for: container height minus top/bottom margins */
   max-height: calc(100vh - 132px);
   overflow: hidden;
   display: flex;
@@ -458,6 +473,11 @@ onMounted(() => {
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .map-container {
+    height: calc(100vh - 80px);
+    /* Maintain height for mobile */
+  }
+
   .roads-overlay {
     width: calc(100vw - 32px);
     left: 16px;
@@ -472,6 +492,10 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
+  .map-container {
+    height: calc(100vh - 80px);
+  }
+
   .roads-overlay {
     width: calc(100vw - 16px);
     left: 8px;
