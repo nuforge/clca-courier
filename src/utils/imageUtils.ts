@@ -1,4 +1,5 @@
 // Utility functions for working with external images and URLs
+import { GoogleDriveBrowserService } from 'src/services/google-drive-browser-service';
 
 export interface GoogleDriveInfo {
   fileId: string;
@@ -9,23 +10,10 @@ export interface GoogleDriveInfo {
 
 /**
  * Extract file ID from various Google Drive URL formats
+ * @deprecated Use GoogleDriveBrowserService.extractFileId instead
  */
 export function extractGoogleDriveFileId(url: string): string | null {
-  const patterns = [
-    /\/file\/d\/([a-zA-Z0-9-_]+)/,
-    /id=([a-zA-Z0-9-_]+)/,
-    /\/d\/([a-zA-Z0-9-_]+)/,
-    /drive\.google\.com\/open\?id=([a-zA-Z0-9-_]+)/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-
-  return null;
+  return GoogleDriveBrowserService.extractFileId(url);
 }
 
 /**
@@ -64,9 +52,10 @@ export function getGoogleDriveThumbnailUrl(url: string, size = 400): string {
 
 /**
  * Check if URL is a Google Drive URL
+ * @deprecated Use GoogleDriveBrowserService.isGoogleDriveUrl instead
  */
 export function isGoogleDriveUrl(url: string): boolean {
-  return url.includes('drive.google.com') || url.includes('docs.google.com');
+  return GoogleDriveBrowserService.isGoogleDriveUrl(url);
 }
 
 /**
@@ -139,6 +128,16 @@ export function generatePlaceholderImage(
 export const imageHostingConverters = {
   googleDrive: getGoogleDriveDirectUrl,
 
+  // Enhanced Google Drive converter that uses the new service
+  googleDriveEnhanced: (url: string): string => {
+    const fileId = GoogleDriveBrowserService.extractFileId(url);
+    if (fileId) {
+      // Return public direct URL
+      return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    }
+    return url;
+  },
+
   // Dropbox
   dropbox: (url: string): string => {
     if (url.includes('dropbox.com') && url.includes('?dl=0')) {
@@ -164,7 +163,7 @@ export const imageHostingConverters = {
  */
 export function convertToDirectUrl(url: string): string {
   if (isGoogleDriveUrl(url)) {
-    return imageHostingConverters.googleDrive(url);
+    return imageHostingConverters.googleDriveEnhanced(url);
   }
 
   if (url.includes('dropbox.com')) {
