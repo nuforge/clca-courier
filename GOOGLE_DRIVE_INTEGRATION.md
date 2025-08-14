@@ -59,6 +59,7 @@ The Google Drive integration allows the application to:
    # Optional
    VITE_GOOGLE_CLIENT_SECRET=your_client_secret_here
    VITE_GOOGLE_PROJECT_ID=your_project_id_here
+   VITE_GOOGLE_DRIVE_PUBLIC_FOLDER_ID=1saSXnh9kkD_KNVwqusaz3i9YP46NZmIz
    ```
 
 ### 3. Application Setup

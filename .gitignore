@@ -275,3 +275,4 @@ cypress/downloads/
 # Jest
 coverage/
 .jest-cache/
+.env

@@ -181,7 +181,7 @@ const sampleUrls = [
     },
     {
         label: 'Google Drive Sample',
-        url: 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view'
+        url: 'https://drive.google.com/file/d/1saSXnh9kkD_KNVwqusaz3i9YP46NZmIz/view'
     },
     {
         label: 'CORS Blocked',

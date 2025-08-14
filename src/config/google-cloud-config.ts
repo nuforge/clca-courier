@@ -17,6 +17,17 @@ export const defaultGoogleDriveConfig: GoogleCloudConfig = {
   ],
 };
 
+// Default Google Drive folder ID for public submissions
+export const GOOGLE_DRIVE_PUBLIC_FOLDER_ID =
+  import.meta.env.VITE_GOOGLE_DRIVE_PUBLIC_FOLDER_ID || '1saSXnh9kkD_KNVwqusaz3i9YP46NZmIz';
+
+// Build Google Drive folder URL
+export const getGoogleDriveFolderUrl = (
+  folderId: string = GOOGLE_DRIVE_PUBLIC_FOLDER_ID,
+): string => {
+  return `https://drive.google.com/drive/folders/${folderId}?usp=sharing`;
+};
+
 // Environment-based configuration
 export const getGoogleCloudConfig = (): GoogleCloudConfig => {
   return {

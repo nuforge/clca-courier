@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useSiteStore } from '../stores/site-store-simple'
 import { DiscordIcon } from '../components/BrandIcons'
+import { getGoogleDriveFolderUrl } from '../config/google-cloud-config'
 
 const $q = useQuasar()
 const siteStore = useSiteStore()
@@ -86,7 +87,7 @@ async function onSubmit() {
 }
 
 function openGoogleDrive() {
-    window.open('https://drive.google.com/drive/folders/sample-courier-events', '_blank')
+    window.open(getGoogleDriveFolderUrl(), '_blank')
 }
 
 function openEmail() {
