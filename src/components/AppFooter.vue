@@ -128,9 +128,12 @@ const socialLinks = [
             © {{ currentYear }} The Courier @ Conashaugh Lakes. All rights reserved.
           </div>
           <div class="text-caption q-mt-xs">
-            <router-link v-for="(link, index) in legalLinks" :key="link.label" :to="link.to"
-              class="text-grey-4 text-decoration-none">
-              {{ link.label }}{{ index < legalLinks.length - 1 ? ' • ' : '' }} </router-link>
+            <template v-for="(link, index) in legalLinks" :key="link.label">
+              <router-link :to="link.to" class="text-grey-4 text-decoration-none">
+                {{ link.label }}
+              </router-link>
+              <span v-if="index < legalLinks.length - 1" class="text-grey-4"> • </span>
+            </template>
           </div>
         </div>
 
