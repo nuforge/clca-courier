@@ -274,6 +274,10 @@ defineExpose({
   zoomIn,
   zoomOut,
 
+  // Hover controls
+  hoverRoad,
+  clearHover,
+
   // Theme controls
   currentTheme,
   availableThemes,

@@ -48,7 +48,11 @@
           <div class="roads-list-container">
             <q-list dense>
               <q-item v-for="(road, index) in sortedAndFilteredRoads" :key="`road-${index}`" clickable
-                :active="state.selectedRoadIds?.includes(road.id)" @click="selectRoad(road.id)" class="road-list-item">
+                :active="state.selectedRoadIds?.includes(road.id)" @click="selectRoad(road.id)"
+                @mouseenter="hoverRoadFromList(road.id)" @mouseleave="clearRoadHover" class="road-list-item" :class="{
+                  'road-list-item--hovered': state.hoveredRoadId === road.id,
+                  'road-list-item--selected': state.selectedRoadIds?.includes(road.id)
+                }">
                 <q-item-section side>
                   <q-checkbox :model-value="state.selectedRoadIds?.includes(road.id) || false"
                     @update:model-value="() => selectRoad(road.id)" color="primary" />
@@ -153,7 +157,7 @@ const availableThemes = computed(() => mapRef.value?.availableThemes || []);
 const isRoadsLoaded = computed(() => mapRef.value?.isRoadsLoaded || false);
 const roadStatistics = computed(() => mapRef.value?.roadStatistics || { totalRoads: 0, selectedCount: 0, filteredCount: 0 });
 const state = computed(() => {
-  const defaultState = { selectedRoadIds: [] as string[], selectedRoadId: null as string | null };
+  const defaultState = { selectedRoadIds: [] as string[], selectedRoadId: null as string | null, hoveredRoadId: null as string | null };
   return mapRef.value?.state || defaultState;
 });
 
@@ -242,6 +246,19 @@ const selectAllVisible = () => {
 
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+};
+
+// Hover methods for roads list
+const hoverRoadFromList = (roadId: string) => {
+  if (mapRef.value?.hoverRoad) {
+    mapRef.value.hoverRoad(roadId);
+  }
+};
+
+const clearRoadHover = () => {
+  if (mapRef.value?.clearHover) {
+    mapRef.value.clearHover();
+  }
 };
 
 // Watch for search query changes
@@ -403,5 +420,48 @@ onMounted(() => {
     right: 66px;
     /* Adjust for mobile zoom controls */
   }
+}
+
+/* Road list item styling */
+.road-list-item {
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  border-radius: 4px;
+  margin: 2px 0;
+}
+
+.road-list-item:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.road-list-item--hovered {
+  background-color: rgba(25, 118, 210, 0.15) !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+}
+
+.road-list-item--selected {
+  background-color: rgba(25, 118, 210, 0.12);
+}
+
+.road-list-item--selected.road-list-item--hovered {
+  background-color: rgba(25, 118, 210, 0.2) !important;
+}
+
+/* Dark mode adjustments for road list items */
+.body--dark .road-list-item:hover {
+  background-color: rgba(144, 202, 249, 0.08);
+}
+
+.body--dark .road-list-item--hovered {
+  background-color: rgba(144, 202, 249, 0.15) !important;
+  box-shadow: 0 2px 4px rgba(144, 202, 249, 0.2);
+}
+
+.body--dark .road-list-item--selected {
+  background-color: rgba(144, 202, 249, 0.12);
+}
+
+.body--dark .road-list-item--selected.road-list-item--hovered {
+  background-color: rgba(144, 202, 249, 0.2) !important;
 }
 </style>
