@@ -289,12 +289,16 @@ onMounted(() => {
   z-index: 1000;
   /* Higher than drawer */
   transition: all 0.3s ease;
-  max-height: calc(100vh - 120px);
+  /* Account for: header(80px) + top margin(16px) + bottom margin(16px) + extra padding(20px) */
+  max-height: calc(100vh - 132px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .roads-overlay.collapsed {
   height: 48px;
+  max-height: 48px;
 }
 
 .overlay-header {
@@ -313,15 +317,76 @@ onMounted(() => {
 
 .overlay-content {
   padding: 16px;
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .roads-list-container {
-  height: 300px;
+  flex: 1;
+  /* Take up remaining space in the overlay */
+  min-height: 200px;
+  /* Minimum height to ensure usability */
   overflow-y: auto;
+  overflow-x: hidden;
+  /* Prevent horizontal scrollbar */
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
+  margin-top: 8px;
+  /* Small gap from controls above */
+}
+
+/* Custom Scrollbar Styling */
+.roads-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.roads-list-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.roads-list-container::-webkit-scrollbar-thumb {
+  background: rgba(25, 118, 210, 0.3);
+  border-radius: 4px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.roads-list-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(25, 118, 210, 0.5);
+  transform: scaleY(1.1);
+}
+
+.roads-list-container::-webkit-scrollbar-thumb:active {
+  background: rgba(25, 118, 210, 0.7);
+}
+
+/* Dark mode scrollbar */
+.body--dark .roads-list-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.body--dark .roads-list-container::-webkit-scrollbar-thumb {
+  background: rgba(144, 202, 249, 0.3);
+}
+
+.body--dark .roads-list-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 202, 249, 0.5);
+}
+
+.body--dark .roads-list-container::-webkit-scrollbar-thumb:active {
+  background: rgba(144, 202, 249, 0.7);
+}
+
+/* Firefox scrollbar styling */
+.roads-list-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(25, 118, 210, 0.3) rgba(0, 0, 0, 0.05);
+}
+
+.body--dark .roads-list-container {
+  scrollbar-color: rgba(144, 202, 249, 0.3) rgba(255, 255, 255, 0.1);
 }
 
 /* Map Controls - Positioned with Zoom Controls */
@@ -371,7 +436,6 @@ onMounted(() => {
   }
 }
 
-/* Dark mode support */
 .body--dark .roads-overlay,
 .body--dark .controls-popup {
   background: rgba(30, 30, 30, 0.95);
@@ -388,7 +452,8 @@ onMounted(() => {
 }
 
 .body--dark .roads-list-container {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.12);
+  scrollbar-color: rgba(144, 202, 249, 0.3) rgba(255, 255, 255, 0.1);
 }
 
 /* Responsive design */
@@ -397,6 +462,8 @@ onMounted(() => {
     width: calc(100vw - 32px);
     left: 16px;
     right: 16px;
+    /* Account for mobile browser UI variations */
+    max-height: calc(100vh - 140px);
   }
 
   .controls-popup {
@@ -409,6 +476,8 @@ onMounted(() => {
     width: calc(100vw - 16px);
     left: 8px;
     right: 8px;
+    /* More conservative height on small screens */
+    max-height: calc(100vh - 150px);
   }
 
   .controls-popup {
@@ -422,21 +491,38 @@ onMounted(() => {
   }
 }
 
+/* Very small screens */
+@media (max-height: 600px) {
+  .roads-overlay {
+    /* More aggressive height reduction on short screens */
+    max-height: calc(100vh - 120px);
+  }
+}
+
 /* Road list item styling */
 .road-list-item {
   transition: background-color 0.2s ease, transform 0.1s ease;
   border-radius: 4px;
   margin: 2px 0;
+  position: relative;
+  /* Ensure transform doesn't cause overflow */
 }
 
 .road-list-item:hover {
   background-color: rgba(25, 118, 210, 0.08);
 }
 
+.road-list-item:focus {
+  outline: 2px solid rgba(25, 118, 210, 0.5);
+  outline-offset: -2px;
+}
+
 .road-list-item--hovered {
   background-color: rgba(25, 118, 210, 0.15) !important;
   transform: translateX(2px);
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+  margin-right: 2px;
+  /* Compensate for transform to prevent horizontal scrollbar */
 }
 
 .road-list-item--selected {
@@ -452,9 +538,15 @@ onMounted(() => {
   background-color: rgba(144, 202, 249, 0.08);
 }
 
+.body--dark .road-list-item:focus {
+  outline-color: rgba(144, 202, 249, 0.5);
+}
+
 .body--dark .road-list-item--hovered {
   background-color: rgba(144, 202, 249, 0.15) !important;
   box-shadow: 0 2px 4px rgba(144, 202, 249, 0.2);
+  margin-right: 2px;
+  /* Compensate for transform to prevent horizontal scrollbar */
 }
 
 .body--dark .road-list-item--selected {
