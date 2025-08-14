@@ -201,7 +201,7 @@ function formatFileSize(pages: number): string {
                       <q-chip clickable @click="openPdfViewer" icon="mdi-eye" color="primary" text-color="white">
                         Open in Viewer
                       </q-chip>
-                      <q-chip clickable @click="$router.push('/archive')" icon="mdi-archive" color="secondary"
+                      <q-chip clickable @click="$router.push('/archive')" icon="mdi-bookshelf" color="secondary"
                         text-color="white">
                         Browse Archive
                       </q-chip>

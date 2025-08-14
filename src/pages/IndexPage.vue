@@ -31,7 +31,7 @@ const quickLinks: QuickLink[] = [
   {
     title: 'Issue Archive',
     description: 'Access past issues and historical content',
-    icon: 'mdi-archive',
+    icon: 'mdi-bookshelf',
     color: 'accent',
     link: '/archive'
   },
