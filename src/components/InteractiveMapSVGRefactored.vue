@@ -52,29 +52,6 @@
         <q-btn round color="primary" icon="remove" size="sm" @click="zoomOut" :disable="state.zoomLevel <= 0.5" />
         <q-btn round color="secondary" icon="center_focus_strong" size="sm" @click="centerMap" title="Center Map" />
       </div>
-
-      <!-- Map info overlay for multiple selections -->
-      <div v-if="state.selectedRoadIds.length > 0" class="map-info-overlay">
-        <q-card class="road-info-card">
-          <q-card-section>
-            <div class="text-h6">
-              Selected Roads ({{ state.selectedRoadIds.length }})
-            </div>
-            <div class="selected-roads-list">
-              <q-chip v-for="roadId in state.selectedRoadIds.slice(0, 3)" :key="roadId" removable
-                @remove="deselectRoad(roadId)" color="primary" text-color="white" size="sm">
-                {{ getRoadName(roadId) }}
-              </q-chip>
-              <q-chip v-if="state.selectedRoadIds.length > 3" color="grey" text-color="white" size="sm">
-                +{{ state.selectedRoadIds.length - 3 }} more
-              </q-chip>
-            </div>
-          </q-card-section>
-          <q-card-actions align="right">
-            <q-btn flat color="negative" @click="clearAllSelections">Clear All</q-btn>
-          </q-card-actions>
-        </q-card>
-      </div>
     </div>
   </div>
 </template>
@@ -133,16 +110,6 @@ const lastMousePos = ref({ x: 0, y: 0 });
 
 // Computed properties
 const roadCount = computed(() => roads.value.length);
-
-// Helper methods
-const getRoadName = (roadId: string): string => {
-  const road = roads.value.find(r => r.id === roadId);
-  return road?.name || roadId;
-};
-
-const deselectRoad = (roadId: string) => {
-  toggleRoadSelection(roadId);
-};
 
 // Initialize the map when the original SVG is mounted
 const onMapSVGMounted = async () => {
@@ -416,26 +383,6 @@ defineExpose({
 .tooltip-enter-from,
 .tooltip-leave-to {
   opacity: 0;
-}
-
-.map-info-overlay {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 5;
-  max-width: 300px;
-}
-
-.road-info-card {
-  min-width: 200px;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.selected-roads-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
 }
 
 /* Animation for smooth interactions */
