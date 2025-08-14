@@ -1,75 +1,95 @@
 <template>
-  <div class="interactive-map-container">
-    <!-- SVG Container with original MapSVG as template -->
-    <div ref="mapContainer" class="map-svg-container">
-      <!-- Original MapSVG component as template -->
-      <MapSVG ref="mapSvgRef" class="original-map-template" :style="{
-        display: isRoadsLoaded ? 'none' : 'block',
-        opacity: isRoadsLoaded ? 0 : 1
-      }" />
+  <div :class="['interactive-map-container', backgroundClasses.card, borderClasses.light]">
+    <div class="map-content">
+      <!-- SVG Container with original MapSVG as template -->
+      <div ref="mapContainer" class="map-svg-container">
+        <!-- Original MapSVG component as template -->
+        <MapSVG ref="mapSvgRef" class="original-map-template" :style="{
+          display: isRoadsLoaded ? 'none' : 'block',
+          opacity: isRoadsLoaded ? 0 : 1
+        }" />
 
-      <!-- Interactive overlay SVG -->
-      <svg v-if="isRoadsLoaded" ref="interactiveSvgRef" class="interactive-map-svg" width="100%" height="100%"
-        viewBox="0 0 2000 1800" xmlns="http://www.w3.org/2000/svg" :style="{
-          transform: `translate(${state.panX}px, ${state.panY}px) scale(${state.zoomLevel})`,
-          transition: 'transform 0.3s ease'
-        }" @wheel.prevent="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
-        @mouseup="handleMouseUp" @mouseleave="handleMouseLeave">
-        <!-- Render roads dynamically from parsed data -->
-        <g v-for="road in roads" :key="road.id" :id="road.id" :data-road-name="road.name" class="road-group"
-          transform="matrix(1,0,0,1,-591.034,-160.657)" @click="selectRoad(road.id)"
-          @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)">
-          <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
-            fill="none" class="road-path" :class="{
-              'road-selected': state.selectedRoadId === road.id,
-              'road-hovered': state.hoveredRoadId === road.id
-            }" />
-        </g>
-      </svg>
-    </div>
-
-    <!-- Loading indicator -->
-    <div v-if="!isRoadsLoaded" class="loading-overlay">
-      <q-spinner-dots size="2em" color="primary" />
-      <p>Loading interactive map...</p>
-    </div>
-
-    <!-- Road tooltip -->
-    <Transition name="tooltip">
-      <div v-if="showTooltip && tooltipContent" class="road-tooltip" :style="{
-        left: tooltipPosition.x + 'px',
-        top: tooltipPosition.y + 'px'
-      }">
-        {{ tooltipContent }}
+        <!-- Interactive overlay SVG -->
+        <svg v-if="isRoadsLoaded" ref="interactiveSvgRef" class="interactive-map-svg" width="100%" height="100%"
+          viewBox="0 0 2000 1800" xmlns="http://www.w3.org/2000/svg" :style="{
+            transform: `translate(${state.panX}px, ${state.panY}px) scale(${state.zoomLevel})`,
+            transition: 'transform 0.3s ease'
+          }" @wheel.prevent="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
+          @mouseup="handleMouseUp" @mouseleave="handleMouseLeave">
+          <!-- Render roads dynamically from parsed data -->
+          <g v-for="road in roads" :key="road.id" :id="road.id" :data-road-name="road.name" class="road-group"
+            transform="matrix(1,0,0,1,-591.034,-160.657)" @click="handleRoadClick(road.id)"
+            @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)">
+            <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
+              fill="none" class="road-path" :class="{
+                'road-selected': state.selectedRoadIds.includes(road.id),
+                'road-hovered': state.hoveredRoadId === road.id
+              }" />
+          </g>
+        </svg>
       </div>
-    </Transition>
 
-    <!-- Zoom controls -->
-    <div class="zoom-controls">
-      <q-btn round color="primary" icon="add" size="sm" @click="zoomIn" :disable="state.zoomLevel >= 5" />
-      <q-btn round color="primary" icon="remove" size="sm" @click="zoomOut" :disable="state.zoomLevel <= 0.5" />
-      <q-btn round color="secondary" icon="center_focus_strong" size="sm" @click="centerMap" title="Center Map" />
-    </div>
+      <!-- Loading indicator -->
+      <div v-if="!isRoadsLoaded" class="loading-overlay">
+        <q-spinner-dots size="2em" color="primary" />
+        <p>Loading interactive map...</p>
+        <p class="text-caption">Parsing {{ roadCount }} roads...</p>
+      </div>
 
-    <!-- Map info overlay -->
-    <div v-if="selectedRoad" class="map-info-overlay">
-      <q-card class="road-info-card">
-        <q-card-section>
-          <div class="text-h6">{{ selectedRoad.name }}</div>
-          <div class="text-caption text-grey-6">ID: {{ selectedRoad.id }}</div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat color="primary" @click="selectRoad(null)">Close</q-btn>
-        </q-card-actions>
-      </q-card>
+      <!-- Road tooltip -->
+      <Transition name="tooltip">
+        <div v-if="showTooltip && tooltipContent" class="road-tooltip" :style="{
+          left: tooltipPosition.x + 'px',
+          top: tooltipPosition.y + 'px'
+        }">
+          {{ tooltipContent }}
+        </div>
+      </Transition>
+
+      <!-- Zoom controls -->
+      <div class="zoom-controls">
+        <q-btn round color="primary" icon="add" size="sm" @click="zoomIn" :disable="state.zoomLevel >= 5" />
+        <q-btn round color="primary" icon="remove" size="sm" @click="zoomOut" :disable="state.zoomLevel <= 0.5" />
+        <q-btn round color="secondary" icon="center_focus_strong" size="sm" @click="centerMap" title="Center Map" />
+      </div>
+
+      <!-- Map info overlay for multiple selections -->
+      <div v-if="state.selectedRoadIds.length > 0" class="map-info-overlay">
+        <q-card class="road-info-card">
+          <q-card-section>
+            <div class="text-h6">
+              Selected Roads ({{ state.selectedRoadIds.length }})
+            </div>
+            <div class="selected-roads-list">
+              <q-chip v-for="roadId in state.selectedRoadIds.slice(0, 3)" :key="roadId" removable
+                @remove="deselectRoad(roadId)" color="primary" text-color="white" size="sm">
+                {{ getRoadName(roadId) }}
+              </q-chip>
+              <q-chip v-if="state.selectedRoadIds.length > 3" color="grey" text-color="white" size="sm">
+                +{{ state.selectedRoadIds.length - 3 }} more
+              </q-chip>
+            </div>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat color="negative" @click="clearAllSelections">Clear All</q-btn>
+          </q-card-actions>
+        </q-card>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, onMounted, computed } from 'vue';
 import { useInteractiveMap } from '../composables/useInteractiveMap';
+import { useTheme } from '../composables/useTheme';
 import MapSVG from './MapSVG.vue';
+
+// Theme management
+const {
+  backgroundClasses,
+  borderClasses
+} = useTheme();
 
 // Use the new composable
 const {
@@ -81,8 +101,15 @@ const {
   showTooltip,
   tooltipPosition,
   tooltipContent,
+  roadStatistics,
+  availableThemes,
+  searchQuery,
+  filteredRoads,
   initializeSVGParser,
   selectRoad,
+  selectMultipleRoads,
+  toggleRoadSelection,
+  clearAllSelections,
   hoverRoad,
   clearHover,
   zoomIn,
@@ -90,7 +117,9 @@ const {
   centerMap,
   showRoadTooltip,
   hideTooltip,
-  validateSVGStructure
+  validateSVGStructure,
+  applyTheme,
+  getRandomRoad
 } = useInteractiveMap();
 
 // Template refs
@@ -101,6 +130,19 @@ const interactiveSvgRef = ref<SVGSVGElement>();
 // Mouse interaction state
 const isDragging = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
+
+// Computed properties
+const roadCount = computed(() => roads.value.length);
+
+// Helper methods
+const getRoadName = (roadId: string): string => {
+  const road = roads.value.find(r => r.id === roadId);
+  return road?.name || roadId;
+};
+
+const deselectRoad = (roadId: string) => {
+  toggleRoadSelection(roadId);
+};
 
 // Initialize the map when the original SVG is mounted
 const onMapSVGMounted = async () => {
@@ -119,7 +161,8 @@ const onMapSVGMounted = async () => {
     }
 
     if (svgElement) {
-      initializeSVGParser(svgElement);
+      console.log('Found SVG element, initializing parser...');
+      await initializeSVGParser(svgElement);
 
       // Validate structure
       const validation = validateSVGStructure();
@@ -176,6 +219,10 @@ const handleMouseLeave = () => {
 };
 
 // Road interaction handlers
+const handleRoadClick = (roadId: string) => {
+  toggleRoadSelection(roadId);
+};
+
 const handleRoadMouseEnter = (roadId: string, event: MouseEvent) => {
   hoverRoad(roadId);
   showRoadTooltip(roadId, event.clientX + 10, event.clientY - 10);
@@ -190,7 +237,7 @@ const handleRoadMouseLeave = (roadId: string) => {
 
 // Style helpers
 const getRoadStroke = (roadId: string): string => {
-  if (state.selectedRoadId === roadId) {
+  if (state.selectedRoadIds.includes(roadId)) {
     return currentTheme.value.selectedColor;
   }
   if (state.hoveredRoadId === roadId) {
@@ -200,7 +247,7 @@ const getRoadStroke = (roadId: string): string => {
 };
 
 const getRoadStrokeWidth = (roadId: string): number => {
-  if (state.selectedRoadId === roadId) {
+  if (state.selectedRoadIds.includes(roadId)) {
     return currentTheme.value.strokeWidth + 2;
   }
   if (state.hoveredRoadId === roadId) {
@@ -211,13 +258,33 @@ const getRoadStrokeWidth = (roadId: string): number => {
 
 // Expose methods for parent components
 defineExpose({
+  // Basic map controls
   selectRoad,
+  selectMultipleRoads,
+  toggleRoadSelection,
+  clearAllSelections,
   centerMap,
   zoomIn,
   zoomOut,
+
+  // Theme controls
+  currentTheme,
+  availableThemes,
+  applyTheme,
+
+  // Data access
   roads,
   selectedRoad,
-  state
+  state,
+  roadStatistics,
+  isRoadsLoaded,
+
+  // Search functionality
+  searchQuery,
+  filteredRoads,
+
+  // Utility methods
+  getRandomRoad
 });
 </script>
 
@@ -227,9 +294,17 @@ defineExpose({
   width: 100%;
   height: 600px;
   overflow: hidden;
-  border: 2px solid #e0e0e0;
+  border-width: 2px;
+  border-style: solid;
   border-radius: 8px;
-  background: #f8f9fa;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.map-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .map-svg-container {
@@ -294,6 +369,13 @@ defineExpose({
   background: rgba(255, 255, 255, 0.9);
   z-index: 10;
   gap: 16px;
+  transition: background-color 0.3s ease;
+}
+
+/* Dark mode loading overlay */
+.body--dark .loading-overlay {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
 }
 
 .zoom-controls {
@@ -308,7 +390,7 @@ defineExpose({
 
 .road-tooltip {
   position: fixed;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
   color: white;
   padding: 8px 12px;
   border-radius: 4px;
@@ -317,6 +399,13 @@ defineExpose({
   pointer-events: none;
   z-index: 1000;
   max-width: 200px;
+  transition: background-color 0.3s ease;
+}
+
+/* Dark mode tooltip - lighter background for better contrast */
+.body--dark .road-tooltip {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1a;
 }
 
 .tooltip-enter-active,
@@ -339,6 +428,14 @@ defineExpose({
 
 .road-info-card {
   min-width: 200px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.selected-roads-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
 }
 
 /* Animation for smooth interactions */
@@ -350,11 +447,45 @@ defineExpose({
   }
 
   50% {
-    transform: scale(1.05);
+    transform: scale(1.02);
   }
 }
 
 .road-selected .road-path {
-  animation: pulse 2s infinite;
+  animation: pulse 3s infinite;
+}
+
+/* Dark mode specific adjustments */
+.body--dark .road-selected {
+  filter: brightness(1.3) drop-shadow(0 0 4px rgba(100, 255, 150, 0.6));
+}
+
+.body--dark .road-hovered {
+  filter: brightness(1.4) drop-shadow(0 0 3px rgba(100, 200, 255, 0.6));
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .interactive-map-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .roads-sidebar {
+    width: 100%;
+    height: 300px;
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .map-content {
+    height: 400px;
+  }
+
+  .zoom-controls {
+    bottom: 8px;
+    right: 8px;
+    gap: 4px;
+  }
 }
 </style>

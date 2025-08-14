@@ -39,6 +39,7 @@ export type MapTheme = RoadTheme & Partial<LegacyMapTheme>;
 
 export interface MapInteractionState {
   selectedRoadId: string | null;
+  selectedRoadIds: string[]; // Support for multiple selections
   hoveredRoadId: string | null;
   zoomLevel: number;
   panX: number;
@@ -51,53 +52,53 @@ const themeList: MapTheme[] = [
     id: 'default',
     name: 'Default',
     strokeColor: '#323232',
-    strokeWidth: 2,
+    strokeWidth: 4, // Increased for easier interaction
     hoverColor: '#007bff',
     selectedColor: '#28a745',
     // Backward compatibility properties
     defaultColor: '#323232',
     highlightColor: '#007bff',
-    defaultStrokeWidth: 2,
-    highlightStrokeWidth: 4,
+    defaultStrokeWidth: 4,
+    highlightStrokeWidth: 6,
   },
   {
     id: 'vibrant',
     name: 'Vibrant',
     strokeColor: '#e74c3c',
-    strokeWidth: 3,
+    strokeWidth: 5, // Increased for easier interaction
     hoverColor: '#f39c12',
     selectedColor: '#27ae60',
     // Backward compatibility properties
     defaultColor: '#e74c3c',
     highlightColor: '#f39c12',
-    defaultStrokeWidth: 3,
-    highlightStrokeWidth: 5,
+    defaultStrokeWidth: 5,
+    highlightStrokeWidth: 7,
   },
   {
     id: 'ocean',
     name: 'Ocean',
     strokeColor: '#3498db',
-    strokeWidth: 2.5,
+    strokeWidth: 4.5, // Increased for easier interaction
     hoverColor: '#2ecc71',
     selectedColor: '#9b59b6',
     // Backward compatibility properties
     defaultColor: '#3498db',
     highlightColor: '#2ecc71',
-    defaultStrokeWidth: 2.5,
-    highlightStrokeWidth: 4.5,
+    defaultStrokeWidth: 4.5,
+    highlightStrokeWidth: 6.5,
   },
   {
     id: 'sunset',
     name: 'Sunset',
     strokeColor: '#f39c12',
-    strokeWidth: 2,
+    strokeWidth: 4, // Increased for easier interaction
     hoverColor: '#e67e22',
     selectedColor: '#c0392b',
     // Backward compatibility properties
     defaultColor: '#f39c12',
     highlightColor: '#e67e22',
-    defaultStrokeWidth: 2,
-    highlightStrokeWidth: 4,
+    defaultStrokeWidth: 4,
+    highlightStrokeWidth: 6,
   },
 ];
 
@@ -108,6 +109,7 @@ export function useInteractiveMap() {
   // Reactive state
   const state = reactive<MapInteractionState>({
     selectedRoadId: null,
+    selectedRoadIds: [], // Support for multiple selections
     hoveredRoadId: null,
     zoomLevel: 1,
     panX: 0,
@@ -150,21 +152,28 @@ export function useInteractiveMap() {
   const roadStatistics = computed(() => {
     return {
       totalRoads: roads.value.length,
-      selectedCount: state.selectedRoadId ? 1 : 0,
+      selectedCount: state.selectedRoadIds.length,
       filteredCount: filteredRoads.value.length,
     };
   });
 
   // Methods
-  const initializeSVGParser = (svg: SVGSVGElement) => {
+  const initializeSVGParser = async (svg: SVGSVGElement) => {
     svgElement.value = svg;
     roadParser.setSVGElement(svg);
+
+    // Add a small delay to ensure SVG is fully rendered
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     loadRoadsFromSVG();
   };
 
   const loadRoadsFromSVG = () => {
     try {
+      console.log('Loading roads from SVG...');
       const parsedRoads = roadParser.parseRoads();
+      console.log('Parsed roads:', parsedRoads);
+
       roads.value = parsedRoads.map((parsedRoad) => ({
         id: parsedRoad.id,
         name: parsedRoad.name,
@@ -177,8 +186,17 @@ export function useInteractiveMap() {
         isSelected: false,
         isHighlighted: false,
       }));
+
       isRoadsLoaded.value = true;
-      console.log(`Loaded ${roads.value.length} roads from SVG`);
+      console.log(`Successfully loaded ${roads.value.length} roads from SVG`);
+
+      // Validate the SVG structure and log any issues
+      const validation = validateSVGStructure();
+      if (!validation.isValid) {
+        console.warn('SVG structure validation issues:', validation.issues);
+      } else {
+        console.log('SVG structure validation passed');
+      }
     } catch (error) {
       console.error('Failed to load roads from SVG:', error);
       isRoadsLoaded.value = false;
@@ -188,7 +206,7 @@ export function useInteractiveMap() {
   // Update backward compatibility properties
   const updateRoadProperties = () => {
     roads.value.forEach((road) => {
-      road.isSelected = state.selectedRoadId === road.id;
+      road.isSelected = state.selectedRoadIds.includes(road.id);
       road.isHighlighted = state.hoveredRoadId === road.id;
 
       if (road.isSelected) {
@@ -211,6 +229,14 @@ export function useInteractiveMap() {
     }
 
     state.selectedRoadId = roadId;
+
+    // Update the multiple selections array for single selection
+    if (roadId) {
+      state.selectedRoadIds = [roadId];
+    } else {
+      state.selectedRoadIds = [];
+    }
+
     updateRoadProperties();
 
     if (roadId) {
@@ -223,6 +249,57 @@ export function useInteractiveMap() {
         applyRoadStyles(road.id, 'default');
       }
     });
+  };
+
+  // New method for multiple road selection
+  const selectMultipleRoads = (roadIds: string[]) => {
+    state.selectedRoadIds = [...roadIds];
+    state.selectedRoadId = roadIds.length > 0 ? roadIds[0] || null : null;
+
+    updateRoadProperties();
+
+    // Apply styles to all selected roads
+    roads.value.forEach((road) => {
+      if (roadIds.includes(road.id)) {
+        applyRoadStyles(road.id, 'selected');
+      } else {
+        applyRoadStyles(road.id, 'default');
+      }
+    });
+  };
+
+  // Toggle a single road in the multiple selection
+  const toggleRoadSelection = (roadId: string) => {
+    const currentlySelected = state.selectedRoadIds.includes(roadId);
+
+    if (currentlySelected) {
+      // Remove from selection
+      state.selectedRoadIds = state.selectedRoadIds.filter((id) => id !== roadId);
+      applyRoadStyles(roadId, 'default');
+    } else {
+      // Add to selection
+      state.selectedRoadIds = [...state.selectedRoadIds, roadId];
+      applyRoadStyles(roadId, 'selected');
+    }
+
+    // Update single selection reference
+    state.selectedRoadId =
+      state.selectedRoadIds.length > 0 ? state.selectedRoadIds[0] || null : null;
+    updateRoadProperties();
+  };
+
+  // Clear all selections
+  const clearAllSelections = () => {
+    const previouslySelected = [...state.selectedRoadIds];
+    state.selectedRoadIds = [];
+    state.selectedRoadId = null;
+
+    // Reset styles for previously selected roads
+    previouslySelected.forEach((roadId) => {
+      applyRoadStyles(roadId, 'default');
+    });
+
+    updateRoadProperties();
   };
 
   const hoverRoad = (roadId: string | null) => {
@@ -286,6 +363,7 @@ export function useInteractiveMap() {
 
   const resetMap = () => {
     state.selectedRoadId = null;
+    state.selectedRoadIds = [];
     state.hoveredRoadId = null;
     state.zoomLevel = 1;
     state.panX = 0;
@@ -406,6 +484,9 @@ export function useInteractiveMap() {
     initializeSVGParser,
     loadRoadsFromSVG,
     selectRoad,
+    selectMultipleRoads,
+    toggleRoadSelection,
+    clearAllSelections,
     hoverRoad,
     clearHover,
     applyRoadStyles,
