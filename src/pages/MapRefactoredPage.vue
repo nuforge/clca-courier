@@ -1,144 +1,124 @@
 <template>
-  <q-page class="q-pa-lg">
-    <div class="row justify-center">
-      <div class="col-12" style="max-width: 1400px;">
-        <!-- Page Header -->
-        <div class="text-center q-mb-xl">
-          <h1 class="text-h3 q-mb-sm">Interactive Community Map</h1>
-          <p class="text-h6 text-grey-7 q-ma-none">
-            Explore roads and neighborhoods in our community
-          </p>
+  <q-page class="fit">
+    <!-- Full Screen Map Container -->
+    <div class="absolute-full">
+      <InteractiveMapSVGRefactored ref="mapRef" class="fit" />
+
+      <!-- Roads Panel - Collapsible Overlay -->
+      <div class="map-overlay roads-overlay" :class="{ 'collapsed': !roadsExpanded }">
+        <div class="overlay-header" @click="roadsExpanded = !roadsExpanded">
+          <q-icon name="alt_route" size="sm" class="q-mr-sm" />
+          <span class="text-subtitle1">Roads ({{ sortedAndFilteredRoads.length }})</span>
+          <q-space />
+          <div class="text-caption text-grey-6" v-if="state.selectedRoadIds?.length && roadsExpanded">
+            {{ state.selectedRoadIds.length }} selected
+          </div>
+          <q-icon :name="roadsExpanded ? 'expand_less' : 'expand_more'" />
         </div>
 
-        <div class="demo-container">
-          <!-- Map Component -->
-          <div class="map-section">
-            <InteractiveMapSVGRefactored ref="mapRef" class="demo-map rounded-borders shadow-4" />
+        <div class="overlay-content" v-show="roadsExpanded">
+          <!-- Search input -->
+          <q-input v-model="searchQuery" outlined dense placeholder="Search roads..." class="q-mb-md">
+            <template v-slot:prepend>
+              <q-icon name="search" />
+            </template>
+            <template v-slot:append>
+              <q-icon v-if="searchQuery" name="clear" class="cursor-pointer" @click="searchQuery = ''" />
+            </template>
+          </q-input>
+
+          <!-- Sort and Selection controls -->
+          <div class="row q-gutter-sm q-mb-md">
+            <q-select v-model="sortBy" :options="sortOptions" option-label="label" option-value="value" emit-value
+              map-options dense outlined label="Sort by" class="col" />
+            <q-btn flat dense :icon="sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'" @click="toggleSortOrder"
+              :title="`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`" />
           </div>
 
-          <!-- Controls Panel -->
-          <div class="controls-panel">
-            <!-- Roads List Card -->
-            <q-card class="q-mb-md">
-              <q-card-section>
-                <div class="row items-center q-mb-sm">
-                  <div class="text-h6 col">Roads ({{ sortedAndFilteredRoads.length }})</div>
-                  <div class="text-caption text-grey-6" v-if="state.selectedRoadIds?.length">
-                    {{ state.selectedRoadIds.length }} selected
-                  </div>
-                </div>
+          <!-- Selection controls -->
+          <div class="row q-gutter-sm q-mb-md">
+            <q-btn flat dense color="primary" icon="select_all" label="Select All" @click="selectAllVisible"
+              :disable="sortedAndFilteredRoads.length === 0" size="sm" />
+            <q-btn flat dense color="negative" icon="clear_all" label="Clear" @click="clearSelection"
+              :disable="(state.selectedRoadIds?.length || 0) === 0" size="sm" />
+            <q-btn flat dense color="secondary" icon="shuffle" label="Random" @click="selectRandomRoad" size="sm" />
+          </div>
 
-                <!-- Search input -->
-                <q-input v-model="searchQuery" outlined dense placeholder="Search roads..." class="q-mb-md">
-                  <template v-slot:prepend>
-                    <q-icon name="search" />
-                  </template>
-                  <template v-slot:append>
-                    <q-icon v-if="searchQuery" name="clear" class="cursor-pointer" @click="searchQuery = ''" />
-                  </template>
-                </q-input>
+          <!-- Roads List -->
+          <div class="roads-list-container">
+            <q-list dense>
+              <q-item v-for="(road, index) in sortedAndFilteredRoads" :key="`road-${index}`" clickable
+                :active="state.selectedRoadIds?.includes(road.id)" @click="selectRoad(road.id)" class="road-list-item">
+                <q-item-section side>
+                  <q-checkbox :model-value="state.selectedRoadIds?.includes(road.id) || false"
+                    @update:model-value="() => selectRoad(road.id)" color="primary" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ road.name }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-icon name="location_on" :color="state.selectedRoadIds?.includes(road.id) ? 'primary' : 'grey'" />
+                </q-item-section>
+              </q-item>
 
-                <!-- Sort controls -->
-                <div class="row q-gutter-sm q-mb-md">
-                  <q-select v-model="sortBy" :options="sortOptions" option-label="label" option-value="value" emit-value
-                    map-options dense outlined label="Sort by" class="col" />
-                  <q-btn flat dense :icon="sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'"
-                    @click="toggleSortOrder" :title="`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`" />
-                </div>
+              <q-item v-if="sortedAndFilteredRoads.length === 0 && isRoadsLoaded">
+                <q-item-section>
+                  <q-item-label class="text-grey-6">
+                    {{ searchQuery ? 'No roads match your search' : 'No roads found' }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
 
-                <!-- Selection controls -->
-                <div class="row q-gutter-sm q-mb-md">
-                  <q-btn flat dense color="primary" icon="select_all" label="Select All" @click="selectAllVisible"
-                    :disable="sortedAndFilteredRoads.length === 0" />
-                  <q-btn flat dense color="negative" icon="clear_all" label="Clear All" @click="clearSelection"
-                    :disable="(state.selectedRoadIds?.length || 0) === 0" />
-                  <q-btn flat dense color="secondary" icon="shuffle" label="Random Road" @click="selectRandomRoad" />
-                </div>
-              </q-card-section>
-
-              <q-separator />
-
-              <div class="roads-list-container">
-                <q-list dense>
-                  <q-item v-for="(road, index) in sortedAndFilteredRoads" :key="`road-${index}`" clickable
-                    :active="state.selectedRoadIds?.includes(road.id)" @click="selectRoad(road.id)"
-                    class="road-list-item">
-                    <q-item-section side>
-                      <q-checkbox :model-value="state.selectedRoadIds?.includes(road.id) || false"
-                        @update:model-value="() => selectRoad(road.id)" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ road.name }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-icon name="location_on"
-                        :color="state.selectedRoadIds?.includes(road.id) ? 'primary' : 'grey'" />
-                    </q-item-section>
-                  </q-item>
-
-                  <q-item v-if="sortedAndFilteredRoads.length === 0 && isRoadsLoaded">
-                    <q-item-section>
-                      <q-item-label class="text-grey-6">
-                        {{ searchQuery ? 'No roads match your search' : 'No roads found' }}
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-
-                  <q-item v-if="!isRoadsLoaded">
-                    <q-item-section>
-                      <q-item-label class="text-grey-6">
-                        Loading roads...
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </div>
-            </q-card>
-
-            <!-- Map Controls Card -->
-            <q-card>
-              <q-card-section>
-                <div class="text-h6 q-mb-md">Map Controls</div>
-
-                <!-- Theme Selector -->
-                <div class="q-mb-md">
-                  <q-select v-model="selectedTheme" :options="availableThemes" option-label="name" option-value="id"
-                    emit-value map-options dense outlined label="Theme" @update:model-value="onThemeChange" />
-                </div>
-
-                <!-- Map Statistics -->
-                <div class="q-mb-md">
-                  <div class="text-subtitle2 q-mb-sm">Statistics</div>
-                  <q-list dense class="rounded-borders">
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label caption>Total Roads</q-item-label>
-                        <q-item-label>{{ roadStatistics.totalRoads }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label caption>Loaded</q-item-label>
-                        <q-item-label>{{ isRoadsLoaded ? 'Yes' : 'Loading...' }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label caption>Selected</q-item-label>
-                        <q-item-label>{{ state.selectedRoadIds?.length || 0 }} roads</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </div>
-
-                <!-- Center Map Action -->
-                <q-btn color="secondary" icon="center_focus_strong" label="Center Map" @click="centerMap"
-                  class="full-width" />
-              </q-card-section>
-            </q-card>
-
+              <q-item v-if="!isRoadsLoaded">
+                <q-item-section>
+                  <q-item-label class="text-grey-6">
+                    Loading roads...
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
         </div>
+      </div>
+
+      <!-- Map Controls - Positioned with Zoom Controls -->
+      <div class="map-controls-with-zoom">
+        <q-btn round color="primary" icon="settings" size="sm" @click="controlsExpanded = !controlsExpanded"
+          :class="{ 'active': controlsExpanded }" class="controls-toggle-btn" />
+
+        <q-card v-show="controlsExpanded" class="controls-popup">
+          <q-card-section class="q-pb-sm">
+            <div class="text-subtitle1 q-mb-md flex items-center">
+              <q-icon name="tune" class="q-mr-sm" />
+              Map Controls
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="q-mb-md">
+              <q-select v-model="selectedTheme" :options="availableThemes" option-label="name" option-value="id"
+                emit-value map-options dense outlined label="Theme" @update:model-value="onThemeChange" />
+            </div>
+
+            <!-- Map Statistics -->
+            <div class="q-mb-md">
+              <div class="text-subtitle2 q-mb-sm">Statistics</div>
+              <q-list dense class="rounded-borders">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Total Roads</q-item-label>
+                    <q-item-label>{{ roadStatistics.totalRoads }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Selected</q-item-label>
+                    <q-item-label>{{ state.selectedRoadIds?.length || 0 }} roads</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </q-card-section>
+        </q-card>
       </div>
     </div>
   </q-page>
@@ -157,6 +137,10 @@ const selectedTheme = ref('default');
 const searchQuery = ref('');
 const sortBy = ref('name');
 const sortOrder = ref<'asc' | 'desc'>('asc');
+
+// UI state for collapsible panels
+const roadsExpanded = ref(true);
+const controlsExpanded = ref(false);
 
 // Sort options
 const sortOptions = [
@@ -239,12 +223,6 @@ const clearSelection = () => {
   }
 };
 
-const centerMap = () => {
-  if (mapRef.value?.centerMap) {
-    mapRef.value.centerMap();
-  }
-};
-
 const selectRoad = (roadId: string) => {
   if (mapRef.value?.toggleRoadSelection) {
     mapRef.value.toggleRoadSelection(roadId);
@@ -281,49 +259,149 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.roads-list-container {
-  height: 300px;
+/* Roads Overlay Panel */
+.roads-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 350px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  /* Higher than drawer */
+  transition: all 0.3s ease;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+}
+
+.roads-overlay.collapsed {
+  height: 48px;
+}
+
+.overlay-header {
+  padding: 12px 16px;
+  background: rgba(25, 118, 210, 0.1);
+  border-bottom: 1px solid rgba(25, 118, 210, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.overlay-header:hover {
+  background: rgba(25, 118, 210, 0.15);
+}
+
+.overlay-content {
+  padding: 16px;
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
 }
 
-.demo-container {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 24px;
-  margin-bottom: 32px;
+.roads-list-container {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
 
-.map-section {
-  min-height: 600px;
-}
-
-.demo-map {
-  width: 100%;
-  height: 600px;
-}
-
-.controls-panel {
+/* Map Controls - Positioned with Zoom Controls */
+.map-controls-with-zoom {
+  position: absolute;
+  bottom: 16px;
+  right: 74px;
+  /* Position to the left of zoom controls */
+  z-index: 1000;
+  /* Higher than drawer */
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.controls-toggle-btn {
+  transition: all 0.2s ease;
+}
+
+.controls-toggle-btn.active {
+  background-color: rgba(25, 118, 210, 0.9) !important;
+  transform: rotate(180deg);
+}
+
+.controls-popup {
+  position: absolute;
+  bottom: 48px;
+  /* Position above the settings button (button height + gap) */
+  right: 0;
+  width: 280px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark mode support */
+.body--dark .roads-overlay,
+.body--dark .controls-popup {
+  background: rgba(30, 30, 30, 0.95);
+  color: white;
+}
+
+.body--dark .overlay-header {
+  background: rgba(144, 202, 249, 0.1);
+  border-bottom-color: rgba(144, 202, 249, 0.2);
+}
+
+.body--dark .overlay-header:hover {
+  background: rgba(144, 202, 249, 0.15);
+}
+
+.body--dark .roads-list-container {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Responsive design */
-@media (max-width: 1024px) {
-  .demo-container {
-    grid-template-columns: 1fr;
-    gap: 16px;
+@media (max-width: 768px) {
+  .roads-overlay {
+    width: calc(100vw - 32px);
+    left: 16px;
+    right: 16px;
   }
 
-  .controls-panel {
-    order: -1;
+  .controls-popup {
+    width: 250px;
   }
 }
 
-@media (max-width: 768px) {
-  .demo-container {
-    grid-template-columns: 1fr;
-    gap: 12px;
+@media (max-width: 480px) {
+  .roads-overlay {
+    width: calc(100vw - 16px);
+    left: 8px;
+    right: 8px;
+  }
+
+  .controls-popup {
+    width: 220px;
+  }
+
+  .map-controls-with-zoom {
+    bottom: 60px;
+    right: 66px;
+    /* Adjust for mobile zoom controls */
   }
 }
 </style>
