@@ -97,6 +97,14 @@ export const useUserSettings = () => {
     await storageService.setDisplaySettings(updates);
   }
 
+  // Side menu collapsed state
+  const sideMenuCollapsed = computed(() => userSettings.value.display.sideMenuCollapsed);
+
+  async function setSideMenuCollapsed(collapsed: boolean) {
+    userSettings.value.display.sideMenuCollapsed = collapsed;
+    await storageService.setDisplaySettings({ sideMenuCollapsed: collapsed });
+  }
+
   // PDF settings
   const pdfSettings = computed(() => userSettings.value.pdf);
 
@@ -161,6 +169,8 @@ export const useUserSettings = () => {
     // Display
     displaySettings,
     updateDisplaySettings,
+    sideMenuCollapsed,
+    setSideMenuCollapsed,
 
     // PDF
     pdfSettings,

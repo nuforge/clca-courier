@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import NavigationItem from './NavigationItem.vue';
 import LatestIssueCard from './LatestIssueCard.vue';
 import { useNavigation } from '../composables/useNavigation';
+import { useUserSettings } from '../composables/useUserSettings';
 import type { NavigationItem as NavigationItemType } from './NavigationItem.vue';
 
 interface Props {
@@ -19,8 +20,21 @@ const emit = defineEmits<Emits>();
 // Use the navigation composable
 const { navigationItems } = useNavigation();
 
-// Mini state for collapsed sidebar
-const isMini = ref(false);
+// Use user settings for persistent mini state
+const { sideMenuCollapsed, setSideMenuCollapsed } = useUserSettings();
+
+// Mini state for collapsed sidebar - initialize from user settings
+const isMini = ref(sideMenuCollapsed.value);
+
+// Watch for changes in user settings and update local state
+watch(sideMenuCollapsed, (collapsed: boolean) => {
+  isMini.value = collapsed;
+});
+
+// Watch for changes in local state and persist to user settings
+watch(isMini, (mini: boolean) => {
+  void setSideMenuCollapsed(mini);
+});
 
 // Account navigation item
 const accountItem: NavigationItemType = {

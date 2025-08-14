@@ -14,6 +14,7 @@ export interface UserSettings {
     compactMode: boolean;
     animationsEnabled: boolean;
     autoplayVideos: boolean;
+    sideMenuCollapsed: boolean;
   };
   pdf: {
     defaultZoom: number;
@@ -51,6 +52,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     compactMode: false,
     animationsEnabled: true,
     autoplayVideos: false,
+    sideMenuCollapsed: false,
   },
   pdf: {
     defaultZoom: 1.0,

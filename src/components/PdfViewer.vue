@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useQuasar } from 'quasar'
+import { useUserSettings } from '../composables/useUserSettings'
 import WebViewer from '@pdftron/webviewer'
 import type { WebViewerInstance } from '@pdftron/webviewer'
 
@@ -41,8 +42,41 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 let webviewerInstance: WebViewerInstance | null = null
 
-// Get Quasar instance and store for theme management
+// Get Quasar instance and user settings
 const $q = useQuasar()
+const { pdfSettings } = useUserSettings()
+
+// Helper function to apply PDF settings to the viewer
+function applyPdfSettings(instance: WebViewerInstance) {
+  if (!instance) return;
+
+  const settings = pdfSettings.value;
+
+  // Apply zoom level
+  if (settings.defaultZoom && settings.defaultZoom !== 1.0) {
+    const { documentViewer } = instance.Core;
+    // Set zoom after document is loaded
+    documentViewer.addEventListener('documentLoaded', () => {
+      documentViewer.zoomTo(settings.defaultZoom);
+    });
+  }
+
+  // Apply page layout
+  const LayoutMode = instance.UI.LayoutMode;
+  switch (settings.pageLayout) {
+    case 'single':
+      instance.UI.setLayoutMode(LayoutMode.Single);
+      break;
+    case 'facing':
+      instance.UI.setLayoutMode(LayoutMode.Facing);
+      break;
+    case 'cover':
+      instance.UI.setLayoutMode(LayoutMode.FacingCover);
+      break;
+    default:
+      instance.UI.setLayoutMode(LayoutMode.FacingCover);
+  }
+}
 
 async function initializeViewer() {
   if (!viewerElement.value) return
@@ -62,6 +96,9 @@ async function initializeViewer() {
       const theme = $q.dark.isActive ? 'dark' : 'light'
       webviewerInstance.UI.setTheme(theme)
 
+      // Apply user's PDF settings
+      applyPdfSettings(webviewerInstance)
+
       // Simplify toolbar - just keep basic viewing tools
       webviewerInstance.UI.disableElements([
         'toolsButton',
@@ -79,9 +116,6 @@ async function initializeViewer() {
         'undo',
         'redo'
       ])
-
-      const LayoutMode = webviewerInstance.UI.LayoutMode;
-      webviewerInstance.UI.setLayoutMode(LayoutMode.FacingCover);
 
       loading.value = false
       emit('ready', webviewerInstance)
@@ -128,6 +162,13 @@ watch(() => $q.dark.isActive, (isDark) => {
     webviewerInstance.UI.setTheme(theme)
   }
 })
+
+// Watch for PDF settings changes and apply them to the viewer
+watch(() => pdfSettings.value, () => {
+  if (webviewerInstance) {
+    applyPdfSettings(webviewerInstance)
+  }
+}, { deep: true })
 
 onMounted(async () => {
   await nextTick()

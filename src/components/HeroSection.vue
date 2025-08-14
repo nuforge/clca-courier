@@ -1,56 +1,3 @@
-<template>
-  <section :class="[
-    'hero-section',
-    `hero-${variant}`,
-    { 'hero-loading': isLoading }
-  ]" :style="heroStyles">
-    <!-- Background overlay for better text contrast -->
-    <div v-if="overlay" class="hero-overlay" :style="overlayStyles" />
-
-    <!-- Content container -->
-    <div class="hero-content">
-      <div class="hero-content-inner">
-        <!-- Title -->
-        <h1 v-if="title" class="hero-title" :class="titleClasses">
-          {{ title }}
-        </h1>
-
-        <!-- Subtitle -->
-        <p v-if="subtitle" class="hero-subtitle" :class="subtitleClasses">
-          {{ subtitle }}
-        </p>
-
-        <!-- Slot for custom content -->
-        <div v-if="$slots.default" class="hero-custom-content">
-          <slot />
-        </div>
-
-        <!-- Action buttons -->
-        <div v-if="actions && actions.length > 0" class="hero-actions">
-          <q-btn v-for="(action, index) in actions" :key="index" :label="action.label" :icon="action.icon"
-            :color="action.color || 'primary'" :outline="action.outline" :flat="action.flat" :to="action.to"
-            :href="action.href" :loading="action.loading" :disable="action.disabled" :size="action.size || 'lg'"
-            class="hero-action-btn q-mr-md q-mb-md" @click="action.onClick" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading indicator -->
-    <div v-if="isLoading" class="hero-loading-indicator">
-      <q-circular-progress :value="loadProgress" size="50px" :thickness="0.2" color="white"
-        center-color="transparent" />
-      <p class="text-white q-mt-md">Loading image...</p>
-    </div>
-
-    <!-- Error state -->
-    <div v-if="hasError && !isLoading" class="hero-error">
-      <q-icon name="mdi-image-broken" size="3rem" color="grey-5" />
-      <p class="text-grey-5 q-mt-md">Failed to load background image</p>
-      <q-btn label="Retry" icon="mdi-refresh" color="primary" outline @click="reloadImage" />
-    </div>
-  </section>
-</template>
-
 <script setup lang="ts">
 import { computed, watch, onMounted } from 'vue';
 import { useExternalImage, type UseExternalImageOptions } from '../composables/useExternalImage';
@@ -205,6 +152,60 @@ defineExpose({
   loadProgress
 });
 </script>
+
+<template>
+  <section :class="[
+    'hero-section',
+    `hero-${variant}`,
+    { 'hero-loading': isLoading }
+  ]" :style="heroStyles">
+    <!-- Background overlay for better text contrast -->
+    <div v-if="overlay" class="hero-overlay" :style="overlayStyles" />
+
+    <!-- Content container -->
+    <div class="hero-content">
+      <div class="hero-content-inner">
+        <!-- Title -->
+        <h1 v-if="title" class="hero-title" :class="titleClasses">
+          {{ title }}
+        </h1>
+
+        <!-- Subtitle -->
+        <p v-if="subtitle" class="hero-subtitle" :class="subtitleClasses">
+          {{ subtitle }}
+        </p>
+
+        <!-- Slot for custom content -->
+        <div v-if="$slots.default" class="hero-custom-content">
+          <slot />
+        </div>
+
+        <!-- Action buttons -->
+        <div v-if="actions && actions.length > 0" class="hero-actions">
+          <q-btn v-for="(action, index) in actions" :key="index" :label="action.label" :icon="action.icon"
+            :color="action.color || 'primary'" :outline="action.outline" :flat="action.flat" :to="action.to"
+            :href="action.href" :loading="action.loading" :disable="action.disabled" :size="action.size || 'lg'"
+            class="hero-action-btn q-mr-md q-mb-md" @click="action.onClick" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div v-if="isLoading" class="hero-loading-indicator">
+      <q-circular-progress :value="loadProgress" size="50px" :thickness="0.2" color="white"
+        center-color="transparent" />
+      <p class="text-white q-mt-md">Loading image...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-if="hasError && !isLoading" class="hero-error">
+      <q-icon name="mdi-image-broken" size="3rem" color="grey-5" />
+      <p class="text-grey-5 q-mt-md">Failed to load background image</p>
+      <q-btn label="Retry" icon="mdi-refresh" color="primary" outline @click="reloadImage" />
+    </div>
+  </section>
+</template>
+
 
 <style scoped lang="scss">
 .hero-section {

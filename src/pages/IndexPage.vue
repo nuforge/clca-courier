@@ -24,7 +24,7 @@ const heroActions = [
     icon: 'mdi-pencil',
     color: 'secondary',
     to: '/contribute',
-    outline: true,
+    outline: false,
     size: 'lg'
   }
 ];
