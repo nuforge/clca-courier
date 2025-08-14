@@ -1,9 +1,11 @@
+permissions:
+  contents: write # Required for pushing to gh-pages branch
+
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,10 +22,10 @@ jobs:
         run: npm install
 
       - name: Build project
-        run: npm run build # Replace with your build script
+        run: quasar build # Replace with your build script
 
       - name: Deploy to GH Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist # Replace with your build output directory
+          publish_dir: ./dist/spa # Replace with your build output directory
