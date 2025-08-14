@@ -12,6 +12,7 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "build": "quasar build",
+    "build:prod": "cross-env NODE_OPTIONS=\"--max-old-space-size=16384\" quasar build",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "@vue/eslint-config-prettier": "^10.1.0",
     "@vue/eslint-config-typescript": "^14.4.0",
     "autoprefixer": "^10.4.2",
+    "cross-env": "^10.0.0",
     "eslint": "^9.14.0",
     "eslint-plugin-vue": "^9.30.0",
     "globals": "^15.12.0",
