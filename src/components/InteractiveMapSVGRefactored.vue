@@ -20,20 +20,28 @@
           <!-- Layer 1: Render unselected, non-hovered roads first (bottom layer) -->
           <g class="unselected-roads-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
             <g v-for="road in unselectedRoads" :key="`unselected-${road.id}`" :id="road.id" :data-road-name="road.name"
-              class="road-group" @click="handleRoadClick(road.id)" @mouseenter="handleRoadMouseEnter(road.id, $event)"
-              @mouseleave="handleRoadMouseLeave(road.id)">
+              class="road-group">
+              <!-- Invisible hit area for easier clicking -->
+              <path :d="road.pathData" stroke="transparent" stroke-width="30" fill="none" class="road-hit-area"
+                style="cursor: pointer; pointer-events: stroke;" @click.stop="handleRoadClick(road.id)"
+                @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)" />
+              <!-- Visible road path -->
               <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
-                fill="none" class="road-path" />
+                fill="none" class="road-path" style="pointer-events: none;" />
             </g>
           </g>
 
           <!-- Layer 2: Render selected roads (middle layer) -->
           <g class="selected-roads-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
             <g v-for="road in selectedRoads" :key="`selected-${road.id}`" :id="`selected-${road.id}`"
-              :data-road-name="road.name" class="road-group" @click="handleRoadClick(road.id)"
-              @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)">
+              :data-road-name="road.name" class="road-group">
+              <!-- Invisible hit area for easier clicking -->
+              <path :d="road.pathData" stroke="transparent" stroke-width="30" fill="none" class="road-hit-area"
+                style="cursor: pointer; pointer-events: stroke;" @click.stop="handleRoadClick(road.id)"
+                @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)" />
+              <!-- Visible road path -->
               <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
-                fill="none" class="road-path road-selected" :class="{
+                fill="none" class="road-path road-selected" style="pointer-events: none;" :class="{
                   'road-hovered': state.hoveredRoadId === road.id
                 }" />
             </g>
@@ -42,13 +50,17 @@
           <!-- Layer 3: Render hovered unselected road (top layer) -->
           <g v-if="hoveredUnselectedRoad" class="hovered-road-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
             <g :key="`hovered-${hoveredUnselectedRoad.id}`" :id="`hovered-${hoveredUnselectedRoad.id}`"
-              :data-road-name="hoveredUnselectedRoad.name" class="road-group"
-              @click="handleRoadClick(hoveredUnselectedRoad.id)"
-              @mouseenter="handleRoadMouseEnter(hoveredUnselectedRoad.id, $event)"
-              @mouseleave="handleRoadMouseLeave(hoveredUnselectedRoad.id)">
+              :data-road-name="hoveredUnselectedRoad.name" class="road-group">
+              <!-- Invisible hit area for easier clicking -->
+              <path :d="hoveredUnselectedRoad.pathData" stroke="transparent" stroke-width="30" fill="none"
+                class="road-hit-area" style="cursor: pointer; pointer-events: stroke;"
+                @click.stop="handleRoadClick(hoveredUnselectedRoad.id)"
+                @mouseenter="handleRoadMouseEnter(hoveredUnselectedRoad.id, $event)"
+                @mouseleave="handleRoadMouseLeave(hoveredUnselectedRoad.id)" />
+              <!-- Visible road path -->
               <path :d="hoveredUnselectedRoad.pathData" :stroke="getRoadStroke(hoveredUnselectedRoad.id)"
-                :stroke-width="getRoadStrokeWidth(hoveredUnselectedRoad.id)" fill="none"
-                class="road-path road-hovered" />
+                :stroke-width="getRoadStrokeWidth(hoveredUnselectedRoad.id)" fill="none" class="road-path road-hovered"
+                style="pointer-events: none;" />
             </g>
           </g>
         </svg>
@@ -63,11 +75,12 @@
 
       <!-- Road tooltip -->
       <Transition name="tooltip">
-        <div v-if="showTooltip && tooltipContent" class="road-tooltip" :style="{
+        <div v-if="showTooltip && tooltipContent" class="road-tooltip clickable-tooltip" :style="{
           left: tooltipPosition.x + 'px',
           top: tooltipPosition.y + 'px'
-        }">
+        }" @click="handleTooltipSelection">
           {{ tooltipContent }}
+          <div class="tooltip-hint">Click to select</div>
         </div>
       </Transition>
 
@@ -225,17 +238,29 @@ const handleMouseLeave = () => {
   hideTooltip();
 };
 
+// Handle tooltip click to select the currently hovered road
+const handleTooltipSelection = () => {
+  if (state.hoveredRoadId) {
+    console.log('Tooltip clicked for road:', state.hoveredRoadId);
+    handleRoadClick(state.hoveredRoadId);
+    hideTooltip(); // Hide tooltip after selection
+  }
+};
+
 // Road interaction handlers
 const handleRoadClick = (roadId: string) => {
+  console.log('Road clicked:', roadId);
   toggleRoadSelection(roadId);
 };
 
 const handleRoadMouseEnter = (roadId: string, event: MouseEvent) => {
+  console.log('Road mouse enter:', roadId);
   hoverRoad(roadId);
   showRoadTooltip(roadId, event.clientX + 10, event.clientY - 10);
 };
 
 const handleRoadMouseLeave = (roadId: string) => {
+  console.log('Road mouse leave:', roadId);
   if (state.hoveredRoadId === roadId) {
     clearHover();
     hideTooltip();
@@ -305,10 +330,7 @@ defineExpose({
   width: 100%;
   height: 600px;
   overflow: hidden;
-  border-width: 2px;
-  border-style: solid;
-  border-radius: 8px;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease;
 }
 
 .map-content {
@@ -342,6 +364,7 @@ defineExpose({
   height: 100%;
   z-index: 2;
   cursor: grab;
+  transition: cursor 0.1s ease;
 }
 
 .interactive-map-svg:active {
@@ -351,6 +374,32 @@ defineExpose({
 .road-group {
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+/* Hit area for easier road selection */
+.road-hit-area {
+  stroke: transparent !important;
+  stroke-width: 30px !important;
+  fill: none !important;
+  cursor: pointer !important;
+  pointer-events: stroke !important;
+  transition: stroke 0.2s ease;
+}
+
+/* Optional: Show subtle highlight on hover for better UX */
+.road-hit-area:hover {
+  stroke: rgba(25, 118, 210, 0.08) !important;
+}
+
+/* Ensure hit areas work well at different zoom levels */
+.interactive-map-svg[style*="scale("] .road-hit-area {
+  /* Adjust hit area size based on zoom for optimal usability */
+  stroke-width: 24px !important;
+}
+
+/* Dark mode hit area hover */
+.body--dark .road-hit-area:hover {
+  stroke: rgba(144, 202, 249, 0.08) !important;
 }
 
 .unselected-roads-layer {
@@ -369,6 +418,8 @@ defineExpose({
   transition: stroke 0.2s ease, stroke-width 0.2s ease;
   stroke-linecap: round;
   stroke-linejoin: round;
+  pointer-events: none;
+  /* Ensure visible roads don't interfere with hit detection */
 }
 
 .road-selected {
@@ -377,6 +428,11 @@ defineExpose({
 
 .road-hovered {
   filter: brightness(1.2) drop-shadow(0 0 2px rgba(0, 123, 255, 0.5));
+}
+
+/* Enhanced visual feedback for road groups on hover */
+.road-group:hover .road-path {
+  filter: brightness(1.1) drop-shadow(0 0 2px rgba(25, 118, 210, 0.4));
 }
 
 .loading-overlay {
@@ -419,16 +475,45 @@ defineExpose({
   border-radius: 4px;
   font-size: 14px;
   white-space: nowrap;
-  pointer-events: none;
   z-index: 1000;
   max-width: 200px;
   transition: background-color 0.3s ease;
+}
+
+/* Clickable tooltip styling */
+.clickable-tooltip {
+  pointer-events: auto !important;
+  cursor: pointer;
+  border: 1px solid rgba(25, 118, 210, 0.3);
+  transition: all 0.2s ease;
+}
+
+.clickable-tooltip:hover {
+  background: rgba(25, 118, 210, 0.9);
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.tooltip-hint {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+  font-style: italic;
 }
 
 /* Dark mode tooltip - lighter background for better contrast */
 .body--dark .road-tooltip {
   background: rgba(255, 255, 255, 0.95);
   color: #1a1a1a;
+}
+
+.body--dark .clickable-tooltip {
+  border-color: rgba(144, 202, 249, 0.3);
+}
+
+.body--dark .clickable-tooltip:hover {
+  background: rgba(144, 202, 249, 0.9);
+  color: white;
 }
 
 .tooltip-enter-active,
@@ -465,6 +550,11 @@ defineExpose({
 
 .body--dark .road-hovered {
   filter: brightness(1.4) drop-shadow(0 0 3px rgba(100, 200, 255, 0.6));
+}
+
+/* Enhanced dark mode hover feedback */
+.body--dark .road-group:hover .road-path {
+  filter: brightness(1.2) drop-shadow(0 0 2px rgba(144, 202, 249, 0.4));
 }
 
 /* Responsive design */
