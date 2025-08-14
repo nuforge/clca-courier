@@ -1,9 +1,33 @@
 <script setup lang="ts">
 import { useTheme } from '../composables/useTheme';
 import { useSiteStore } from '../stores/site-store-simple';
+import HeroSection from '../components/HeroSection.vue';
 
 const { cardClasses, textClasses } = useTheme();
 const siteStore = useSiteStore();
+
+// Google Drive image downloaded locally - WORKING SOLUTION!
+const heroBackgroundImage = '/images/hero-background.jpg';
+// Original Google Drive URL (CORS blocked): 'https://drive.google.com/file/d/14M00bRp3NxPG2d1Itj-E9WAmmB_C6vWh/view?usp=sharing'
+
+// Hero actions
+const heroActions = [
+  {
+    label: 'Latest News',
+    icon: 'mdi-newspaper',
+    color: 'primary',
+    to: '/news',
+    size: 'lg'
+  },
+  {
+    label: 'Contribute',
+    icon: 'mdi-pencil',
+    color: 'secondary',
+    to: '/contribute',
+    outline: true,
+    size: 'lg'
+  }
+];
 
 interface QuickLink {
   title: string;
@@ -60,22 +84,19 @@ const quickLinks: QuickLink[] = [
 </script>
 
 <template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <!-- Hero Section -->
-      <div class="row justify-center q-mb-xl">
-        <div class="col-12 col-md-10 col-lg-8 text-center">
-          <div class="text-h3 text-weight-light q-mb-md">
-            Welcome to The Courier
-          </div>
-          <div class="text-h6 text-grey-7 q-mb-lg">
-            Your source for Conashaugh Lakes community news and updates
-          </div>
-          <q-btn color="primary" size="lg" icon="mdi-newspaper" label="Latest News" to="/news" class="q-mr-sm" />
-          <q-btn color="secondary" size="lg" icon="mdi-pencil" label="Contribute" to="/contribute" outline />
-        </div>
-      </div>
+  <q-page>
+    <!-- Hero Section with Google Drive Background -->
+    <HeroSection :background-image="heroBackgroundImage" title="Welcome to The Courier"
+      subtitle="Your source for Conashaugh Lakes community news and updates" height="70vh" min-height="500px"
+      variant="centered" :overlay="true" overlay-color="rgba(0, 0, 0, 0.4)" :actions="heroActions" :image-options="{
+        maxWidth: 2048,
+        maxHeight: 1152,
+        quality: 0.9,
+        lazy: false
+      }" />
 
+    <!-- Main Content -->
+    <div class="q-pa-md">
       <!-- Quick Links Section -->
       <div class="row justify-center q-mb-xl">
         <div class="col-12 col-md-10 col-lg-8">
