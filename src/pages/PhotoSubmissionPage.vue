@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useSiteStore } from '../stores/site-store-simple'
+import { DiscordIcon } from '../components/BrandIcons'
 
 const $q = useQuasar()
 const siteStore = useSiteStore()
@@ -150,7 +151,7 @@ function openDiscord() {
 
                                         <q-item clickable @click="openDiscord" class="q-mb-sm rounded-borders">
                                             <q-item-section side>
-                                                <q-icon name="mdi-discord" color="accent" />
+                                                <DiscordIcon :size="24" color="var(--q-accent)" />
                                             </q-item-section>
                                             <q-item-section>
                                                 <q-item-label class="text-weight-medium">Discord</q-item-label>
