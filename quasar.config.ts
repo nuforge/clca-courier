@@ -45,7 +45,7 @@ export default defineConfig((ctx) => {
         // extendTsConfig (tsConfig) {}
       },
 
-      vueRouterMode: 'history', // available values: 'hash', 'history'
+      vueRouterMode: 'hash', // Use 'hash' mode for GitHub Pages compatibility
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
