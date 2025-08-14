@@ -16,15 +16,40 @@
             transition: 'transform 0.3s ease'
           }" @wheel.prevent="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
           @mouseup="handleMouseUp" @mouseleave="handleMouseLeave">
-          <!-- Render roads dynamically from parsed data -->
-          <g v-for="road in roads" :key="road.id" :id="road.id" :data-road-name="road.name" class="road-group"
-            transform="matrix(1,0,0,1,-591.034,-160.657)" @click="handleRoadClick(road.id)"
-            @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)">
-            <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
-              fill="none" class="road-path" :class="{
-                'road-selected': state.selectedRoadIds.includes(road.id),
-                'road-hovered': state.hoveredRoadId === road.id
-              }" />
+
+          <!-- Layer 1: Render unselected, non-hovered roads first (bottom layer) -->
+          <g class="unselected-roads-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
+            <g v-for="road in unselectedRoads" :key="`unselected-${road.id}`" :id="road.id" :data-road-name="road.name"
+              class="road-group" @click="handleRoadClick(road.id)" @mouseenter="handleRoadMouseEnter(road.id, $event)"
+              @mouseleave="handleRoadMouseLeave(road.id)">
+              <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
+                fill="none" class="road-path" />
+            </g>
+          </g>
+
+          <!-- Layer 2: Render selected roads (middle layer) -->
+          <g class="selected-roads-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
+            <g v-for="road in selectedRoads" :key="`selected-${road.id}`" :id="`selected-${road.id}`"
+              :data-road-name="road.name" class="road-group" @click="handleRoadClick(road.id)"
+              @mouseenter="handleRoadMouseEnter(road.id, $event)" @mouseleave="handleRoadMouseLeave(road.id)">
+              <path :d="road.pathData" :stroke="getRoadStroke(road.id)" :stroke-width="getRoadStrokeWidth(road.id)"
+                fill="none" class="road-path road-selected" :class="{
+                  'road-hovered': state.hoveredRoadId === road.id
+                }" />
+            </g>
+          </g>
+
+          <!-- Layer 3: Render hovered unselected road (top layer) -->
+          <g v-if="hoveredUnselectedRoad" class="hovered-road-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
+            <g :key="`hovered-${hoveredUnselectedRoad.id}`" :id="`hovered-${hoveredUnselectedRoad.id}`"
+              :data-road-name="hoveredUnselectedRoad.name" class="road-group"
+              @click="handleRoadClick(hoveredUnselectedRoad.id)"
+              @mouseenter="handleRoadMouseEnter(hoveredUnselectedRoad.id, $event)"
+              @mouseleave="handleRoadMouseLeave(hoveredUnselectedRoad.id)">
+              <path :d="hoveredUnselectedRoad.pathData" :stroke="getRoadStroke(hoveredUnselectedRoad.id)"
+                :stroke-width="getRoadStrokeWidth(hoveredUnselectedRoad.id)" fill="none"
+                class="road-path road-hovered" />
+            </g>
           </g>
         </svg>
       </div>
@@ -110,6 +135,21 @@ const lastMousePos = ref({ x: 0, y: 0 });
 
 // Computed properties
 const roadCount = computed(() => roads.value.length);
+
+// Separate roads into selected and unselected for proper layering
+const selectedRoads = computed(() =>
+  roads.value.filter(road => state.selectedRoadIds.includes(road.id))
+);
+
+const unselectedRoads = computed(() =>
+  roads.value.filter(road => !state.selectedRoadIds.includes(road.id) && state.hoveredRoadId !== road.id)
+);
+
+const hoveredUnselectedRoad = computed(() =>
+  state.hoveredRoadId && !state.selectedRoadIds.includes(state.hoveredRoadId)
+    ? roads.value.find(road => road.id === state.hoveredRoadId)
+    : null
+);
 
 // Initialize the map when the original SVG is mounted
 const onMapSVGMounted = async () => {
@@ -307,6 +347,18 @@ defineExpose({
 .road-group {
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.unselected-roads-layer {
+  z-index: 1;
+}
+
+.selected-roads-layer {
+  z-index: 2;
+}
+
+.hovered-road-layer {
+  z-index: 3;
 }
 
 .road-path {
