@@ -3,11 +3,6 @@ import { type NavigationItem } from '../components/NavigationItem.vue';
 export const useNavigation = () => {
   const navigationItems: NavigationItem[] = [
     {
-      title: 'Home',
-      icon: 'mdi-home',
-      link: '/',
-    },
-    {
       title: 'News & Updates',
       icon: 'mdi-newspaper',
       link: '/news',
