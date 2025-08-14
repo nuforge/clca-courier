@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Three-Tier Thumbnail Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .test-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .test-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+      }
+      .thumbnail {
+        width: 200px;
+        height: 280px;
+        border: 1px solid #ccc;
+        margin: 10px auto;
+        display: block;
+      }
+      .log {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 11px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      .warning {
+        background: #fff3cd;
+        color: #856404;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      .status {
+        font-weight: bold;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Three-Tier PDF Thumbnail Generation Test</h1>
+      <p>This test demonstrates the fallback hierarchy: WebViewer → PDF.js → Styled Placeholder</p>
+
+      <button onclick="testAllThumbnails()">Test All Thumbnails</button>
+      <button onclick="clearCache()">Clear Cache</button>
+      <button onclick="clearLogs()">Clear Logs</button>
+
+      <div class="test-grid">
+        <div class="test-item">
+          <h3>July 2025 PDF</h3>
+          <div class="status" id="status-1">Ready</div>
+          <div id="result-1"></div>
+          <div id="log-1" class="log"></div>
+          <button onclick="testSingleThumbnail('/issues/7.2025.pdf', '1')">Test This PDF</button>
+        </div>
+
+        <div class="test-item">
+          <h3>June 2025 PDF</h3>
+          <div class="status" id="status-2">Ready</div>
+          <div id="result-2"></div>
+          <div id="log-2" class="log"></div>
+          <button onclick="testSingleThumbnail('/issues/Courier - 2025.06 - June.pdf', '2')">
+            Test This PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="log info" id="global-log">Global log will appear here...</div>
+    </div>
+
+    <script type="module">
+      // Import the thumbnail function
+      import { usePdfThumbnails } from '/src/composables/usePdfThumbnails.ts';
+
+      const { getThumbnail, clearCache: clearThumbnailCache } = usePdfThumbnails();
+
+      window.testThumbnails = { getThumbnail, clearThumbnailCache };
+
+      function log(message, type = 'info', testId = 'global') {
+        const logElement = document.getElementById(testId + '-log');
+        if (!logElement) {
+          console.log('[' + testId + '] ' + message);
+          return;
+        }
+        const timestamp = new Date().toLocaleTimeString();
+        const className =
+          type === 'success'
+            ? 'success'
+            : type === 'error'
+              ? 'error'
+              : type === 'warning'
+                ? 'warning'
+                : 'info';
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log ' + className;
+        logEntry.textContent = '[' + timestamp + '] ' + message;
+        logElement.appendChild(logEntry);
+        logElement.scrollTop = logElement.scrollHeight;
+      }
+
+      function setStatus(testId, status, type = 'info') {
+        const statusElement = document.getElementById('status-' + testId);
+        if (!statusElement) {
+          console.log('[Status-' + testId + '] ' + status);
+          return;
+        }
+        statusElement.textContent = status;
+        statusElement.className = 'status ' + type;
+      }
+
+      window.testSingleThumbnail = async function (url, testId) {
+        setStatus(testId, 'Testing...', 'warning');
+        log('Starting thumbnail test for: ' + url, 'info', testId);
+
+        try {
+          const thumbnail = await window.testThumbnails.getThumbnail(url);
+
+          if (thumbnail) {
+            // Display the thumbnail
+            const img = document.createElement('img');
+            img.src = thumbnail;
+            img.className = 'thumbnail';
+            img.alt = 'Generated thumbnail';
+
+            const resultDiv = document.getElementById('result-' + testId);
+            resultDiv.innerHTML = '';
+            resultDiv.appendChild(img);
+
+            setStatus(testId, 'Success!', 'success');
+            log('✅ Thumbnail generated successfully!', 'success', testId);
+          } else {
+            setStatus(testId, 'Failed', 'error');
+            log('❌ Thumbnail generation failed', 'error', testId);
+          }
+        } catch (error) {
+          setStatus(testId, 'Error', 'error');
+          log('💥 Error: ' + error.message, 'error', testId);
+        }
+      };
+
+      window.testAllThumbnails = async function () {
+        log('🚀 Starting comprehensive thumbnail test...', 'info', 'global');
+        await window.testSingleThumbnail('/issues/7.2025.pdf', '1');
+        await window.testSingleThumbnail('/issues/Courier - 2025.06 - June.pdf', '2');
+        log('🏁 All tests completed', 'success', 'global');
+      };
+
+      window.clearCache = function () {
+        window.testThumbnails.clearThumbnailCache();
+        localStorage.clear();
+        log('🗑️ Cache cleared', 'warning', 'global');
+      };
+
+      window.clearLogs = function () {
+        document.querySelectorAll('.log').forEach((log) => (log.innerHTML = ''));
+      };
+
+      // Console override to capture logs
+      const originalConsoleLog = console.log;
+      const originalConsoleWarn = console.warn;
+      const originalConsoleError = console.error;
+
+      console.log = function (...args) {
+        originalConsoleLog.apply(console, args);
+        log(args.join(' '), 'info', 'global');
+      };
+
+      console.warn = function (...args) {
+        originalConsoleWarn.apply(console, args);
+        log(args.join(' '), 'warning', 'global');
+      };
+
+      console.error = function (...args) {
+        originalConsoleError.apply(console, args);
+        log(args.join(' '), 'error', 'global');
+      };
+
+      log('🔧 Three-tier thumbnail test initialized', 'success', 'global');
+    </script>
+  </body>
+</html>
