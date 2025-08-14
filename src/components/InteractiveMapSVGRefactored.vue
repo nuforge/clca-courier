@@ -75,12 +75,19 @@
 
       <!-- Road tooltip -->
       <Transition name="tooltip">
-        <div v-if="showTooltip && tooltipContent" class="road-tooltip clickable-tooltip" :style="{
-          left: tooltipPosition.x + 'px',
-          top: tooltipPosition.y + 'px'
-        }" @click="handleTooltipSelection">
+        <div v-if="showTooltip && tooltipContent" :class="[
+          'road-tooltip',
+          'q-pa-sm',
+          'text-weight-medium',
+          'shadow-4',
+          backgroundClasses.surface,
+          textClasses.primary,
+          borderClasses.light
+        ]" :style="{
+              left: tooltipPosition.x + 'px',
+              top: tooltipPosition.y + 'px'
+            }" @click="handleTooltipSelection">
           {{ tooltipContent }}
-          <div class="tooltip-hint">Click to select</div>
         </div>
       </Transition>
 
@@ -103,7 +110,8 @@ import MapSVG from './MapSVG.vue';
 // Theme management
 const {
   backgroundClasses,
-  borderClasses
+  borderClasses,
+  textClasses
 } = useTheme();
 
 // Use the new composable
@@ -469,51 +477,19 @@ defineExpose({
 
 .road-tooltip {
   position: fixed;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
   white-space: nowrap;
   z-index: 1000;
   max-width: 200px;
-  transition: background-color 0.3s ease;
-}
-
-/* Clickable tooltip styling */
-.clickable-tooltip {
   pointer-events: auto !important;
   cursor: pointer;
-  border: 1px solid rgba(25, 118, 210, 0.3);
+  border: 1px solid;
   transition: all 0.2s ease;
 }
 
-.clickable-tooltip:hover {
-  background: rgba(25, 118, 210, 0.9);
+.road-tooltip:hover {
   transform: scale(1.02);
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
-}
-
-.tooltip-hint {
-  font-size: 11px;
-  opacity: 0.8;
-  margin-top: 2px;
-  font-style: italic;
-}
-
-/* Dark mode tooltip - lighter background for better contrast */
-.body--dark .road-tooltip {
-  background: rgba(255, 255, 255, 0.95);
-  color: #1a1a1a;
-}
-
-.body--dark .clickable-tooltip {
-  border-color: rgba(144, 202, 249, 0.3);
-}
-
-.body--dark .clickable-tooltip:hover {
-  background: rgba(144, 202, 249, 0.9);
-  color: white;
 }
 
 .tooltip-enter-active,
