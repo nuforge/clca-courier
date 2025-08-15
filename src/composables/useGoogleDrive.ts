@@ -1,18 +1,16 @@
 // src/composables/useGoogleDrive.ts
-import { ref, computed } from 'vue';
-import {
-  googleDriveBrowserService,
-  GoogleDriveBrowserService,
-  type GoogleDriveAuthConfig,
-  type GoogleDriveFileInfo,
-} from 'src/services/google-drive-browser-service';
+// TEMPORARY STUB - GoogleDrive composable is temporarily disabled
+// Use SimpleAuthTest.vue for working Google Drive authentication testing
+
+import { ref } from 'vue';
+import type { GoogleDriveFile } from 'src/types/google-drive-content';
 
 export interface GoogleDriveState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  files: GoogleDriveFileInfo[];
-  searchResults: GoogleDriveFileInfo[];
+  files: GoogleDriveFile[];
+  searchResults: GoogleDriveFile[];
 }
 
 export function useGoogleDrive() {
@@ -20,220 +18,113 @@ export function useGoogleDrive() {
   const state = ref<GoogleDriveState>({
     isAuthenticated: false,
     isLoading: false,
-    error: null,
+    error: 'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
     files: [],
     searchResults: [],
   });
 
-  // Computed properties
-  const isAuthenticated = computed(() => state.value.isAuthenticated);
-  const isLoading = computed(() => state.value.isLoading);
-  const error = computed(() => state.value.error);
-  const files = computed(() => state.value.files);
-  const searchResults = computed(() => state.value.searchResults);
-
-  // Initialize Google Drive service
-  const initialize = (config: GoogleDriveAuthConfig): void => {
-    try {
-      googleDriveBrowserService.initialize(config);
-      console.log('Google Drive service initialized');
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Failed to initialize Google Drive';
-    }
+  // Stub functions that show warning messages
+  const initialize = (): void => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
   };
 
-  // Authenticate with Google Drive
-  const authenticate = async (): Promise<boolean> => {
-    state.value.isLoading = true;
-    state.value.error = null;
-
-    try {
-      const success = await googleDriveBrowserService.authenticate();
-      state.value.isAuthenticated = success;
-      return success;
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Authentication failed';
-      state.value.isAuthenticated = false;
-      return false;
-    } finally {
-      state.value.isLoading = false;
-    }
+  const authenticate = (): Promise<boolean> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve(false);
   };
 
-  // Sign out from Google Drive
-  const signOut = async (): Promise<void> => {
-    try {
-      await googleDriveBrowserService.signOut();
-      state.value.isAuthenticated = false;
-      state.value.files = [];
-      state.value.searchResults = [];
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Sign out failed';
-    }
+  const logout = (): Promise<void> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve();
   };
 
-  // Get file information by ID
-  const getFile = async (fileId: string): Promise<GoogleDriveFileInfo | null> => {
-    state.value.isLoading = true;
-    state.value.error = null;
-
-    try {
-      const file = await googleDriveBrowserService.getFile(fileId);
-      return file;
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Failed to get file';
-      return null;
-    } finally {
-      state.value.isLoading = false;
-    }
+  const getFile = (): Promise<GoogleDriveFile | null> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve(null);
   };
 
-  // Search for files
-  const searchFiles = async (
-    query?: string,
-    folderIds?: string[],
-  ): Promise<GoogleDriveFileInfo[]> => {
-    state.value.isLoading = true;
-    state.value.error = null;
-
-    try {
-      const searchOptions: Record<string, unknown> = {
-        pageSize: 50,
-      };
-
-      if (query) {
-        searchOptions.query = query;
-      }
-
-      if (folderIds) {
-        searchOptions.parents = folderIds;
-      }
-
-      const results = await googleDriveBrowserService.searchFiles(searchOptions);
-
-      state.value.searchResults = results;
-      return results;
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Search failed';
-      return [];
-    } finally {
-      state.value.isLoading = false;
-    }
+  const searchFiles = (): Promise<GoogleDriveFile[]> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve([]);
   };
 
-  // Search for images specifically
-  const searchImages = async (
-    query?: string,
-    folderIds?: string[],
-  ): Promise<GoogleDriveFileInfo[]> => {
-    state.value.isLoading = true;
-    state.value.error = null;
-
-    try {
-      const results = await googleDriveBrowserService.searchImages(folderIds, query);
-      state.value.searchResults = results;
-      return results;
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Image search failed';
-      return [];
-    } finally {
-      state.value.isLoading = false;
-    }
+  const searchImages = (): Promise<GoogleDriveFile[]> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve([]);
   };
 
-  // List files in a folder
-  const listFolderFiles = async (
-    folderId: string,
-    mimeType?: string,
-  ): Promise<GoogleDriveFileInfo[]> => {
-    state.value.isLoading = true;
-    state.value.error = null;
-
-    try {
-      const results = await googleDriveBrowserService.listFilesInFolder(folderId, mimeType);
-      state.value.files = results;
-      return results;
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Failed to list folder files';
-      return [];
-    } finally {
-      state.value.isLoading = false;
-    }
+  const listFilesInFolder = (): Promise<GoogleDriveFile[]> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve([]);
   };
 
-  // Download file as blob
-  const downloadFile = async (fileId: string): Promise<Blob | null> => {
-    state.value.isLoading = true;
-    state.value.error = null;
-
-    try {
-      const blob = await googleDriveBrowserService.downloadFile(fileId);
-      return blob;
-    } catch (err) {
-      state.value.error = err instanceof Error ? err.message : 'Download failed';
-      return null;
-    } finally {
-      state.value.isLoading = false;
-    }
+  const downloadFile = (): Promise<Blob | null> => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return Promise.resolve(null);
   };
 
-  // Get various URLs for a file
-  const getFileUrls = (fileId: string) => {
+  const getUrls = () => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
     return {
-      thumbnail: googleDriveBrowserService.getThumbnailUrl(fileId),
-      direct: googleDriveBrowserService.getPublicDirectUrl(fileId),
-      authenticated: googleDriveBrowserService.getAuthenticatedDownloadUrl(fileId),
+      thumbnail: '',
+      direct: '',
+      authenticated: '',
     };
   };
 
-  // Extract file ID from URL
-  const extractFileId = (url: string): string | null => {
-    return GoogleDriveBrowserService.extractFileId(url);
+  const extractFileIdFromUrl = (): string | null => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return null;
   };
 
-  // Check if URL is Google Drive URL
-  const isGoogleDriveUrl = (url: string): boolean => {
-    return GoogleDriveBrowserService.isGoogleDriveUrl(url);
+  const isGoogleDriveUrl = (): boolean => {
+    console.warn(
+      'GoogleDrive composable is temporarily disabled. Use SimpleAuthTest.vue for testing.',
+    );
+    return false;
   };
 
-  // Get authentication status
-  const getAuthStatus = () => {
-    return googleDriveBrowserService.getAuthStatus();
-  };
-
-  // Clear error
-  const clearError = () => {
-    state.value.error = null;
-  };
-
-  // Clear search results
-  const clearSearchResults = () => {
-    state.value.searchResults = [];
-  };
-
+  // Return the composable API
   return {
     // State
     state,
-    isAuthenticated,
-    isLoading,
-    error,
-    files,
-    searchResults,
+    isAuthenticated: () => state.value.isAuthenticated,
+    isLoading: () => state.value.isLoading,
+    error: () => state.value.error,
+    files: () => state.value.files,
+    searchResults: () => state.value.searchResults,
 
-    // Methods
+    // Actions
     initialize,
     authenticate,
-    signOut,
+    logout,
     getFile,
     searchFiles,
     searchImages,
-    listFolderFiles,
+    listFilesInFolder,
     downloadFile,
-    getFileUrls,
-    extractFileId,
+    getUrls,
+    extractFileIdFromUrl,
     isGoogleDriveUrl,
-    getAuthStatus,
-    clearError,
-    clearSearchResults,
   };
 }

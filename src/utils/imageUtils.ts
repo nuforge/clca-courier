@@ -1,5 +1,5 @@
 // Utility functions for working with external images and URLs
-import { GoogleDriveBrowserService } from 'src/services/google-drive-browser-service';
+// TEMPORARILY DISABLED Google Drive functionality
 
 export interface GoogleDriveInfo {
   fileId: string;
@@ -13,7 +13,23 @@ export interface GoogleDriveInfo {
  * @deprecated Use GoogleDriveBrowserService.extractFileId instead
  */
 export function extractGoogleDriveFileId(url: string): string | null {
-  return GoogleDriveBrowserService.extractFileId(url);
+  console.warn('Google Drive functionality temporarily disabled');
+
+  // Basic file ID extraction without service dependency
+  const patterns = [
+    /\/file\/d\/([a-zA-Z0-9-_]+)/,
+    /id=([a-zA-Z0-9-_]+)/,
+    /\/folders\/([a-zA-Z0-9-_]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -55,7 +71,8 @@ export function getGoogleDriveThumbnailUrl(url: string, size = 400): string {
  * @deprecated Use GoogleDriveBrowserService.isGoogleDriveUrl instead
  */
 export function isGoogleDriveUrl(url: string): boolean {
-  return GoogleDriveBrowserService.isGoogleDriveUrl(url);
+  console.warn('Google Drive functionality temporarily disabled');
+  return url.includes('drive.google.com') || url.includes('docs.google.com');
 }
 
 /**
@@ -130,7 +147,7 @@ export const imageHostingConverters = {
 
   // Enhanced Google Drive converter that uses the new service
   googleDriveEnhanced: (url: string): string => {
-    const fileId = GoogleDriveBrowserService.extractFileId(url);
+    const fileId = extractGoogleDriveFileId(url);
     if (fileId) {
       // Return public direct URL
       return `https://drive.google.com/uc?export=view&id=${fileId}`;

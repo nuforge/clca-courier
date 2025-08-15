@@ -265,6 +265,8 @@ const addClassified = () => {
 // Initialize on mount
 onMounted(async () => {
     const config: GoogleDriveContentConfig = {
+        apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
+        clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
         contentFolderId: import.meta.env.VITE_GOOGLE_DRIVE_CONTENT_FOLDER_ID || '',
         issuesFolderId: import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID || '',
         imagesFolderId: import.meta.env.VITE_GOOGLE_DRIVE_IMAGES_FOLDER_ID || '',

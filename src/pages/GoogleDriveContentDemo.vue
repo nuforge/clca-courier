@@ -47,7 +47,7 @@
                 <q-item-section>
                   <q-item-label>Folder Configuration</q-item-label>
                   <q-item-label caption>{{ hasFolderIds ? 'All folders configured' : 'Some folders missing'
-                  }}</q-item-label>
+                    }}</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -59,7 +59,17 @@
                 <q-item-section>
                   <q-item-label>Service Status</q-item-label>
                   <q-item-label caption>{{ isInitialized ? 'Initialized' : 'Not initialized'
-                    }}</q-item-label>
+                  }}</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon name="account_circle" color="blue" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Authentication</q-item-label>
+                  <q-item-label caption>Click "Authenticate with Google" to sign in</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -73,7 +83,13 @@
                   Copy your .env.example to .env and fill in your Google credentials.
                 </p>
                 <q-btn color="primary" label="Initialize Service" @click="initializeService" :loading="initLoading"
-                  :disable="!canInitialize" />
+                  :disable="!canInitialize" class="q-mb-sm" />
+                <q-btn color="secondary" label="Authenticate with Google" @click="authenticateUser"
+                  :loading="authLoading" :disable="!isInitialized" />
+                <div v-if="authError" class="text-negative q-mt-sm">
+                  <q-icon name="error" class="q-mr-xs" />
+                  {{ authError }}
+                </div>
               </q-card-section>
             </q-card>
           </div>
@@ -427,6 +443,7 @@ import type {
 // Composables
 const {
   initialize,
+  authenticate,
   syncContent: syncContentAction,
   refreshContent: refreshContentAction,
   articles,
@@ -447,6 +464,8 @@ const uploadFile = ref<File | null>(null);
 const searchQuery = ref('');
 const searchResults = ref<SearchResult[]>([]);
 const initLoading = ref(false);
+const authLoading = ref(false);
+const authError = ref<string | null>(null);
 const step = ref(1);
 
 // Configuration checks
@@ -492,6 +511,8 @@ const initializeService = async () => {
       issuesFolderId: import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID || '',
       imagesFolderId: import.meta.env.VITE_GOOGLE_DRIVE_IMAGES_FOLDER_ID || '',
       templatesFolderId: import.meta.env.VITE_GOOGLE_DRIVE_TEMPLATES_FOLDER_ID || '',
+      apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
+      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
     };
 
     await initialize(config);
@@ -507,6 +528,36 @@ const initializeService = async () => {
     });
   } finally {
     initLoading.value = false;
+  }
+};
+
+const authenticateUser = async () => {
+  authLoading.value = true;
+  authError.value = null;
+
+  try {
+    await authenticate();
+    $q.notify({
+      type: 'positive',
+      message: 'Authentication successful!',
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    authError.value = errorMessage;
+
+    // Provide helpful error messages for common OAuth issues
+    if (errorMessage.includes('Not a valid origin')) {
+      authError.value = 'OAuth origin not configured. Please add your localhost URL to Google Cloud Console.';
+    } else if (errorMessage.includes('popup_blocked')) {
+      authError.value = 'Popup blocked. Please allow popups for this site and try again.';
+    }
+
+    $q.notify({
+      type: 'negative',
+      message: `Authentication failed: ${authError.value}`,
+    });
+  } finally {
+    authLoading.value = false;
   }
 };
 

@@ -225,6 +225,17 @@ export function useGoogleDriveContent() {
     return results;
   };
 
+  // Authenticate with Google Drive
+  const authenticate = async (): Promise<boolean> => {
+    try {
+      return await googleDriveContentService.authenticate();
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Authentication failed';
+      console.error('Google Drive authentication error:', err);
+      return false;
+    }
+  };
+
   // Background sync with minimal UI disruption
   const backgroundSync = async (): Promise<void> => {
     if (isLoading.value || !isInitialized.value) return;
@@ -276,6 +287,7 @@ export function useGoogleDriveContent() {
 
     // Methods
     initialize,
+    authenticate,
     syncContent,
     refreshContent,
     getContentByType,

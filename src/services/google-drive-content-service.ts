@@ -1,5 +1,4 @@
 // src/services/google-drive-content-service.ts
-import { GoogleDriveBrowserService } from './google-drive-browser-service';
 import type {
   GoogleDriveContentConfig,
   GoogleDriveFile,
@@ -9,9 +8,132 @@ import type {
   ContentSyncStatus,
 } from '../types/google-drive-content';
 
+// Import our working simple auth service
+import { SimpleGoogleDriveAuth } from './simple-google-auth-test';
+
+// Use SimpleGoogleDriveAuth instead of the complex browser service
+class GoogleDriveBrowserServiceWrapper {
+  private authService: SimpleGoogleDriveAuth | null = null;
+
+  authenticate(): Promise<boolean> {
+    if (!this.authService) {
+      throw new Error('Service not initialized. Call initialize() first.');
+    }
+    return this.authService.authenticate();
+  }
+
+  isAuth(): boolean {
+    return this.authService?.getStatus().isAuthenticated || false;
+  }
+
+  initialize(config: { apiKey: string; clientId: string }): void {
+    console.log('Initializing Google Drive service with:', {
+      apiKey: config.apiKey ? `${config.apiKey.substring(0, 10)}...` : 'none',
+      clientId: config.clientId ? `${config.clientId.substring(0, 20)}...` : 'none',
+    });
+    this.authService = new SimpleGoogleDriveAuth(config.clientId, config.apiKey);
+  }
+
+  getAuthStatus() {
+    return this.authService?.getStatus() || { isAuthenticated: false, hasToken: false };
+  }
+
+  async searchFiles(options: { query?: string; fields?: string }): Promise<GoogleDriveFile[]> {
+    if (!this.authService) {
+      throw new Error('Service not initialized. Call initialize() first.');
+    }
+
+    // Use the testApiCall method from SimpleGoogleDriveAuth to get files
+    try {
+      const result = (await this.authService.testApiCall()) as { files?: GoogleDriveFile[] };
+
+      // Filter files based on query if provided
+      let files = result.files || [];
+      if (options.query) {
+        // Simple filtering - in a real implementation this would be done server-side
+        files = files.filter(
+          (file) =>
+            file.name?.toLowerCase().includes(options.query!.toLowerCase()) ||
+            file.mimeType?.includes(options.query!),
+        );
+      }
+
+      return files;
+    } catch (error) {
+      console.error('Search files error:', error);
+      throw error;
+    }
+  }
+
+  async getDocumentAsText(docId: string): Promise<string> {
+    if (!this.authService?.getStatus().isAuthenticated) {
+      throw new Error('Not authenticated. Call authenticate() first.');
+    }
+
+    // This is a simplified implementation - export as plain text
+    const apiKey = this.authService.getStatus().accessToken?.replace('...', '') || '';
+    const url = `https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text/plain`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to export document: ${response.status} ${response.statusText}`);
+    }
+
+    return response.text();
+  }
+
+  async getSpreadsheetAsCsv(sheetId: string): Promise<string> {
+    if (!this.authService?.getStatus().isAuthenticated) {
+      throw new Error('Not authenticated. Call authenticate() first.');
+    }
+
+    // This is a simplified implementation - export as CSV
+    const apiKey = this.authService.getStatus().accessToken?.replace('...', '') || '';
+    const url = `https://www.googleapis.com/drive/v3/files/${sheetId}/export?mimeType=text/csv`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to export spreadsheet: ${response.status} ${response.statusText}`);
+    }
+
+    return response.text();
+  }
+
+  async getFile(fileId: string): Promise<GoogleDriveFile> {
+    if (!this.authService?.getStatus().isAuthenticated) {
+      throw new Error('Not authenticated. Call authenticate() first.');
+    }
+
+    const apiKey = this.authService.getStatus().accessToken?.replace('...', '') || '';
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,size,modifiedTime,webViewLink,webContentLink,thumbnailLink,parents`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get file: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+}
+
 export class GoogleDriveContentService {
   private static instance: GoogleDriveContentService;
-  private driveService: GoogleDriveBrowserService;
+  private driveService: GoogleDriveBrowserServiceWrapper;
   private config: GoogleDriveContentConfig | null = null;
   private syncStatus: ContentSyncStatus = {
     lastSync: '',
@@ -21,8 +143,8 @@ export class GoogleDriveContentService {
     syncInProgress: false,
   };
 
-  private constructor() {
-    this.driveService = GoogleDriveBrowserService.getInstance();
+  constructor() {
+    this.driveService = new GoogleDriveBrowserServiceWrapper();
   }
 
   static getInstance(): GoogleDriveContentService {
@@ -35,6 +157,27 @@ export class GoogleDriveContentService {
   configure(config: GoogleDriveContentConfig): void {
     this.config = config;
     console.log('Google Drive Content Service configured:', config);
+
+    // Initialize the browser service with API credentials
+    if (config.apiKey && config.clientId) {
+      // Initialize the Google Drive service with credentials
+      this.driveService.initialize({
+        apiKey: config.apiKey,
+        clientId: config.clientId,
+      });
+    }
+  }
+
+  // === AUTHENTICATION ===
+
+  async authenticate(): Promise<boolean> {
+    try {
+      const isAuthenticated = await this.driveService.authenticate();
+      return isAuthenticated;
+    } catch (error) {
+      console.error('Authentication failed:', error);
+      return false;
+    }
   }
 
   // === CONTENT SYNCHRONIZATION ===
@@ -42,6 +185,16 @@ export class GoogleDriveContentService {
   async syncAllContent(): Promise<ContentSyncStatus> {
     if (!this.config) {
       throw new Error('Service not configured. Call configure() first.');
+    }
+
+    // Check if we're authenticated before attempting to sync
+    const authStatus = this.driveService.getAuthStatus();
+    if (!authStatus.isAuthenticated) {
+      console.warn('Not authenticated with Google Drive. Attempting to authenticate...');
+      const authenticated = await this.authenticate();
+      if (!authenticated) {
+        throw new Error('Google Drive authentication required. Please authenticate first.');
+      }
     }
 
     this.syncStatus.syncInProgress = true;
@@ -89,6 +242,12 @@ export class GoogleDriveContentService {
       const docsContent: GoogleDocsContent[] = [];
 
       for (const doc of docs) {
+        // Validate document properties
+        if (!doc.id || typeof doc.id !== 'string' || !doc.name || typeof doc.name !== 'string') {
+          console.warn('Skipping invalid document:', doc);
+          continue;
+        }
+
         // Check if document has changed
         const cachedEtag = this.syncStatus.contentEtags[doc.id];
         if (cachedEtag && cachedEtag === doc.modifiedTime) {
@@ -141,6 +300,17 @@ export class GoogleDriveContentService {
       const sheetsData: GoogleSheetsData[] = [];
 
       for (const sheet of sheets) {
+        // Validate sheet properties
+        if (
+          !sheet.id ||
+          typeof sheet.id !== 'string' ||
+          !sheet.name ||
+          typeof sheet.name !== 'string'
+        ) {
+          console.warn('Skipping invalid sheet:', sheet);
+          continue;
+        }
+
         // Check if sheet has changed
         const cachedEtag = this.syncStatus.contentEtags[sheet.id];
         if (cachedEtag && cachedEtag === sheet.modifiedTime) {
@@ -192,6 +362,17 @@ export class GoogleDriveContentService {
       const issues: IssueWithGoogleDrive[] = [];
 
       for (const file of pdfFiles) {
+        // Validate file properties
+        if (
+          !file.id ||
+          typeof file.id !== 'string' ||
+          !file.name ||
+          typeof file.name !== 'string'
+        ) {
+          console.warn('Skipping invalid PDF file:', file);
+          continue;
+        }
+
         // Parse issue information from filename
         const issueInfo = this.parseIssueFilename(file.name);
 
@@ -205,10 +386,18 @@ export class GoogleDriveContentService {
           etag: file.modifiedTime || '',
           status: 'google-drive',
           syncStatus: 'synced',
-          ...(file.webContentLink && { googleDriveUrl: file.webContentLink }),
-          ...(file.thumbnailLink && { thumbnailUrl: file.thumbnailLink }),
-          ...(file.modifiedTime && { lastModified: file.modifiedTime }),
         };
+
+        // Add optional properties with type checking
+        if (file.webContentLink && typeof file.webContentLink === 'string') {
+          issue.googleDriveUrl = file.webContentLink;
+        }
+        if (file.thumbnailLink && typeof file.thumbnailLink === 'string') {
+          issue.thumbnailUrl = file.thumbnailLink;
+        }
+        if (file.modifiedTime && typeof file.modifiedTime === 'string') {
+          issue.lastModified = file.modifiedTime;
+        }
 
         issues.push(issue);
         this.syncStatus.fileEtags[file.id] = file.modifiedTime || '';

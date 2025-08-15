@@ -1,5 +1,9 @@
 // src/types/google-drive-content.ts
 export interface GoogleDriveContentConfig {
+  // API credentials
+  apiKey: string;
+  clientId: string;
+
   // Folder IDs for different content types
   contentFolderId: string; // Main content folder
   issuesFolderId: string; // PDF issues folder
