@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import WebViewer, { type WebViewerInstance } from '@pdftron/webviewer';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 
 // Note: PDF.js worker will be configured at runtime to avoid Vite build issues
 
@@ -8,9 +9,44 @@ interface ThumbnailCache {
   [url: string]: string; // base64 image data
 }
 
+interface GoogleDriveThumbnailCache {
+  [fileId: string]: {
+    thumbnail: string;
+    etag: string;
+    timestamp: number;
+  };
+}
+
 const thumbnailCache = ref<ThumbnailCache>({});
+const googleDriveThumbnailCache = ref<GoogleDriveThumbnailCache>({});
 
 export function usePdfThumbnails() {
+  // Load Google Drive thumbnail cache from localStorage
+  const loadGoogleDriveCache = (): void => {
+    try {
+      const cached = localStorage.getItem('google-drive-thumbnail-cache');
+      if (cached) {
+        googleDriveThumbnailCache.value = JSON.parse(cached);
+      }
+    } catch (error) {
+      console.warn('Failed to load Google Drive thumbnail cache:', error);
+    }
+  };
+
+  // Save Google Drive thumbnail cache to localStorage
+  const saveGoogleDriveCache = (): void => {
+    try {
+      localStorage.setItem(
+        'google-drive-thumbnail-cache',
+        JSON.stringify(googleDriveThumbnailCache.value),
+      );
+    } catch (error) {
+      console.warn('Failed to save Google Drive thumbnail cache:', error);
+    }
+  };
+
+  // Initialize cache loading
+  loadGoogleDriveCache();
   const loadThumbnailFromCache = (url: string): string | null => {
     // Check localStorage first
     const cached = localStorage.getItem(`pdf-thumb-${url}`);
@@ -19,6 +55,158 @@ export function usePdfThumbnails() {
       return cached;
     }
     return thumbnailCache.value[url] || null;
+  };
+
+  // Google Drive thumbnail methods
+  const generateGoogleDriveThumbnail = async (
+    issue: IssueWithGoogleDrive,
+  ): Promise<string | null> => {
+    if (!issue.googleDriveFileId) {
+      return null;
+    }
+
+    try {
+      // Check cache first
+      const cached = googleDriveThumbnailCache.value[issue.googleDriveFileId];
+      if (cached && cached.etag === issue.etag) {
+        console.log('📦 Using cached Google Drive thumbnail for:', issue.filename);
+        return cached.thumbnail;
+      }
+
+      console.log('🔄 Generating Google Drive thumbnail for:', issue.filename);
+
+      // Try using Google Drive's built-in thumbnail first
+      if (issue.thumbnailUrl) {
+        const thumbnail = await fetchGoogleDriveThumbnail(issue.thumbnailUrl);
+        if (thumbnail) {
+          // Cache the thumbnail
+          googleDriveThumbnailCache.value[issue.googleDriveFileId] = {
+            thumbnail,
+            etag: issue.etag || '',
+            timestamp: Date.now(),
+          };
+          saveGoogleDriveCache();
+          return thumbnail;
+        }
+      }
+
+      // Fallback: Download the PDF and generate thumbnail locally
+      if (issue.googleDriveUrl) {
+        const localThumbnail = await generateThumbnailFromGoogleDriveUrl(issue.googleDriveUrl);
+        if (localThumbnail) {
+          // Cache the thumbnail
+          googleDriveThumbnailCache.value[issue.googleDriveFileId] = {
+            thumbnail: localThumbnail,
+            etag: issue.etag || '',
+            timestamp: Date.now(),
+          };
+          saveGoogleDriveCache();
+          return localThumbnail;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Error generating Google Drive thumbnail:', error);
+      return null;
+    }
+  };
+
+  const fetchGoogleDriveThumbnail = async (thumbnailUrl: string): Promise<string | null> => {
+    try {
+      const response = await fetch(thumbnailUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'image/*',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve(reader.result as string);
+        };
+        reader.onerror = () => {
+          resolve(null);
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch Google Drive thumbnail:', error);
+      return null;
+    }
+  };
+
+  const generateThumbnailFromGoogleDriveUrl = async (
+    googleDriveUrl: string,
+  ): Promise<string | null> => {
+    try {
+      // Try to generate thumbnail using PDF.js with the Google Drive URL
+      const thumbnail = await generatePDFJSThumbnail(googleDriveUrl);
+      if (thumbnail) {
+        return thumbnail;
+      }
+
+      // If PDF.js fails, try WebViewer
+      const webviewerThumbnail = await generateActualThumbnail(googleDriveUrl);
+      return webviewerThumbnail;
+    } catch (error) {
+      console.warn('⚠️ Failed to generate thumbnail from Google Drive URL:', error);
+      return null;
+    }
+  };
+
+  // Enhanced main thumbnail generation function with Google Drive support
+  const generateThumbnailWithGoogleDrive = async (issue: IssueWithGoogleDrive): Promise<string> => {
+    try {
+      // First, try Google Drive thumbnail generation
+      if (issue.googleDriveFileId && issue.status === 'google-drive') {
+        const googleDriveThumbnail = await generateGoogleDriveThumbnail(issue);
+        if (googleDriveThumbnail) {
+          return googleDriveThumbnail;
+        }
+      }
+
+      // Fallback to local file if available
+      if (issue.localUrl || issue.url) {
+        const localUrl = issue.localUrl || issue.url!;
+        const localThumbnail = await getThumbnail(localUrl);
+        if (localThumbnail) {
+          return localThumbnail;
+        }
+      }
+
+      // Final fallback: generate a placeholder
+      return generateFallbackThumbnail(issue.filename);
+    } catch (error) {
+      console.error('❌ Error in generateThumbnailWithGoogleDrive:', error);
+      return generateFallbackThumbnail(issue.filename);
+    }
+  };
+
+  // Clean up old cache entries (keep only recent ones)
+  const cleanupThumbnailCache = (): void => {
+    const now = Date.now();
+    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    let cleaned = 0;
+    for (const [fileId, cache] of Object.entries(googleDriveThumbnailCache.value)) {
+      if (now - cache.timestamp > maxAge) {
+        delete googleDriveThumbnailCache.value[fileId];
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      console.log(`🧹 Cleaned up ${cleaned} old Google Drive thumbnail cache entries`);
+      saveGoogleDriveCache();
+    }
   };
 
   const generateFallbackThumbnail = (url: string): string => {
@@ -404,6 +592,9 @@ export function usePdfThumbnails() {
     clearCache,
     clearSingleCache,
     regenerateThumbnail,
+    generateThumbnailWithGoogleDrive,
+    cleanupThumbnailCache,
     thumbnailCache: computed(() => thumbnailCache.value),
+    googleDriveThumbnailCache: computed(() => googleDriveThumbnailCache.value),
   };
 }
