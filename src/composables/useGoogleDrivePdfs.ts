@@ -358,7 +358,15 @@ export function useGoogleDrivePdfs() {
 
   // Dummy implementations for compatibility
   // Get PDF metadata (stub - returns minimal metadata)
-  const getPdfMetadata = (issue: IssueWithGoogleDrive) => {
+  const getPdfMetadata = (
+    issue: IssueWithGoogleDrive,
+  ): Promise<{
+    pageCount: number;
+    fileSize: string;
+    lastModified: string;
+    title: string;
+    filename: string;
+  }> => {
     return Promise.resolve({
       pageCount: issue.pages || 1,
       fileSize: issue.fileSize || 'Unknown',
@@ -367,7 +375,7 @@ export function useGoogleDrivePdfs() {
       filename: issue.filename,
     });
   };
-  const getFileSize = () => Promise.resolve('Unknown');
+  const getFileSize = (): Promise<string> => Promise.resolve('Unknown');
 
   return {
     // State
