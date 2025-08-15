@@ -34,6 +34,14 @@ const routes: RouteRecordRaw[] = [
         path: '/demo/simple-auth-test',
         component: () => import('pages/SimpleAuthTest.vue'),
       }, // Simple Google Auth Test (debugging)
+      {
+        path: '/demo/google-drive-public',
+        component: () => import('pages/GoogleDrivePublicTest.vue'),
+      }, // Google Drive Public Access Test
+      {
+        path: '/content/dashboard',
+        component: () => import('pages/GoogleDriveContentDashboard.vue'),
+      }, // Production Google Drive Content Dashboard
     ],
   },
 

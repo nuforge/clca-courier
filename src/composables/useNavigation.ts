@@ -38,6 +38,11 @@ export const useNavigation = () => {
       link: '/about',
     },
     {
+      title: 'Content Dashboard',
+      icon: 'mdi-cloud-outline',
+      link: '/content/dashboard',
+    },
+    {
       title: 'Google Drive Demo',
       icon: 'mdi-google-drive',
       link: '/demo/google-drive-content',

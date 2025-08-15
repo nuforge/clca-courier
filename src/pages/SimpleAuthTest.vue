@@ -32,7 +32,7 @@
                   <q-item-section>
                     <q-item-label>Client ID</q-item-label>
                     <q-item-label caption>{{ hasClientId ? 'Configured' : 'Missing'
-                      }}</q-item-label>
+                    }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -49,7 +49,7 @@
                   <q-item-section>
                     <q-item-label>Authentication</q-item-label>
                     <q-item-label caption>{{ authStatus.isAuthenticated ? 'Authenticated' : 'Not authenticated'
-                    }}</q-item-label>
+                      }}</q-item-label>
                   </q-item-section>
                 </q-item>
 
@@ -75,6 +75,24 @@
 
               <q-btn color="negative" label="Clear Status" @click="clearStatus" flat />
             </div>
+
+            <!-- Popup Help Banner -->
+            <q-banner v-if="showPopupHelp" class="bg-info text-white q-mt-md" rounded>
+              <template v-slot:avatar>
+                <q-icon name="info" />
+              </template>
+              <div>
+                <strong>Popup Blocked?</strong> If the authentication popup is blocked:
+                <ol class="q-mt-sm q-mb-none">
+                  <li>Look for a popup blocked icon in your address bar</li>
+                  <li>Click it and select "Always allow popups from localhost:9000"</li>
+                  <li>Try authenticating again</li>
+                </ol>
+              </div>
+              <template v-slot:action>
+                <q-btn flat dense icon="close" @click="showPopupHelp = false" />
+              </template>
+            </q-banner>
 
             <div v-if="error" class="q-mt-md">
               <q-banner class="bg-negative text-white">
@@ -113,6 +131,7 @@ const apiLoading = ref(false);
 const error = ref<string | null>(null);
 const apiResult = ref<Record<string, unknown> | null>(null);
 const authService = ref<SimpleGoogleDriveAuth | null>(null);
+const showPopupHelp = ref(false);
 const authStatus = ref({
   isAuthenticated: false,
   hasToken: false,
@@ -154,6 +173,7 @@ const authenticate = async () => {
 
   authLoading.value = true;
   error.value = null;
+  showPopupHelp.value = false;
 
   try {
     console.log('Starting authentication...');
@@ -168,9 +188,20 @@ const authenticate = async () => {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     error.value = errorMessage;
 
+    // Show popup help for popup-related errors
+    if (errorMessage.includes('POPUP_BLOCKED') || errorMessage.includes('POPUP_CLOSED') || errorMessage.includes('popup')) {
+      showPopupHelp.value = true;
+    }
+
+    // Different notification types for different errors
+    const notificationType = errorMessage.includes('POPUP_CLOSED') ? 'warning' : 'negative';
+    const notificationMessage = errorMessage.includes('POPUP_CLOSED')
+      ? 'Authentication cancelled by user'
+      : `Authentication failed: ${errorMessage}`;
+
     $q.notify({
-      type: 'negative',
-      message: `Authentication failed: ${errorMessage}`,
+      type: notificationType,
+      message: notificationMessage,
     });
   } finally {
     authLoading.value = false;

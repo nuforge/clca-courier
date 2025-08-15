@@ -13,7 +13,9 @@ export class SimpleGoogleDriveAuth {
   constructor(clientId: string, apiKey: string) {
     this.clientId = clientId;
     this.apiKey = apiKey;
-    this.scope = 'https://www.googleapis.com/auth/drive.readonly';
+    // Use more specific, read-only scope to avoid broad file access requests
+    this.scope =
+      'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly';
   }
 
   /**
@@ -59,7 +61,8 @@ export class SimpleGoogleDriveAuth {
                       client_id: string;
                       scope: string;
                       callback: (response: { error?: string; access_token?: string }) => void;
-                    }) => { requestAccessToken: (options: { prompt: string }) => void };
+                      error_callback?: (error: { type: string; details: string }) => void;
+                    }) => { requestAccessToken: (options?: { prompt?: string }) => void };
                   };
                 };
               };
@@ -73,21 +76,80 @@ export class SimpleGoogleDriveAuth {
               if (response.error) {
                 console.error('OAuth2 error:', response);
                 this.isAuthenticated = false;
-                reject(new Error(`OAuth2 error: ${response.error}`));
+
+                // Provide helpful error messages for common issues
+                if (response.error === 'popup_blocked_by_browser') {
+                  reject(
+                    new Error(
+                      'Popup blocked by browser. Please allow popups for this site and try again.',
+                    ),
+                  );
+                } else if (response.error === 'popup_closed_by_user') {
+                  reject(new Error('Authentication cancelled by user.'));
+                } else {
+                  reject(new Error(`OAuth2 error: ${response.error}`));
+                }
                 return;
               }
 
-              this.accessToken = response.access_token || '';
-              this.isAuthenticated = true;
+              if (response.access_token) {
+                this.accessToken = response.access_token;
+                this.isAuthenticated = true;
+                console.log('Authentication successful! Token received.');
+                resolve(true);
+              } else {
+                console.error('No access token received in response');
+                this.isAuthenticated = false;
+                reject(new Error('Authentication failed: No access token received'));
+              }
+            },
+            error_callback: (error: { type: string; details: string }) => {
+              console.error('OAuth2 error callback:', error);
+              this.isAuthenticated = false;
 
-              console.log('Authentication successful!');
-              resolve(true);
+              // Only treat this as an error if it's a real failure, not just user cancellation
+              if (error.type === 'popup_failed_to_open') {
+                reject(
+                  new Error(
+                    'POPUP_BLOCKED: Please allow popups for this site in your browser settings and try again.',
+                  ),
+                );
+              } else if (error.type === 'popup_closed') {
+                // This might be called prematurely by Google's library, so be more lenient
+                console.warn('Popup closed - this may be normal during authentication flow');
+                reject(
+                  new Error(
+                    'POPUP_CLOSED: Authentication was cancelled or popup was closed. Please try again.',
+                  ),
+                );
+              } else if (error.type === 'access_denied') {
+                reject(
+                  new Error(
+                    'ACCESS_DENIED: Permission was denied. Please grant access to continue.',
+                  ),
+                );
+              } else {
+                reject(
+                  new Error(
+                    `Authentication error: ${error.type} - ${error.details || 'Please try again'}`,
+                  ),
+                );
+              }
             },
           });
 
           console.log('Requesting access token...');
-          // Request access token
-          tokenClient.requestAccessToken({ prompt: 'consent' });
+
+          // Request access token immediately without artificial delays
+          try {
+            // Use '' (empty) prompt to let Google decide the appropriate flow
+            tokenClient.requestAccessToken({ prompt: '' });
+          } catch (error) {
+            console.error('Failed to request access token:', error);
+            reject(
+              new Error('Failed to open authentication popup. Please check your popup settings.'),
+            );
+          }
         } catch (error) {
           console.error('Token client initialization failed:', error);
           this.isAuthenticated = false;
@@ -141,5 +203,52 @@ export class SimpleGoogleDriveAuth {
       hasToken: this.accessToken !== '',
       accessToken: this.accessToken ? `${this.accessToken.substring(0, 10)}...` : 'none',
     };
+  }
+
+  /**
+   * Check if we have a valid token by making a simple API call
+   */
+  async checkTokenValidity(): Promise<boolean> {
+    if (!this.accessToken) {
+      this.isAuthenticated = false;
+      return false;
+    }
+
+    try {
+      // Make a simple API call to verify the token
+      const response = await fetch(
+        `https://www.googleapis.com/drive/v3/about?fields=user&key=${this.apiKey}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        this.isAuthenticated = true;
+        console.log('Token is still valid');
+        return true;
+      } else {
+        console.log('Token is invalid or expired');
+        this.isAuthenticated = false;
+        this.accessToken = '';
+        return false;
+      }
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      this.isAuthenticated = false;
+      this.accessToken = '';
+      return false;
+    }
+  }
+
+  /**
+   * Sign out and clear tokens
+   */
+  signOut(): void {
+    this.accessToken = '';
+    this.isAuthenticated = false;
+    console.log('Signed out successfully');
   }
 }

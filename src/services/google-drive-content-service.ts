@@ -176,7 +176,9 @@ export class GoogleDriveContentService {
       return isAuthenticated;
     } catch (error) {
       console.error('Authentication failed:', error);
-      return false;
+
+      // Re-throw the error to let the UI handle it properly
+      throw error;
     }
   }
 
@@ -190,11 +192,10 @@ export class GoogleDriveContentService {
     // Check if we're authenticated before attempting to sync
     const authStatus = this.driveService.getAuthStatus();
     if (!authStatus.isAuthenticated) {
-      console.warn('Not authenticated with Google Drive. Attempting to authenticate...');
-      const authenticated = await this.authenticate();
-      if (!authenticated) {
-        throw new Error('Google Drive authentication required. Please authenticate first.');
-      }
+      console.warn('Not authenticated with Google Drive. Authentication required for sync.');
+      throw new Error(
+        'Google Drive authentication required. Please authenticate first using the "Authenticate with Google" button.',
+      );
     }
 
     this.syncStatus.syncInProgress = true;

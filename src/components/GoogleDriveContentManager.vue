@@ -263,7 +263,7 @@ const addClassified = () => {
 };
 
 // Initialize on mount
-onMounted(async () => {
+onMounted(() => {
     const config: GoogleDriveContentConfig = {
         apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
         clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
@@ -274,7 +274,7 @@ onMounted(async () => {
     };
 
     try {
-        await initialize(config);
+        initialize(config);
     } catch (err) {
         console.error('Initialization failed:', err);
     }

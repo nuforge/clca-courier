@@ -47,7 +47,7 @@
                 <q-item-section>
                   <q-item-label>Folder Configuration</q-item-label>
                   <q-item-label caption>{{ hasFolderIds ? 'All folders configured' : 'Some folders missing'
-                    }}</q-item-label>
+                  }}</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -59,7 +59,7 @@
                 <q-item-section>
                   <q-item-label>Service Status</q-item-label>
                   <q-item-label caption>{{ isInitialized ? 'Initialized' : 'Not initialized'
-                  }}</q-item-label>
+                    }}</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -494,7 +494,7 @@ const syncInterval = computed(() =>
 );
 
 // Methods
-const initializeService = async () => {
+const initializeService = () => {
   if (!canInitialize.value) {
     $q.notify({
       type: 'negative',
@@ -515,7 +515,7 @@ const initializeService = async () => {
       clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
     };
 
-    await initialize(config);
+    initialize(config);
 
     $q.notify({
       type: 'positive',
@@ -563,7 +563,7 @@ const authenticateUser = async () => {
 
 const syncContent = async () => {
   if (!isInitialized.value) {
-    await initializeService();
+    initializeService();
     return;
   }
 

@@ -58,7 +58,7 @@ export function useGoogleDriveContent() {
   );
 
   // Initialize the service
-  const initialize = async (config: GoogleDriveContentConfig): Promise<void> => {
+  const initialize = (config: GoogleDriveContentConfig): void => {
     try {
       isLoading.value = true;
       error.value = null;
@@ -70,10 +70,9 @@ export function useGoogleDriveContent() {
 
       isInitialized.value = true;
 
-      // Then sync in the background if content is stale
-      if (isContentStale.value) {
-        await syncContent();
-      }
+      // Note: We don't automatically sync here to avoid unwanted authentication prompts
+      // Users should manually trigger sync when they're ready to authenticate
+      console.log('Google Drive service initialized. Use syncContent() to fetch latest data.');
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Failed to initialize Google Drive content';
