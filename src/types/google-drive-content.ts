@@ -86,6 +86,12 @@ export interface IssueWithGoogleDrive {
   contentDocId?: string; // Link to Google Doc with content
   status: 'local' | 'google-drive' | 'hybrid';
   syncStatus: 'synced' | 'outdated' | 'error' | 'syncing';
+  // Additional metadata
+  fileSize?: string;
+  description?: string;
+  tags?: string[];
+  author?: string;
+  category?: string;
 }
 
 export interface ContentSyncStatus {

@@ -166,9 +166,19 @@ function handleRegenerateThumbnail(event: Event) {
                     <span>{{ issue.pages }} pages</span>
                 </div>
 
+                <div v-if="issue.fileSize" class="flex items-center gap-1 mb-1">
+                    <q-icon name="mdi-harddisk" size="12px" />
+                    <span>{{ issue.fileSize }}</span>
+                </div>
+
                 <div v-if="issue.lastModified" class="flex items-center gap-1 mb-1">
                     <q-icon name="mdi-clock" size="12px" />
                     <span>Modified {{ formatDate(issue.lastModified) }}</span>
+                </div>
+
+                <div v-if="issue.description" class="flex items-center gap-1 mb-1">
+                    <q-icon name="mdi-information" size="12px" />
+                    <span class="line-clamp-1">{{ issue.description }}</span>
                 </div>
 
                 <div v-if="issue.status === 'google-drive'" class="flex items-center gap-1">
@@ -210,6 +220,14 @@ function handleRegenerateThumbnail(event: Event) {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

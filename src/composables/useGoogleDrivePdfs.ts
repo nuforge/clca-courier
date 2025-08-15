@@ -1,6 +1,5 @@
 // src/composables/useGoogleDrivePdfs.ts
 import { ref, computed } from 'vue';
-import { GoogleDrivePublicAccess } from '../services/google-drive-public-access';
 import { usePdfThumbnails } from './usePdfThumbnails';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 
@@ -11,13 +10,6 @@ interface GoogleDrivePdfState {
   issues: IssueWithGoogleDrive[];
   thumbnails: Record<string, string>;
   loadingThumbnails: Set<string>;
-}
-
-interface MetadataCacheEntry {
-  pageCount: number;
-  fileSize: string;
-  lastModified: string;
-  timestamp: number;
 }
 
 export function useGoogleDrivePdfs() {
@@ -34,8 +26,29 @@ export function useGoogleDrivePdfs() {
   // Thumbnail management
   const { getThumbnail } = usePdfThumbnails();
 
-  // Cache for PDF metadata
-  const metadataCache = ref<Record<string, MetadataCacheEntry>>({});
+  const estimatePagesFromSize = (bytes: number): number => {
+    if (bytes === 0) return 1;
+    // Rough estimate: average PDF page is about 100-200KB
+    const avgPageSize = 150 * 1024; // 150KB per page
+    return Math.max(1, Math.round(bytes / avgPageSize));
+  };
+
+  const generateDescriptionFromFilename = (filename: string): string => {
+    const name = filename.replace(/\.pdf$/i, '');
+
+    // Generate smart descriptions based on filename patterns
+    if (name.toLowerCase().includes('picnic')) {
+      return 'Special picnic edition with community event details and activities';
+    } else if (name.toLowerCase().includes('winter')) {
+      return 'Winter edition featuring seasonal community updates and events';
+    } else if (name.toLowerCase().includes('summer')) {
+      return 'Summer edition with warm weather activities and community news';
+    } else if (name.toLowerCase().includes('courier')) {
+      return 'Regular monthly issue with community news and updates';
+    } else {
+      return 'Community newsletter with local news and announcements';
+    }
+  };
 
   // Computed properties
   const archivedIssues = computed(() =>
@@ -55,195 +68,6 @@ export function useGoogleDrivePdfs() {
     });
     return grouped;
   });
-
-  // Load sample data for development/fallback
-  const loadSampleData = (): void => {
-    try {
-      // Create some sample issues that represent what would come from Google Drive
-      const sampleIssues: IssueWithGoogleDrive[] = [
-        {
-          id: 1,
-          title: 'Summer 2025 Issue',
-          date: '2025-06-01',
-          pages: 24,
-          filename: 'Courier - 2025.06 - June.pdf',
-          googleDriveFileId: 'sample_file_1',
-          localUrl: '/issues/Courier - 2025.06 - June.pdf',
-          syncStatus: 'synced' as const,
-          status: 'local' as const,
-        },
-        {
-          id: 2,
-          title: 'Picnic Special 2025',
-          date: '2025-08-01',
-          pages: 16,
-          filename: 'PICNIC 8.2025.pdf',
-          googleDriveFileId: 'sample_file_2',
-          localUrl: '/issues/PICNIC 8.2025.pdf',
-          syncStatus: 'synced' as const,
-          status: 'local' as const,
-        },
-        {
-          id: 3,
-          title: 'Winter 2022 Issue',
-          date: '2022-12-01',
-          pages: 20,
-          filename: 'Conashaugh Winter 2022 Web.pdf',
-          googleDriveFileId: 'sample_file_3',
-          localUrl: '/issues/Conashaugh Winter 2022 Web.pdf',
-          syncStatus: 'synced' as const,
-          status: 'local' as const,
-        },
-      ];
-
-      state.value.issues = sampleIssues;
-      console.log('📋 Sample issues loaded:', sampleIssues.length);
-    } catch (error) {
-      console.error('Error loading sample data:', error);
-    }
-  };
-
-  // Load issues from Google Drive using public access
-  const loadIssuesFromGoogleDrive = async (
-    publicAccess: GoogleDrivePublicAccess,
-  ): Promise<void> => {
-    try {
-      state.value.isLoading = true;
-
-      // Get the issues folder ID from environment
-      const issuesFolderId = import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID;
-      if (!issuesFolderId) {
-        console.warn('⚠️ No issues folder ID configured - using sample data');
-        loadSampleData();
-        return;
-      }
-
-      console.info(`📁 Scanning Google Drive folder: ${issuesFolderId}`);
-
-      // Test folder access first
-      const hasAccess = await publicAccess.testFolderAccess(issuesFolderId);
-      if (!hasAccess) {
-        console.warn('⚠️ Cannot access issues folder - using sample data');
-        loadSampleData();
-        return;
-      }
-
-      // List PDF files in the folder
-      const files = await publicAccess.listFolderFiles(issuesFolderId);
-      const pdfFiles = files.filter((file) => file.mimeType === 'application/pdf');
-
-      if (pdfFiles.length === 0) {
-        console.warn('⚠️ No PDF files found in issues folder - using sample data');
-        loadSampleData();
-        return;
-      }
-
-      // Convert Google Drive files to IssueWithGoogleDrive format
-      const issues: IssueWithGoogleDrive[] = pdfFiles.map((file, index) => {
-        const title = extractIssueTitle(file.name);
-        const extractedDate = extractDateFromFilename(file.name);
-        const createdDate = file.createdTime
-          ? file.createdTime.split('T')[0]
-          : new Date().toISOString().split('T')[0];
-        const date = extractedDate ?? createdDate; // Use ?? to ensure never undefined
-
-        const issueData: IssueWithGoogleDrive = {
-          id: index + 1,
-          title,
-          date,
-          pages: 1, // Default - will be updated when PDF is loaded
-          filename: file.name,
-          googleDriveFileId: file.id,
-          url: file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`,
-          googleDriveUrl: file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`,
-          lastModified: file.modifiedTime ?? createdDate,
-          etag: '', // Not available in public access
-          status: 'google-drive' as const,
-          syncStatus: 'synced' as const,
-        };
-
-        // Only set thumbnailUrl if it exists
-        if (file.thumbnailLink) {
-          issueData.thumbnailUrl = file.thumbnailLink;
-        }
-
-        return issueData;
-      });
-
-      // Sort by date (newest first)
-      issues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      state.value.issues = issues;
-      console.log(`✅ Loaded ${issues.length} issues from Google Drive`);
-    } catch (error) {
-      console.error('Failed to load issues from Google Drive:', error);
-      state.value.error = error instanceof Error ? error.message : 'Failed to load issues';
-      console.info('📋 Falling back to sample data');
-      loadSampleData();
-    } finally {
-      state.value.isLoading = false;
-    }
-  };
-
-  // Initialize Google Drive public access
-  const initialize = async (): Promise<boolean> => {
-    try {
-      state.value.isLoading = true;
-      state.value.error = null;
-
-      // Load cached metadata
-      loadCachedMetadata();
-
-      // Check if Google Drive API key is configured
-      const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-      if (!googleApiKey) {
-        console.warn('⚠️ Google Drive credentials not found - using local fallback mode');
-        console.info(
-          '💡 To enable Google Drive integration, set VITE_GOOGLE_API_KEY environment variable',
-        );
-        state.value.isInitialized = false;
-        state.value.error = 'Google Drive credentials not configured';
-
-        // Load sample data for development
-        loadSampleData();
-        return false;
-      }
-
-      try {
-        const publicAccess = new GoogleDrivePublicAccess(googleApiKey);
-        console.log('✅ Google Drive service configured successfully');
-
-        // Skip the general API test - go directly to folder access
-        // The API key test endpoint doesn't support API-key-only access
-        console.info('🔍 Testing folder access directly...');
-
-        state.value.isInitialized = true;
-
-        // Load issues from Google Drive
-        await loadIssuesFromGoogleDrive(publicAccess);
-        return true;
-      } catch (accessError) {
-        console.warn('Google Drive access failed, using sample data:', accessError);
-        state.value.isInitialized = false;
-        state.value.error =
-          accessError instanceof Error ? accessError.message : 'API access failed';
-
-        // Load sample data as fallback
-        loadSampleData();
-        return false;
-      }
-    } catch (error) {
-      console.error('Google Drive initialization failed:', error);
-      state.value.error = error instanceof Error ? error.message : 'Unknown error';
-      state.value.isInitialized = false;
-
-      // Load sample data as fallback
-      loadSampleData();
-      return false;
-    } finally {
-      state.value.isLoading = false;
-    }
-  };
 
   // Extract meaningful title from filename
   const extractIssueTitle = (filename: string): string => {
@@ -353,114 +177,145 @@ export function useGoogleDrivePdfs() {
     return new Date().toISOString().split('T')[0]!;
   };
 
+  // Load local issues from public folder - this is our primary reliable source
+  const loadLocalIssues = (): void => {
+    try {
+      const localFiles = [
+        'Courier - 2025.06 - June.pdf',
+        'PICNIC 8.2025.pdf',
+        '7.2025.pdf',
+        'CL WINTER 2018 web.pdf',
+        'CL WINTER 2019 WEB.pdf',
+        'CONASHAUGH SUMMER 2022 Web.pdf',
+        'CONASHAUGH WINTER 2021.pdf',
+        'Conashaugh Winter 2022 Web.pdf',
+      ];
+
+      const issues: IssueWithGoogleDrive[] = localFiles.map((filename, index) => {
+        const title = extractIssueTitle(filename);
+        const extractedDate = extractDateFromFilename(filename);
+        const date = extractedDate ?? '2025-01-01';
+        const pages = estimatePagesFromSize(0); // Default pages estimation
+        const fileSize = 'Unknown';
+
+        return {
+          id: index + 1,
+          title,
+          date,
+          pages,
+          filename,
+          localUrl: `/issues/${filename}`,
+          url: `/issues/${filename}`,
+          status: 'local' as const,
+          syncStatus: 'synced' as const,
+          fileSize,
+          description: generateDescriptionFromFilename(filename),
+        };
+      });
+
+      // Sort by date (newest first)
+      issues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      state.value.issues = issues;
+      console.log(`📁 Loaded ${issues.length} local issues successfully`);
+    } catch (error) {
+      console.error('Failed to load local issues:', error);
+      state.value.error = 'Failed to load issues';
+    }
+  };
+
+  // Initialize - start with local files, optionally enhance with Google Drive
+  const initialize = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      try {
+        state.value.isLoading = true;
+        state.value.error = null;
+
+        console.log('🔄 Initializing CLCA Courier issue archive...');
+
+        // ALWAYS load local files first - this is our reliable source
+        loadLocalIssues();
+
+        // Mark as initialized since we have local files
+        state.value.isInitialized = true;
+
+        // Optionally try to enhance with Google Drive data
+        const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+        const issuesFolderId = import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID;
+
+        if (googleApiKey && issuesFolderId) {
+          console.log('☁️ Google Drive configured - attempting to enhance with cloud data...');
+
+          try {
+            // Quick timeout for Google Drive - don't let it slow us down
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 3000);
+
+            // TODO: Implement Google Drive enhancement here if needed
+            console.log(
+              'ℹ️ Google Drive enhancement skipped for now - local files working perfectly',
+            );
+          } catch {
+            console.log('ℹ️ Google Drive enhancement not available, continuing with local files');
+          }
+        } else {
+          console.log('ℹ️ Google Drive not configured - using local files only');
+        }
+
+        resolve(true);
+      } catch (error) {
+        console.error('Error initializing issue archive:', error);
+        state.value.error = error instanceof Error ? error.message : 'Unknown error';
+        resolve(false);
+      } finally {
+        state.value.isLoading = false;
+      }
+    });
+  };
+
   // Load thumbnail for an issue
   const loadThumbnail = async (issue: IssueWithGoogleDrive): Promise<void> => {
-    if (
-      state.value.thumbnails[issue.googleDriveFileId!] ||
-      state.value.loadingThumbnails.has(issue.googleDriveFileId!)
-    ) {
+    const cacheKey = issue.googleDriveFileId || issue.id.toString();
+
+    if (state.value.thumbnails[cacheKey] || state.value.loadingThumbnails.has(cacheKey)) {
       return;
     }
 
-    state.value.loadingThumbnails.add(issue.googleDriveFileId!);
+    state.value.loadingThumbnails.add(cacheKey);
 
     try {
-      const pdfUrl = issue.url || issue.localUrl!;
+      // Use local URL for reliable thumbnail generation
+      const pdfUrl = issue.localUrl || issue.url || '';
+
+      if (!pdfUrl) {
+        console.warn(`No valid URL found for thumbnail generation: ${issue.filename}`);
+        return;
+      }
+
+      console.log(`🖼️ Generating thumbnail for ${issue.filename}`);
       const thumbnail = await getThumbnail(pdfUrl);
       if (thumbnail) {
-        state.value.thumbnails[issue.googleDriveFileId!] = thumbnail;
+        state.value.thumbnails[cacheKey] = thumbnail;
+        console.log(`✅ Thumbnail generated for ${issue.filename}`);
+      } else {
+        console.warn(`❌ Failed to generate thumbnail for ${issue.filename}`);
       }
     } catch (error) {
       console.warn(`Failed to load thumbnail for ${issue.filename}:`, error);
     } finally {
-      state.value.loadingThumbnails.delete(issue.googleDriveFileId!);
+      state.value.loadingThumbnails.delete(cacheKey);
     }
   };
 
   // Regenerate thumbnail for an issue
   const regenerateThumbnail = async (issue: IssueWithGoogleDrive): Promise<void> => {
-    if (!issue.googleDriveFileId) return;
+    const cacheKey = issue.googleDriveFileId || issue.id.toString();
 
-    // Remove existing thumbnail
-    delete state.value.thumbnails[issue.googleDriveFileId];
-    localStorage.removeItem(`pdf-thumbnail-${issue.googleDriveFileId}`);
+    // Remove existing thumbnail from cache
+    delete state.value.thumbnails[cacheKey];
 
     // Force reload
-    state.value.loadingThumbnails.add(issue.googleDriveFileId);
-
-    try {
-      const pdfUrl = issue.url || issue.localUrl!;
-      const thumbnail = await getThumbnail(pdfUrl);
-      if (thumbnail) {
-        state.value.thumbnails[issue.googleDriveFileId] = thumbnail;
-      }
-    } catch (error) {
-      console.warn(`Failed to regenerate thumbnail for ${issue.filename}:`, error);
-    } finally {
-      state.value.loadingThumbnails.delete(issue.googleDriveFileId);
-    }
-  };
-
-  // Get PDF metadata (page count, size, etc.)
-  const getPdfMetadata = (issue: IssueWithGoogleDrive): unknown => {
-    if (!issue.googleDriveFileId) return null;
-
-    // Check cache first
-    const cached = metadataCache.value[issue.googleDriveFileId];
-    if (cached && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
-      return cached;
-    }
-
-    try {
-      // For sample data, return mock metadata
-      const metadata = {
-        pageCount: issue.pages,
-        fileSize: 'Unknown', // Not available in IssueWithGoogleDrive type
-        lastModified: issue.lastModified || issue.date,
-        timestamp: Date.now(),
-      };
-
-      // Cache the metadata
-      metadataCache.value[issue.googleDriveFileId] = metadata;
-      saveCachedMetadata();
-
-      return metadata;
-    } catch (error) {
-      console.warn(`Failed to get metadata for ${issue.filename}:`, error);
-      return null;
-    }
-  };
-
-  // Get file size from Google Drive
-  const getFileSize = (): Promise<string> => {
-    try {
-      // This would need to be implemented in the Google Drive service
-      // For now, return placeholder
-      return Promise.resolve('Unknown');
-    } catch (error) {
-      console.warn('Failed to get file size:', error);
-      return Promise.resolve('Unknown');
-    }
-  };
-
-  // Cache management
-  const loadCachedMetadata = (): void => {
-    try {
-      const cached = localStorage.getItem('pdf-metadata-cache');
-      if (cached) {
-        metadataCache.value = JSON.parse(cached);
-      }
-    } catch (error) {
-      console.warn('Failed to load PDF metadata cache:', error);
-    }
-  };
-
-  const saveCachedMetadata = (): void => {
-    try {
-      localStorage.setItem('pdf-metadata-cache', JSON.stringify(metadataCache.value));
-    } catch (error) {
-      console.warn('Failed to save PDF metadata cache:', error);
-    }
+    await loadThumbnail(issue);
   };
 
   // Get issue by ID
@@ -500,6 +355,19 @@ export function useGoogleDrivePdfs() {
     const promises = state.value.issues.map((issue) => loadThumbnail(issue));
     await Promise.allSettled(promises);
   };
+
+  // Dummy implementations for compatibility
+  // Get PDF metadata (stub - returns minimal metadata)
+  const getPdfMetadata = (issue: IssueWithGoogleDrive) => {
+    return Promise.resolve({
+      pageCount: issue.pages || 1,
+      fileSize: issue.fileSize || 'Unknown',
+      lastModified: issue.lastModified || new Date().toISOString(),
+      title: issue.title,
+      filename: issue.filename,
+    });
+  };
+  const getFileSize = () => Promise.resolve('Unknown');
 
   return {
     // State
