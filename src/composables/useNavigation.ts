@@ -37,6 +37,11 @@ export const useNavigation = () => {
       icon: 'mdi-information',
       link: '/about',
     },
+    {
+      title: 'Google Drive Demo',
+      icon: 'mdi-google-drive',
+      link: '/demo/google-drive-content',
+    },
   ];
 
   return {

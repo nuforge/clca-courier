@@ -24,6 +24,7 @@ export interface GoogleDriveSearchOptions {
   orderBy?: string;
   parents?: string[];
   mimeType?: string;
+  fields?: string;
 }
 
 export class GoogleDriveBrowserService {
@@ -364,6 +365,37 @@ export class GoogleDriveBrowserService {
       isAuthenticated: this.isAuthenticated,
       hasToken: this.accessToken !== '',
     };
+  }
+
+  /**
+   * Get Google Document content as text (placeholder implementation)
+   * In a real implementation, this would use the Google Docs API
+   */
+  async getDocumentAsText(documentId: string): Promise<string> {
+    console.warn('getDocumentAsText is not fully implemented in browser service');
+    // For now, return a placeholder
+    // In a real implementation, you would use the Google Docs API
+    return `Document content for ${documentId} (placeholder - requires Google Docs API implementation)`;
+  }
+
+  /**
+   * Get spreadsheet data as CSV (placeholder implementation)
+   * In a real implementation, this would use the Google Sheets API
+   */
+  async getSpreadsheetAsCsv(spreadsheetId: string): Promise<string> {
+    console.warn('getSpreadsheetAsCsv is not fully implemented in browser service');
+    // For now, return a placeholder
+    // In a real implementation, you would use the Google Sheets API
+    return `CSV data for ${spreadsheetId} (placeholder - requires Google Sheets API implementation)`;
+  }
+
+  /**
+   * Export document to different formats (placeholder implementation)
+   */
+  async exportDocument(documentId: string, mimeType: string): Promise<Blob | null> {
+    console.warn('exportDocument is not fully implemented in browser service');
+    // For now, return a placeholder blob
+    return new Blob([`Exported ${documentId} as ${mimeType}`], { type: 'text/plain' });
   }
 }
 

@@ -1,5 +1,5 @@
 // src/services/google-drive-content-service.ts
-import { GoogleDriveService } from './google-drive-service';
+import { GoogleDriveBrowserService } from './google-drive-browser-service';
 import type {
   GoogleDriveContentConfig,
   GoogleDriveFile,
@@ -11,7 +11,7 @@ import type {
 
 export class GoogleDriveContentService {
   private static instance: GoogleDriveContentService;
-  private driveService: GoogleDriveService;
+  private driveService: GoogleDriveBrowserService;
   private config: GoogleDriveContentConfig | null = null;
   private syncStatus: ContentSyncStatus = {
     lastSync: '',
@@ -22,7 +22,7 @@ export class GoogleDriveContentService {
   };
 
   private constructor() {
-    this.driveService = GoogleDriveService.getInstance();
+    this.driveService = GoogleDriveBrowserService.getInstance();
   }
 
   static getInstance(): GoogleDriveContentService {

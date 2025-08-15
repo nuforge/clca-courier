@@ -26,6 +26,10 @@ const routes: RouteRecordRaw[] = [
       { path: '/map-refactored', component: () => import('pages/MapRefactoredPage.vue') },
       { path: '/demo/images', component: () => import('pages/ImageDemoPage.vue') }, // External image system demo
       { path: '/demo/google-drive', component: () => import('pages/GoogleDriveDemoPage.vue') }, // Google Drive integration demo
+      {
+        path: '/demo/google-drive-content',
+        component: () => import('pages/GoogleDriveContentDemo.vue'),
+      }, // Google Drive Content Management demo
     ],
   },
 
