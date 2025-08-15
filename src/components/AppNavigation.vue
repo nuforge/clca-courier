@@ -4,7 +4,7 @@ import NavigationItem from './NavigationItem.vue';
 import LatestIssueCard from './LatestIssueCard.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
-import type { NavigationItem as NavigationItemType } from './NavigationItem.vue';
+import type { NavigationItem as NavigationItemType } from '../types/navigation';
 
 interface Props {
   modelValue: boolean;

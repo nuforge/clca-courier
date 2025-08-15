@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
-
-export interface NavigationItem {
-  title: string;
-  icon: string;
-  link: string;
-}
+import type { NavigationItem } from '../types/navigation';
 
 interface Props {
   item: NavigationItem;
