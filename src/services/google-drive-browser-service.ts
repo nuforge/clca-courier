@@ -375,7 +375,9 @@ export class GoogleDriveBrowserService {
     console.warn('getDocumentAsText is not fully implemented in browser service');
     // For now, return a placeholder
     // In a real implementation, you would use the Google Docs API
-    return Promise.resolve(`Document content for ${documentId} (placeholder - requires Google Docs API implementation)`);
+    return Promise.resolve(
+      `Document content for ${documentId} (placeholder - requires Google Docs API implementation)`,
+    );
   }
 
   /**
@@ -386,7 +388,9 @@ export class GoogleDriveBrowserService {
     console.warn('getSpreadsheetAsCsv is not fully implemented in browser service');
     // For now, return a placeholder
     // In a real implementation, you would use the Google Sheets API
-    return Promise.resolve(`CSV data for ${spreadsheetId} (placeholder - requires Google Sheets API implementation)`);
+    return Promise.resolve(
+      `CSV data for ${spreadsheetId} (placeholder - requires Google Sheets API implementation)`,
+    );
   }
 
   /**
@@ -395,7 +399,9 @@ export class GoogleDriveBrowserService {
   exportDocument(documentId: string, mimeType: string): Promise<Blob | null> {
     console.warn('exportDocument is not fully implemented in browser service');
     // For now, return a placeholder blob
-    return Promise.resolve(new Blob([`Exported ${documentId} as ${mimeType}`], { type: 'text/plain' }));
+    return Promise.resolve(
+      new Blob([`Exported ${documentId} as ${mimeType}`], { type: 'text/plain' }),
+    );
   }
 }
 
