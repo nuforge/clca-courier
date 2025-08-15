@@ -22,7 +22,9 @@ jobs:
         run: npm install
 
       - name: Build project
-        run: npm run build # Replace with your build script
+        run: |
+          npm run build # Replace with your build script
+          cp dist/spa/index.html dist/spa/404.html
 
       - name: Deploy to GH Pages
         uses: peaceiris/actions-gh-pages@v3
