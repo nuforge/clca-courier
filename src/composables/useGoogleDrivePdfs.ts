@@ -3,20 +3,79 @@ import { ref, computed } from 'vue';
 import { usePdfThumbnails } from './usePdfThumbnails';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 
+// Google API type definitions
+interface GapiClient {
+  init(config: { apiKey: string; discoveryDocs: string[] }): Promise<void>;
+  drive: {
+    files: {
+      list(params: { q: string; fields: string; orderBy?: string; pageSize?: number }): Promise<{
+        result: {
+          files: GoogleDriveFile[];
+        };
+      }>;
+    };
+  };
+  setToken(token: { access_token: string }): void;
+}
+
+interface Gapi {
+  load(libraries: string, config: { callback: () => void; onerror: () => void }): void;
+  client: GapiClient;
+}
+
+// Google Identity Services token client type
+interface TokenClient {
+  requestAccessToken(): void;
+  callback?: (response: { access_token: string; error?: string }) => void;
+}
+
+interface GoogleDriveFile {
+  id: string;
+  name: string;
+  size?: number;
+  modifiedTime?: string;
+  webViewLink?: string;
+}
+
+declare global {
+  interface Window {
+    gapi: Gapi;
+    google: {
+      accounts: {
+        oauth2: {
+          initTokenClient(config: {
+            client_id: string;
+            scope: string;
+            callback: (response: { access_token: string; error?: string }) => void;
+          }): {
+            requestAccessToken(): void;
+          };
+        };
+      };
+    };
+  }
+}
+
 interface GoogleDrivePdfState {
   isLoading: boolean;
   isInitialized: boolean;
+  isAuthenticated: boolean;
   error: string | null;
   issues: IssueWithGoogleDrive[];
   thumbnails: Record<string, string>;
   loadingThumbnails: Set<string>;
 }
 
+// Google API globals
+let gapiLoaded = false;
+let gapiInitialized = false;
+
 export function useGoogleDrivePdfs() {
   // State management
   const state = ref<GoogleDrivePdfState>({
     isLoading: false,
     isInitialized: false,
+    isAuthenticated: false,
     error: null,
     issues: [],
     thumbnails: {},
@@ -25,30 +84,6 @@ export function useGoogleDrivePdfs() {
 
   // Thumbnail management
   const { getThumbnail } = usePdfThumbnails();
-
-  const estimatePagesFromSize = (bytes: number): number => {
-    if (bytes === 0) return 1;
-    // Rough estimate: average PDF page is about 100-200KB
-    const avgPageSize = 150 * 1024; // 150KB per page
-    return Math.max(1, Math.round(bytes / avgPageSize));
-  };
-
-  const generateDescriptionFromFilename = (filename: string): string => {
-    const name = filename.replace(/\.pdf$/i, '');
-
-    // Generate smart descriptions based on filename patterns
-    if (name.toLowerCase().includes('picnic')) {
-      return 'Special picnic edition with community event details and activities';
-    } else if (name.toLowerCase().includes('winter')) {
-      return 'Winter edition featuring seasonal community updates and events';
-    } else if (name.toLowerCase().includes('summer')) {
-      return 'Summer edition with warm weather activities and community news';
-    } else if (name.toLowerCase().includes('courier')) {
-      return 'Regular monthly issue with community news and updates';
-    } else {
-      return 'Community newsletter with local news and announcements';
-    }
-  };
 
   // Computed properties
   const archivedIssues = computed(() =>
@@ -69,208 +104,509 @@ export function useGoogleDrivePdfs() {
     return grouped;
   });
 
-  // Extract meaningful title from filename
-  const extractIssueTitle = (filename: string): string => {
-    // Remove .pdf extension
-    const title = filename.replace(/\.pdf$/i, '');
+  // Load Google API script and Google Identity Services
+  const loadGoogleAPI = async (): Promise<void> => {
+    if (gapiLoaded) return;
 
-    // Handle common patterns
-    const patterns = [
-      // Match: "Courier - 2025.06 - June" -> "June 2025"
-      /^Courier\s*-\s*(\d{4})\.(\d{1,2})\s*-\s*(.+)$/i,
-      // Match: "PICNIC 8.2025" -> "Picnic August 2025"
-      /^PICNIC\s+(\d{1,2})\.(\d{4})$/i,
-      // Match: "Conashaugh Winter 2022 Web" -> "Winter 2022"
-      /^Conashaugh\s+(.+?)\s+(\d{4})(?:\s+Web)?$/i,
-      // Match: "CL WINTER 2018 web" -> "Winter 2018"
-      /^CL\s+(.+?)\s+(\d{4})(?:\s+web)?$/i,
-    ];
+    console.log('📡 Loading Google API script and Google Identity Services...');
 
-    for (const pattern of patterns) {
-      const match = title.match(pattern);
-      if (match) {
-        if (pattern === patterns[0]) {
-          // Courier format
-          const [, year, , monthName] = match;
-          return `${monthName} ${year}`;
-        } else if (pattern === patterns[1]) {
-          // Picnic format
-          const [, month, year] = match;
-          const monthNames = [
-            '',
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December',
-          ];
-          const monthName = monthNames[parseInt(month!)] || month;
-          return `Picnic ${monthName} ${year}`;
-        } else if (pattern === patterns[2] || pattern === patterns[3]) {
-          // Conashaugh or CL format
-          const [, season, year] = match;
-          return `${season} ${year}`;
+    // Test network connectivity first
+    try {
+      await fetch('https://apis.google.com/js/api.js', {
+        method: 'HEAD',
+        mode: 'no-cors',
+      });
+      console.log('🌐 Network connectivity to Google APIs: OK');
+    } catch (error) {
+      console.warn('⚠️ Network connectivity test failed:', error);
+    }
+
+    // Load both GAPI and Google Identity Services
+    await Promise.all([
+      new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        script.onload = () => {
+          console.log('✅ Google API script loaded successfully');
+          resolve();
+        };
+        script.onerror = (error) => {
+          console.error('❌ Failed to load Google API script:', error);
+          reject(new Error('Failed to load Google API script'));
+        };
+        document.head.appendChild(script);
+      }),
+      new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.onload = () => {
+          console.log('✅ Google Identity Services script loaded successfully');
+          resolve();
+        };
+        script.onerror = (error) => {
+          console.error('❌ Failed to load Google Identity Services script:', error);
+          reject(new Error('Failed to load Google Identity Services script'));
+        };
+        document.head.appendChild(script);
+      }),
+    ]);
+
+    // Wait a bit for both APIs to become available
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    if (window.gapi && window.google?.accounts?.oauth2) {
+      gapiLoaded = true;
+      console.log('✅ Both Google API and Google Identity Services are available');
+    } else {
+      throw new Error('Google APIs not available after script load');
+    }
+  };
+
+  // Initialize Google API with minimal permissions
+  const initializeGoogleAPI = async (): Promise<void> => {
+    if (gapiInitialized) {
+      console.log('✅ Google API already initialized');
+      return;
+    }
+
+    console.log('🔧 Initializing Google API client...');
+
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    console.log('🔑 API Key present:', !!apiKey);
+    console.log('🆔 Client ID present:', !!clientId);
+
+    if (!apiKey || !clientId) {
+      throw new Error('Google API credentials not configured');
+    }
+
+    // Ensure gapi is available
+    if (!window.gapi) {
+      throw new Error('Google API script not loaded');
+    }
+
+    console.log('📚 Loading Google API client libraries...');
+
+    await new Promise<void>((resolve, reject) => {
+      // Set a timeout for the gapi.load operation
+      const timeout = setTimeout(() => {
+        reject(new Error('Timeout: Google API client libraries failed to load within 10 seconds'));
+      }, 10000);
+
+      window.gapi.load('client', {
+        callback: () => {
+          clearTimeout(timeout);
+          console.log('📦 Google API client library loaded, initializing...');
+          window.gapi.client
+            .init({
+              apiKey: apiKey,
+              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            })
+            .then(() => {
+              gapiInitialized = true;
+              console.log('✅ Google API initialized successfully with Google Identity Services');
+              resolve();
+            })
+            .catch((error) => {
+              console.error('❌ Failed to initialize Google API client:', error);
+              console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              });
+              reject(error instanceof Error ? error : new Error('Failed to initialize Google API'));
+            });
+        },
+        onerror: (error: unknown) => {
+          clearTimeout(timeout);
+          console.error('❌ Failed to load Google API client libraries:', error);
+          reject(new Error('Failed to load Google API client'));
+        },
+      });
+    });
+  };
+
+  // Store access token with persistence
+  let accessToken: string | null = localStorage.getItem('google_drive_access_token');
+  let tokenClient: TokenClient | null = null;
+
+  // Initialize token client for Google Identity Services
+  const initializeTokenClient = (): void => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (!window.google?.accounts?.oauth2) {
+      throw new Error('Google Identity Services not loaded');
+    }
+
+    tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: (response: { access_token: string; error?: string }) => {
+        if (response.error) {
+          console.error('❌ Token client error:', response.error);
+          state.value.isAuthenticated = false;
+          localStorage.removeItem('google_drive_access_token');
+          return;
         }
+
+        accessToken = response.access_token;
+        localStorage.setItem('google_drive_access_token', accessToken);
+        window.gapi.client.setToken({ access_token: accessToken });
+        state.value.isAuthenticated = true;
+        console.log('✅ Successfully authenticated with Google Identity Services');
+
+        // Automatically load data after successful authentication
+        console.log('🔄 Loading data after authentication...');
+        loadPDFsFromDrive()
+          .then((issues) => {
+            state.value.issues = issues;
+            state.value.isLoading = false;
+            state.value.error = '';
+            console.log('✅ Data loaded successfully after authentication');
+          })
+          .catch((error) => {
+            console.error('❌ Failed to load data after authentication:', error);
+            state.value.error = error.message;
+            state.value.isLoading = false;
+          });
+      },
+    });
+  };
+
+  // Check if already authenticated (NO POPUP)
+  const checkAuthentication = (): boolean => {
+    console.log('🔍 Checking authentication...');
+    console.log('🔍 Access token from storage:', accessToken ? '***exists***' : 'null');
+    console.log('🔍 GAPI client available:', !!window.gapi?.client);
+
+    if (accessToken) {
+      // Set the token on the gapi client if we have one
+      try {
+        if (!window.gapi?.client) {
+          console.warn('⚠️ GAPI client not available yet, cannot set token');
+          return false;
+        }
+
+        window.gapi.client.setToken({ access_token: accessToken });
+        console.log('✅ Already authenticated with valid token');
+        state.value.isAuthenticated = true;
+        return true;
+      } catch (error) {
+        console.warn('⚠️ Failed to set token on gapi client:', error);
+        // Clear invalid token
+        accessToken = null;
+        localStorage.removeItem('google_drive_access_token');
       }
     }
 
-    // Default: return cleaned filename
-    return title.replace(/[_-]/g, ' ').trim();
+    console.log('ℹ️ Not authenticated');
+    state.value.isAuthenticated = false;
+    return false;
   };
 
-  // Extract date from filename
-  const extractDateFromFilename = (filename: string): string => {
-    // Remove .pdf extension
-    const name = filename.replace(/\.pdf$/i, '');
+  // Authenticate ONLY when needed (with popup)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const authenticateIfNeeded = async (): Promise<boolean> => {
+    // First check if we're already authenticated
+    const alreadyAuthenticated = checkAuthentication();
+    if (alreadyAuthenticated) {
+      return true;
+    }
 
-    // Try to extract date patterns
+    // Initialize token client if not done yet
+    if (!tokenClient) {
+      initializeTokenClient();
+    }
+
+    // Only show popup if we're not authenticated
+    console.log('🔐 Authentication required - showing popup...');
+
+    return new Promise<boolean>((resolve, reject) => {
+      try {
+        if (!tokenClient) {
+          reject(new Error('Token client not initialized'));
+          return;
+        }
+
+        // Update the callback to resolve the promise
+        const originalCallback = tokenClient.callback;
+        tokenClient.callback = (response: { access_token: string; error?: string }) => {
+          // Call the original callback first if it exists
+          if (originalCallback) {
+            originalCallback(response);
+          }
+
+          if (response.error) {
+            reject(new Error(`Authentication failed: ${response.error}`));
+          } else {
+            resolve(true);
+          }
+        };
+
+        // Request access token (this will show the popup)
+        tokenClient.requestAccessToken();
+      } catch (error) {
+        console.error('❌ Authentication failed:', error);
+        state.value.isAuthenticated = false;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        reject(new Error(`Authentication failed: ${errorMessage}`));
+      }
+    });
+  };
+
+  // Parse issue metadata from filename
+  const parseIssueFromFile = (file: GoogleDriveFile, index: number): IssueWithGoogleDrive => {
+    const name = file.name;
+
+    // Extract year and issue number from various filename patterns
+    let year = new Date().getFullYear();
+    let month = 1;
+    let title = name.replace('.pdf', '').replace(/[_-]/g, ' ');
+
+    // Try various patterns
     const patterns = [
-      // Match: "Courier - 2025.06 - June" -> "2025-06-01"
-      /(\d{4})\.(\d{1,2})/,
-      // Match: "PICNIC 8.2025" -> "2025-08-01"
-      /(\d{1,2})\.(\d{4})/,
-      // Match: "Winter 2022" -> "2022-12-01"
-      /(Winter|WINTER).*(\d{4})/,
-      // Match: "Summer 2022" -> "2022-06-01"
-      /(Summer|SUMMER).*(\d{4})/,
-      // Match just year "2022" -> "2022-01-01"
+      // "Courier - 2025.06 - June.pdf"
+      /Courier.*?(\d{4})\.(\d{1,2}).*?([A-Za-z]+)/i,
+      // "PICNIC 8.2025.pdf"
+      /PICNIC\s+(\d{1,2})\.(\d{4})/i,
+      // "CL WINTER 2018 web.pdf"
+      /CL\s+(\w+)\s+(\d{4})/i,
+      // "Conashaugh Winter 2022 Web.pdf"
+      /Conashaugh\s+(\w+)\s+(\d{4})/i,
+      // Basic year pattern
       /(\d{4})/,
     ];
 
     for (const pattern of patterns) {
       const match = name.match(pattern);
       if (match) {
-        if (pattern === patterns[0]) {
-          // Courier format: year.month
-          const year = match[1];
-          const month = match[2]?.padStart(2, '0') || '01';
-          return `${year}-${month}-01`;
-        } else if (pattern === patterns[1]) {
-          // Picnic format: month.year
-          const month = match[1]?.padStart(2, '0') || '01';
-          const year = match[2];
-          return `${year}-${month}-01`;
-        } else if (pattern === patterns[2]) {
-          // Winter
-          const year = match[2];
-          return `${year}-12-01`;
-        } else if (pattern === patterns[3]) {
-          // Summer
-          const year = match[2];
-          return `${year}-06-01`;
-        } else if (pattern === patterns[4]) {
-          // Just year
-          const year = match[1];
-          return `${year}-01-01`;
+        if (pattern.source.includes('Courier')) {
+          year = match[1] ? parseInt(match[1]) : year;
+          month = match[2] ? parseInt(match[2]) : month;
+          title = `${match[3]} ${year}`;
+        } else if (pattern.source.includes('PICNIC')) {
+          month = match[1] ? parseInt(match[1]) : month;
+          year = match[2] ? parseInt(match[2]) : year;
+          title = `Picnic ${getMonthName(month)} ${year}`;
+        } else if (pattern.source.includes('CL|Conashaugh')) {
+          const season = match[1];
+          year = match[2] ? parseInt(match[2]) : year;
+          title = `${season} ${year}`;
+        } else {
+          year = match[1] ? parseInt(match[1]) : year;
         }
+        break;
       }
     }
 
-    // Default: return current date if no pattern matches
-    return new Date().toISOString().split('T')[0]!;
+    // Generate a consistent ID
+    const id = year * 1000 + month * 10 + (index % 10);
+
+    return {
+      id,
+      title,
+      filename: name,
+      date:
+        new Date(year, month - 1, 1).toISOString().split('T')[0] ||
+        `${year}-${String(month).padStart(2, '0')}-01`,
+      googleDriveFileId: file.id,
+      googleDriveUrl: `https://drive.google.com/file/d/${file.id}/view`,
+      url: `https://drive.google.com/uc?export=view&id=${file.id}`,
+      fileSize: file.size ? `${Math.round((file.size / 1024 / 1024) * 100) / 100} MB` : 'Unknown',
+      lastModified: file.modifiedTime || new Date().toISOString(),
+      pages: Math.max(1, Math.floor((file.size || 500000) / 150000)), // Rough estimate
+      status: 'google-drive',
+      syncStatus: 'synced',
+    };
   };
 
-  // Load local issues from public folder - this is our primary reliable source
-  const loadLocalIssues = (): void => {
+  // Helper function to get month name
+  const getMonthName = (month: number): string => {
+    const monthNames = [
+      '',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return monthNames[month] || `Month ${month}`;
+  };
+
+  // Load PDFs from Google Drive folder
+  const loadPDFsFromDrive = async (): Promise<IssueWithGoogleDrive[]> => {
+    const folderId = import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID;
+
+    if (!folderId) {
+      throw new Error('Google Drive folder ID not configured (VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID)');
+    }
+
     try {
-      const localFiles = [
-        'Courier - 2025.06 - June.pdf',
-        'PICNIC 8.2025.pdf',
-        '7.2025.pdf',
-        'CL WINTER 2018 web.pdf',
-        'CL WINTER 2019 WEB.pdf',
-        'CONASHAUGH SUMMER 2022 Web.pdf',
-        'CONASHAUGH WINTER 2021.pdf',
-        'Conashaugh Winter 2022 Web.pdf',
-      ];
+      console.log(`📁 Loading PDFs from folder: ${folderId}`);
 
-      const issues: IssueWithGoogleDrive[] = localFiles.map((filename, index) => {
-        const title = extractIssueTitle(filename);
-        const extractedDate = extractDateFromFilename(filename);
-        const date = extractedDate ?? '2025-01-01';
-        const pages = estimatePagesFromSize(0); // Default pages estimation
-        const fileSize = 'Unknown';
-
-        return {
-          id: index + 1,
-          title,
-          date,
-          pages,
-          filename,
-          localUrl: `/issues/${filename}`,
-          url: `/issues/${filename}`,
-          status: 'local' as const,
-          syncStatus: 'synced' as const,
-          fileSize,
-          description: generateDescriptionFromFilename(filename),
-        };
+      const response = await window.gapi.client.drive.files.list({
+        q: `'${folderId}' in parents and mimeType='application/pdf' and trashed=false`,
+        fields: 'files(id,name,size,modifiedTime,webViewLink)',
+        orderBy: 'name',
+        pageSize: 100, // Get up to 100 files
       });
 
-      // Sort by date (newest first)
-      issues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const files = response.result.files || [];
+      console.log(`📄 Found ${files.length} PDF files in Google Drive folder`);
 
-      state.value.issues = issues;
-      console.log(`📁 Loaded ${issues.length} local issues successfully`);
+      if (files.length === 0) {
+        console.warn('⚠️ No PDF files found in the specified folder');
+        return [];
+      }
+
+      const issues: IssueWithGoogleDrive[] = files.map((file: GoogleDriveFile, index: number) =>
+        parseIssueFromFile(file, index),
+      );
+
+      // Sort by date (newest first)
+      return issues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } catch (error) {
-      console.error('Failed to load local issues:', error);
-      state.value.error = 'Failed to load issues';
+      console.error('❌ Failed to load PDFs from Google Drive:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to load PDFs: ${errorMessage}`);
     }
   };
 
-  // Initialize - start with local files, optionally enhance with Google Drive
-  const initialize = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      try {
-        state.value.isLoading = true;
-        state.value.error = null;
+  // Main initialization function - NO POPUP, just checks auth
+  const initialize = async (): Promise<boolean> => {
+    try {
+      state.value.isLoading = true;
+      state.value.error = null;
 
-        console.log('🔄 Initializing CLCA Courier issue archive...');
+      console.log('🔄 Initializing Google Drive PDF loader...');
 
-        // ALWAYS load local files first - this is our reliable source
-        loadLocalIssues();
+      // 1. Load Google API (if not already loaded)
+      await loadGoogleAPI();
 
-        // Mark as initialized since we have local files
-        state.value.isInitialized = true;
+      // 2. Initialize Google API (if not already initialized)
+      await initializeGoogleAPI();
 
-        // Optionally try to enhance with Google Drive data
-        const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-        const issuesFolderId = import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID;
-
-        if (googleApiKey && issuesFolderId) {
-          console.log('☁️ Google Drive configured - attempting to enhance with cloud data...');
-
-          try {
-            // Quick timeout for Google Drive - don't let it slow us down
-            const controller = new AbortController();
-            setTimeout(() => controller.abort(), 3000);
-
-            // TODO: Implement Google Drive enhancement here if needed
-            console.log(
-              'ℹ️ Google Drive enhancement skipped for now - local files working perfectly',
-            );
-          } catch {
-            console.log('ℹ️ Google Drive enhancement not available, continuing with local files');
-          }
-        } else {
-          console.log('ℹ️ Google Drive not configured - using local files only');
-        }
-
-        resolve(true);
-      } catch (error) {
-        console.error('Error initializing issue archive:', error);
-        state.value.error = error instanceof Error ? error.message : 'Unknown error';
-        resolve(false);
-      } finally {
-        state.value.isLoading = false;
+      // 3. Initialize Google Identity Services token client
+      if (!tokenClient) {
+        initializeTokenClient();
+        console.log('✅ Google Identity Services token client initialized');
       }
-    });
+
+      // 4. Check authentication (NO POPUP YET)
+      const isAuthenticated = checkAuthentication();
+
+      if (!isAuthenticated) {
+        // Set a specific error that the UI can handle
+        state.value.error = 'AUTHENTICATION_REQUIRED';
+        state.value.isInitialized = true;
+        return false;
+      }
+
+      // 5. Load PDFs from Google Drive
+      const issues = await loadPDFsFromDrive();
+      state.value.issues = issues;
+      state.value.isInitialized = true;
+
+      console.log(`✅ Successfully loaded ${issues.length} issues from Google Drive`);
+
+      if (issues.length === 0) {
+        state.value.error = 'No PDF issues found in Google Drive folder';
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error initializing Google Drive PDF loader:', error);
+      state.value.error = error instanceof Error ? error.message : 'Unknown error';
+      state.value.isInitialized = true;
+      return false;
+    } finally {
+      state.value.isLoading = false;
+    }
+  };
+
+  // Separate authentication function (called by user action)
+  const authenticate = async (): Promise<boolean> => {
+    try {
+      state.value.isLoading = true;
+      state.value.error = null;
+
+      // Load and initialize API if needed
+      await loadGoogleAPI();
+      await initializeGoogleAPI();
+
+      // Initialize token client if needed
+      if (!tokenClient) {
+        initializeTokenClient();
+      }
+
+      // Force authentication popup (don't check if already authenticated)
+      console.log('🔐 Forcing authentication popup...');
+
+      return new Promise<boolean>((resolve, reject) => {
+        try {
+          if (!tokenClient) {
+            reject(new Error('Token client not initialized'));
+            return;
+          }
+
+          // Set up callback to resolve promise
+          tokenClient.callback = (response: { access_token: string; error?: string }) => {
+            if (response.error) {
+              console.error('❌ Authentication error:', response.error);
+              state.value.isAuthenticated = false;
+              state.value.isLoading = false;
+              localStorage.removeItem('google_drive_access_token');
+              reject(new Error(`Authentication failed: ${response.error}`));
+              return;
+            }
+
+            // Success - save token and update state
+            accessToken = response.access_token;
+            localStorage.setItem('google_drive_access_token', accessToken);
+            window.gapi.client.setToken({ access_token: accessToken });
+            state.value.isAuthenticated = true;
+            console.log('✅ Authentication successful, loading data...');
+
+            // Load data immediately after authentication
+            loadPDFsFromDrive()
+              .then((issues) => {
+                state.value.issues = issues;
+                state.value.isLoading = false;
+                state.value.error = '';
+                console.log(`✅ Loaded ${issues.length} issues after authentication`);
+                resolve(true);
+              })
+              .catch((error) => {
+                console.error('❌ Failed to load data after authentication:', error);
+                state.value.error = error.message;
+                state.value.isLoading = false;
+                resolve(false);
+              });
+          };
+
+          // Trigger the authentication popup
+          tokenClient.requestAccessToken();
+        } catch (error) {
+          console.error('❌ Authentication setup error:', error);
+          state.value.isLoading = false;
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+    } catch (error) {
+      console.error('❌ Authentication error:', error);
+      state.value.error = error instanceof Error ? error.message : 'Authentication failed';
+      return false;
+    } finally {
+      state.value.isLoading = false;
+    }
   };
 
   // Load thumbnail for an issue
@@ -284,11 +620,9 @@ export function useGoogleDrivePdfs() {
     state.value.loadingThumbnails.add(cacheKey);
 
     try {
-      // Use local URL for reliable thumbnail generation
-      const pdfUrl = issue.localUrl || issue.url || '';
-
+      const pdfUrl = issue.url || issue.googleDriveUrl;
       if (!pdfUrl) {
-        console.warn(`No valid URL found for thumbnail generation: ${issue.filename}`);
+        console.warn(`No valid URL found for thumbnail: ${issue.filename}`);
         return;
       }
 
@@ -297,8 +631,6 @@ export function useGoogleDrivePdfs() {
       if (thumbnail) {
         state.value.thumbnails[cacheKey] = thumbnail;
         console.log(`✅ Thumbnail generated for ${issue.filename}`);
-      } else {
-        console.warn(`❌ Failed to generate thumbnail for ${issue.filename}`);
       }
     } catch (error) {
       console.warn(`Failed to load thumbnail for ${issue.filename}:`, error);
@@ -310,11 +642,7 @@ export function useGoogleDrivePdfs() {
   // Regenerate thumbnail for an issue
   const regenerateThumbnail = async (issue: IssueWithGoogleDrive): Promise<void> => {
     const cacheKey = issue.googleDriveFileId || issue.id.toString();
-
-    // Remove existing thumbnail from cache
     delete state.value.thumbnails[cacheKey];
-
-    // Force reload
     await loadThumbnail(issue);
   };
 
@@ -356,8 +684,7 @@ export function useGoogleDrivePdfs() {
     await Promise.allSettled(promises);
   };
 
-  // Dummy implementations for compatibility
-  // Get PDF metadata (stub - returns minimal metadata)
+  // Metadata helper
   const getPdfMetadata = (
     issue: IssueWithGoogleDrive,
   ): Promise<{
@@ -375,6 +702,15 @@ export function useGoogleDrivePdfs() {
       filename: issue.filename,
     });
   };
+
+  // Clear stored authentication (for testing)
+  const clearAuthentication = (): void => {
+    accessToken = null;
+    localStorage.removeItem('google_drive_access_token');
+    state.value.isAuthenticated = false;
+    console.log('🧹 Authentication cleared');
+  };
+
   const getFileSize = (): Promise<string> => Promise.resolve('Unknown');
 
   return {
@@ -386,6 +722,8 @@ export function useGoogleDrivePdfs() {
 
     // Methods
     initialize,
+    authenticate, // NEW: Separate authentication method
+    clearAuthentication, // TEMP: For testing
     loadThumbnail,
     regenerateThumbnail,
     getPdfMetadata,

@@ -107,31 +107,35 @@ export class SimpleGoogleDriveAuth {
               console.error('OAuth2 error callback:', error);
               this.isAuthenticated = false;
 
-              // Only treat this as an error if it's a real failure, not just user cancellation
+              // Provide more specific error messages for different popup issues
               if (error.type === 'popup_failed_to_open') {
                 reject(
                   new Error(
-                    'POPUP_BLOCKED: Please allow popups for this site in your browser settings and try again.',
+                    'POPUP_BLOCKED: Browser blocked the authentication popup. Please allow popups for this site and try again.',
                   ),
                 );
               } else if (error.type === 'popup_closed') {
-                // This might be called prematurely by Google's library, so be more lenient
-                console.warn('Popup closed - this may be normal during authentication flow');
                 reject(
                   new Error(
-                    'POPUP_CLOSED: Authentication was cancelled or popup was closed. Please try again.',
+                    'POPUP_CLOSED: Authentication popup was closed. Please complete the authentication process and try again.',
                   ),
                 );
               } else if (error.type === 'access_denied') {
                 reject(
                   new Error(
-                    'ACCESS_DENIED: Permission was denied. Please grant access to continue.',
+                    'ACCESS_DENIED: Permission was denied. Please grant access to Google Drive to continue.',
+                  ),
+                );
+              } else if (error.type === 'popup_blocked_by_browser') {
+                reject(
+                  new Error(
+                    'POPUP_BLOCKED: Browser security settings are blocking popups. Please check your browser settings.',
                   ),
                 );
               } else {
                 reject(
                   new Error(
-                    `Authentication error: ${error.type} - ${error.details || 'Please try again'}`,
+                    `Authentication error (${error.type}): ${error.details || 'Please check your browser settings and try again'}`,
                   ),
                 );
               }
@@ -140,14 +144,40 @@ export class SimpleGoogleDriveAuth {
 
           console.log('Requesting access token...');
 
+          // Add timeout for authentication popup
+          const authTimeout = setTimeout(() => {
+            console.warn('Authentication timeout - popup may be blocked');
+            reject(
+              new Error(
+                'Authentication timeout. The popup may be blocked by your browser. Please check your popup settings.',
+              ),
+            );
+          }, 30000); // 30 second timeout
+
           // Request access token immediately without artificial delays
           try {
-            // Use '' (empty) prompt to let Google decide the appropriate flow
-            tokenClient.requestAccessToken({ prompt: '' });
+            // Clear timeout if authentication succeeds or fails
+            const originalCallback = tokenClient as unknown as {
+              callback?: (response: { error?: string; access_token?: string }) => void;
+            };
+
+            if (originalCallback.callback) {
+              const originalCb = originalCallback.callback;
+              originalCallback.callback = (response) => {
+                clearTimeout(authTimeout);
+                originalCb(response);
+              };
+            }
+
+            // Use 'consent' prompt to ensure user gets a chance to see and approve permissions
+            tokenClient.requestAccessToken({ prompt: 'consent' });
           } catch (error) {
+            clearTimeout(authTimeout);
             console.error('Failed to request access token:', error);
             reject(
-              new Error('Failed to open authentication popup. Please check your popup settings.'),
+              new Error(
+                'Failed to open authentication popup. Please check your browser settings and allow popups.',
+              ),
             );
           }
         } catch (error) {

@@ -117,11 +117,7 @@ function handleRegenerateThumbnail(event: Event) {
                         <q-spinner-dots size="40px" color="primary" />
                     </div>
 
-                    <!-- Thumbnail image -->
-                    <img v-else-if="thumbnail" :src="thumbnail" :alt="`Thumbnail for ${issue.title}`"
-                        class="w-full h-full object-cover rounded-t" loading="lazy" />
-
-                    <!-- Fallback placeholder -->
+                    <!-- Always show fallback placeholder since Google Drive thumbnails are CORS blocked -->
                     <div v-else class="flex flex-col items-center justify-center h-full text-grey-6">
                         <q-icon name="mdi-file-pdf-box" size="48px" />
                         <div class="text-caption mt-2 text-center px-2">
@@ -135,23 +131,12 @@ function handleRegenerateThumbnail(event: Event) {
             <q-badge :color="statusColor" class="absolute top-2 left-2" :icon="statusIcon" v-if="showMetadata">
                 {{ issue.syncStatus }}
             </q-badge>
-
-            <!-- Actions overlay -->
-            <div class="absolute top-2 right-2 flex gap-1">
-                <q-btn round dense size="sm" icon="mdi-refresh" color="white" text-color="dark"
-                    @click="handleRegenerateThumbnail" class="shadow-2">
-                    <q-tooltip>Regenerate thumbnail</q-tooltip>
-                </q-btn>
-                <q-btn round dense size="sm" icon="mdi-open-in-new" color="primary" @click="handlePdfClick"
-                    class="shadow-2">
-                    <q-tooltip>Open PDF</q-tooltip>
-                </q-btn>
-            </div>
         </div>
 
         <!-- Content Section -->
         <q-card-section class="q-pa-sm">
-            <div class="text-subtitle2 line-clamp-2 mb-1">
+            <!-- Make sure title has enough space and doesn't overlap with buttons -->
+            <div class="text-subtitle2 mb-1" style="padding-right: 80px; line-height: 1.3;">
                 {{ issue.title }}
             </div>
 
@@ -193,6 +178,9 @@ function handleRegenerateThumbnail(event: Event) {
             <q-btn flat size="sm" color="primary" icon="mdi-eye" label="View Details" class="text-xs"
                 @click.stop="handleCardClick" />
             <q-space />
+            <q-btn flat size="sm" color="grey-7" icon="mdi-refresh" @click.stop="handleRegenerateThumbnail">
+                <q-tooltip>Regenerate thumbnail</q-tooltip>
+            </q-btn>
             <q-btn flat size="sm" color="primary" icon="mdi-file-pdf-box" @click="handlePdfClick">
                 <q-tooltip>Open PDF</q-tooltip>
             </q-btn>
