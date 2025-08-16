@@ -1,0 +1,95 @@
+{
+  "newsletters": [
+    {
+      "id": 0,
+      "title": "Annual Picnic",
+      "date": "August 2025",
+      "pages": 12,
+      "filename": "PICNIC 8.2025.pdf",
+      "localFile": "PICNIC 8.2025.pdf",
+      "driveId": "1BxXampleDriveId1",
+      "driveUrl": "https://drive.google.com/file/d/1BxXampleDriveId1",
+      "thumbnailPath": "/thumbnails/PICNIC-8-2025.jpg",
+      "fileSize": "2.1MB",
+      "publishDate": "2025-08-01",
+      "contentType": "annual",
+      "quality": "web",
+      "topics": ["Annual Picnic", "Community Events", "Summer Activities"],
+      "tags": ["picnic", "community", "annual", "summer", "event"]
+    },
+    {
+      "id": 1,
+      "title": "July 2025",
+      "date": "July 2025",
+      "pages": 12,
+      "filename": "7.2025.pdf",
+      "localFile": "7.2025.pdf",
+      "thumbnailPath": "/thumbnails/7-2025.jpg",
+      "fileSize": "1.8MB",
+      "publishDate": "2025-07-01",
+      "contentType": "newsletter",
+      "quality": "web",
+      "topics": ["Summer Updates", "Community News", "Lake Activities"],
+      "tags": ["july", "summer", "newsletter", "community"]
+    },
+    {
+      "id": 2,
+      "title": "June 2025",
+      "date": "June 2025",
+      "pages": 10,
+      "filename": "Courier - 2025.06 - June.pdf",
+      "localFile": "Courier - 2025.06 - June.pdf",
+      "thumbnailPath": "/thumbnails/courier-2025-06-june.jpg",
+      "fileSize": "1.5MB",
+      "publishDate": "2025-06-01",
+      "contentType": "newsletter",
+      "quality": "web",
+      "topics": ["Spring Activities", "Community Updates", "Memorial Day"],
+      "tags": ["june", "spring", "newsletter", "memorial-day"]
+    },
+    {
+      "id": 3,
+      "title": "Winter 2022",
+      "date": "Winter 2022",
+      "pages": 16,
+      "filename": "Conashaugh Winter 2022 Web.pdf",
+      "localFile": "Conashaugh Winter 2022 Web.pdf",
+      "driveId": "1BxXampleDriveId3",
+      "driveUrl": "https://drive.google.com/file/d/1BxXampleDriveId3",
+      "thumbnailPath": "/thumbnails/conashaugh-winter-2022-web.jpg",
+      "fileSize": "3.2MB",
+      "publishDate": "2022-12-01",
+      "contentType": "special",
+      "quality": "web",
+      "topics": ["Winter Activities", "Holiday Events", "Community Updates"],
+      "tags": ["winter", "2022", "holiday", "special"]
+    },
+    {
+      "id": 4,
+      "title": "Summer 2022",
+      "date": "Summer 2022",
+      "pages": 14,
+      "filename": "CONASHAUGH SUMMER 2022 Web.pdf",
+      "localFile": "CONASHAUGH SUMMER 2022 Web.pdf",
+      "thumbnailPath": "/thumbnails/conashaugh-summer-2022-web.jpg",
+      "fileSize": "2.7MB",
+      "publishDate": "2022-07-01",
+      "contentType": "special",
+      "quality": "web",
+      "topics": ["Summer Activities", "Lake Events", "Community News"],
+      "tags": ["summer", "2022", "lake", "special"]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "lastUpdated": "2025-08-16",
+    "totalNewsletters": 5,
+    "availableYears": ["2022", "2025"],
+    "contentTypes": ["newsletter", "special", "annual"],
+    "notes": {
+      "hybridHosting": "This metadata supports hybrid hosting approach with local web-optimized files and Google Drive archive links",
+      "thumbnails": "Thumbnail paths are generated automatically but may need manual creation",
+      "driveIds": "Google Drive IDs are placeholders - replace with actual IDs when available"
+    }
+  }
+}

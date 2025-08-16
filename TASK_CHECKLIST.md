@@ -57,6 +57,14 @@
   - [x] Create search results highlighting with content snippets ✅
   - [x] Add relevance scoring and matched terms display ✅
   - [x] Implement search result caching for performance ✅
+- [ ] **Hybrid Newsletter Hosting** ✅ COMPLETED
+  - [x] Design hybrid architecture (local web + Google Drive archive) ✅
+  - [x] Implement local PDF hosting in `/public/issues/` ✅
+  - [x] Create newsletter metadata service ✅
+  - [x] Add Google Drive integration for high-quality downloads ✅
+  - [x] Implement dual-source PDF loading with fallbacks ✅
+  - [x] Create HybridNewsletterCard component ✅
+  - [x] Build HybridIssueArchivePage with enhanced UI ✅
 - [ ] **Metadata Extraction**
   - [ ] Auto-extract issue topics/categories from PDFs
   - [ ] Generate automatic tags

@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/news', component: () => import('pages/NewsUpdatesPage.vue') },
       { path: '/classifieds', component: () => import('pages/ClassifiedsPage.vue') },
       { path: '/archive', component: () => import('pages/IssueArchivePage.vue') },
+      { path: '/archive-hybrid', component: () => import('pages/HybridIssueArchivePage.vue') },
       { path: '/archive/:id(\\d+)', component: () => import('pages/IssueDetailsPageEnhanced.vue') },
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contribute/article', component: () => import('pages/ArticleSubmissionPage.vue') },
