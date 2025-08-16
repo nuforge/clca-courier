@@ -23,23 +23,6 @@ const routes: RouteRecordRaw[] = [
       { path: '/accessibility', component: () => import('pages/AccessibilityPage.vue') },
       { path: '/map', component: () => import('pages/MapRefactoredPage.vue') }, // Use refactored version as main map
       { path: '/map-refactored', component: () => import('pages/MapRefactoredPage.vue') },
-      { path: '/test-no-auth', component: () => import('components/PublicationBrowser.vue') }, // Publication Browser
-      {
-        path: '/publications-working',
-        component: () => import('components/PublicationBrowser.vue'),
-      }, // Publication Browser
-      {
-        path: '/content/dashboard',
-        component: () => import('pages/GoogleDriveContentDashboard.vue'),
-      }, // Production Google Drive Content Dashboard
-      {
-        path: '/publication-hub',
-        component: () => import('pages/PublicationHubPage.vue'),
-      }, // DeepSeek Publication Hub - Google Drive file management without CORS issues
-      {
-        path: '/multi-drive-pdfs',
-        component: () => import('pages/MultiDrivePdfBrowserPage.vue'),
-      }, // Multi-Drive PDF Browser - Load PDFs from all configured Google Drive folders
     ],
   },
 

@@ -160,12 +160,12 @@ function testAuthentication() {
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-bookshelf" class="q-mr-sm" />
-                Issue Archive
+                Issue Archive & Google Drive Browser
               </div>
               <p class="text-body1">
                 Browse through past issues of The Courier loaded directly from our Google Drive archive.
-                <strong>Note:</strong> This view only shows issues from Google Drive - local fallback content is
-                disabled.
+                This comprehensive browser provides access to all published issues with advanced search, sorting, and
+                filtering capabilities.
               </p>
 
               <!-- Status and controls -->
