@@ -36,6 +36,10 @@ const routes: RouteRecordRaw[] = [
         path: '/publication-hub',
         component: () => import('pages/PublicationHubPage.vue'),
       }, // DeepSeek Publication Hub - Google Drive file management without CORS issues
+      {
+        path: '/multi-drive-pdfs',
+        component: () => import('pages/MultiDrivePdfBrowserPage.vue'),
+      }, // Multi-Drive PDF Browser - Load PDFs from all configured Google Drive folders
     ],
   },
 

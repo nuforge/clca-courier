@@ -48,6 +48,11 @@ export const useNavigation = () => {
       link: '/publication-hub',
     },
     {
+      title: 'Multi-Drive PDFs',
+      icon: 'mdi-folder-multiple',
+      link: '/multi-drive-pdfs',
+    },
+    {
       title: 'Google Drive Demo',
       icon: 'mdi-google-drive',
       link: '/demo/google-drive-content',
