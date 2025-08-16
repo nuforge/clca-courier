@@ -89,7 +89,7 @@ export interface IssueWithGoogleDrive {
   // Additional metadata
   fileSize?: string;
   description?: string;
-  tags?: string[];
+  tags?: readonly string[]; // Allow readonly for compatibility with computed arrays
   author?: string;
   category?: string;
 }

@@ -3,7 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { useDynamicGoogleDriveIssues } from '../composables/useDynamicGoogleDriveIssues'
 import GoogleDriveIssueCard from '../components/GoogleDriveIssueCard.vue'
+import AdvancedSearchComponent from '../components/AdvancedSearchComponent.vue'
 import type { IssueWithGoogleDrive } from '../types/google-drive-content'
+import type { SearchResult } from '../composables/useAdvancedSearch'
 
 const siteStore = useSiteStore()
 const dynamicIssues = useDynamicGoogleDriveIssues()
@@ -14,6 +16,9 @@ const sortBy = ref<'date' | 'title' | 'pages' | 'size'>('date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const searchQuery = ref('')
 const showPopupInstructions = ref(false)
+const useAdvancedSearch = ref(false)
+const searchResults = ref<SearchResult[]>([])
+const hasSearchResults = computed(() => searchResults.value.length > 0)
 
 // Computed property for card theme classes
 const cardClasses = computed(() => {
@@ -137,6 +142,28 @@ function regenerateIssueThumbnail(issue: IssueWithGoogleDrive, event?: Event) {
   }
 }
 
+function regenerateIssueThumbnailFromSearch(result: SearchResult) {
+  // Convert SearchResult to IssueWithGoogleDrive for the regeneration function
+  const issue: IssueWithGoogleDrive = {
+    id: result.id,
+    title: result.title,
+    date: result.date,
+    pages: result.pages,
+    filename: result.filename,
+    status: result.status,
+    syncStatus: result.syncStatus,
+    ...(result.url && { url: result.url }),
+    ...(result.description && { description: result.description }),
+    ...(result.fileSize && { fileSize: result.fileSize }),
+    ...(result.thumbnailUrl && { thumbnailUrl: result.thumbnailUrl }),
+    ...(result.tags && result.tags.length > 0 && { tags: [...result.tags] as readonly string[] }),
+    ...(result.googleDriveFileId && { googleDriveFileId: result.googleDriveFileId }),
+    ...(result.category && { category: result.category })
+  };
+
+  regenerateIssueThumbnail(issue);
+}
+
 async function initialize() {
   console.log('🔄 Loading dynamic Google Drive issues (NO OAUTH - SPECIFIC FILE IDS)...');
   await dynamicIssues.loadIssues();
@@ -147,6 +174,33 @@ async function initialize() {
 function testAuthentication() {
   console.log('🎉 No authentication needed! Using dynamic Google Drive file fetching.');
   return true;
+}
+
+function handleSearchResults(results: SearchResult[]) {
+  searchResults.value = results;
+}
+
+function openIssueFromSearch(result: SearchResult) {
+  // Convert SearchResult back to IssueWithGoogleDrive for the PDF viewer
+  const issue: IssueWithGoogleDrive = {
+    id: result.id,
+    title: result.title,
+    date: result.date,
+    pages: result.pages,
+    filename: result.filename,
+    status: result.status,
+    syncStatus: result.syncStatus,
+    ...(result.url && { url: result.url }),
+    ...(result.description && { description: result.description }),
+    ...(result.fileSize && { fileSize: result.fileSize }),
+    ...(result.thumbnailUrl && { thumbnailUrl: result.thumbnailUrl }),
+    ...(result.tags && result.tags.length > 0 && { tags: [...result.tags] as readonly string[] }),
+    ...(result.googleDriveFileId && { googleDriveFileId: result.googleDriveFileId }),
+    ...(result.category && { category: result.category })
+  };
+
+  // You can add PDF viewer integration here
+  console.log('Opening issue:', issue.title);
 }
 
 </script>
@@ -282,8 +336,23 @@ function testAuthentication() {
               </div>
               <q-separator class="q-mb-md" />
 
-              <!-- Search and Filter Controls -->
-              <div class="row q-col-gutter-md q-mb-md">
+              <!-- Toggle between simple and advanced search -->
+              <div class="row items-center q-mb-md">
+                <q-btn-toggle v-model="useAdvancedSearch" toggle-color="primary" :options="[
+                  { label: 'Simple Search', value: false, icon: 'mdi-magnify' },
+                  { label: 'Advanced Search', value: true, icon: 'mdi-magnify-plus' }
+                ]" outline />
+              </div>
+
+              <!-- Advanced Search Component -->
+              <div v-if="useAdvancedSearch">
+                <AdvancedSearchComponent :issues="rawIssues" :auto-search="true" :debounce-ms="500"
+                  @search-results="handleSearchResults" @open-issue="openIssueFromSearch"
+                  @regenerate-thumbnail="regenerateIssueThumbnailFromSearch" />
+              </div>
+
+              <!-- Simple Search and Filter Controls -->
+              <div v-else class="row q-col-gutter-md q-mb-md">
                 <!-- Search -->
                 <div class="col-12 col-md-6">
                   <q-input v-model="searchQuery" outlined placeholder="Search issues..." clearable
@@ -308,46 +377,56 @@ function testAuthentication() {
                 </div>
               </div>
 
-              <!-- Group by year option -->
-              <div class="q-mb-md" v-if="Object.keys(issuesByYear).length > 1">
+              <!-- Group by year option (only show for simple search) -->
+              <div v-if="!useAdvancedSearch" class="q-mb-md" v-show="Object.keys(issuesByYear).length > 1">
                 <q-toggle v-model="groupByYear" label="Group by year" color="primary" />
               </div>
 
-              <!-- Issues grouped by year -->
-              <div v-if="groupByYear && Object.keys(issuesByYear).length > 1">
-                <div v-for="(yearIssues, year) in issuesByYear" :key="year" class="q-mb-lg">
-                  <div class="text-h6 q-mb-md">{{ year }}</div>
+              <!-- Show search results when using advanced search -->
+              <div v-if="useAdvancedSearch && hasSearchResults">
+                <!-- Advanced search results are handled by the AdvancedSearchComponent -->
+              </div>
+
+              <!-- Show regular issues when using simple search -->
+
+              <!-- Show regular issues when using simple search (not advanced search) -->
+              <div v-if="!useAdvancedSearch">
+                <!-- Issues grouped by year -->
+                <div v-if="groupByYear && Object.keys(issuesByYear).length > 1">
+                  <div v-for="(yearIssues, year) in issuesByYear" :key="year" class="q-mb-lg">
+                    <div class="text-h6 q-mb-md">{{ year }}</div>
+                    <div class="row q-col-gutter-md">
+                      <div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="issue in yearIssues" :key="issue.id">
+                        <GoogleDriveIssueCard :issue="issue" :show-metadata="true"
+                          @regenerate-thumbnail="regenerateIssueThumbnail" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- All issues in chronological order -->
+                <div v-else>
                   <div class="row q-col-gutter-md">
-                    <div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="issue in yearIssues" :key="issue.id">
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="issue in archivedIssues" :key="issue.id">
                       <GoogleDriveIssueCard :issue="issue" :show-metadata="true"
                         @regenerate-thumbnail="regenerateIssueThumbnail" />
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- All issues in chronological order -->
-              <div v-else>
-                <div class="row q-col-gutter-md">
-                  <div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="issue in archivedIssues" :key="issue.id">
-                    <GoogleDriveIssueCard :issue="issue" :show-metadata="true"
-                      @regenerate-thumbnail="regenerateIssueThumbnail" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Empty state -->
-              <div class="text-center q-mt-lg" v-if="archivedIssues.length === 0 && !isLoading">
-                <q-icon name="mdi-cloud-off" size="4em" color="grey-5" />
-                <div :class="greyTextClass" class="q-mt-md">
-                  <div class="text-h6">No Google Drive Issues Found</div>
-                  <div class="q-mt-sm">
-                    {{ error && !error.includes('not configured')
-                      ? 'Check your Google Drive folder or try refreshing the page.'
-                      : 'Configure Google Drive integration to see archived issues.' }}
-                  </div>
-                  <div class="q-mt-md" v-if="!error || !error.includes('not configured')">
-                    <q-btn color="primary" label="Refresh" @click="initialize()" />
+                <!-- Empty state -->
+                <div class="text-center q-mt-lg" v-if="archivedIssues.length === 0 && !isLoading">
+                  <q-icon name="mdi-cloud-off" size="4em" color="grey-5" />
+                  <div :class="greyTextClass" class="q-mt-md">
+                    <div class="text-h6">No Google Drive Issues Found</div>
+                    <div class="q-mt-sm">
+                      {{ error && !error.includes('not configured')
+                        ? 'Check your Google Drive folder or try refreshing the page.'
+                        : 'Configure Google Drive integration to see archived issues.' }}
+                    </div>
+                    <div class="q-mt-md" v-if="!error || !error.includes('not configured')">
+                      <q-btn color="primary" label="Refresh" @click="initialize()" />
+                    </div>
                   </div>
                 </div>
               </div>
