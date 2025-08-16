@@ -127,7 +127,7 @@ export function useGoogleDrivePdfs() {
   const loadGoogleAPI = async (): Promise<void> => {
     if (gapiLoaded) return;
 
-    console.log('📡 Loading Google API script and Google Identity Services...');
+    console.log('Loading Google API script and Google Identity Services...');
 
     // Test network connectivity first
     try {
@@ -135,9 +135,9 @@ export function useGoogleDrivePdfs() {
         method: 'HEAD',
         mode: 'no-cors',
       });
-      console.log('🌐 Network connectivity to Google APIs: OK');
+      console.log('Network connectivity to Google APIs: OK');
     } catch (error) {
-      console.warn('⚠️ Network connectivity test failed:', error);
+      console.warn('Network connectivity test failed:', error);
     }
 
     // Load both GAPI and Google Identity Services
