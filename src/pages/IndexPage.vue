@@ -79,6 +79,13 @@ const quickLinks: QuickLink[] = [
     icon: 'mdi-information',
     color: 'warning',
     link: '/about'
+  },
+  {
+    title: 'Publication Hub',
+    description: 'Advanced file management with Google Drive integration',
+    icon: 'mdi-book-open-page-variant',
+    color: 'deep-purple',
+    link: '/publication-hub'
   }
 ];
 </script>

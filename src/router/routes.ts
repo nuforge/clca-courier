@@ -46,6 +46,10 @@ const routes: RouteRecordRaw[] = [
         path: '/content/dashboard',
         component: () => import('pages/GoogleDriveContentDashboard.vue'),
       }, // Production Google Drive Content Dashboard
+      {
+        path: '/publication-hub',
+        component: () => import('pages/PublicationHubPage.vue'),
+      }, // DeepSeek Publication Hub - Google Drive file management without CORS issues
     ],
   },
 
