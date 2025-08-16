@@ -38,11 +38,66 @@ export class GoogleDriveThumbnailService {
   }
 
   /**
+   * Generate Google Drive thumbnail using authenticated API
+   * Avoids CORS and COEP issues by using proper authentication
+   */
+  async generateAuthenticatedDriveThumbnail(
+    fileId: string,
+    accessToken: string,
+    size: number = 300,
+  ): Promise<string> {
+    try {
+      // Use Google Drive API to get file metadata with thumbnail link
+      const metadataResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink,mimeType`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      if (metadataResponse.ok) {
+        const metadata = await metadataResponse.json();
+
+        if (metadata.thumbnailLink) {
+          // Try to fetch the thumbnail using the authenticated link
+          // Use the size parameter to request appropriate thumbnail size
+          const sizedThumbnailUrl = metadata.thumbnailLink.replace(/=s\d+/, `=s${size}`);
+          const thumbnailResponse = await fetch(sizedThumbnailUrl, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          if (thumbnailResponse.ok) {
+            const blob = await thumbnailResponse.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to generate authenticated thumbnail:', error);
+    }
+
+    // Fallback to default thumbnail
+    return this.generateDefaultThumbnail('pdf');
+  }
+
+  /**
    * Generate Google Drive thumbnail URL without CORS issues
    * Uses Google's thumbnail service directly
+   * NOTE: This method is deprecated - use generateAuthenticatedDriveThumbnail instead
    */
   generateDriveThumbnail(fileId: string, size: number = 300): string {
-    return `https://drive.google.com/thumbnail?sz=w${size}&id=${fileId}`;
+    // Return a default thumbnail instead of the blocked URL
+    // Could use fileId and size for logging or future implementation
+    console.log(`Deprecated method called for fileId: ${fileId}, size: ${size}`);
+    return this.generateDefaultThumbnail('pdf');
   }
 
   /**
@@ -65,6 +120,9 @@ export class GoogleDriveThumbnailService {
       }
 
       const firstPage = pages[0];
+      if (!firstPage) {
+        throw new Error('First page is undefined');
+      }
       const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
       // Calculate scaling to fit within desired dimensions
@@ -148,19 +206,33 @@ export class GoogleDriveThumbnailService {
     let thumbnail: string;
 
     try {
-      if (file.type === 'pdf' && file.webContentLink) {
-        // For PDFs, try to generate custom thumbnail
-        try {
-          const response = await fetch(file.webContentLink);
-          const pdfData = await response.arrayBuffer();
-          thumbnail = await this.generatePdfThumbnail(pdfData, options);
-        } catch (fetchError) {
-          console.warn('Failed to fetch PDF for thumbnail generation, using Drive thumbnail');
-          thumbnail = this.generateDriveThumbnail(file.id, options.width);
+      // Get access token for authenticated requests
+      const accessToken = localStorage.getItem('google_drive_access_token');
+
+      if (file.type === 'pdf') {
+        if (accessToken) {
+          // Use authenticated API for PDFs
+          thumbnail = await this.generateAuthenticatedDriveThumbnail(
+            file.id,
+            accessToken,
+            options.width,
+          );
+        } else {
+          // Generate a simple PDF thumbnail without authentication
+          thumbnail = this.generateDefaultThumbnail('pdf');
         }
       } else if (this.isImageFile(file.type)) {
-        // For images, use Drive's thumbnail service
-        thumbnail = this.generateDriveThumbnail(file.id, options.width);
+        if (accessToken) {
+          // Use authenticated API for images
+          thumbnail = await this.generateAuthenticatedDriveThumbnail(
+            file.id,
+            accessToken,
+            options.width,
+          );
+        } else {
+          // Fallback to default
+          thumbnail = this.generateDefaultThumbnail(file.type);
+        }
       } else {
         // For other files, generate default thumbnail
         thumbnail = this.generateDefaultThumbnail(file.type);

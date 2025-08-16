@@ -111,7 +111,7 @@ export function usePublicationHub(config: Partial<PublicationHubConfig> = {}) {
   async function loadFiles() {
     try {
       files.value = await fileMetadataStorage.getAllFiles();
-    } catch (err) {
+    } catch {
       throw new Error('Failed to load files from storage');
     }
   }
@@ -334,7 +334,7 @@ export function usePublicationHub(config: Partial<PublicationHubConfig> = {}) {
 
   // Initialize on mount
   onMounted(() => {
-    initialize();
+    void initialize();
   });
 
   return {

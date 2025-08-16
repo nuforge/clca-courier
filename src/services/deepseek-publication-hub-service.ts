@@ -204,16 +204,25 @@ class DeepSeekPublicationHubService implements PublicationHubService {
 
       for (const file of existingFiles) {
         // Convert to StoredFileMetadata format
+        const fileRecord = file as Record<string, unknown>;
+
+        // Helper function to safely convert to string
+        const safeString = (value: unknown, defaultValue = ''): string => {
+          if (typeof value === 'string') return value;
+          if (typeof value === 'number') return String(value);
+          return defaultValue;
+        };
+
         const metadata: StoredFileMetadata = {
-          id: file.id,
-          name: file.name,
-          type: this.getFileExtension(file.name),
-          size: file.size || 'Unknown',
-          uploaded: file.createdTime || new Date().toISOString(),
+          id: safeString(fileRecord.id),
+          name: safeString(fileRecord.name),
+          type: this.getFileExtension(safeString(fileRecord.name)),
+          size: safeString(fileRecord.size, 'Unknown'),
+          uploaded: safeString(fileRecord.createdTime, new Date().toISOString()),
           tags: ['synced'],
-          mimeType: file.mimeType,
-          webViewLink: file.webViewLink,
-          webContentLink: file.webContentLink,
+          mimeType: safeString(fileRecord.mimeType),
+          webViewLink: safeString(fileRecord.webViewLink),
+          webContentLink: safeString(fileRecord.webContentLink),
         };
 
         await fileMetadataStorage.storeFile(metadata);
@@ -259,6 +268,7 @@ class DeepSeekPublicationHubService implements PublicationHubService {
       try {
         // In a real implementation, you'd create a service worker file
         // For now, we'll just log that we would register it
+        await new Promise((resolve) => setTimeout(resolve, 10)); // Simulate async operation
         console.log('🔧 Service worker registration simulated');
         this.serviceWorkerRegistered = true;
       } catch (error) {
@@ -278,7 +288,6 @@ class DeepSeekPublicationHubService implements PublicationHubService {
       const pageCount = pdfDoc.getPageCount();
 
       // Extract metadata
-      const title = pdfDoc.getTitle() || file.name;
       const author = pdfDoc.getAuthor() || 'Unknown';
       const subject = pdfDoc.getSubject() || '';
 
@@ -330,10 +339,10 @@ class DeepSeekPublicationHubService implements PublicationHubService {
   /**
    * Get existing Google Drive files (placeholder)
    */
-  private async getExistingGoogleDriveFiles(): Promise<any[]> {
+  private getExistingGoogleDriveFiles(): Promise<unknown[]> {
     // This would integrate with your existing Google Drive service
     // For now, return empty array
-    return [];
+    return Promise.resolve([]);
   }
 
   /**

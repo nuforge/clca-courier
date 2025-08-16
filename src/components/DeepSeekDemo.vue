@@ -114,7 +114,6 @@
 import { ref } from 'vue'
 import { googleDriveThumbnailService } from '../services/google-drive-thumbnail-service'
 import { fileMetadataStorage } from '../services/file-metadata-storage'
-import { deepSeekPublicationHubService } from '../services/deepseek-publication-hub-service'
 
 // Feature status tracking
 const features = ref({
@@ -142,7 +141,7 @@ const testResults = ref<Array<{
 }>>([])
 
 // Test thumbnail generation
-async function testThumbnails() {
+function testThumbnails() {
     testing.value.thumbnails = true
 
     try {
@@ -162,7 +161,7 @@ async function testThumbnails() {
         }
 
     } catch (error) {
-        addTestResult('thumbnails', false, `Thumbnail generation failed: ${error}`)
+        addTestResult('thumbnails', false, `Thumbnail generation failed: ${String(error)}`)
     } finally {
         testing.value.thumbnails = false
     }
@@ -201,19 +200,19 @@ async function testStorage() {
         }
 
     } catch (error) {
-        addTestResult('storage', false, `Storage test failed: ${error}`)
+        addTestResult('storage', false, `Storage test failed: ${String(error)}`)
     } finally {
         testing.value.storage = false
     }
 }
 
 // Test PDF processing capability
-async function testPdfProcessing() {
+function testPdfProcessing() {
     testing.value.pdfProcessing = true
 
     try {
         // Test if PDF-Lib is available and working
-        const testPdfData = new ArrayBuffer(8) // Minimal test data
+        // Create a simple canvas-based thumbnail test
 
         try {
             // Try to create a simple PDF document
@@ -240,19 +239,19 @@ async function testPdfProcessing() {
                 throw new Error('Canvas thumbnail generation failed')
             }
 
-        } catch (pdfError) {
+        } catch {
             throw new Error('PDF-Lib processing failed')
         }
 
     } catch (error) {
-        addTestResult('pdfProcessing', false, `PDF processing test failed: ${error}`)
+        addTestResult('pdfProcessing', false, `PDF processing test failed: ${String(error)}`)
     } finally {
         testing.value.pdfProcessing = false
     }
 }
 
 // Test GitHub Pages compatibility
-async function testGithubPages() {
+function testGithubPages() {
     testing.value.githubPages = true
 
     try {
@@ -279,7 +278,7 @@ async function testGithubPages() {
         }
 
     } catch (error) {
-        addTestResult('githubPages', false, `GitHub Pages compatibility test failed: ${error}`)
+        addTestResult('githubPages', false, `GitHub Pages compatibility test failed: ${String(error)}`)
     } finally {
         testing.value.githubPages = false
     }
@@ -291,10 +290,10 @@ async function testAllFeatures() {
     testResults.value = [] // Clear previous results
 
     try {
-        await testThumbnails()
+        testThumbnails()
         await testStorage()
-        await testPdfProcessing()
-        await testGithubPages()
+        testPdfProcessing()
+        testGithubPages()
 
         const allTestsPassed = Object.values(features.value).every(Boolean)
 
@@ -305,7 +304,7 @@ async function testAllFeatures() {
         }
 
     } catch (error) {
-        addTestResult('all', false, `Testing failed: ${error}`)
+        addTestResult('all', false, `Testing failed: ${String(error)}`)
     } finally {
         testing.value.all = false
     }

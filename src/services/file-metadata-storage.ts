@@ -130,7 +130,7 @@ export class FileMetadataStorage {
   }
 
   /**
-   * Get file by ID
+   * Get a single file by ID
    */
   async getFile(id: string): Promise<StoredFileMetadata | null> {
     if (!this.db) {
@@ -153,55 +153,7 @@ export class FileMetadataStorage {
   }
 
   /**
-   * Search files with filters
-   */
-  async searchFiles(filter: SearchFilter): Promise<StoredFileMetadata[]> {
-    const allFiles = await this.getAllFiles();
-
-    return allFiles.filter((file) => {
-      // Filter by type
-      if (filter.type && file.type !== filter.type) {
-        return false;
-      }
-
-      // Filter by tags
-      if (filter.tags && filter.tags.length > 0) {
-        const hasMatchingTag = filter.tags.some((tag) =>
-          file.tags.some((fileTag) => fileTag.toLowerCase().includes(tag.toLowerCase())),
-        );
-        if (!hasMatchingTag) {
-          return false;
-        }
-      }
-
-      // Filter by date range
-      if (filter.dateRange) {
-        const fileDate = new Date(file.uploaded);
-        const startDate = new Date(filter.dateRange.start);
-        const endDate = new Date(filter.dateRange.end);
-
-        if (fileDate < startDate || fileDate > endDate) {
-          return false;
-        }
-      }
-
-      // Filter by search text
-      if (filter.searchText) {
-        const searchLower = filter.searchText.toLowerCase();
-        const nameMatch = file.name.toLowerCase().includes(searchLower);
-        const tagMatch = file.tags.some((tag) => tag.toLowerCase().includes(searchLower));
-
-        if (!nameMatch && !tagMatch) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }
-
-  /**
-   * Update file metadata (e.g., add tags, update thumbnail)
+   * Update file metadata
    */
   async updateFile(id: string, updates: Partial<StoredFileMetadata>): Promise<void> {
     const existingFile = await this.getFile(id);
@@ -244,27 +196,111 @@ export class FileMetadataStorage {
   }
 
   /**
-   * Get files by type (e.g., all PDFs)
+   * Search files with filters
    */
-  async getFilesByType(type: string): Promise<StoredFileMetadata[]> {
-    if (!this.db) {
-      await this.initialize();
+  async searchFiles(filter: SearchFilter): Promise<StoredFileMetadata[]> {
+    const allFiles = await this.getAllFiles();
+
+    return allFiles.filter((file) => {
+      // Filter by type
+      if (filter.type && file.type !== filter.type) {
+        return false;
+      }
+
+      // Filter by tags
+      if (filter.tags && filter.tags.length > 0) {
+        const hasMatchingTag = filter.tags.some((tag) => file.tags.includes(tag));
+        if (!hasMatchingTag) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (filter.dateRange) {
+        const fileDate = new Date(file.uploaded);
+        const startDate = new Date(filter.dateRange.start);
+        const endDate = new Date(filter.dateRange.end);
+
+        if (fileDate < startDate || fileDate > endDate) {
+          return false;
+        }
+      }
+
+      // Filter by search text
+      if (filter.searchText) {
+        const searchLower = filter.searchText.toLowerCase();
+        const nameMatch = file.name.toLowerCase().includes(searchLower);
+        const tagMatch = file.tags.some((tag) => tag.toLowerCase().includes(searchLower));
+
+        if (!nameMatch && !tagMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  /**
+   * Get storage statistics
+   */
+  async getStorageStats(): Promise<{
+    totalFiles: number;
+    totalSize: string;
+    filesByType: Record<string, number>;
+  }> {
+    const files = await this.getAllFiles();
+
+    const stats: {
+      totalFiles: number;
+      totalSize: string;
+      filesByType: Record<string, number>;
+    } = {
+      totalFiles: files.length,
+      totalSize: '0 B',
+      filesByType: {},
+    };
+
+    if (files.length === 0) {
+      return stats;
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([this.storeName], 'readonly');
-      const store = transaction.objectStore(this.storeName);
-      const index = store.index('type');
-      const request = index.getAll(type);
-
-      request.onerror = () => {
-        reject(new Error('Failed to retrieve files by type'));
-      };
-
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
+    // Calculate total size (approximate from size strings)
+    let totalBytes = 0;
+    files.forEach((file) => {
+      // Extract numeric value from size string (e.g., "1.5 MB" -> 1.5)
+      const sizeMatch = file.size.match(/^([\d.]+)/);
+      if (sizeMatch && sizeMatch[1]) {
+        const value = parseFloat(sizeMatch[1]);
+        if (file.size.includes('GB')) {
+          totalBytes += value * 1024 * 1024 * 1024;
+        } else if (file.size.includes('MB')) {
+          totalBytes += value * 1024 * 1024;
+        } else if (file.size.includes('KB')) {
+          totalBytes += value * 1024;
+        } else {
+          totalBytes += value;
+        }
+      }
     });
+
+    // Format total size
+    if (totalBytes >= 1024 * 1024 * 1024) {
+      stats.totalSize = `${(totalBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    } else if (totalBytes >= 1024 * 1024) {
+      stats.totalSize = `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
+    } else if (totalBytes >= 1024) {
+      stats.totalSize = `${(totalBytes / 1024).toFixed(1)} KB`;
+    } else {
+      stats.totalSize = `${totalBytes} B`;
+    }
+
+    // Count file types
+    files.forEach((file) => {
+      stats.filesByType[file.type] = (stats.filesByType[file.type] || 0) + 1;
+    });
+
+    return stats;
   }
 
   /**
@@ -288,15 +324,22 @@ export class FileMetadataStorage {
       }
 
       files.forEach((file) => {
+        // Add timestamp and ensure proper serialization
         const dataToStore = {
           ...file,
+          tags: Array.isArray(file.tags) ? [...file.tags] : [],
           lastAccessed: new Date().toISOString(),
         };
 
         const request = store.put(dataToStore);
 
-        request.onerror = () => {
-          reject(new Error('Failed to store file metadata'));
+        request.onerror = (event) => {
+          console.error('IndexedDB bulk storage error:', event);
+          reject(
+            new Error(
+              `Failed to store file metadata: ${(event.target as IDBRequest).error?.message}`,
+            ),
+          );
         };
 
         request.onsuccess = () => {
@@ -330,56 +373,6 @@ export class FileMetadataStorage {
         resolve();
       };
     });
-  }
-
-  /**
-   * Get storage statistics
-   */
-  async getStorageStats(): Promise<{
-    totalFiles: number;
-    totalSize: string;
-    filesByType: Record<string, number>;
-  }> {
-    const files = await this.getAllFiles();
-
-    const stats = {
-      totalFiles: files.length,
-      totalSize: this.calculateTotalSize(files),
-      filesByType: {} as Record<string, number>,
-    };
-
-    files.forEach((file) => {
-      stats.filesByType[file.type] = (stats.filesByType[file.type] || 0) + 1;
-    });
-
-    return stats;
-  }
-
-  private calculateTotalSize(files: StoredFileMetadata[]): string {
-    let totalBytes = 0;
-
-    files.forEach((file) => {
-      // Parse size string (e.g., "2.5 MB" -> bytes)
-      const sizeMatch = file.size.match(/^([\d.]+)\s*(B|KB|MB|GB)$/i);
-      if (sizeMatch && sizeMatch[1] && sizeMatch[2]) {
-        const value = parseFloat(sizeMatch[1]);
-        const unit = sizeMatch[2].toUpperCase();
-
-        const multipliers = { B: 1, KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 };
-        totalBytes += value * (multipliers[unit as keyof typeof multipliers] || 1);
-      }
-    });
-
-    // Convert back to human readable
-    if (totalBytes >= 1024 * 1024 * 1024) {
-      return `${(totalBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-    } else if (totalBytes >= 1024 * 1024) {
-      return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
-    } else if (totalBytes >= 1024) {
-      return `${(totalBytes / 1024).toFixed(1)} KB`;
-    } else {
-      return `${totalBytes} B`;
-    }
   }
 }
 
