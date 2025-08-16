@@ -319,10 +319,8 @@ function testAuthentication() {
                   <div class="text-h6 q-mb-md">{{ year }}</div>
                   <div class="row q-col-gutter-md">
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="issue in yearIssues" :key="issue.id">
-                      :key="issue.id"
-                      :issue="issue"
-                      :is-loading="false"
-                      class="q-mb-md"
+                      <GoogleDriveIssueCard :issue="issue" :show-metadata="true"
+                        @regenerate-thumbnail="regenerateIssueThumbnail" />
                     </div>
                   </div>
                 </div>
