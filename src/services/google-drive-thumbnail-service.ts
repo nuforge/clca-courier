@@ -219,6 +219,9 @@ export class GoogleDriveThumbnailService {
           );
         } else {
           // Generate a simple PDF thumbnail without authentication
+          console.info(
+            `📄 Generating default PDF thumbnail for ${file.name} - Google Drive authentication not available`,
+          );
           thumbnail = this.generateDefaultThumbnail('pdf');
         }
       } else if (this.isImageFile(file.type)) {
@@ -231,6 +234,9 @@ export class GoogleDriveThumbnailService {
           );
         } else {
           // Fallback to default
+          console.info(
+            `🖼️ Generating default image thumbnail for ${file.name} - Google Drive authentication not available`,
+          );
           thumbnail = this.generateDefaultThumbnail(file.type);
         }
       } else {
@@ -260,6 +266,24 @@ export class GoogleDriveThumbnailService {
    */
   clearCache(): void {
     this.thumbnailCache.clear();
+  }
+
+  /**
+   * Check if Google Drive authentication is available for thumbnail generation
+   */
+  isAuthenticationAvailable(): boolean {
+    return !!localStorage.getItem('google_drive_access_token');
+  }
+
+  /**
+   * Get authentication status message for user feedback
+   */
+  getAuthenticationMessage(): string {
+    if (this.isAuthenticationAvailable()) {
+      return '✅ Connected to Google Drive - High quality thumbnails available';
+    } else {
+      return '⚠️ Not connected to Google Drive - Using default thumbnails. Sign in for better previews.';
+    }
   }
 
   private getFileTypeColor(fileType: string): string {

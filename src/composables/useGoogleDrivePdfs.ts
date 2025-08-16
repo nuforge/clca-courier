@@ -21,14 +21,33 @@ interface GapiClient {
 interface Gapi {
   load(libraries: string, config: { callback: () => void; onerror: () => void }): void;
   client: GapiClient;
+  auth2: GoogleAuth2;
+}
+
+interface GoogleAuth2 {
+  init(config: { client_id: string; scope: string }): Promise<void>;
+  getAuthInstance(): GoogleAuth2Instance;
+}
+
+interface GoogleAuth2Instance {
+  isSignedIn: {
+    get(): boolean;
+  };
+  signIn(): Promise<GoogleUser>;
+}
+
+interface GoogleUser {
+  getAuthResponse(): {
+    access_token: string;
+    expires_in: number;
+  };
+}
+
+interface TokenClient {
+  requestAccessToken(): void;
 }
 
 // Google Identity Services token client type
-interface TokenClient {
-  requestAccessToken(): void;
-  callback?: (response: { access_token: string; error?: string }) => void;
-}
-
 interface GoogleDriveFile {
   id: string;
   name: string;
@@ -230,6 +249,7 @@ export function useGoogleDrivePdfs() {
   // Store access token with persistence
   let accessToken: string | null = localStorage.getItem('google_drive_access_token');
   let tokenClient: TokenClient | null = null;
+  let authenticationResolver: ((success: boolean) => void) | null = null;
 
   // Initialize token client for Google Identity Services
   const initializeTokenClient = (): void => {
@@ -243,32 +263,52 @@ export function useGoogleDrivePdfs() {
       client_id: clientId,
       scope: 'https://www.googleapis.com/auth/drive.readonly',
       callback: (response: { access_token: string; error?: string }) => {
+        console.log('🎉 GOOGLE IDENTITY SERVICES CALLBACK TRIGGERED!', response);
+
         if (response.error) {
           console.error('❌ Token client error:', response.error);
           state.value.isAuthenticated = false;
           localStorage.removeItem('google_drive_access_token');
+
+          // Resolve authentication promise with failure
+          if (authenticationResolver) {
+            authenticationResolver(false);
+            authenticationResolver = null;
+          }
           return;
         }
 
+        console.log('✅ Authentication callback successful, access token received');
         accessToken = response.access_token;
         localStorage.setItem('google_drive_access_token', accessToken);
         window.gapi.client.setToken({ access_token: accessToken });
         state.value.isAuthenticated = true;
-        console.log('✅ Successfully authenticated with Google Identity Services');
+        console.log('✅ Authentication successful, loading data...');
 
-        // Automatically load data after successful authentication
-        console.log('🔄 Loading data after authentication...');
+        // Load data immediately after authentication
         loadPDFsFromDrive()
           .then((issues) => {
             state.value.issues = issues;
             state.value.isLoading = false;
             state.value.error = '';
-            console.log('✅ Data loaded successfully after authentication');
+            console.log(`✅ Loaded ${issues.length} issues after authentication`);
+
+            // Resolve authentication promise with success
+            if (authenticationResolver) {
+              authenticationResolver(true);
+              authenticationResolver = null;
+            }
           })
           .catch((error) => {
             console.error('❌ Failed to load data after authentication:', error);
             state.value.error = error.message;
             state.value.isLoading = false;
+
+            // Resolve authentication promise with failure
+            if (authenticationResolver) {
+              authenticationResolver(false);
+              authenticationResolver = null;
+            }
           });
       },
     });
@@ -322,35 +362,22 @@ export function useGoogleDrivePdfs() {
     // Only show popup if we're not authenticated
     console.log('🔐 Authentication required - showing popup...');
 
-    return new Promise<boolean>((resolve, reject) => {
+    return new Promise<boolean>((resolve) => {
       try {
         if (!tokenClient) {
-          reject(new Error('Token client not initialized'));
+          resolve(false);
           return;
         }
 
-        // Update the callback to resolve the promise
-        const originalCallback = tokenClient.callback;
-        tokenClient.callback = (response: { access_token: string; error?: string }) => {
-          // Call the original callback first if it exists
-          if (originalCallback) {
-            originalCallback(response);
-          }
-
-          if (response.error) {
-            reject(new Error(`Authentication failed: ${response.error}`));
-          } else {
-            resolve(true);
-          }
-        };
+        // Set up the resolver for the callback (callback is set in initializeTokenClient)
+        authenticationResolver = resolve;
 
         // Request access token (this will show the popup)
         tokenClient.requestAccessToken();
       } catch (error) {
         console.error('❌ Authentication failed:', error);
         state.value.isAuthenticated = false;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        reject(new Error(`Authentication failed: ${errorMessage}`));
+        resolve(false);
       }
     });
   };
@@ -451,19 +478,50 @@ export function useGoogleDrivePdfs() {
 
     try {
       console.log(`📁 Loading PDFs from folder: ${folderId}`);
+      console.log(`🔍 Authenticated user attempting to access shared folder...`);
+
+      // First, test if API works at all by listing any files
+      console.log('🧪 Testing API access - listing any files...');
+      try {
+        const testResponse = await window.gapi.client.drive.files.list({
+          q: '',
+          pageSize: 5,
+          fields: 'files(id,name,mimeType)',
+        });
+        console.log(
+          '✅ API test successful - user has access to:',
+          testResponse.result.files?.length || 0,
+          'files',
+        );
+      } catch (testError) {
+        console.error('❌ API test failed:', testError);
+      }
+
+      console.log('🚀 Making Google Drive API call for specific folder...');
+      const query = `'${folderId}' in parents and mimeType='application/pdf' and trashed=false`;
+      console.log('📋 Query:', query);
 
       const response = await window.gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and mimeType='application/pdf' and trashed=false`,
+        q: query,
         fields: 'files(id,name,size,modifiedTime,webViewLink)',
         orderBy: 'name',
         pageSize: 100, // Get up to 100 files
       });
 
+      console.log('✅ API Response received:', response);
+      console.log('� Raw result:', response.result);
+
       const files = response.result.files || [];
       console.log(`📄 Found ${files.length} PDF files in Google Drive folder`);
+      console.log('📋 Files array:', files);
 
       if (files.length === 0) {
         console.warn('⚠️ No PDF files found in the specified folder');
+        console.warn('🔍 This could mean:');
+        console.warn('   1. The folder has no PDF files');
+        console.warn('   2. The folder is not shared with your account');
+        console.warn('   3. You need permission to access the folder');
+        console.warn(`   4. Folder ID ${folderId} may be incorrect`);
         return [];
       }
 
@@ -532,6 +590,119 @@ export function useGoogleDrivePdfs() {
     }
   };
 
+  // Legacy GAPI Auth2 authentication (WORKING ALTERNATIVE)
+  const legacyAuthenticate = async (): Promise<boolean> => {
+    try {
+      state.value.isLoading = true;
+      state.value.error = null;
+
+      // Load and initialize API if needed
+      await loadGoogleAPI();
+      await initializeGoogleAPI();
+
+      console.log('🔄 Using legacy GAPI Auth2 authentication...');
+
+      if (!window.gapi?.auth2) {
+        console.log('📦 Loading GAPI Auth2...');
+        await new Promise<void>((resolve, reject) => {
+          window.gapi.load('auth2', {
+            callback: () => {
+              console.log('✅ GAPI Auth2 loaded');
+              resolve();
+            },
+            onerror: () => {
+              reject(new Error('Failed to load GAPI Auth2'));
+            },
+          });
+        });
+      }
+
+      const authInstance = window.gapi.auth2.getAuthInstance();
+      const isInitialized = Boolean(authInstance);
+
+      if (!isInitialized) {
+        console.log('🔧 Initializing GAPI Auth2...');
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+        await window.gapi.auth2.init({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/drive.readonly',
+        });
+      }
+
+      const auth2Instance = window.gapi.auth2.getAuthInstance();
+      console.log('🚀 Starting GAPI Auth2 sign in...');
+
+      const googleUser = await auth2Instance.signIn();
+      const authResponse = googleUser.getAuthResponse();
+
+      console.log('🎉 LEGACY AUTH SUCCESS!', authResponse);
+
+      if (authResponse && authResponse.access_token) {
+        accessToken = authResponse.access_token;
+        if (accessToken) {
+          localStorage.setItem('google_drive_access_token', accessToken);
+          window.gapi.client.setToken({ access_token: accessToken });
+        }
+        state.value.isAuthenticated = true;
+        console.log('✅ Legacy authentication successful, loading data...');
+
+        // Load data immediately after authentication
+        const issues = await loadPDFsFromDrive();
+        state.value.issues = issues;
+        state.value.isLoading = false;
+        state.value.error = '';
+        console.log(`✅ Loaded ${issues.length} issues after legacy authentication`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('❌ Legacy authentication error:', error);
+      state.value.error = error instanceof Error ? error.message : 'Legacy authentication failed';
+      return false;
+    } finally {
+      state.value.isLoading = false;
+    }
+  };
+
+  // Simple test function to verify Google Identity Services works at all
+  const testGoogleIdentityServices = (): void => {
+    console.log('🧪 TESTING: Basic Google Identity Services');
+
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    console.log('🧪 Client ID for test:', clientId);
+
+    if (!window.google?.accounts?.oauth2) {
+      console.error('❌ TEST FAILED: Google Identity Services not available');
+      return;
+    }
+
+    // Create a completely fresh token client for testing
+    const testTokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: (response: { access_token?: string; error?: string }) => {
+        console.log('🎉 TEST CALLBACK TRIGGERED!', response);
+        console.log('🎉 Response keys:', Object.keys(response));
+
+        if (response.error) {
+          console.error('❌ TEST: Authentication error:', response.error);
+          return;
+        }
+
+        if (response.access_token) {
+          console.log('✅ TEST: Received access token length:', response.access_token.length);
+        } else {
+          console.warn('⚠️ TEST: No access token in response');
+        }
+      },
+    });
+
+    console.log('🧪 Test token client created, calling requestAccessToken...');
+    testTokenClient.requestAccessToken();
+    console.log('🧪 Test requestAccessToken called');
+  };
+
   // Separate authentication function (called by user action)
   const authenticate = async (): Promise<boolean> => {
     try {
@@ -550,54 +721,38 @@ export function useGoogleDrivePdfs() {
       // Force authentication popup (don't check if already authenticated)
       console.log('🔐 Forcing authentication popup...');
 
-      return new Promise<boolean>((resolve, reject) => {
+      return new Promise<boolean>((resolve) => {
         try {
           if (!tokenClient) {
-            reject(new Error('Token client not initialized'));
+            resolve(false);
             return;
           }
 
-          // Set up callback to resolve promise
-          tokenClient.callback = (response: { access_token: string; error?: string }) => {
-            if (response.error) {
-              console.error('❌ Authentication error:', response.error);
-              state.value.isAuthenticated = false;
-              state.value.isLoading = false;
-              localStorage.removeItem('google_drive_access_token');
-              reject(new Error(`Authentication failed: ${response.error}`));
-              return;
-            }
+          // Set up the resolver for the callback
+          authenticationResolver = resolve;
 
-            // Success - save token and update state
-            accessToken = response.access_token;
-            localStorage.setItem('google_drive_access_token', accessToken);
-            window.gapi.client.setToken({ access_token: accessToken });
-            state.value.isAuthenticated = true;
-            console.log('✅ Authentication successful, loading data...');
-
-            // Load data immediately after authentication
-            loadPDFsFromDrive()
-              .then((issues) => {
-                state.value.issues = issues;
-                state.value.isLoading = false;
-                state.value.error = '';
-                console.log(`✅ Loaded ${issues.length} issues after authentication`);
-                resolve(true);
-              })
-              .catch((error) => {
-                console.error('❌ Failed to load data after authentication:', error);
-                state.value.error = error.message;
-                state.value.isLoading = false;
-                resolve(false);
-              });
-          };
+          // Debug: Test Google Identity Services availability
+          console.log('🔍 Google Identity Services check:');
+          console.log('  - window.google exists:', !!window.google);
+          console.log('  - window.google.accounts exists:', !!window.google?.accounts);
+          console.log(
+            '  - window.google.accounts.oauth2 exists:',
+            !!window.google?.accounts?.oauth2,
+          );
+          console.log('  - tokenClient exists:', !!tokenClient);
+          console.log(
+            '  - tokenClient.requestAccessToken exists:',
+            !!tokenClient?.requestAccessToken,
+          );
 
           // Trigger the authentication popup
+          console.log('🚀 About to call requestAccessToken()...');
           tokenClient.requestAccessToken();
+          console.log('✅ requestAccessToken() called successfully');
         } catch (error) {
           console.error('❌ Authentication setup error:', error);
           state.value.isLoading = false;
-          reject(error instanceof Error ? error : new Error(String(error)));
+          resolve(false);
         }
       });
     } catch (error) {
@@ -723,7 +878,9 @@ export function useGoogleDrivePdfs() {
     // Methods
     initialize,
     authenticate, // NEW: Separate authentication method
+    legacyAuthenticate, // WORKING: Legacy GAPI Auth2 method
     clearAuthentication, // TEMP: For testing
+    testGoogleIdentityServices, // TEST: Basic Google Identity Services test
     loadThumbnail,
     regenerateThumbnail,
     getPdfMetadata,
