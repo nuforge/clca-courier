@@ -91,11 +91,12 @@ export function useGoogleDrive() {
         state.value.searchResults = [];
         resolve();
       } catch (error) {
-        state.value.error = error instanceof Error ? error.message : 'Sign out failed';
-        reject(error);
+        const errorMessage = error instanceof Error ? error.message : 'Sign out failed';
+        state.value.error = errorMessage;
+        reject(new Error(errorMessage));
       }
     });
-  };  // Search for images in Google Drive
+  }; // Search for images in Google Drive
   const searchImages = async (query?: string, folderIds?: string[]): Promise<GoogleDriveFile[]> => {
     if (!googleDriveService) {
       state.value.error = 'Google Drive service not initialized';

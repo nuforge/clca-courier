@@ -82,7 +82,7 @@
                 <div class="row q-gutter-md">
                     <div v-for="image in images" :key="image.id" class="col-12 col-sm-6 col-md-4 col-lg-3">
                         <q-card flat bordered>
-                            <q-img :src="getThumbnailUrl(image.id)" :alt="image.name" ratio="1" class="cursor-pointer"
+                            <q-img :src="getThumbnailUrl(image)" :alt="image.name" ratio="1" class="cursor-pointer"
                                 @click="openImage(image)">
                                 <template v-slot:loading>
                                     <div class="absolute-full flex flex-center">
@@ -135,7 +135,7 @@
             </q-card-section>
 
             <q-card-section class="q-pt-none">
-                <q-img :src="getDirectUrl(selectedImage.id)" :alt="selectedImage.name" fit="contain"
+                <q-img :src="getDirectUrl(selectedImage)" :alt="selectedImage.name" fit="contain"
                     style="max-height: 80vh">
                     <template v-slot:loading>
                         <div class="absolute-full flex flex-center">
@@ -306,14 +306,12 @@ const clearResults = () => {
     searchQuery.value = '';
 };
 
-const getThumbnailUrl = (fileId: string): string => {
-    const urls = googleDrive.getUrls(fileId);
-    return urls.thumbnail;
+const getThumbnailUrl = (image: GoogleDriveFile): string => {
+    return image.thumbnailLink || `https://drive.google.com/uc?id=${image.id}&export=download`;
 };
 
-const getDirectUrl = (fileId: string): string => {
-    const urls = googleDrive.getUrls(fileId);
-    return urls.authenticated || urls.direct;
+const getDirectUrl = (image: GoogleDriveFile): string => {
+    return image.webContentLink || image.thumbnailLink || `https://drive.google.com/uc?id=${image.id}&export=download`;
 };
 
 const openImage = (image: GoogleDriveFile) => {
@@ -350,23 +348,24 @@ const downloadImage = async (image: GoogleDriveFile) => {
     }
 };
 
-const copyImageUrl = (image: GoogleDriveFile) => {
-    const urls = googleDrive.getUrls(image.id);
-    const urlToCopy = urls.direct;
+const copyImageUrl = async (image: GoogleDriveFile) => {
+    try {
+        const urlToCopy = getDirectUrl(image);
 
-    navigator.clipboard.writeText(urlToCopy).then(() => {
+        await navigator.clipboard.writeText(urlToCopy);
         $q.notify({
             type: 'positive',
             message: 'Image URL copied to clipboard',
             position: 'top',
         });
-    }).catch(() => {
+    } catch (error) {
+        console.error('Failed to copy URL:', error);
         $q.notify({
             type: 'negative',
             message: 'Failed to copy URL',
             position: 'top',
         });
-    });
+    }
 };
 
 const formatFileSize = (sizeStr?: string): string => {

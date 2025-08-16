@@ -4,6 +4,25 @@
 import { SimpleGoogleDriveAuth } from './simple-google-auth-test';
 import type { GoogleDriveFile } from 'src/types/google-drive-content';
 
+interface GoogleDriveApiFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: string;
+  webViewLink?: string;
+  webContentLink?: string;
+  thumbnailLink?: string;
+  parents?: string[];
+  createdTime: string;
+  modifiedTime: string;
+}
+
+export interface GoogleDriveSearchOptions {
+  query?: string;
+  mimeType?: string;
+  pageSize?: number;
+}
+
 export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   private baseUrl = 'https://www.googleapis.com/drive/v3';
 
@@ -83,7 +102,9 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       });
 
       const data = await response.json();
-      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
+      return (data.files || []).map((file: GoogleDriveApiFile) =>
+        this.convertToGoogleDriveFile(file),
+      );
     } catch (error) {
       console.error('Error listing folder files:', error);
       throw new Error(
@@ -106,7 +127,9 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       });
 
       const data = await response.json();
-      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
+      return (data.files || []).map((file: GoogleDriveApiFile) =>
+        this.convertToGoogleDriveFile(file),
+      );
     } catch (error) {
       console.error('Error searching files:', error);
       throw new Error(
@@ -140,7 +163,9 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       });
 
       const data = await response.json();
-      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
+      return (data.files || []).map((file: GoogleDriveApiFile) =>
+        this.convertToGoogleDriveFile(file),
+      );
     } catch (error) {
       console.error('Error searching images:', error);
       throw new Error(

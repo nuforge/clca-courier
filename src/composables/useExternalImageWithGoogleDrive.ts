@@ -101,7 +101,7 @@ export function useExternalImageWithGoogleDrive() {
           if (firstMatch) {
             try {
               // Get the authenticated URL for the image
-              const urls = googleDrive.getUrls(firstMatch.id);
+              const urls = await googleDrive.getUrls(firstMatch.id);
 
               return {
                 success: true,
@@ -163,17 +163,32 @@ export function useExternalImageWithGoogleDrive() {
     try {
       const images = await googleDrive.searchImages(undefined, [folderId]);
 
-      const results: ImageLoadResult[] = images.map((image) => ({
-        success: true,
-        url: googleDrive.getUrls(image.id).authenticated || googleDrive.getUrls(image.id).direct,
-        message: `Preloaded: ${image.name}`,
-        source: 'google-drive',
-        metadata: {
-          filename: image.name,
-          ...(image.size && { size: image.size }),
-          mimeType: image.mimeType,
-        },
-      }));
+      const results: ImageLoadResult[] = await Promise.all(
+        images.map(async (image) => {
+          try {
+            const urls = await googleDrive.getUrls(image.id);
+            return {
+              success: true,
+              url: urls.authenticated || urls.direct,
+              message: `Preloaded: ${image.name}`,
+              source: 'google-drive',
+              metadata: {
+                filename: image.name,
+                ...(image.size && { size: image.size }),
+                mimeType: image.mimeType,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to get URLs for image ${image.name}:`, error);
+            return {
+              success: false,
+              url: null,
+              message: `Failed to load: ${image.name}`,
+              source: 'google-drive',
+            };
+          }
+        }),
+      );
 
       return results;
     } catch (error) {

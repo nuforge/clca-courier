@@ -195,7 +195,6 @@
 import { ref, onMounted, computed } from 'vue';
 import { useExternalImageWithGoogleDrive } from 'src/composables/useExternalImageWithGoogleDrive';
 import GoogleDriveImageBrowser from 'src/components/GoogleDriveImageBrowser.vue';
-import type { ImageLoadResult } from 'src/composables/useExternalImageWithGoogleDrive';
 
 const imageService = useExternalImageWithGoogleDrive();
 
