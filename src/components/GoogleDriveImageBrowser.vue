@@ -210,6 +210,7 @@ const handleAuthenticate = async () => {
             });
         }
     } catch (error) {
+        console.error('Failed to connect to Google Drive:', error);
         $q.notify({
             type: 'negative',
             message: 'Failed to connect to Google Drive',
@@ -229,6 +230,7 @@ const handleSignOut = async () => {
             position: 'top',
         });
     } catch (error) {
+        console.error('Failed to sign out:', error);
         $q.notify({
             type: 'negative',
             message: 'Failed to sign out',
@@ -263,6 +265,7 @@ const handleSearch = async () => {
             });
         }
     } catch (error) {
+        console.error('Search failed:', error);
         $q.notify({
             type: 'negative',
             message: 'Search failed',
@@ -288,6 +291,7 @@ const handleBrowseAll = async () => {
             });
         }
     } catch (error) {
+        console.error('Failed to browse images:', error);
         $q.notify({
             type: 'negative',
             message: 'Failed to browse images',
@@ -337,6 +341,7 @@ const downloadImage = async (image: GoogleDriveFile) => {
             });
         }
     } catch (error) {
+        console.error('Failed to download image:', error);
         $q.notify({
             type: 'negative',
             message: 'Failed to download image',

@@ -1,7 +1,7 @@
 // src/composables/useGoogleDrive.ts
 // Google Drive composable using GoogleDriveBrowserService
 
-import { ref, computed, readonly } from 'vue';
+import { ref, readonly } from 'vue';
 import { GoogleDriveBrowserService } from 'src/services/google-drive-browser-service';
 import type { GoogleDriveFile } from 'src/types/google-drive-content';
 
@@ -83,7 +83,7 @@ export function useGoogleDrive() {
   const signOut = async (): Promise<void> => {
     try {
       if (googleDriveService) {
-        await googleDriveService.signOut();
+        googleDriveService.signOut();
       }
       state.value.isAuthenticated = false;
       state.value.files = [];

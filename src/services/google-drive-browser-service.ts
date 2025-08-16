@@ -40,7 +40,9 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        `API request failed: ${response.status} ${response.statusText}${errorData.error ? ` - ${errorData.error.message}` : ''}`,
+        `Google Drive API error: ${response.status} ${response.statusText}. ${
+          errorData.error?.message || 'Unknown error'
+        }`,
       );
     }
 
@@ -48,13 +50,13 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   }
 
   /**
-   * Get file metadata by ID
+   * Get details of a specific file by ID
    */
   async getFile(fileId: string): Promise<GoogleDriveFile> {
     try {
       const response = await this.makeApiRequest(`/files/${fileId}`, {
         fields:
-          'id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,createdTime,modifiedTime,parents',
+          'id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime',
       });
 
       const fileData = await response.json();
@@ -68,20 +70,19 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   }
 
   /**
-   * List files in a folder
+   * List all files in a specific folder
    */
   async listFilesInFolder(folderId: string, pageSize: number = 100): Promise<GoogleDriveFile[]> {
     try {
       const response = await this.makeApiRequest('/files', {
         q: `'${folderId}' in parents and trashed=false`,
         pageSize: pageSize.toString(),
-        fields:
-          'nextPageToken,files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,createdTime,modifiedTime,parents)',
+        fields: 'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime)',
         orderBy: 'modifiedTime desc',
       });
 
       const data = await response.json();
-      return (data.files || []).map(this.convertToGoogleDriveFile);
+      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error listing folder files:', error);
       throw new Error(
@@ -91,20 +92,19 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   }
 
   /**
-   * Search for files
+   * Search for files by name or content
    */
   async searchFiles(query: string, pageSize: number = 50): Promise<GoogleDriveFile[]> {
     try {
       const response = await this.makeApiRequest('/files', {
         q: `name contains '${query}' and trashed=false`,
         pageSize: pageSize.toString(),
-        fields:
-          'nextPageToken,files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,createdTime,modifiedTime,parents)',
-        orderBy: 'relevance',
+        fields: 'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime)',
+        orderBy: 'modifiedTime desc',
       });
 
       const data = await response.json();
-      return (data.files || []).map(this.convertToGoogleDriveFile);
+      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error searching files:', error);
       throw new Error(
@@ -114,31 +114,30 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   }
 
   /**
-   * Search for images specifically
+   * Search specifically for images in given folder IDs
    */
-  async searchImages(query?: string, folderIds?: string[]): Promise<GoogleDriveFile[]> {
+  async searchImages(folderIds: string[] = [], query: string = ''): Promise<GoogleDriveFile[]> {
     try {
       let searchQuery = "mimeType contains 'image/' and trashed=false";
-
-      if (query) {
-        searchQuery += ` and name contains '${query}'`;
+      
+      if (folderIds.length > 0) {
+        const folderQuery = folderIds.map(id => `'${id}' in parents`).join(' or ');
+        searchQuery += ` and (${folderQuery})`;
       }
 
-      if (folderIds && folderIds.length > 0) {
-        const folderQueries = folderIds.map((id) => `'${id}' in parents`);
-        searchQuery += ` and (${folderQueries.join(' or ')})`;
+      if (query.trim()) {
+        searchQuery += ` and name contains '${query.trim()}'`;
       }
 
       const response = await this.makeApiRequest('/files', {
         q: searchQuery,
         pageSize: '100',
-        fields:
-          'nextPageToken,files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,createdTime,modifiedTime,parents)',
+        fields: 'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime)',
         orderBy: 'modifiedTime desc',
       });
 
       const data = await response.json();
-      return (data.files || []).map(this.convertToGoogleDriveFile);
+      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error searching images:', error);
       throw new Error(
@@ -148,23 +147,13 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   }
 
   /**
-   * Download file as blob
+   * Download file content as blob
    */
   async downloadFile(fileId: string): Promise<Blob> {
-    if (!this.isAuthenticated || !this.accessToken) {
-      throw new Error('Not authenticated with Google Drive');
-    }
-
     try {
-      const response = await fetch(`${this.baseUrl}/files/${fileId}?alt=media&key=${this.apiKey}`, {
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-        },
+      const response = await this.makeApiRequest(`/files/${fileId}`, {
+        alt: 'media',
       });
-
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
-      }
 
       return await response.blob();
     } catch (error) {
@@ -176,29 +165,25 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
   }
 
   /**
-   * Get authenticated download URL
+   * Get image URL for display (uses thumbnail if available, otherwise download URL)
    */
-  getAuthenticatedDownloadUrl(fileId: string): string {
-    if (!this.isAuthenticated || !this.accessToken) {
-      throw new Error('Not authenticated with Google Drive');
+  getImageUrl(file: GoogleDriveFile): string {
+    if (file.thumbnailLink) {
+      return file.thumbnailLink;
     }
-    return `${this.baseUrl}/files/${fileId}?alt=media&key=${this.apiKey}&access_token=${this.accessToken}`;
-  }
+    
+    if (file.webContentLink) {
+      return file.webContentLink;
+    }
 
-  /**
-   * Get various URLs for a file
-   */
-  getFileUrls(fileId: string) {
-    return {
-      thumbnail: `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`,
-      direct: `https://drive.google.com/uc?export=view&id=${fileId}`,
-      authenticated: this.getAuthenticatedDownloadUrl(fileId),
-    };
+    // Fallback to direct download URL
+    return `https://drive.google.com/uc?id=${file.id}&export=download`;
   }
 
   /**
    * Convert Google Drive API response to our GoogleDriveFile interface
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertToGoogleDriveFile(apiFile: any): GoogleDriveFile {
     return {
       id: apiFile.id,
@@ -208,34 +193,28 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       webViewLink: apiFile.webViewLink,
       webContentLink: apiFile.webContentLink,
       thumbnailLink: apiFile.thumbnailLink,
+      parents: apiFile.parents || [],
       createdTime: apiFile.createdTime,
       modifiedTime: apiFile.modifiedTime,
-      parents: apiFile.parents,
     };
   }
 
   /**
-   * Check if URL is a Google Drive URL
+   * Check if a URL is a Google Drive URL
    */
   static isGoogleDriveUrl(url: string): boolean {
-    return (
-      url.includes('drive.google.com') ||
-      url.includes('docs.google.com') ||
-      url.includes('sheets.google.com') ||
-      url.includes('slides.google.com')
-    );
+    return url.includes('drive.google.com') || url.includes('docs.google.com');
   }
 
   /**
-   * Extract file ID from Google Drive URL
+   * Extract Google Drive file ID from various URL formats
    */
   static extractFileId(url: string): string | null {
+    // Handle different Google Drive URL formats
     const patterns = [
       /\/file\/d\/([a-zA-Z0-9-_]+)/,
-      /[?&]id=([a-zA-Z0-9-_]+)/,
-      /\/document\/d\/([a-zA-Z0-9-_]+)/,
-      /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
-      /\/presentation\/d\/([a-zA-Z0-9-_]+)/,
+      /id=([a-zA-Z0-9-_]+)/,
+      /\/d\/([a-zA-Z0-9-_]+)/,
     ];
 
     for (const pattern of patterns) {

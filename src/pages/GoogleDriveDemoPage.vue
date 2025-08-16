@@ -193,12 +193,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { useExternalImageWithGoogleDrive } from 'src/composables/useExternalImageWithGoogleDrive';
 import GoogleDriveImageBrowser from 'src/components/GoogleDriveImageBrowser.vue';
 import type { ImageLoadResult } from 'src/composables/useExternalImageWithGoogleDrive';
 
-const router = useRouter();
 const imageService = useExternalImageWithGoogleDrive();
 
 // Configuration status
@@ -214,7 +212,8 @@ const testImageUrl = ref('');
 const testLoading = ref(false);
 const testResult = ref<ImageLoadResult | null>(null);
 
-// Sample URLs for testing
+// Sample URLs for testing (commented out to avoid ESLint unused variable warning)
+/* 
 const sampleUrls = [
     {
         label: 'Valid Image',
@@ -233,6 +232,7 @@ const sampleUrls = [
         url: 'https://cors-blocked-example.com/image.jpg'
     }
 ];
+*/
 
 // Google Drive folder configuration
 const googleDriveFolders = ref({
@@ -288,7 +288,8 @@ onMounted(() => {
     }
 });
 
-// Test image loading functionality
+// Test image loading functionality (commented out to avoid ESLint unused variable warning)
+/*
 const testImageLoad = async () => {
     if (!testImageUrl.value) {
         return;
@@ -322,6 +323,7 @@ const clearTest = () => {
     testImageUrl.value = '';
     testResult.value = null;
 };
+*/
 
 // Open documentation
 const openDoc = () => {
