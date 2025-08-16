@@ -4,11 +4,11 @@
  */
 
 export class SimpleGoogleDriveAuth {
-  private clientId: string;
-  private apiKey: string;
-  private scope: string;
-  private accessToken: string = '';
-  private isAuthenticated: boolean = false;
+  protected clientId: string;
+  protected apiKey: string;
+  protected scope: string;
+  protected accessToken: string = '';
+  protected isAuthenticated: boolean = false;
 
   constructor(clientId: string, apiKey: string) {
     this.clientId = clientId;
