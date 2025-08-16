@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
       { path: '/accessibility', component: () => import('pages/AccessibilityPage.vue') },
       { path: '/map', component: () => import('pages/MapRefactoredPage.vue') }, // Use refactored version as main map
       { path: '/map-refactored', component: () => import('pages/MapRefactoredPage.vue') },
+      { path: '/demo/google-drive', component: () => import('pages/GoogleDriveDemoPage.vue') },
+      {
+        path: '/google-drive-content',
+        component: () => import('pages/GoogleDriveContentDashboard.vue'),
+      },
     ],
   },
 
