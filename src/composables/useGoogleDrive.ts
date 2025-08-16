@@ -80,24 +80,22 @@ export function useGoogleDrive() {
   };
 
   // Sign out from Google Drive
-  const signOut = async (): Promise<void> => {
-    try {
-      if (googleDriveService) {
-        googleDriveService.signOut();
+  const signOut = (): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        if (googleDriveService) {
+          googleDriveService.signOut();
+        }
+        state.value.isAuthenticated = false;
+        state.value.files = [];
+        state.value.searchResults = [];
+        resolve();
+      } catch (error) {
+        state.value.error = error instanceof Error ? error.message : 'Sign out failed';
+        reject(error);
       }
-      state.value.isAuthenticated = false;
-      state.value.files = [];
-      state.value.searchResults = [];
-      state.value.error = null;
-      console.log('Google Drive sign out successful');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Sign out failed';
-      state.value.error = message;
-      console.error('Google Drive sign out error:', error);
-    }
-  };
-
-  // Search for images in Google Drive
+    });
+  };  // Search for images in Google Drive
   const searchImages = async (query?: string, folderIds?: string[]): Promise<GoogleDriveFile[]> => {
     if (!googleDriveService) {
       state.value.error = 'Google Drive service not initialized';
@@ -113,7 +111,7 @@ export function useGoogleDrive() {
     state.value.error = null;
 
     try {
-      const images = await googleDriveService.searchImages(query, folderIds);
+      const images = await googleDriveService.searchImages(folderIds, query);
       state.value.searchResults = images;
       return images;
     } catch (error) {
@@ -241,7 +239,7 @@ export function useGoogleDrive() {
   };
 
   // Get various URLs for a file
-  const getUrls = (fileId: string) => {
+  const getUrls = async (fileId: string) => {
     if (!googleDriveService) {
       return {
         thumbnail: '',
@@ -249,7 +247,21 @@ export function useGoogleDrive() {
         authenticated: '',
       };
     }
-    return googleDriveService.getFileUrls(fileId);
+    try {
+      const file = await googleDriveService.getFile(fileId);
+      return {
+        thumbnail: file.thumbnailLink || '',
+        direct: file.webContentLink || `https://drive.google.com/uc?id=${fileId}&export=download`,
+        authenticated: googleDriveService.getImageUrl(file),
+      };
+    } catch (error) {
+      console.error('Failed to get file URLs:', error);
+      return {
+        thumbnail: '',
+        direct: '',
+        authenticated: '',
+      };
+    }
   };
 
   // Extract file ID from Google Drive URL

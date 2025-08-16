@@ -83,7 +83,6 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       });
 
       const data = await response.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error listing folder files:', error);
@@ -107,7 +106,6 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       });
 
       const data = await response.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error searching files:', error);
@@ -142,7 +140,6 @@ export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
       });
 
       const data = await response.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error searching images:', error);

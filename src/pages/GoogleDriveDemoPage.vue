@@ -207,13 +207,15 @@ const apiKey = ref('');
 const clientId = ref('');
 const projectId = ref('');
 
-// Test functionality
+// Test functionality (commented out to avoid ESLint unused variable warnings)
+/*
 const testImageUrl = ref('');
 const testLoading = ref(false);
 const testResult = ref<ImageLoadResult | null>(null);
+*/
 
 // Sample URLs for testing (commented out to avoid ESLint unused variable warning)
-/* 
+/*
 const sampleUrls = [
     {
         label: 'Valid Image',
