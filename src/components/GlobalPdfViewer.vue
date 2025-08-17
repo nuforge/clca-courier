@@ -29,21 +29,15 @@
       </q-toolbar>
 
       <q-card-section class="q-pa-none" style="height: calc(100vh - 50px);">
-        <!-- Loading indicator -->
-        <div v-if="isLoading" class="absolute-center">
-          <q-spinner-dots size="50px" color="primary" />
-          <div class="q-mt-md text-center">Loading PDF...</div>
-        </div>
-
-        <!-- Error indicator -->
-        <div v-else-if="error" class="absolute-center text-center">
+        <!-- Error indicator - REMOVED DUPLICATE LOADING INDICATOR -->
+        <div v-if="error" class="absolute-center text-center">
           <q-icon name="mdi-alert-circle" size="64px" color="negative" />
           <div class="q-mt-md text-h6 text-negative">Error Loading PDF</div>
           <div class="q-mt-sm text-body2">{{ error }}</div>
           <q-btn class="q-mt-md" color="primary" label="Try Again" @click="retryLoadDocument" outline />
         </div>
 
-        <!-- PDF Viewer -->
+        <!-- PDF Viewer - Let PdfViewer handle its own loading state -->
         <PdfViewer v-if="selectedDocument && !error" :document-url="selectedDocument.url" :key="selectedDocument.id"
           @ready="onViewerReady" @error="onViewerError" />
       </q-card-section>
@@ -57,7 +51,6 @@ import { useQuasar } from 'quasar'
 import { useSiteStore } from '../stores/site-store-simple'
 import { usePdfViewer } from '../composables/usePdfViewer'
 import PdfViewer from './PdfViewer.vue'
-import type { WebViewerInstance } from '@pdftron/webviewer'
 
 const $q = useQuasar()
 const siteStore = useSiteStore()
@@ -66,7 +59,6 @@ const siteStore = useSiteStore()
 const {
   showViewer,
   selectedDocument,
-  isLoading,
   error,
   closeViewer,
   switchDocument,
@@ -78,8 +70,8 @@ const {
 const availableDocuments = computed(() => siteStore.archivedIssues)
 
 // Handle PDF viewer events
-const onViewerReady = (instance: WebViewerInstance) => {
-  handleViewerReady(instance)
+const onViewerReady = (success: boolean) => {
+  handleViewerReady(success)
 }
 
 const onViewerError = (error: string) => {

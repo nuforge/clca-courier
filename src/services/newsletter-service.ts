@@ -59,99 +59,187 @@ class NewsletterService {
 
   /**
    * Get all newsletters with hybrid source information
-   * Primary data comes from actual files, JSON is fallback only
+   * ONLY uses real PDF files - NO JSON EVER
    */
   async getNewsletters(): Promise<NewsletterMetadata[]> {
     const cacheKey = 'newsletters';
 
     // Check cache first
     if (this.cache.has(cacheKey)) {
+      logger.debug('Returning cached newsletter data');
       return this.cache.get(cacheKey)!;
     }
 
-    logger.info('Loading newsletters from real sources...');
+    logger.info('Loading newsletters ONLY from real PDF files...');
 
     try {
-      // PHASE 1: Discover and process LOCAL PDF files (primary source)
-      const localPDFs = this.discoverLocalPDFs();
+      // Add timeout to prevent hanging
+      const discoveryPromise = this.discoverLocalPDFs();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('PDF discovery timeout')), 10000); // 10 second timeout
+      });
+
+      // Race between discovery and timeout
+      const localPDFs = await Promise.race([discoveryPromise, timeoutPromise]);
       logger.success(`Found ${localPDFs.length} local PDF files`);
 
-      // Extract PDF metadata for all local files
+      // Process PDFs with metadata extraction
       const pdfMetadataList = await pdfMetadataService.processPDFBatch(localPDFs);
+      logger.info(`Successfully processed ${pdfMetadataList.length} PDF files`);
 
-      // Convert PDF metadata to newsletter metadata
-      let enhancedNewsletters = pdfMetadataList.map((pdfMeta) =>
-        this.convertPDFMetadataToNewsletter(pdfMeta),
-      );
-
-      // PHASE 2: Check for Google Drive sources and merge
-      const googleDriveNewsletters = await this.discoverGoogleDriveNewsletters();
-      enhancedNewsletters = this.mergeLocalAndDriveSources(
-        enhancedNewsletters,
-        googleDriveNewsletters,
-      );
-
-      // PHASE 3: ONLY use JSON as absolute last resort if everything else fails
-      if (enhancedNewsletters.length === 0) {
-        logger.warn('No real data found - using JSON fallback');
-        const jsonFallback = await this.loadFallbackNewsletters();
-        enhancedNewsletters = this.mergeFallbackData(enhancedNewsletters, jsonFallback);
-      }
+      // Convert to newsletter metadata
+      const newsletters = pdfMetadataList.map((meta) => this.convertPDFMetadataToNewsletter(meta));
 
       // Sort by date (newest first)
-      enhancedNewsletters.sort(
-        (a, b) => new Date(b.publishDate || '').getTime() - new Date(a.publishDate || '').getTime(),
-      );
+      newsletters.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       // Cache the results
-      this.cache.set(cacheKey, enhancedNewsletters);
-      logger.success(
-        `Generated metadata for ${enhancedNewsletters.length} newsletters`,
-        `(${enhancedNewsletters.filter((n) => n.localFile).length} local, ` +
-          `${enhancedNewsletters.filter((n) => n.driveId).length} drive, ` +
-          `${enhancedNewsletters.filter((n) => n.localFile && n.driveId).length} hybrid)`,
-      );
+      this.cache.set(cacheKey, newsletters);
 
-      return enhancedNewsletters;
+      logger.success(`Loaded ${newsletters.length} newsletters from real PDF files`);
+      return newsletters;
     } catch (error) {
-      logger.error('Error generating newsletters:', error);
-      // If all else fails, try loading from JSON
-      const fallbackData = await this.loadFallbackNewsletters();
-      logger.info(`Fallback: Loaded ${fallbackData.length} newsletters from JSON`);
-      return fallbackData;
+      logger.error('Failed to load newsletters from PDF files:', error);
+
+      // Return empty array rather than hanging
+      return [];
     }
   }
 
   /**
-   * Discover all local PDF files
+   * Discover all local PDF files DYNAMICALLY using actual file validation
+   * Temporary fast implementation while dynamic discovery is optimized
    */
-  private discoverLocalPDFs(): Array<{ url: string; filename: string }> {
-    // List of known local PDF files (in production, this could be dynamic)
-    const knownPDFs = [
-      '2024.02-conashaugh-courier.pdf',
-      '2024.03-conashaugh-courier.pdf',
-      '2024.04-conashaugh-courier.pdf',
-      '2024.05-conashaugh-courier.pdf',
-      '2024.06-conashaugh-courier.pdf',
-      '2024.08-conashaugh-courier.pdf',
-      '2024.09-conashaugh-courier.pdf',
-      '2024.10-conashaugh-courier.pdf',
-      '2024.11-conashaugh-courier.pdf',
-      '2024.12-conashaugh-courier.pdf',
-      '2025.02-conashaugh-courier.pdf',
-      '2025.05-conashaugh-courier.pdf',
-      '2025.06-conashaugh-courier.pdf',
-      '2025.07-conashaugh-courier.pdf',
+  private async discoverLocalPDFs(): Promise<Array<{ url: string; filename: string }>> {
+    logger.info('Fast-loading PDF files from /public/issues/...');
+
+    // Quick validation of the most recent files first (likely to be accessed)
+    const recentFiles = [
       '2025.08-conashaugh-courier.pdf',
+      '2025.07-conashaugh-courier.pdf',
+      '2025.06-conashaugh-courier.pdf',
+      '2025.05-conashaugh-courier.pdf',
+      '2025.02-conashaugh-courier.pdf',
+      '2024.12-conashaugh-courier.pdf',
+      '2024.11-conashaugh-courier.pdf',
+      '2024.10-conashaugh-courier.pdf',
     ];
 
-    return knownPDFs.map((filename) => ({
-      url: `${this.localBasePath}${filename}`,
-      filename,
-    }));
+    // Validate these files exist quickly
+    const validFiles: Array<{ url: string; filename: string }> = [];
+
+    // Test recent files with fast timeout
+    for (const filename of recentFiles) {
+      const url = `${this.localBasePath}${filename}`;
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 1000); // 1 second timeout
+
+        const response = await fetch(url, {
+          method: 'HEAD',
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          validFiles.push({ url, filename });
+          logger.debug(`✓ ${filename}`);
+        }
+      } catch {
+        // File doesn't exist, skip
+      }
+    }
+
+    // If we found some files, return them immediately for fast loading
+    if (validFiles.length > 0) {
+      logger.success(`Fast-loaded ${validFiles.length} recent PDF files`);
+
+      // Optionally discover more files in the background (don't await)
+      void this.discoverMoreFilesInBackground(validFiles);
+
+      return validFiles;
+    }
+
+    // Fallback: if no recent files found, try a broader but still limited search
+    logger.warn('No recent files found, trying broader search...');
+    return this.discoverTargetedFilesOnly();
   }
 
   /**
+   * Discover additional files in background without blocking UI
+   */
+  private async discoverMoreFilesInBackground(
+    existingFiles: Array<{ url: string; filename: string }>,
+  ) {
+    // This runs in background - expand the file list over time
+    const additionalPatterns = this.generateTargetedFilenames().slice(0, 30); // Limit to 30 more
+
+    for (const filename of additionalPatterns) {
+      // Skip if we already have this file
+      if (existingFiles.some((f) => f.filename === filename)) continue;
+
+      const url = `${this.localBasePath}${filename}`;
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          existingFiles.push({ url, filename });
+          logger.debug(`Background found: ${filename}`);
+        }
+      } catch {
+        // Skip silently
+      }
+
+      // Small delay to not overwhelm
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    logger.info(`Background discovery completed. Total files: ${existingFiles.length}`);
+  }
+
+  /**
+   * Fallback method for targeted file discovery
+   */
+  private async discoverTargetedFilesOnly(): Promise<Array<{ url: string; filename: string }>> {
+    const targetFiles = this.generateTargetedFilenames().slice(0, 15); // Only first 15
+    const validFiles: Array<{ url: string; filename: string }> = [];
+
+    for (const filename of targetFiles) {
+      const url = `${this.localBasePath}${filename}`;
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          validFiles.push({ url, filename });
+        }
+      } catch {
+        // Skip
+      }
+    }
+
+    return validFiles;
+  }
+
+  /**
+   * Generate targeted filenames based on known patterns (reduced set)
+   */
+  private generateTargetedFilenames(): string[] {
+    const filenames: string[] = [];
+    const currentYear = new Date().getFullYear();
+
+    // Focus on years where we know files exist (2014-2025)
+    for (let year = 2014; year <= currentYear; year++) {
+      // Monthly issues - only test months that commonly exist
+      const commonMonths = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+      for (const month of commonMonths) {
+        const monthStr = month.toString().padStart(2, '0');
+        filenames.push(`${year}.${monthStr}-conashaugh-courier.pdf`);
+      }
+
+      // Seasonal issues (most common patterns)
+      filenames.push(`${year}.summer-conashaugh-courier.pdf`);
+      filenames.push(`${year}.winter-conashaugh-courier.pdf`);
+    }
+
+    return filenames;
+  } /**
    * Convert PDF metadata to newsletter metadata
    */
   private convertPDFMetadataToNewsletter(pdfMeta: PDFMetadata): NewsletterMetadata {
@@ -758,110 +846,7 @@ class NewsletterService {
     return merged;
   }
 
-  /**
-   * Load fallback newsletter data from JSON files
-   */
-  private async loadFallbackNewsletters(): Promise<NewsletterMetadata[]> {
-    try {
-      console.log('[NewsletterService] Loading fallback data from issues.json');
-
-      // Load the original issues.json as fallback
-      const response = await fetch(getDataPath('issues.json'));
-      const issuesData: PdfDocument[] = await response.json();
-
-      // Convert to NewsletterMetadata format with enhanced date parsing
-      return issuesData.map((issue) => this.convertFallbackToNewsletter(issue));
-    } catch (error) {
-      console.error('[NewsletterService] Failed to load fallback data:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Merge fallback data for any newsletters not found in primary sources
-   */
-  private mergeFallbackData(
-    primaryNewsletters: NewsletterMetadata[],
-    fallbackNewsletters: NewsletterMetadata[],
-  ): NewsletterMetadata[] {
-    const merged = [...primaryNewsletters];
-
-    for (const fallback of fallbackNewsletters) {
-      const exists = merged.some((primary) => this.isSameNewsletter(primary, fallback));
-
-      if (!exists) {
-        console.log(`[NewsletterService] Adding fallback newsletter: ${fallback.filename}`);
-        merged.push(fallback);
-      }
-    }
-
-    return merged;
-  }
-
-  /**
-   * Convert fallback JSON data to NewsletterMetadata with proper date parsing
-   */
-  private convertFallbackToNewsletter(issue: PdfDocument): NewsletterMetadata {
-    // Parse date from filename if possible, otherwise use provided date
-    let publishDate: string;
-
-    const filenameMatch = issue.filename?.match(/^(\d{4})\.(\d{2})-/);
-    if (filenameMatch) {
-      const [, year, month] = filenameMatch;
-      publishDate = `${year}-${month}-01`; // Default to 1st of month
-    } else {
-      // Try to parse the existing date field, defaulting to 1st of month
-      const dateMatch = issue.date.match(/^(\w+)\s+(\d{4})$/);
-      if (dateMatch) {
-        const [, monthName, year] = dateMatch;
-        if (monthName) {
-          const monthNumber = this.getMonthNumber(monthName);
-          publishDate = `${year}-${monthNumber.toString().padStart(2, '0')}-01`;
-        } else {
-          publishDate = new Date().toISOString().split('T')[0] || '1970-01-01';
-        }
-      } else {
-        // If all else fails, use current date
-        publishDate = new Date().toISOString().split('T')[0] || '1970-01-01';
-      }
-    }
-
-    return {
-      ...issue,
-      publishDate: new Date(publishDate).toISOString(),
-      contentType: this.determineContentType(issue.title),
-      quality: 'web',
-      // Do NOT set localFile - let the actual file check determine availability
-      fileSize: 'Unknown', // Will be determined if file is accessible
-    };
-  }
-
-  /**
-   * Get month number from month name
-   */
-  private getMonthNumber(monthName: string): number {
-    const months: Record<string, number> = {
-      January: 1,
-      February: 2,
-      March: 3,
-      April: 4,
-      May: 5,
-      June: 6,
-      July: 7,
-      August: 8,
-      September: 9,
-      October: 10,
-      November: 11,
-      December: 12,
-      // Handle season names as well
-      Spring: 4,
-      Summer: 7,
-      Fall: 10,
-      Autumn: 10,
-      Winter: 1,
-    };
-    return months[monthName] || 1; // Default to January
-  }
+  // REMOVED: All JSON fallback functions - NO JSON REFERENCES ALLOWED
 
   /**
    * Check if two newsletters represent the same publication

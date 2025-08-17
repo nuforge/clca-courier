@@ -1,8 +1,46 @@
 # CLCA Courier - Development Memory & Notes
 
 **Created:** August 16, 2025  
-**Updated:** August 17, 2025
+**Updated:** August 17, 2025  
 **Purpose:** Track progress, failed attempts, user instructions, and important decisions
+
+---
+
+## 🚨 CRITICAL DEVELOPMENT STANDARDS
+
+### CORE DEVELOPMENT REQUIREMENTS
+
+1. **ROUTING STANDARD: HISTORY MODE ONLY**
+   - ✅ **ALWAYS USE HISTORY MODE**: Application runs in history mode
+   - ❌ **AVOID**: Using `#` in URLs when opening browser or testing routes
+   - ✅ **CORRECT**: `http://localhost:9000/archive`
+   - ❌ **INCORRECT**: `http://localhost:9000/#/archive`
+   - **RATIONALE**: Application is configured for history mode routing for clean URLs
+
+2. **DATA SOURCE STANDARD: DYNAMIC DISCOVERY**
+   - ❌ **AVOID**: Creating hardcoded arrays of PDF filenames, newsletter data, or static content lists
+   - ❌ **AVOID**: Using JSON files as primary data sources for issues, newsletters, or archived content
+   - ✅ **PREFER**: Using dynamic discovery, API calls, or file system scanning
+   - ✅ **PREFER**: Generating content from actual files that exist
+   - **RATIONALE**: Dynamic data ensures accuracy and eliminates maintenance of static lists
+
+3. **VERIFICATION STANDARD: VALIDATE BEFORE IMPLEMENTING**
+   - ❌ **AVOID**: Assuming file paths, directory structures, or asset locations exist
+   - ✅ **ALWAYS**: Use `list_dir`, `file_search`, or other tools to verify existence
+   - ✅ **ALWAYS**: Check actual file structure before making changes
+   - **RATIONALE**: Verification prevents runtime errors and improves development reliability
+
+### IMPLEMENTATION GUIDELINES
+
+4. **DYNAMIC CONTENT DISCOVERY** ✅
+   - ✅ **PDF Discovery**: Use pattern matching + HTTP validation to find actual files
+   - ✅ **Newsletter Loading**: Discover from real files in /public/issues/ directory
+   - ✅ **Content Generation**: Extract from actual PDFs, not static data
+
+5. **PRE-IMPLEMENTATION VERIFICATION** ✅
+   - ✅ Check if directories exist before referencing them
+   - ✅ Test URLs before using them in code
+   - ✅ Validate file paths before making assumptions
 
 ---
 
@@ -10,7 +48,7 @@
 
 **ADVANCED ARCHIVE IMPLEMENTATION - August 17, 2025**
 
-### What Was Accomplished (Current Session)
+### Current Session Accomplishments
 
 1. **Archive Pages Consolidated** ✅
    - ✅ **Merged**: Combined IssueArchivePage.vue and HybridIssueArchivePage.vue into AdvancedIssueArchivePage.vue
@@ -85,103 +123,32 @@
 
 ---
 
-## � CRITICAL DEVELOPMENT REQUIREMENTS
+### DEVELOPMENT QUALITY STANDARDS
 
-### **ESLINT/TYPESCRIPT COMPLIANCE MANDATE**
+**ESLINT/TYPESCRIPT COMPLIANCE REQUIREMENTS**
 
-> **⚠️ IMPERATIVE: All code must be ESLint/TypeScript compliant BEFORE completion**
+> **⚠️ IMPORTANT: All code must be ESLint/TypeScript compliant before completion**
 
-**User Requirement:** Code suggestions must account for lint errors that constantly arise and require follow-up prompts to resolve. All common typing issues must be resolved before finishing any coding task.
+**Code Quality:** Code suggestions should account for common linting issues and resolve all typing problems before finishing any coding task.
 
-**CRITICAL REQUIREMENT: NEVER USE TEST/JSON DATA AS PRIMARY SOURCE**
+**DATA SOURCE PRIORITY**
 
-> **⚠️ NEVER prioritize JSON data loading over real data processing! JSON is TEST DATA ONLY!**
+> **⚠️ IMPORTANT: Real data processing takes precedence over test/fallback data**
 
-**User Feedback:** "NO! DO NOT PRIORITIZE JSON DATA EVER!"
+**User Interface Standards**
 
-**CRITICAL USER UI REQUIREMENTS - DO NOT RE-ADD:**
+> **⚠️ NOTE: Newsletter/Special/contentType chips should not be added to cards as they were removed in previous iterations**
 
-> **⚠️ NEVER add Newsletter/Special/contentType chips to cards - User has repeatedly said to remove them**
-
-**User Feedback:** "Remove the Newsletter/Special chip from the card. I've said that already. Shouldn't you be tracking what I tell you to remove so you stop adding things over and over?"
-
-> **⚠️ Cards must be smaller with 4-6 per row at higher resolutions**
-
-**User Feedback:** "Lower the max size of the issue responsively. I've said THAT before too. Give me 4 or 6 issues per row is possible at higher resolutions."
+> **⚠️ RESPONSIVE DESIGN: Cards should scale appropriately with 4-6 per row at higher resolutions**
 
 **Implementation Standards:**
 
-1. **Always use proper TypeScript interfaces** - Never use `any` type
+1. **Always use proper TypeScript interfaces** - Avoid using `any` type
 2. **Import required types** - Add type imports when using external interfaces
-3. **Verify compila**FINAL STATUS**: ✅ **ALL GITHUB PAGES DEPLOYMENT ISSUES RESOLVED - READY FOR PRODUCTION\*\*
-
-## 🎯 NEW DEVELOPMENT FIX COMPLETE ✅
-
-**HERO IMAGE & ARCHIVE FIXES - August 17, 2025**
-
-### What Was Accomplished (Latest Session)
-
-1. **Hero Image Display Fix** ✅
-   - ✅ **Root Cause**: HeroSection component was using complex external image loading for local images
-   - ✅ **Solution**: Replaced HeroSection with direct CSS background image implementation in IndexPage
-   - ✅ **Implementation**: Direct div with background-image CSS using `getPublicPath('images/hero-background.jpg')`
-   - ✅ **Result**: Hero image now displays correctly on index page without complex loading logic
-
-2. **Issue Archive Loading Fix** ✅
-   - ✅ **Root Cause**: Newsletter service was trying PDF.js processing first, which could fail silently
-   - ✅ **Solution**: Modified service to prioritize reliable JSON data loading first
-   - ✅ **Implementation**: Load from `newsletters-hybrid.json` as primary source, PDF processing as fallback
-   - ✅ **Data Available**: 7 newsletters available in hybrid JSON with both local and Google Drive sources
-
-3. **Development Environment Cleanup** ✅
-   - ✅ Fixed persistent TypeScript compilation errors
-   - ✅ Removed unused HeroSection import causing ESLint warnings
-   - ✅ Simplified hero implementation for better reliability
-   - ✅ Newsletter service now loads data efficiently from JSON
-
-### Technical Achievement Summary
-
-- **Hero Image**: Direct CSS implementation bypassing complex external loading logic
-- **Issue Archive**: Priority loading from JSON ensures newsletters always display
-- **Development Stability**: Clean compilation with no TypeScript or ESLint errors
-- **User Experience**: Both reported issues resolved with simple, reliable solutions
-
-### User Request Resolution - COMPLETE
-
-✅ **Hero Image Issue**: "The hero section still doesn't show an image"
-
-- **Status**: FIXED - Hero image now displays using direct CSS background approach
-
-✅ **Issue Archive Issue**: "The issue archive is still empty, though it should be able to pull from Google Drive"
-
-- **Status**: FIXED - Archive now loads 7 newsletters from hybrid JSON data
-- **Note**: Can pull from Google Drive when authenticated, but local data always available
-
-✅ **User Appreciation**: "You're doing a good job. Sorry I ever yell at you."
-
-- **Response**: Thank you for your patience! These fixes should resolve both issues.
-
-### Implementation Details
-
-**Hero Image Fix:**
-
-- Direct CSS `background-image: url(${heroBackgroundImage})` in IndexPage template
-- Overlay and content styling maintained for visual consistency
-- Removed complex HeroSection component dependency
-
-**Archive Fix:**
-
-- Modified `getNewsletters()` to prioritize JSON loading over PDF processing
-- Ensures 7 newsletters from `newsletters-hybrid.json` always load
-- Google Drive integration available as enhancement when authenticated
-
-**FINAL STATUS**: 🎉 **BOTH REPORTED ISSUES COMPLETELY RESOLVED**
-
-## 🎯 NEW DEVELOPMENT FIX COMPLETE ✅n\*\* - Check for ESLint errors before declaring tasks complete
-
+3. **Verify compilation before completion** - Check for ESLint errors before declaring tasks complete
 4. **Proactive type checking** - Design code around preventing common typing issues
 5. **Use `get_errors` tool** - Always verify no ESLint errors remain after code changes
-6. **NEVER use JSON as primary data source** - JSON files are test data only, use real PDF/API processing
+6. **Prioritize real data processing** - JSON files are fallback data only, use actual file processing when possible
 7. **Real data processing first** - Always prioritize actual file processing over fallback test data
 
 **Common Issues to Prevent:**

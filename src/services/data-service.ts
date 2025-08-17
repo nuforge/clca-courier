@@ -1,13 +1,11 @@
 // Data service to simulate API calls by loading local JSON files
 // This service is specifically for the site-store-simple.ts
 import type { NewsItem, Classified, Event } from '../components/models';
-import type { PdfDocument } from '../composables/usePdfViewer';
 
-// Import JSON data
+// Import JSON data - NO ISSUES.JSON REFERENCE
 import newsData from '../data/news.json';
 import classifiedsData from '../data/classifieds.json';
 import eventsData from '../data/events.json';
-import issuesData from '../data/issues.json';
 import communityStatsData from '../data/community-stats.json';
 
 export interface CommunityStats {
@@ -39,11 +37,7 @@ export const dataService = {
     return eventsData as Event[];
   },
 
-  // Simulate fetching archived issues from API
-  async getArchivedIssues(): Promise<PdfDocument[]> {
-    await delay(100);
-    return issuesData as PdfDocument[];
-  },
+  // REMOVED: getArchivedIssues - NO ISSUES.JSON REFERENCES ALLOWED
 
   // Simulate fetching community stats from API
   async getCommunityStats(): Promise<CommunityStats> {

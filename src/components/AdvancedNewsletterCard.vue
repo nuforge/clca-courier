@@ -15,7 +15,8 @@
     <!-- Thumbnail preview with advanced fallback system -->
     <q-card-section class="q-pa-sm">
       <div class="thumbnail-container">
-        <div class="newsletter-thumbnail-wrapper" @click="openWebViewer">
+        <div class="newsletter-thumbnail-wrapper" :class="{ 'no-sources': !hasLocalSource && !hasDriveSource }"
+          @click="openWebViewer">
           <!-- Local thumbnail (highest priority) -->
           <q-img v-if="localThumbnailUrl && !thumbnailError.local" :src="localThumbnailUrl"
             :alt="`${newsletter.title} cover`" class="rounded-borders newsletter-thumbnail" loading="lazy" fit="cover"
@@ -23,7 +24,7 @@
             <!-- Hover overlay -->
             <div class="absolute-full newsletter-overlay flex flex-center">
               <q-btn round color="primary" icon="visibility" size="lg" class="overlay-btn">
-                <q-tooltip>View Newsletter</q-tooltip>
+                <q-tooltip>{{ viewTooltipText }}</q-tooltip>
               </q-btn>
             </div>
           </q-img>
@@ -34,7 +35,7 @@
             :style="{ backgroundImage: `url(${generatedThumbnail})` }">
             <div class="absolute-full newsletter-overlay flex flex-center">
               <q-btn round color="primary" icon="visibility" size="lg" class="overlay-btn">
-                <q-tooltip>View Newsletter</q-tooltip>
+                <q-tooltip>{{ viewTooltipText }}</q-tooltip>
               </q-btn>
             </div>
             <!-- Loading indicator for generation -->
@@ -52,7 +53,7 @@
             <!-- Hover overlay -->
             <div class="absolute-full newsletter-overlay flex flex-center">
               <q-btn round color="primary" icon="visibility" size="lg" class="overlay-btn">
-                <q-tooltip>View Newsletter</q-tooltip>
+                <q-tooltip>{{ viewTooltipText }}</q-tooltip>
               </q-btn>
             </div>
 
@@ -151,6 +152,18 @@
               <q-item-label caption>Copy shareable URL</q-item-label>
             </q-item-section>
           </q-item>
+
+          <!-- Check File Availability -->
+          <q-item v-if="props.newsletter.localFile" clickable @click="validateLocalFile"
+            :disable="fileValidation.isValidating">
+            <q-item-section avatar>
+              <q-icon :name="fileValidation.isValidating ? 'hourglass_empty' : 'refresh'" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ fileValidation.isValidating ? 'Checking...' : 'Check Availability' }}</q-item-label>
+              <q-item-label caption>Verify if local file still exists</q-item-label>
+            </q-item-section>
+          </q-item>
         </q-list>
       </q-btn-dropdown>
     </q-card-actions>
@@ -182,8 +195,26 @@
             <div v-if="hasLocalSource || hasDriveSource">
               <strong>Available Sources:</strong>
               <div class="q-mt-xs q-gutter-xs">
-                <q-chip v-if="hasLocalSource" dense size="sm" color="primary" text-color="white">Local</q-chip>
+                <q-chip v-if="hasLocalSource" dense size="sm" color="primary" text-color="white">
+                  Local
+                  <q-tooltip v-if="fileValidation.lastChecked">
+                    Last verified: {{ fileValidation.lastChecked.toLocaleTimeString() }}
+                  </q-tooltip>
+                </q-chip>
                 <q-chip v-if="hasDriveSource" dense size="sm" color="secondary" text-color="white">Google Drive</q-chip>
+              </div>
+            </div>
+
+            <!-- File validation status -->
+            <div v-if="props.newsletter.localFile">
+              <strong>Local File Status:</strong>
+              <div class="q-mt-xs">
+                <q-badge v-if="fileValidation.isValidating" color="orange" icon="hourglass_empty" label="Checking..." />
+                <q-badge v-else-if="fileValidation.localFileExists === true" color="green" icon="check_circle"
+                  label="Available" />
+                <q-badge v-else-if="fileValidation.localFileExists === false" color="red" icon="error"
+                  label="Not found" />
+                <q-badge v-else color="grey" icon="help" label="Not checked" />
               </div>
             </div>
           </div>
@@ -203,6 +234,8 @@ import { date, useQuasar } from 'quasar'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
 import { usePdfViewer } from '../composables/usePdfViewer'
 import { getPublicPath } from '../utils/path-utils'
+import { convertToViewUrl } from '../utils/googleDriveUtils'
+import { validatePdfFile } from '../utils/pdfValidator'
 import type { NewsletterMetadata } from '../services/newsletter-service'
 import { logger } from '../utils/logger'
 
@@ -232,10 +265,31 @@ const thumbnailError = ref({
   generated: false
 })
 
+// File validation state
+const fileValidation = ref({
+  localFileExists: null as boolean | null,
+  isValidating: false,
+  lastChecked: null as Date | null
+})
+
 // Computed properties for source detection
-const hasLocalSource = computed(() =>
-  props.newsletter.localFile && props.newsletter.localFile.length > 0
-)
+const hasLocalSource = computed(() => {
+  const hasFileProperty = props.newsletter.localFile && props.newsletter.localFile.length > 0
+
+  // TEMPORARILY DISABLED: File validation causes issues in development
+  // During development, trust the metadata rather than HTTP validation
+  if (import.meta.env.DEV) {
+    return hasFileProperty
+  }
+
+  // In production, use validated result if available
+  if (fileValidation.value.localFileExists === null) {
+    return hasFileProperty
+  }
+
+  // Use validated result
+  return hasFileProperty && fileValidation.value.localFileExists
+})
 
 const hasDriveSource = computed(() =>
   props.newsletter.driveId && props.newsletter.driveId.length > 0
@@ -259,6 +313,13 @@ const localThumbnailUrl = computed(() => {
   }
 
   return null
+})
+
+// Tooltip text for view buttons
+const viewTooltipText = computed(() => {
+  if (hasLocalSource.value) return 'View Newsletter'
+  if (hasDriveSource.value) return 'View from Cloud'
+  return 'Newsletter not available'
 })
 
 // File size and page validation
@@ -317,21 +378,51 @@ const generateThumbnail = async () => {
 }
 
 const openWebViewer = () => {
-  if (!hasLocalSource.value) {
-    logger.warn('No local source available for web viewer')
+  // Try local source first - use URL from newsletter metadata
+  if (props.newsletter.localFile && props.newsletter.url) {
+    console.log('Opening PDF with URL:', props.newsletter.url)
+    console.log('Newsletter data:', props.newsletter)
+
+    // Use the URL from newsletter metadata (already properly constructed)
+    pdfViewer.openDocument({
+      id: props.newsletter.id,
+      title: props.newsletter.title,
+      date: props.newsletter.date,
+      pages: props.newsletter.pages || 0,
+      url: props.newsletter.url, // Use the URL from metadata
+      filename: props.newsletter.filename
+    })
     return
   }
 
-  const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
+  // Fallback to cloud version if available
+  if (hasDriveSource.value) {
+    logger.info('Using cloud version as fallback for viewing:', props.newsletter.title)
 
-  // Use the proper PDF viewer with the document structure expected
-  pdfViewer.openDocument({
-    id: props.newsletter.id,
-    title: props.newsletter.title,
-    date: props.newsletter.date,
-    pages: props.newsletter.pages || 0,
-    url: pdfUrl,
-    filename: props.newsletter.filename
+    // Convert Google Drive ID to direct view URL for PDF viewer using utility
+    const driveViewUrl = convertToViewUrl(`https://drive.google.com/file/d/${props.newsletter.driveId}/view`)
+
+    pdfViewer.openDocument({
+      id: props.newsletter.id,
+      title: props.newsletter.title,
+      date: props.newsletter.date,
+      pages: props.newsletter.pages || 0,
+      url: driveViewUrl,
+      filename: props.newsletter.filename
+    })
+    return
+  }
+
+  // No sources available - provide user feedback
+  logger.warn('No local or cloud source available for viewing:', props.newsletter.title)
+
+  $q.notify({
+    type: 'warning',
+    message: 'Newsletter not available for viewing',
+    caption: 'This newsletter is currently not available in local storage or cloud.',
+    icon: 'warning',
+    position: 'bottom',
+    timeout: 3000
   })
 }
 
@@ -385,8 +476,61 @@ const copyLink = async () => {
   }
 }
 
+// File validation methods
+const validateLocalFile = async (): Promise<boolean> => {
+  if (!props.newsletter.localFile) {
+    fileValidation.value.localFileExists = false
+    return false
+  }
+
+  if (fileValidation.value.isValidating) {
+    return fileValidation.value.localFileExists || false
+  }
+
+  fileValidation.value.isValidating = true
+
+  try {
+    const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
+    const validation = await validatePdfFile(pdfUrl)
+
+    fileValidation.value.localFileExists = validation.isValid
+    fileValidation.value.lastChecked = new Date()
+
+    if (!validation.isValid) {
+      logger.warn(`Local file validation failed for ${props.newsletter.filename}:`, validation.error)
+    } else {
+      logger.debug(`Local file validated successfully for ${props.newsletter.filename}`)
+    }
+
+    return validation.isValid
+  } catch (error) {
+    logger.error('Error validating local file:', error)
+    fileValidation.value.localFileExists = false
+    return false
+  } finally {
+    fileValidation.value.isValidating = false
+  }
+}
+
+// TEMPORARILY DISABLED: File validation during development
+// Revalidate file if it's been a while since last check
+// const shouldRevalidateFile = (): boolean => {
+//   if (!fileValidation.value.lastChecked) return true
+//
+//   const timeSinceCheck = Date.now() - fileValidation.value.lastChecked.getTime()
+//   const fiveMinutes = 5 * 60 * 1000 // 5 minutes in milliseconds
+//
+//   return timeSinceCheck > fiveMinutes
+// }
+
 // Try to load existing thumbnail on mount
 onMounted(async () => {
+  // TEMPORARILY DISABLED: File validation during development
+  // Only validate in production builds where static file serving is stable
+  if (import.meta.env.PROD && props.newsletter.localFile && fileValidation.value.localFileExists === null) {
+    await validateLocalFile()
+  }
+
   if (hasLocalSource.value && !localThumbnailUrl.value) {
     try {
       const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
@@ -433,6 +577,15 @@ onMounted(async () => {
   cursor: pointer;
 }
 
+.newsletter-thumbnail-wrapper.no-sources {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.newsletter-thumbnail-wrapper.no-sources:hover {
+  opacity: 0.7;
+}
+
 .newsletter-thumbnail {
   width: 100%;
   height: 100%;
@@ -466,6 +619,10 @@ onMounted(async () => {
 
 .newsletter-thumbnail-wrapper:hover .newsletter-overlay {
   opacity: 1;
+}
+
+.newsletter-thumbnail-wrapper.no-sources .newsletter-overlay {
+  display: none;
 }
 
 .overlay-btn {

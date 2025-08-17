@@ -1,5 +1,21 @@
 # Component Refactoring Documentation
 
+## 🚨 CRITICAL DEVELOPMENT RULES
+
+### USER ENFORCED PROHIBITIONS
+
+- ❌ **Hash Mode Routing**: Never use `/#/route` - always use history mode `/route`
+- ❌ **Hardcoded Data Lists**: No static arrays, JSON files, or fake content data
+- ❌ **Path Assumptions**: Always verify file/directory existence before implementation
+
+### MANDATORY PRACTICES
+
+- ✅ **Dynamic Discovery**: Generate all content from actual files that exist
+- ✅ **Verification First**: Check paths and structures before coding
+- ✅ **History Mode**: Application runs in history mode only
+
+---
+
 ## Overview
 
 The MainLayout.vue and related components have been refactored to improve code organization, reusability, and maintainability. The refactoring splits the monolithic layout into smaller, focused components and introduces composables for shared functionality.

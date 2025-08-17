@@ -1,5 +1,32 @@
 # CLCA Courier - Development Task Checklist
 
+## 🚨 CRITICAL DEVELOPMENT RULES 🚨
+
+### NEVER DO THESE (USER ENFORCED PROHIBITIONS)
+
+❌ **HASH MODE ROUTING** - Application uses history mode only
+
+- ✅ **CORRECT**: `http://localhost:9000/archive`
+- ❌ **WRONG**: `http://localhost:9000/#/archive`
+
+❌ **HARDCODED DATA LISTS** - No static arrays, JSON files for content, or fake data
+
+- ✅ **CORRECT**: Dynamic discovery from actual files
+- ❌ **WRONG**: Arrays of PDF filenames or newsletter objects
+
+❌ **ASSUMING PATHS/FILES** - Always verify before implementing
+
+- ✅ **CORRECT**: Use `list_dir`, `file_search` to check existence
+- ❌ **WRONG**: Guessing directory structures or file locations
+
+### MANDATORY DEVELOPMENT PRACTICES
+
+✅ **DYNAMIC EVERYTHING** - All content must be discovered from actual files
+✅ **VERIFY FIRST** - Check paths, directories, and files before referencing
+✅ **HISTORY MODE** - Always use history mode routing, never hash mode
+
+---
+
 ## 🎯 ARCHIVE SYSTEM CONSOLIDATION ✅ COMPLETED
 
 ### Advanced Archive Implementation - August 17, 2025 ✅ COMPLETED

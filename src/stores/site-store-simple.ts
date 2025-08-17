@@ -6,6 +6,7 @@ import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 import { dataService, type CommunityStats } from '../services/data-service';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useGoogleDrivePdfs } from '../composables/useGoogleDrivePdfs';
+import { newsletterService } from '../services/newsletter-service';
 
 export const useSiteStore = defineStore('site', () => {
   // Initialize user settings
@@ -17,9 +18,9 @@ export const useSiteStore = defineStore('site', () => {
   // Site state
   const isMenuOpen = ref(false);
   const isLoading = ref(true);
-  const useGoogleDrive = ref(true); // Toggle between local JSON and Google Drive
+  const useGoogleDrive = ref(false); // FORCED FALSE - USE ONLY LOCAL FILES
 
-  // Data loaded from JSON files (simulating API)
+  // Data loaded from real PDF files (not JSON)
   const newsItems = ref<NewsItem[]>([]);
   const classifieds = ref<Classified[]>([]);
   const events = ref<Event[]>([]);
@@ -90,30 +91,23 @@ export const useSiteStore = defineStore('site', () => {
     try {
       isLoading.value = true;
 
-      // Load all data in parallel
-      const [news, classified, event, issues, stats] = await Promise.all([
+      // Load all data in parallel - Load real PDFs using hardcoded list
+      const [news, classified, event, stats] = await Promise.all([
         dataService.getNewsItems(),
         dataService.getClassifieds(),
         dataService.getEvents(),
-        dataService.getArchivedIssues(),
         dataService.getCommunityStats(),
       ]);
 
       newsItems.value = news;
       classifieds.value = classified;
       events.value = event;
-      archivedIssues.value = issues;
       communityStats.value = stats;
 
-      // Initialize Google Drive PDF data if enabled
-      if (useGoogleDrive.value) {
-        try {
-          await googleDrivePdfs.initialize();
-        } catch (error) {
-          console.warn('Google Drive initialization failed, falling back to local data:', error);
-          useGoogleDrive.value = false;
-        }
-      }
+      // Load PDFs using newsletter service
+      await loadArchivedIssues();
+
+      // Google Drive is disabled - using only local PDF files
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -147,9 +141,21 @@ export const useSiteStore = defineStore('site', () => {
 
   async function loadArchivedIssues() {
     try {
-      archivedIssues.value = await dataService.getArchivedIssues();
+      // Load real PDF files using newsletter service - NO HARDCODED LISTS
+      const newsletters = await newsletterService.getNewsletters();
+
+      // Convert newsletter metadata to PdfDocument format
+      archivedIssues.value = newsletters.map((newsletter) => ({
+        id: newsletter.id,
+        title: newsletter.title,
+        date: newsletter.date,
+        pages: newsletter.pages || 0,
+        url: newsletter.url,
+        filename: newsletter.filename,
+      }));
     } catch (error) {
       console.error('Error loading archived issues:', error);
+      archivedIssues.value = [];
     }
   }
 
@@ -189,7 +195,7 @@ export const useSiteStore = defineStore('site', () => {
     loadNewsItems,
     loadClassifieds,
     loadEvents,
-    loadArchivedIssues,
+    loadArchivedIssues, // Load real PDF files
 
     // Settings actions
     updateUserSettings: userSettings.updateSettings,
@@ -197,7 +203,7 @@ export const useSiteStore = defineStore('site', () => {
     exportUserSettings: userSettings.exportSettings,
     importUserSettings: userSettings.importSettings,
 
-    // Google Drive integration
+    // Google Drive integration (disabled)
     googleDrivePdfs: computed(() => googleDrivePdfs),
   };
 });

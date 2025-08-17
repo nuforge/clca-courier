@@ -1,5 +1,4 @@
-import { ref, nextTick } from 'vue';
-import type { WebViewerInstance } from '@pdftron/webviewer';
+import { ref } from 'vue';
 
 export interface PdfDocument {
   id: number;
@@ -15,11 +14,13 @@ const showViewer = ref(false);
 const selectedDocument = ref<PdfDocument | null>(null);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
-let webViewerInstance: WebViewerInstance | null = null;
 
 export function usePdfViewer() {
   // Open a PDF document in the viewer
   const openDocument = (document: PdfDocument) => {
+    console.log('🔍 [usePdfViewer] Opening document:', document);
+    console.log('🔍 [usePdfViewer] Document URL:', document.url);
+
     selectedDocument.value = document;
     showViewer.value = true;
     isLoading.value = true;
@@ -32,28 +33,19 @@ export function usePdfViewer() {
     selectedDocument.value = null;
     isLoading.value = false;
     error.value = null;
-    webViewerInstance = null;
   };
 
-  // Switch to a different document (improved implementation)
-  const switchDocument = async (document: PdfDocument) => {
+  // Switch to a different document (simplified implementation)
+  const switchDocument = (document: PdfDocument) => {
     try {
       isLoading.value = true;
       error.value = null;
       selectedDocument.value = document;
 
-      // If we have a WebViewer instance, load the new document directly
-      if (webViewerInstance) {
-        await nextTick(); // Ensure Vue reactivity has updated
-        const { documentViewer } = webViewerInstance.Core;
+      console.log('🔄 [usePdfViewer] Switching to document:', document.title);
 
-        // Load the new document
-        await documentViewer.loadDocument(document.url);
-        isLoading.value = false;
-      } else {
-        // If no instance, the PdfViewer component will handle the new document
-        // Loading state will be cleared when the viewer is ready
-      }
+      // The PDF viewer component will automatically reload via reactive URL change
+      // Loading state will be cleared when the new document loads
     } catch (err) {
       console.error('Error switching document:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to switch document';
@@ -62,9 +54,14 @@ export function usePdfViewer() {
     }
   };
 
-  // Handle PDF viewer ready event (store instance reference)
-  const onViewerReady = (instance: WebViewerInstance) => {
-    webViewerInstance = instance;
+  // Handle PDF viewer ready event (simple success/failure)
+  const onViewerReady = (success: boolean) => {
+    if (success) {
+      console.log('✅ [usePdfViewer] PDF viewer ready');
+    } else {
+      console.error('❌ [usePdfViewer] PDF viewer failed to initialize');
+      error.value = 'PDF viewer failed to initialize';
+    }
     isLoading.value = false;
   };
 
