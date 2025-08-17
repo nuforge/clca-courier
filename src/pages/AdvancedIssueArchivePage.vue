@@ -11,8 +11,8 @@
                 Newsletter Archive
               </div>
               <p class="text-body1">
-                Browse through past issues of The Courier with advanced search, filtering, and hybrid hosting.
-                Enjoy fast local access for viewing and high-quality downloads from our archive.
+                Browse through past issues of The Courier with advanced search and filtering.
+                Find issues by content, filter by availability, and view with multiple source options.
               </p>
 
               <!-- Service Statistics -->
@@ -26,103 +26,155 @@
                   <div class="col">
                     <div class="text-h6 text-positive">{{
                       hybridNewsletters.serviceStats.value.sourceCounts.hybrid }}</div>
-                    <div class="text-caption">Hybrid Sources</div>
+                    <div class="text-caption">Multiple Sources</div>
                   </div>
                   <div class="col">
                     <div class="text-h6 text-info">{{
                       hybridNewsletters.serviceStats.value.sourceCounts.local }}</div>
-                    <div class="text-caption">Local Only</div>
+                    <div class="text-caption">Web Viewable</div>
                   </div>
                   <div class="col">
                     <div class="text-h6 text-secondary">{{
                       hybridNewsletters.serviceStats.value.sourceCounts.drive }}</div>
-                    <div class="text-caption">Drive Only</div>
+                    <div class="text-caption">Archive Only</div>
                   </div>
                 </div>
               </div>
             </q-card-section>
           </q-card>
 
-          <!-- Advanced Search and Filters Card -->
+          <!-- Search and Filter Interface -->
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
-              <!-- Search Toggle -->
-              <div class="row items-center q-mb-md">
-                <q-btn-toggle v-model="useAdvancedSearch" :options="[
-                  { label: 'Simple Search', value: false },
-                  { label: 'Advanced Search', value: true }
-                ]" color="primary" toggle-color="secondary" class="q-mr-md" />
-
-                <q-space />
-
-                <!-- Source Filter Toggle -->
-                <q-btn-toggle v-model="sourceFilter" :options="[
-                  { label: 'All', value: 'all' },
-                  { label: 'Local', value: 'local' },
-                  { label: 'Cloud', value: 'drive' },
-                  { label: 'Hybrid', value: 'hybrid' }
-                ]" color="secondary" toggle-color="primary" class="q-mr-md" />
-              </div>
-
-              <!-- Simple Search -->
-              <div v-if="!useAdvancedSearch">
-                <q-input v-model="searchQuery" label="Search newsletters..." outlined dense class="q-mb-md"
-                  :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" clearable>
-                  <template v-slot:prepend>
-                    <q-icon name="search" />
-                  </template>
-                </q-input>
-              </div>
-
-              <!-- Advanced Search -->
-              <div v-else class="advanced-search">
-                <div class="row q-gutter-md">
-                  <div class="col-12 col-md-6">
-                    <q-input v-model="advancedSearch.title" label="Title contains..." outlined dense
-                      :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" clearable />
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <q-input v-model="advancedSearch.content" label="Content contains..." outlined dense
-                      :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" clearable />
-                  </div>
+              <!-- Main Search Bar -->
+              <div class="row q-gutter-md q-mb-md">
+                <div class="col-12 col-md-8">
+                  <q-input v-model="searchQuery" label="Search newsletters by title, content, or tags..." outlined dense
+                    :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" clearable
+                    @clear="searchQuery = ''">
+                    <template v-slot:prepend>
+                      <q-icon name="search" />
+                    </template>
+                    <template v-slot:append>
+                      <q-btn flat dense round icon="tune" @click="showFilters = !showFilters" color="primary">
+                        <q-tooltip>{{ showFilters ? 'Hide' : 'Show' }} Filters</q-tooltip>
+                      </q-btn>
+                    </template>
+                  </q-input>
                 </div>
-                <div class="row q-gutter-md q-mt-sm">
-                  <div class="col-12 col-md-4">
-                    <q-select v-model="advancedSearch.year" label="Year" outlined dense :options="availableYears"
-                      clearable :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" />
-                  </div>
-                  <div class="col-12 col-md-4">
-                    <q-select v-model="advancedSearch.contentType" label="Type" outlined dense
-                      :options="contentTypeOptions" clearable
-                      :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" />
-                  </div>
-                  <div class="col-12 col-md-4">
-                    <q-input v-model="advancedSearch.tags" label="Tags (comma-separated)" outlined dense
-                      :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" clearable />
-                  </div>
+                <div class="col-12 col-md-4">
+                  <q-select v-model="quickSort" :options="quickSortOptions" label="Quick Sort" outlined dense emit-value
+                    map-options :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }">
+                    <template v-slot:prepend>
+                      <q-icon name="sort" />
+                    </template>
+                  </q-select>
                 </div>
               </div>
 
-              <!-- View Controls -->
-              <div class="row items-center q-mt-md q-gutter-md">
+              <!-- Advanced Filters (Collapsible) -->
+              <q-slide-transition>
+                <div v-show="showFilters">
+                  <q-separator class="q-mb-md" />
+
+                  <div class="text-subtitle2 q-mb-md text-weight-medium">
+                    <q-icon name="filter_list" class="q-mr-xs" />
+                    Filters
+                  </div>
+
+                  <div class="row q-gutter-md q-mb-md">
+                    <!-- Year Filter -->
+                    <div class="col-12 col-sm-6 col-md-3">
+                      <q-select v-model="filters.year" :options="yearFilterOptions" label="Year" outlined dense
+                        clearable emit-value map-options
+                        :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }">
+                        <template v-slot:prepend>
+                          <q-icon name="event" />
+                        </template>
+                      </q-select>
+                    </div>
+
+                    <!-- Source Availability Filter -->
+                    <div class="col-12 col-sm-6 col-md-3">
+                      <q-select v-model="filters.availability" :options="availabilityOptions" label="Available As"
+                        outlined dense clearable emit-value map-options
+                        :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }">
+                        <template v-slot:prepend>
+                          <q-icon name="source" />
+                        </template>
+                      </q-select>
+                    </div>
+
+                    <!-- Page Count Filter -->
+                    <div class="col-12 col-sm-6 col-md-3">
+                      <q-select v-model="filters.pageCount" :options="pageCountOptions" label="Page Count" outlined
+                        dense clearable emit-value map-options
+                        :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }">
+                        <template v-slot:prepend>
+                          <q-icon name="description" />
+                        </template>
+                      </q-select>
+                    </div>
+
+                    <!-- Actions Filter -->
+                    <div class="col-12 col-sm-6 col-md-3">
+                      <q-select v-model="filters.actions" :options="actionOptions" label="Actions" outlined dense
+                        clearable emit-value map-options
+                        :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }">
+                        <template v-slot:prepend>
+                          <q-icon name="play_circle" />
+                        </template>
+                      </q-select>
+                    </div>
+                  </div>
+
+                  <!-- Filter Actions -->
+                  <div class="row items-center">
+                    <q-btn flat label="Clear All Filters" icon="clear_all" color="negative" size="sm"
+                      @click="clearAllFilters" :disable="!hasActiveFilters" />
+
+                    <q-space />
+
+                    <!-- Active Filter Chips -->
+                    <div v-if="hasActiveFilters" class="q-gutter-xs">
+                      <q-chip v-if="filters.year" removable @remove="filters.year = null" color="primary"
+                        text-color="white" dense>
+                        Year: {{ filters.year }}
+                      </q-chip>
+                      <q-chip v-if="filters.availability" removable @remove="filters.availability = null"
+                        color="secondary" text-color="white" dense>
+                        {{availabilityOptions.find(o => o.value === filters.availability)?.label}}
+                      </q-chip>
+                      <q-chip v-if="filters.pageCount" removable @remove="filters.pageCount = null" color="info"
+                        text-color="white" dense>
+                        {{pageCountOptions.find(o => o.value === filters.pageCount)?.label}}
+                      </q-chip>
+                      <q-chip v-if="filters.actions" removable @remove="filters.actions = null" color="positive"
+                        text-color="white" dense>
+                        {{actionOptions.find(o => o.value === filters.actions)?.label}}
+                      </q-chip>
+                    </div>
+                  </div>
+                </div>
+              </q-slide-transition>
+
+              <!-- View Controls and Results -->
+              <div class="row items-center q-mt-md">
                 <q-btn-toggle v-model="groupByYear" :options="[
-                  { label: 'List View', value: false },
-                  { label: 'Group by Year', value: true }
-                ]" color="primary" toggle-color="secondary" />
-
-                <q-select v-model="sortBy" :options="sortOptions" outlined dense style="min-width: 120px"
-                  :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" />
-
-                <q-btn-toggle v-model="sortOrder" :options="[
-                  { label: 'Desc', value: 'desc' },
-                  { label: 'Asc', value: 'asc' }
-                ]" color="primary" toggle-color="secondary" />
+                  { label: 'Grid', value: false, icon: 'grid_view' },
+                  { label: 'By Year', value: true, icon: 'view_list' }
+                ]" color="primary" toggle-color="secondary" flat />
 
                 <q-space />
 
-                <!-- Results Count -->
+                <!-- Results Summary -->
                 <div class="text-body2" :class="greyTextClass">
-                  {{ filteredIssues.length }} issue{{ filteredIssues.length === 1 ? '' : 's' }}
+                  <q-icon name="library_books" class="q-mr-xs" />
+                  {{ filteredIssues.length }} of {{ allIssues.length }} newsletter{{ filteredIssues.length === 1 ? '' :
+                    's' }}
+                  <span v-if="searchQuery || hasActiveFilters" class="text-weight-medium">
+                    (filtered)
+                  </span>
                 </div>
               </div>
             </q-card-section>
@@ -156,12 +208,11 @@
             </div>
           </div>
 
-          <!-- List View -->
-          <!-- List View -->
+          <!-- Grid View -->
           <div v-else-if="!groupByYear" class="newsletter-grid">
             <div class="row q-gutter-md">
               <div v-for="issue in sortedIssues" :key="issue.id" class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
-                <AdvancedNewsletterCard :newsletter="issue" :show-source-indicators="true" />
+                <AdvancedNewsletterCard :newsletter="issue" />
               </div>
             </div>
           </div>
@@ -187,7 +238,7 @@
                 <div class="row q-gutter-md">
                   <div v-for="issue in yearGroup.issues" :key="issue.id"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
-                    <AdvancedNewsletterCard :newsletter="issue" :show-source-indicators="true" />
+                    <AdvancedNewsletterCard :newsletter="issue" />
                   </div>
                 </div>
               </div>
@@ -200,7 +251,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { useHybridNewsletters } from '../composables/useHybridNewsletters'
 import AdvancedNewsletterCard from '../components/AdvancedNewsletterCard.vue'
@@ -210,36 +261,49 @@ const siteStore = useSiteStore()
 const hybridNewsletters = useHybridNewsletters()
 
 // UI state
+const showFilters = ref(false)
 const groupByYear = ref(false)
-const sortBy = ref<'date' | 'title' | 'pages' | 'size'>('date')
-const sortOrder = ref<'asc' | 'desc'>('desc')
-const useAdvancedSearch = ref(false)
-const sourceFilter = ref<'all' | 'local' | 'drive' | 'hybrid'>('all')
-
-// Simple search
 const searchQuery = ref('')
+const quickSort = ref('date-desc')
 
-// Advanced search
-const advancedSearch = ref({
-  title: '',
-  content: '',
+// Filter object
+const filters = reactive({
   year: null as number | null,
-  contentType: null as string | null,
-  tags: ''
+  availability: null as string | null,
+  pageCount: null as string | null,
+  actions: null as string | null
 })
 
-// Sort and filter options
-const sortOptions = [
-  { label: 'Date', value: 'date' },
-  { label: 'Title', value: 'title' },
-  { label: 'Pages', value: 'pages' },
-  { label: 'Size', value: 'size' }
+// Filter options
+const quickSortOptions = [
+  { label: 'Newest First', value: 'date-desc' },
+  { label: 'Oldest First', value: 'date-asc' },
+  { label: 'Title A-Z', value: 'title-asc' },
+  { label: 'Title Z-A', value: 'title-desc' },
+  { label: 'Most Pages', value: 'pages-desc' },
+  { label: 'Fewest Pages', value: 'pages-asc' }
 ]
 
-const contentTypeOptions = [
-  { label: 'Newsletter', value: 'newsletter' },
-  { label: 'Special Edition', value: 'special' },
-  { label: 'Annual Report', value: 'annual' }
+const availabilityOptions = [
+  { label: 'Web Viewable', value: 'viewable' },
+  { label: 'Downloadable', value: 'downloadable' },
+  { label: 'Local Files Only', value: 'local-only' },
+  { label: 'Cloud Files Only', value: 'cloud-only' },
+  { label: 'Multiple Sources', value: 'multi-source' }
+]
+
+const pageCountOptions = [
+  { label: '1-5 pages', value: '1-5' },
+  { label: '6-10 pages', value: '6-10' },
+  { label: '11-20 pages', value: '11-20' },
+  { label: '20+ pages', value: '20+' }
+]
+
+const actionOptions = [
+  { label: 'Can View Online', value: 'view' },
+  { label: 'Can Download', value: 'download' },
+  { label: 'Can Search Within', value: 'search' },
+  { label: 'Has Thumbnail', value: 'thumbnail' }
 ]
 
 // Computed properties
@@ -256,211 +320,177 @@ const greyTextClass = computed(() =>
 )
 
 // Get newsletters from hybrid composable
-const rawIssues = computed(() => hybridNewsletters.newsletters.value)
+const allIssues = computed(() => hybridNewsletters.newsletters.value)
 const isLoading = computed(() => hybridNewsletters.loading.value)
 const error = computed(() => hybridNewsletters.error.value)
 
-// Available years for filter
-const availableYears = computed(() => {
+// Year filter options
+const yearFilterOptions = computed(() => {
   const years = new Set<number>()
-  rawIssues.value.forEach((issue: NewsletterMetadata) => {
-    const year = new Date(issue.date).getFullYear()
+  allIssues.value.forEach((issue: NewsletterMetadata) => {
+    const date = new Date(issue.date)
+    const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
     years.add(year)
   })
-  return Array.from(years).sort((a, b) => b - a)
+  return Array.from(years)
+    .sort((a, b) => b - a)
+    .map(year => ({ label: year.toString(), value: year }))
 })
 
-// Source-filtered issues
-const sourceFilteredIssues = computed(() => {
-  if (sourceFilter.value === 'all') return rawIssues.value
-
-  return rawIssues.value.filter((issue: NewsletterMetadata) => {
-    const hasLocal = issue.localFile && issue.localFile.length > 0
-    const hasDrive = issue.driveId && issue.driveId.length > 0
-
-    switch (sourceFilter.value) {
-      case 'local':
-        return hasLocal && !hasDrive
-      case 'drive':
-        return hasDrive && !hasLocal
-      case 'hybrid':
-        return hasLocal && hasDrive
-      default:
-        return true
-    }
-  })
+// Active filters check
+const hasActiveFilters = computed(() => {
+  return !!(filters.year || filters.availability || filters.pageCount || filters.actions)
 })
 
-// Search-filtered issues
+// Helper functions for filtering
+const hasLocalSource = (issue: NewsletterMetadata) => issue.localFile && issue.localFile.length > 0
+const hasDriveSource = (issue: NewsletterMetadata) => issue.driveId && issue.driveId.length > 0
+
+// Main filtering logic
 const filteredIssues = computed(() => {
-  let issues = sourceFilteredIssues.value
+  let issues = [...allIssues.value]
 
-  if (useAdvancedSearch.value) {
-    // Advanced search filtering
-    if (advancedSearch.value.title.trim()) {
-      const titleQuery = advancedSearch.value.title.toLowerCase()
-      issues = issues.filter((issue: NewsletterMetadata) =>
-        issue.title.toLowerCase().includes(titleQuery)
-      )
-    }
+  // Text search
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    issues = issues.filter((issue: NewsletterMetadata) =>
+      issue.title.toLowerCase().includes(query) ||
+      issue.filename.toLowerCase().includes(query) ||
+      (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query))) ||
+      (issue.tags && issue.tags.some((tag: string) => tag.toLowerCase().includes(query)))
+    )
+  }
 
-    if (advancedSearch.value.content.trim()) {
-      const contentQuery = advancedSearch.value.content.toLowerCase()
-      issues = issues.filter((issue: NewsletterMetadata) =>
-        issue.title.toLowerCase().includes(contentQuery) ||
-        issue.filename.toLowerCase().includes(contentQuery) ||
-        (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(contentQuery))) ||
-        (issue.tags && issue.tags.some((tag: string) => tag.toLowerCase().includes(contentQuery)))
-      )
-    }
+  // Year filter
+  if (filters.year) {
+    issues = issues.filter((issue: NewsletterMetadata) => {
+      const date = new Date(issue.date)
+      const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
+      return year === filters.year
+    })
+  }
 
-    if (advancedSearch.value.year) {
-      issues = issues.filter((issue: NewsletterMetadata) =>
-        new Date(issue.date).getFullYear() === advancedSearch.value.year
-      )
-    }
+  // Availability filter
+  if (filters.availability) {
+    issues = issues.filter((issue: NewsletterMetadata) => {
+      const hasLocal = hasLocalSource(issue)
+      const hasDrive = hasDriveSource(issue)
 
-    if (advancedSearch.value.contentType) {
-      issues = issues.filter((issue: NewsletterMetadata) =>
-        issue.contentType === advancedSearch.value.contentType
-      )
-    }
+      switch (filters.availability) {
+        case 'viewable':
+          return hasLocal // Can view online if has local source
+        case 'downloadable':
+          return hasLocal || hasDrive // Can download if has any source
+        case 'local-only':
+          return hasLocal && !hasDrive
+        case 'cloud-only':
+          return hasDrive && !hasLocal
+        case 'multi-source':
+          return hasLocal && hasDrive
+        default:
+          return true
+      }
+    })
+  }
 
-    if (advancedSearch.value.tags.trim()) {
-      const tagQueries = advancedSearch.value.tags.toLowerCase().split(',').map(tag => tag.trim())
-      issues = issues.filter((issue: NewsletterMetadata) =>
-        tagQueries.some(tagQuery =>
-          issue.tags && issue.tags.some((tag: string) => tag.toLowerCase().includes(tagQuery))
-        )
-      )
-    }
-  } else {
-    // Simple search filtering
-    if (searchQuery.value.trim()) {
-      const query = searchQuery.value.toLowerCase()
-      issues = issues.filter((issue: NewsletterMetadata) =>
-        issue.title.toLowerCase().includes(query) ||
-        issue.filename.toLowerCase().includes(query) ||
-        (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query))) ||
-        (issue.tags && issue.tags.some((tag: string) => tag.toLowerCase().includes(query)))
-      )
-    }
+  // Page count filter
+  if (filters.pageCount) {
+    issues = issues.filter((issue: NewsletterMetadata) => {
+      const pageCount = issue.pages || 0
+      switch (filters.pageCount) {
+        case '1-5':
+          return pageCount >= 1 && pageCount <= 5
+        case '6-10':
+          return pageCount >= 6 && pageCount <= 10
+        case '11-20':
+          return pageCount >= 11 && pageCount <= 20
+        case '20+':
+          return pageCount > 20
+        default:
+          return true
+      }
+    })
+  }
+
+  // Actions filter
+  if (filters.actions) {
+    issues = issues.filter((issue: NewsletterMetadata) => {
+      switch (filters.actions) {
+        case 'view':
+          return hasLocalSource(issue)
+        case 'download':
+          return hasLocalSource(issue) || hasDriveSource(issue)
+        case 'search':
+          return hasLocalSource(issue) // Only local files can be searched within
+        case 'thumbnail':
+          return !!(issue.thumbnailPath)
+        default:
+          return true
+      }
+    })
   }
 
   return issues
 })
 
-// Sorted issues
+// Sorted issues based on quick sort selection
 const sortedIssues = computed(() => {
-  return [...filteredIssues.value].sort((a: NewsletterMetadata, b: NewsletterMetadata) => {
+  const issues = [...filteredIssues.value]
+  const [field, direction] = quickSort.value.split('-')
+
+  return issues.sort((a: NewsletterMetadata, b: NewsletterMetadata) => {
     let comparison = 0
 
-    switch (sortBy.value) {
-      case 'date':
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime()
+    switch (field) {
+      case 'date': {
+        const dateA = new Date(a.date)
+        const dateB = new Date(b.date)
+        const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime()
+        const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime()
+        comparison = timeA - timeB
         break
+      }
       case 'title':
         comparison = a.title.localeCompare(b.title)
         break
       case 'pages':
         comparison = (a.pages || 0) - (b.pages || 0)
         break
-      case 'size': {
-        // Parse file size strings for comparison
-        const parseSize = (sizeStr: string): number => {
-          if (!sizeStr) return 0
-          const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*([KMGT]?B)?/i)
-          if (!match || !match[1]) return 0
-
-          const size = parseFloat(match[1])
-          const unit = (match[2] || 'B').toUpperCase()
-
-          const multipliers: Record<string, number> = {
-            'B': 1,
-            'KB': 1024,
-            'MB': 1024 * 1024,
-            'GB': 1024 * 1024 * 1024,
-            'TB': 1024 * 1024 * 1024 * 1024
-          }
-
-          return size * (multipliers[unit] || 1)
-        }
-
-        comparison = parseSize(a.fileSize || '') - parseSize(b.fileSize || '')
-        break
-      }
-      default:
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime()
     }
 
-    return sortOrder.value === 'desc' ? -comparison : comparison
+    return direction === 'desc' ? -comparison : comparison
   })
 })
 
-// Grouped by year with sorting applied within each year
+// Grouped by year for alternative view
 const sortedNewslettersByYear = computed(() => {
-  const groups = new Map<number, NewsletterMetadata[]>()
+  const grouped = new Map<number, NewsletterMetadata[]>()
 
-  filteredIssues.value.forEach((issue: NewsletterMetadata) => {
-    const year = new Date(issue.date).getFullYear()
-    if (!groups.has(year)) {
-      groups.set(year, [])
+  sortedIssues.value.forEach((issue: NewsletterMetadata) => {
+    const date = new Date(issue.date)
+    const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
+
+    if (!grouped.has(year)) {
+      grouped.set(year, [])
     }
-    groups.get(year)?.push(issue)
+    grouped.get(year)!.push(issue)
   })
 
-  // Sort issues within each year group
-  groups.forEach((issues) => {
-    issues.sort((a: NewsletterMetadata, b: NewsletterMetadata) => {
-      let comparison = 0
-
-      switch (sortBy.value) {
-        case 'date':
-          comparison = new Date(a.date).getTime() - new Date(b.date).getTime()
-          break
-        case 'title':
-          comparison = a.title.localeCompare(b.title)
-          break
-        case 'pages':
-          comparison = (a.pages || 0) - (b.pages || 0)
-          break
-        case 'size': {
-          const parseSize = (sizeStr: string): number => {
-            if (!sizeStr) return 0
-            const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*([KMGT]?B)?/i)
-            if (!match || !match[1]) return 0
-
-            const size = parseFloat(match[1])
-            const unit = (match[2] || 'B').toUpperCase()
-
-            const multipliers: Record<string, number> = {
-              'B': 1,
-              'KB': 1024,
-              'MB': 1024 * 1024,
-              'GB': 1024 * 1024 * 1024,
-              'TB': 1024 * 1024 * 1024 * 1024
-            }
-
-            return size * (multipliers[unit] || 1)
-          }
-
-          comparison = parseSize(a.fileSize || '') - parseSize(b.fileSize || '')
-          break
-        }
-        default:
-          comparison = new Date(a.date).getTime() - new Date(b.date).getTime()
-      }
-
-      return sortOrder.value === 'desc' ? -comparison : comparison
-    })
-  })
-
-  return Array.from(groups.entries())
+  return Array.from(grouped.entries())
     .map(([year, issues]) => ({ year, issues }))
     .sort((a, b) => b.year - a.year)
 })
 
-// Initialize data
+// Actions
+const clearAllFilters = () => {
+  filters.year = null
+  filters.availability = null
+  filters.pageCount = null
+  filters.actions = null
+  searchQuery.value = ''
+}
+
+// Initialize on mount
 onMounted(() => {
   void hybridNewsletters.loadNewsletters()
 })
@@ -469,15 +499,5 @@ onMounted(() => {
 <style scoped>
 .newsletter-grid {
   min-height: 200px;
-}
-
-.advanced-search {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
-  padding: 16px;
-}
-
-.q-dark .advanced-search {
-  border-color: rgba(255, 255, 255, 0.28);
 }
 </style>
