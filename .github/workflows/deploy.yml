@@ -30,6 +30,8 @@ jobs:
         run: |
           npm run build # Replace with your build script
           cp dist/spa/index.html dist/spa/404.html
+          # Remove PDF files to reduce deployment size
+          find dist/spa -name "*.pdf" -type f -delete
           # Create a simple .nojekyll file to prevent GitHub from processing the site with Jekyll
           touch dist/spa/.nojekyll
 

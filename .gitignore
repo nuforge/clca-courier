@@ -92,7 +92,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public (commented out to allow public assets for GitHub Pages)
 
 # Vuepress build output
 .vuepress/dist
@@ -262,6 +262,10 @@ firestore-debug.log
 
 # Local Netlify folder
 .netlify
+
+# PDF files (excluded due to file size)
+*.pdf
+public/issues/*.pdf
 
 # Storybook build outputs
 .out
