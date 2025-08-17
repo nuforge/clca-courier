@@ -107,136 +107,96 @@ class NewsletterService {
   }
 
   /**
-   * Discover all local PDF files DYNAMICALLY using actual file validation
-   * Temporary fast implementation while dynamic discovery is optimized
+   * Discover all local PDF files DYNAMICALLY using comprehensive pattern-based discovery
+   * NO HARDCODED FILENAMES - generates all possible patterns and validates existence
    */
   private async discoverLocalPDFs(): Promise<Array<{ url: string; filename: string }>> {
-    logger.info('Fast-loading PDF files from /public/issues/...');
+    logger.info('Dynamically discovering ALL PDF files from /public/issues/...');
 
-    // Quick validation of the most recent files first (likely to be accessed)
-    const recentFiles = [
-      '2025.08-conashaugh-courier.pdf',
-      '2025.07-conashaugh-courier.pdf',
-      '2025.06-conashaugh-courier.pdf',
-      '2025.05-conashaugh-courier.pdf',
-      '2025.02-conashaugh-courier.pdf',
-      '2024.12-conashaugh-courier.pdf',
-      '2024.11-conashaugh-courier.pdf',
-      '2024.10-conashaugh-courier.pdf',
-    ];
-
-    // Validate these files exist quickly
     const validFiles: Array<{ url: string; filename: string }> = [];
+    const discoveredFilenames = new Set<string>();
 
-    // Test recent files with fast timeout
-    for (const filename of recentFiles) {
-      const url = `${this.localBasePath}${filename}`;
-      try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 1000); // 1 second timeout
+    // Generate comprehensive filename patterns for all possible newsletters
+    const allPossibleFilenames = this.generateComprehensiveFilenames();
+    logger.debug(`Generated ${allPossibleFilenames.length} possible filename patterns to test`);
 
-        const response = await fetch(url, {
-          method: 'HEAD',
-          signal: controller.signal,
-        });
+    // Test all possible filenames with batch processing for efficiency
+    const batchSize = 10;
+    for (let i = 0; i < allPossibleFilenames.length; i += batchSize) {
+      const batch = allPossibleFilenames.slice(i, i + batchSize);
 
-        if (response.ok) {
-          validFiles.push({ url, filename });
-          logger.debug(`✓ ${filename}`);
+      // Process batch in parallel
+      const batchPromises = batch.map(async (filename: string) => {
+        const url = `${this.localBasePath}${filename}`;
+        try {
+          const controller = new AbortController();
+          setTimeout(() => controller.abort(), 2000); // 2 second timeout per file
+
+          const response = await fetch(url, {
+            method: 'HEAD',
+            signal: controller.signal,
+          });
+
+          if (response.ok && !discoveredFilenames.has(filename)) {
+            discoveredFilenames.add(filename);
+            validFiles.push({ url, filename });
+            logger.debug(`✓ Found: ${filename}`);
+            return true;
+          }
+        } catch {
+          // File doesn't exist or timeout, skip silently
         }
-      } catch {
-        // File doesn't exist, skip
+        return false;
+      });
+
+      // Wait for batch to complete
+      await Promise.allSettled(batchPromises);
+
+      // Small delay between batches to prevent overwhelming the server
+      if (i + batchSize < allPossibleFilenames.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 
-    // If we found some files, return them immediately for fast loading
-    if (validFiles.length > 0) {
-      logger.success(`Fast-loaded ${validFiles.length} recent PDF files`);
-
-      // Optionally discover more files in the background (don't await)
-      void this.discoverMoreFilesInBackground(validFiles);
-
-      return validFiles;
-    }
-
-    // Fallback: if no recent files found, try a broader but still limited search
-    logger.warn('No recent files found, trying broader search...');
-    return this.discoverTargetedFilesOnly();
-  }
-
-  /**
-   * Discover additional files in background without blocking UI
-   */
-  private async discoverMoreFilesInBackground(
-    existingFiles: Array<{ url: string; filename: string }>,
-  ) {
-    // This runs in background - expand the file list over time
-    const additionalPatterns = this.generateTargetedFilenames().slice(0, 30); // Limit to 30 more
-
-    for (const filename of additionalPatterns) {
-      // Skip if we already have this file
-      if (existingFiles.some((f) => f.filename === filename)) continue;
-
-      const url = `${this.localBasePath}${filename}`;
-      try {
-        const response = await fetch(url, { method: 'HEAD' });
-        if (response.ok) {
-          existingFiles.push({ url, filename });
-          logger.debug(`Background found: ${filename}`);
-        }
-      } catch {
-        // Skip silently
-      }
-
-      // Small delay to not overwhelm
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-
-    logger.info(`Background discovery completed. Total files: ${existingFiles.length}`);
-  }
-
-  /**
-   * Fallback method for targeted file discovery
-   */
-  private async discoverTargetedFilesOnly(): Promise<Array<{ url: string; filename: string }>> {
-    const targetFiles = this.generateTargetedFilenames().slice(0, 15); // Only first 15
-    const validFiles: Array<{ url: string; filename: string }> = [];
-
-    for (const filename of targetFiles) {
-      const url = `${this.localBasePath}${filename}`;
-      try {
-        const response = await fetch(url, { method: 'HEAD' });
-        if (response.ok) {
-          validFiles.push({ url, filename });
-        }
-      } catch {
-        // Skip
-      }
-    }
-
+    logger.success(`Dynamically discovered ${validFiles.length} PDF files from pattern matching`);
     return validFiles;
   }
 
   /**
-   * Generate targeted filenames based on known patterns (reduced set)
+   * Generate comprehensive filenames covering ALL possible newsletter patterns
+   * Based on actual filename patterns observed in the directory
    */
-  private generateTargetedFilenames(): string[] {
+  private generateComprehensiveFilenames(): string[] {
     const filenames: string[] = [];
     const currentYear = new Date().getFullYear();
 
-    // Focus on years where we know files exist (2014-2025)
-    for (let year = 2014; year <= currentYear; year++) {
-      // Monthly issues - only test months that commonly exist
-      const commonMonths = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
-      for (const month of commonMonths) {
+    // Years where newsletters exist (2014-2025+)
+    for (let year = 2014; year <= currentYear + 1; year++) {
+      // Monthly format: YYYY.MM-conashaugh-courier.pdf
+      for (let month = 1; month <= 12; month++) {
         const monthStr = month.toString().padStart(2, '0');
         filenames.push(`${year}.${monthStr}-conashaugh-courier.pdf`);
       }
 
-      // Seasonal issues (most common patterns)
-      filenames.push(`${year}.summer-conashaugh-courier.pdf`);
-      filenames.push(`${year}.winter-conashaugh-courier.pdf`);
+      // Seasonal format: YYYY.season-conashaugh-courier.pdf
+      const seasons = ['spring', 'summer', 'fall', 'winter'];
+      for (const season of seasons) {
+        filenames.push(`${year}.${season}-conashaugh-courier.pdf`);
+      }
+
+      // Special issues (observed patterns)
+      filenames.push(`${year}-special-conashaugh-courier.pdf`);
+      filenames.push(`${year}-annual-conashaugh-courier.pdf`);
+      filenames.push(`${year}.special-conashaugh-courier.pdf`);
     }
+
+    // Sort by year/date for better discovery order (newest first)
+    filenames.sort((a, b) => {
+      const aYear = parseInt(a.substring(0, 4));
+      const bYear = parseInt(b.substring(0, 4));
+      if (aYear !== bYear) return bYear - aYear; // Newer years first
+      return b.localeCompare(a); // Then by filename
+    });
 
     return filenames;
   } /**
