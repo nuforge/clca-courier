@@ -16,7 +16,7 @@
     <q-card-section v-if="newsletter.thumbnailPath" class="q-pa-sm">
       <div class="thumbnail-container">
         <q-img :src="newsletter.thumbnailPath" :alt="`${newsletter.title} cover`"
-          class="rounded-borders newsletter-thumbnail" loading="lazy" fit="cover" :ratio="1 / 1.4"
+          class="rounded-borders newsletter-thumbnail" loading="lazy" fit="cover" :ratio="1 / 1.3"
           @error="onThumbnailError" @click="openWebViewer">
           <template v-slot:error>
             <div class="absolute-full flex flex-center bg-grey-3 text-grey-7 column">
@@ -39,44 +39,44 @@
     <q-card-section class="q-py-sm">
       <div class="row items-center justify-between text-body2 text-grey-7">
         <div class="col-12">
-          <div class="row items-center q-gutter-xs wrap">
-            <div class="flex items-center no-wrap">
+          <div class="row items-center q-gutter-md">
+            <div v-if="validPageCount" class="flex items-center no-wrap">
               <q-icon name="description" size="sm" class="q-mr-xs" />
               <span class="text-nowrap">{{ newsletter.pages }} pages</span>
             </div>
 
-            <template v-if="newsletter.fileSize">
-              <q-separator vertical inset />
-              <div class="flex items-center no-wrap">
-                <q-icon name="storage" size="sm" class="q-mr-xs" />
-                <span class="text-nowrap">{{ newsletter.fileSize }}</span>
-              </div>
-            </template>
+            <div v-if="newsletter.fileSize" class="flex items-center no-wrap">
+              <q-icon name="storage" size="sm" class="q-mr-xs" />
+              <span class="text-nowrap">{{ newsletter.fileSize }}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Source indicators and content type as chips -->
-      <div class="row q-gutter-xs q-mt-sm wrap" v-if="Object.keys(sources).length > 0 || newsletter.contentType">
+      <div class="row q-gutter-xs q-mt-sm items-center"
+        v-if="Object.keys(sources).length > 0 || newsletter.contentType">
         <!-- Content Type Badge -->
         <q-chip :color="contentTypeColor" :label="newsletter.contentType || 'newsletter'" size="sm" text-color="white"
           dense outline class="q-my-none">
         </q-chip>
 
-        <q-chip v-if="sources.local" icon="computer" size="sm" color="positive" text-color="white" dense outline
-          class="q-my-none">
-          Local
-        </q-chip>
+        <!-- Source Indicators -->
+        <div class="q-gutter-xs">
+          <!-- Local Source Available -->
+          <q-chip v-if="sources.local" icon="computer" size="sm" color="primary" text-color="white" dense outline
+            class="q-my-none">
+            <q-tooltip>Available locally for fast web viewing</q-tooltip>
+            Local
+          </q-chip>
 
-        <q-chip v-if="sources.drive" icon="cloud" size="sm" color="info" text-color="white" dense outline
-          class="q-my-none">
-          Drive
-        </q-chip>
-
-        <q-chip v-if="sources.hybrid" icon="sync" size="sm" color="secondary" text-color="white" dense outline
-          class="q-my-none">
-          Hybrid
-        </q-chip>
+          <!-- Google Drive Source Available -->
+          <q-chip v-if="sources.drive" icon="cloud" size="sm" color="secondary" text-color="white" dense outline
+            class="q-my-none">
+            <q-tooltip>Available from Google Drive archive</q-tooltip>
+            Drive
+          </q-chip>
+        </div>
       </div>
     </q-card-section>
 
@@ -87,16 +87,16 @@
     <q-card-actions class="q-pa-md">
       <div class="full-width">
         <div class="row q-gutter-xs">
-          <!-- Web View Button -->
-          <q-btn unelevated icon="visibility" color="primary" @click="openWebViewer" :loading="loading.webView"
-            class="col">
-            <q-tooltip>View in web browser</q-tooltip>
+          <!-- Web View Button - Only show if local source is available -->
+          <q-btn v-if="sources.local" unelevated icon="visibility" color="primary" @click="openWebViewer"
+            :loading="loading.webView" class="col">
+            <q-tooltip>View in web browser (Local)</q-tooltip>
           </q-btn>
 
-          <!-- Download Button -->
-          <q-btn unelevated icon="download" color="secondary" @click="downloadNewsletter" :loading="loading.download"
-            class="col">
-            <q-tooltip>Download high-quality PDF</q-tooltip>
+          <!-- Download Button - Only show if drive source is available -->
+          <q-btn v-if="sources.drive" unelevated icon="download" color="secondary" @click="downloadNewsletter"
+            :loading="loading.download" class="col">
+            <q-tooltip>Download high-quality PDF (Google Drive)</q-tooltip>
           </q-btn>
 
           <!-- More Options Menu -->
@@ -158,34 +158,32 @@
 
     <!-- Sources Dialog -->
     <q-dialog v-model="showSourcesDialog">
-      <q-card style="min-width: 350px">
-        <q-card-section class="row items-center">
-          <q-avatar icon="source" color="primary" text-color="white" />
-          <span class="q-ml-sm text-h6">Available Sources</span>
+      <q-card class="q-pa-md" style="min-width: 350px; max-width: 500px;">
+        <q-card-section class="q-pb-md">
+          <div class="text-h6 text-primary q-mb-md">Available Sources</div>
+          <div class="column q-gutter-md">
+            <div v-for="source in availableSources" :key="source.type" v-show="source.available"
+              class="flex items-center justify-between q-pa-md rounded-borders bg-grey-2 shadow-1">
+              <div class="flex items-center">
+                <q-icon :name="getSourceIcon(source.type)" :color="source.type === 'local' ? 'primary' : 'secondary'"
+                  size="md" class="q-mr-md" />
+                <div class="column">
+                  <span class="text-subtitle1 text-weight-medium">
+                    {{ source.type === 'local' ? 'Local File' : 'Google Drive' }}
+                  </span>
+                  <span class="text-caption text-grey-6">
+                    {{ getSourceDescription(source.type) }}
+                  </span>
+                </div>
+              </div>
+              <q-btn unelevated :color="source.type === 'local' ? 'primary' : 'secondary'"
+                :icon="source.type === 'local' ? 'visibility' : 'download'"
+                :label="source.type === 'local' ? 'View' : 'Download'" @click="openSource(source)" />
+            </div>
+          </div>
         </q-card-section>
 
-        <q-card-section>
-          <q-list>
-            <q-item v-for="source in availableSources" :key="source.type"
-              :class="{ 'bg-green-1': source.available, 'bg-grey-1': !source.available }">
-              <q-item-section avatar>
-                <q-icon :name="getSourceIcon(source.type)" :color="source.available ? 'positive' : 'grey'" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ capitalizeFirst(source.type) }} Source</q-item-label>
-                <q-item-label caption>
-                  {{ source.available ? 'Available' : 'Unavailable' }}
-                  {{ source.lastChecked ? `• Checked ${formatTime(source.lastChecked)}` : '' }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side v-if="source.available">
-                <q-btn flat round icon="open_in_new" size="sm" @click="openSource(source)" />
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
-
-        <q-card-actions align="right">
+        <q-card-actions align="right" class="q-pt-none">
           <q-btn flat label="Close" color="primary" v-close-popup />
         </q-card-actions>
       </q-card>
@@ -202,10 +200,10 @@
         <q-card-section>
           <div class="q-gutter-sm">
             <div><strong>Title:</strong> {{ newsletter.title }}</div>
-            <div><strong>Date:</strong> {{ formatDate(newsletter.date) }}</div>
-            <div><strong>Pages:</strong> {{ newsletter.pages }}</div>
+            <div v-if="validDate"><strong>Date:</strong> {{ formatDate(newsletter.date) }}</div>
+            <div v-if="validPageCount"><strong>Pages:</strong> {{ newsletter.pages }}</div>
             <div><strong>Filename:</strong> {{ newsletter.filename }}</div>
-            <div v-if="newsletter.publishDate">
+            <div v-if="newsletter.publishDate && formatDate(newsletter.publishDate)">
               <strong>Published:</strong> {{ formatDate(newsletter.publishDate) }}
             </div>
             <div v-if="newsletter.topics?.length">
@@ -255,8 +253,7 @@ const loading = reactive({
 // Computed properties
 const sources = reactive({
   local: false,
-  drive: false,
-  hybrid: false
+  drive: false
 });
 
 const contentTypeColor = computed(() => {
@@ -265,6 +262,22 @@ const contentTypeColor = computed(() => {
     case 'special': return 'purple';
     default: return 'primary';
   }
+});
+
+const validPageCount = computed(() => {
+  return props.newsletter.pages && props.newsletter.pages > 0;
+});
+
+const validDate = computed(() => {
+  if (!props.newsletter.date) return false;
+  const date = new Date(props.newsletter.date);
+  return !isNaN(date.getTime());
+});
+
+const getSourceDescription = computed(() => (sourceType: string) => {
+  return sourceType === 'local'
+    ? 'Fast web viewing with interactive features'
+    : 'High-quality archive download';
 });
 
 // Methods
@@ -276,7 +289,6 @@ const loadSources = async () => {
     // Update source indicators
     sources.local = await hybridNewsletters.hasLocalSource(props.newsletter);
     sources.drive = await hybridNewsletters.hasDriveSource(props.newsletter);
-    sources.hybrid = await hybridNewsletters.hasHybridSources(props.newsletter);
   } catch (error) {
     console.error('Error loading sources:', error);
   } finally {
@@ -406,23 +418,35 @@ const onThumbnailError = () => {
 
 // Utility functions
 const formatDate = (dateStr: string) => {
+  if (!dateStr) return null;
+
   try {
+    // First try to parse filename format: YYYY.MM-conashaugh-courier.pdf
+    const filenameMatch = dateStr.match(/(\d{4})\.(\d{2})-/);
+    if (filenameMatch && filenameMatch[1] && filenameMatch[2]) {
+      const year = parseInt(filenameMatch[1]);
+      const month = parseInt(filenameMatch[2]);
+      const date = new Date(year, month - 1, 1);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long'
+        });
+      }
+    }
+
+    // Fallback to standard date parsing
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   } catch {
-    return dateStr;
+    return null;
   }
-};
-
-const formatTime = (date: Date) => {
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 const getSourceIcon = (type: string) => {
@@ -432,10 +456,6 @@ const getSourceIcon = (type: string) => {
     case 'hybrid': return 'sync';
     default: return 'source';
   }
-};
-
-const capitalizeFirst = (str: string) => {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 // Lifecycle
@@ -536,6 +556,19 @@ body.body--dark .newsletter-card:hover {
 
 body.body--dark .newsletter-overlay {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient banner styles */
+.bg-gradient-to-r {
+  background: linear-gradient(to right, var(--q-secondary), var(--q-primary));
+}
+
+.from-secondary {
+  --gradient-from-color: var(--q-secondary);
+}
+
+.to-primary {
+  --gradient-to-color: var(--q-primary);
 }
 
 /* Responsive adjustments */

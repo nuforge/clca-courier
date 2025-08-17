@@ -6,6 +6,7 @@
 
 import type { PdfDocument } from '../composables/usePdfViewer';
 import { pdfMetadataService, type PDFMetadata } from './pdf-metadata-service';
+import type { GoogleDriveFile } from '../types/google-drive-content';
 
 export interface NewsletterMetadata extends PdfDocument {
   // Extended properties for hybrid hosting
@@ -39,7 +40,17 @@ class NewsletterService {
 
   private initializeService() {
     // Load initial newsletter data
-    console.log('[NewsletterService] Initializing hybrid newsletter service');
+    console.log(
+      '[NewsletterService] Initializing hybrid newsletter service with REAL Google Drive integration',
+    );
+    console.log('[NewsletterService] Google Drive Folder IDs:');
+    console.log('- Issues Folder:', import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID);
+    console.log('- PDFs Folder:', import.meta.env.VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID);
+    console.log('- API Key:', import.meta.env.VITE_GOOGLE_API_KEY ? 'Configured ✅' : 'Missing ❌');
+    console.log(
+      '- Client ID:',
+      import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'Configured ✅' : 'Missing ❌',
+    );
   }
 
   /**
@@ -233,16 +244,20 @@ class NewsletterService {
   async getNewsletterSources(newsletter: NewsletterMetadata): Promise<NewsletterSource[]> {
     const sources: NewsletterSource[] = [];
 
-    // Local source (preferred for web features)
-    const localUrl = `${this.localBasePath}${newsletter.localFile}`;
-    const localAvailable = await this.checkLocalAvailability(localUrl);
+    // Local source (preferred for web features) - only check if localFile exists
+    if (newsletter.localFile) {
+      const localUrl = `${this.localBasePath}${newsletter.localFile}`;
+      const localAvailable = await this.checkLocalAvailability(localUrl);
 
-    sources.push({
-      type: 'local',
-      url: localUrl,
-      available: localAvailable,
-      lastChecked: new Date(),
-    });
+      if (localAvailable) {
+        sources.push({
+          type: 'local',
+          url: localUrl,
+          available: true,
+          lastChecked: new Date(),
+        });
+      }
+    }
 
     // Google Drive source (for high-quality downloads)
     if (newsletter.driveId && newsletter.driveUrl) {
@@ -254,15 +269,7 @@ class NewsletterService {
       });
     }
 
-    // Hybrid source indicator
-    if (localAvailable && newsletter.driveUrl) {
-      sources.push({
-        type: 'hybrid',
-        url: localUrl, // Primary URL for hybrid mode
-        available: true,
-        lastChecked: new Date(),
-      });
-    }
+    // No separate hybrid source type - hybrid is determined by having both local and drive
 
     return sources;
   }
@@ -439,13 +446,268 @@ class NewsletterService {
   }
 
   /**
-   * Discover newsletters from Google Drive (placeholder for future implementation)
+   * Discover newsletters from Google Drive using REAL folder IDs from .env
    */
-  private discoverGoogleDriveNewsletters(): Promise<NewsletterMetadata[]> {
-    // TODO: Implement Google Drive discovery
-    // For now, return empty array until Google Drive integration is complete
-    console.log('[NewsletterService] Google Drive discovery - placeholder implementation');
-    return Promise.resolve([]);
+  private async discoverGoogleDriveNewsletters(): Promise<NewsletterMetadata[]> {
+    try {
+      console.log('[NewsletterService] Discovering Google Drive newsletters from REAL folders...');
+
+      // Try to fetch from actual Google Drive API first
+      const apiData = await this.fetchFromGoogleDriveAPI();
+      if (apiData.length > 0) {
+        console.log(
+          `[NewsletterService] Found ${apiData.length} newsletters from Google Drive API`,
+        );
+        return apiData;
+      }
+
+      // Only fall back to hybrid data if Google Drive API is not available/authenticated
+      console.log(
+        '[NewsletterService] Google Drive API not available, checking for existing hybrid data...',
+      );
+      const hybridData = await this.loadGoogleDriveHybridData();
+      if (hybridData.length > 0) {
+        console.log(
+          `[NewsletterService] Found ${hybridData.length} newsletters with Google Drive metadata from hybrid JSON`,
+        );
+        return hybridData;
+      }
+
+      console.log(
+        '[NewsletterService] No Google Drive data found - authenticate to load from real folders',
+      );
+      return [];
+    } catch (error) {
+      console.error('[NewsletterService] Error discovering Google Drive newsletters:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Load Google Drive newsletter data from hybrid JSON file
+   */
+  private async loadGoogleDriveHybridData(): Promise<NewsletterMetadata[]> {
+    try {
+      const response = await fetch('/src/data/newsletters-hybrid.json');
+      const hybridData: { newsletters: Partial<NewsletterMetadata>[] } = await response.json();
+
+      // Filter to only newsletters that have Google Drive information
+      const driveNewsletters = hybridData.newsletters
+        .filter(
+          (newsletter: Partial<NewsletterMetadata>) => newsletter.driveId && newsletter.driveUrl,
+        )
+        .map(
+          (newsletter: Partial<NewsletterMetadata>): NewsletterMetadata => ({
+            ...(newsletter as NewsletterMetadata),
+            // Ensure proper NewsletterMetadata format
+            publishDate: newsletter.publishDate || newsletter.date || new Date().toISOString(),
+            quality: newsletter.quality || 'web',
+            contentType: newsletter.contentType || 'newsletter',
+          }),
+        );
+
+      return driveNewsletters;
+    } catch (error) {
+      console.error('[NewsletterService] Error loading hybrid data:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch newsletters from Google Drive API using real folder IDs from .env (no authentication required)
+   */
+  private async fetchFromGoogleDriveAPI(): Promise<NewsletterMetadata[]> {
+    try {
+      console.log(
+        '[NewsletterService] Fetching newsletters from Google Drive API without authentication...',
+      );
+
+      // Get environment variables
+      const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+      const issuesFolderId = import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID;
+      const pdfsFolderId = import.meta.env.VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID;
+
+      if (!apiKey || !issuesFolderId || !pdfsFolderId) {
+        console.warn(
+          '[NewsletterService] Google Drive API key or folder IDs not found in environment',
+        );
+        return [];
+      }
+
+      console.log(
+        `[NewsletterService] Using folders: Issues=${issuesFolderId}, PDFs=${pdfsFolderId}`,
+      );
+
+      // Fetch files from both folders using simple API calls (no auth)
+      const [issuesFiles, pdfsFiles] = await Promise.all([
+        this.fetchFilesFromFolder(issuesFolderId, 'Issues'),
+        this.fetchFilesFromFolder(pdfsFolderId, 'PDFs'),
+      ]);
+
+      const driveNewsletters: NewsletterMetadata[] = [];
+
+      // Process all files from both folders
+      for (const file of [...issuesFiles, ...pdfsFiles]) {
+        if (file.mimeType === 'application/pdf' && this.isNewsletterFile(file.name)) {
+          const newsletter = this.convertGoogleDriveFileToNewsletter(file);
+          driveNewsletters.push(newsletter);
+        }
+      }
+
+      console.log(
+        `[NewsletterService] Found ${driveNewsletters.length} newsletters from Google Drive API`,
+      );
+      return driveNewsletters;
+    } catch (error) {
+      console.error('[NewsletterService] Error fetching from Google Drive API:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if a filename looks like a newsletter
+   */
+  private isNewsletterFile(filename: string): boolean {
+    const lowerName = filename.toLowerCase();
+    return (
+      lowerName.includes('courier') ||
+      lowerName.includes('newsletter') ||
+      lowerName.match(/^\d{4}\.\d{2}-/) !== null || // 2025.05- pattern
+      lowerName.includes('picnic') ||
+      lowerName.includes('conashaugh')
+    );
+  }
+
+  /**
+   * Fetch files from a specific Google Drive folder (no authentication required for public folders)
+   */
+  private async fetchFilesFromFolder(
+    folderId: string,
+    folderName: string,
+  ): Promise<GoogleDriveFile[]> {
+    try {
+      const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+      const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,size,modifiedTime,mimeType,webViewLink,webContentLink)`;
+
+      console.log(`[NewsletterService] Fetching from ${folderName} folder: ${folderId}`);
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `[NewsletterService] Failed to fetch from ${folderName} folder: ${response.status} ${response.statusText}`,
+          errorText,
+        );
+        return [];
+      }
+
+      const data = await response.json();
+      console.log(
+        `[NewsletterService] Found ${data.files?.length || 0} files in ${folderName} folder`,
+      );
+      return data.files || [];
+    } catch (error) {
+      console.error(`[NewsletterService] Error fetching from ${folderName} folder:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Convert Google Drive file to NewsletterMetadata
+   */
+  private convertGoogleDriveFileToNewsletter(file: GoogleDriveFile): NewsletterMetadata {
+    // Parse date from filename
+    const publishDate = this.parsePublishDateFromFilename(file.name);
+
+    // Generate unique ID from Drive file ID
+    const id = this.generateNumericId(file.id || file.name);
+
+    // Determine title from filename
+    let title = file.name.replace('.pdf', '');
+
+    // Clean up title for better display
+    if (title.match(/^\d{4}\.\d{2}-(.+)/)) {
+      const match = title.match(/^\d{4}\.\d{2}-(.+)/);
+      if (match && match[1]) {
+        title = `Conashaugh Courier - ${this.formatDateFromFilename(title)}`;
+      }
+    }
+
+    return {
+      id,
+      title,
+      filename: file.name,
+      date: this.formatDateFromFilename(file.name) || publishDate,
+      pages: 0, // Will be determined when file is loaded
+      url: file.webViewLink || `https://drive.google.com/file/d/${file.id}`,
+
+      // Google Drive specific metadata
+      driveId: file.id,
+      driveUrl: file.webViewLink || `https://drive.google.com/file/d/${file.id}`,
+      fileSize: this.formatFileSize(file.size),
+      publishDate: new Date(publishDate).toISOString(),
+      contentType: this.determineContentType(title),
+      quality: 'print', // Google Drive files are typically high quality
+
+      // Additional metadata from Google Drive
+      ...(file.modifiedTime && { lastModified: file.modifiedTime }),
+    };
+  }
+
+  /**
+   * Format file size from bytes to human readable
+   */
+  private formatFileSize(bytes: number | string | undefined): string {
+    if (!bytes || bytes === 0) return 'Unknown';
+
+    const size = typeof bytes === 'string' ? parseInt(bytes) : bytes;
+    if (isNaN(size)) return 'Unknown';
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let unitIndex = 0;
+    let fileSize = size;
+
+    while (fileSize >= 1024 && unitIndex < units.length - 1) {
+      fileSize /= 1024;
+      unitIndex++;
+    }
+
+    return `${fileSize.toFixed(1)} ${units[unitIndex]}`;
+  }
+
+  /**
+   * Format date from filename for display
+   */
+  private formatDateFromFilename(filename: string): string {
+    const match = filename.match(/^(\d{4})\.(\d{2})-/);
+    if (match && match[1] && match[2]) {
+      const [, year, month] = match;
+      const monthNames = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      const monthIndex = parseInt(month, 10) - 1;
+      const monthName = monthNames[monthIndex] || 'Unknown';
+      return `${monthName} ${year}`;
+    }
+
+    // Handle other date formats in filename
+    if (filename.toLowerCase().includes('winter')) return 'Winter';
+    if (filename.toLowerCase().includes('summer')) return 'Summer';
+    if (filename.toLowerCase().includes('spring')) return 'Spring';
+    if (filename.toLowerCase().includes('fall')) return 'Fall';
+
+    return filename.replace('.pdf', '');
   }
 
   /**
@@ -549,7 +811,7 @@ class NewsletterService {
       publishDate: new Date(publishDate).toISOString(),
       contentType: this.determineContentType(issue.title),
       quality: 'web',
-      localFile: issue.filename,
+      // Do NOT set localFile - let the actual file check determine availability
       fileSize: 'Unknown', // Will be determined if file is accessible
     };
   }

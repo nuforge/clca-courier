@@ -50,6 +50,62 @@
 
 ---
 
+## 📋 RECENT SESSION UPDATES
+
+### Session August 17, 2025 - Source Detection Bug Fix
+
+**CRITICAL ISSUE IDENTIFIED & FIXED:**
+
+- ❌ **Problem**: System incorrectly marking Google Drive-only files as having local sources
+- 🔍 **Root Cause**: Fallback data was setting `localFile` property for ALL newsletters
+- ✅ **Solution**: Fixed source detection to only check local availability when `localFile` property exists
+
+**USER REQUESTS ADDRESSED:**
+
+1. ✅ **Stop incorrectly listing Drive files as local** - Fixed source detection logic
+2. ✅ **No static data for local sources** - Removed localFile from fallback data
+3. ✅ **Only pull from actual sources** - Dynamic checking of public/issues, cache, and Google Drive
+4. 🔄 **Label PDFs correctly on Issues Archive page** - In Progress
+
+**TECHNICAL CHANGES:**
+
+- **Newsletter Service**: Fixed `getNewsletterSources()` to check localFile exists before availability check
+- **Fallback Data**: Removed automatic `localFile` assignment from `convertFallbackToNewsletter()`
+- **Source Logic**: Now purely dynamic - only shows local source if file actually exists in public/issues
+
+**ARCHITECTURE IMPROVEMENTS:**
+
+- Eliminated false positive local source detection
+- Proper separation between actual file availability and metadata fallbacks
+- Dynamic source detection based on real file system state
+
+### Session August 17, 2025 - UI/UX Improvements
+
+**USER REQUESTS ADDRESSED:**
+
+1. ✅ **Removed "hybrid" terminology** - Now shows individual source chips instead
+2. ✅ **Conditional button display** - Only show buttons for available sources
+3. ✅ **Fixed invalid date display** - No longer shows "Invalid Date"
+4. ✅ **Fixed page count validation** - No longer shows "0 pages"
+5. ✅ **Future-proofed architecture** - Ready for multiple service providers
+
+**TECHNICAL CHANGES:**
+
+- **HybridNewsletterCard.vue**: Completely redesigned source indicators
+- **Newsletter Service**: Removed fake "hybrid" source type, now purely dynamic
+- **Source Detection**: Fixed logic to only show actually available sources
+- **Date Validation**: Added proper validation with fallback to null
+- **Page Count**: Added validation to hide invalid/zero page counts
+
+**ARCHITECTURE IMPROVEMENTS:**
+
+- Sources now determined dynamically rather than using static "hybrid" flags
+- Button visibility tied directly to source availability
+- Clean separation between local and drive sources
+- Better error handling for invalid metadata
+
+---
+
 ## ⚠️ KNOWN ISSUES & BLOCKERS
 
 ### Development Environment
@@ -329,24 +385,81 @@
    - Basic info (title, author, pages, size)
    - Technical details (dimensions, creation dates)
    - Enhanced data (topics, content type, reading time)
-6. ✅ **Minimal hardcoded data**: Intelligent extraction and caching system## 🎯 IMMEDIATE NEXT ACTIONS
+6. ✅ **Minimal hardcoded data**: Intelligent extraction and caching system## 🎯 MAJOR BREAKTHROUGH: REAL GOOGLE DRIVE INTEGRATION IMPLEMENTED ✅
 
-7. **Test the Enhanced Responsive Implementation**
-   - Navigate to `/archive` route to test the improved responsive design
-   - Verify newsletter cards display properly across different screen sizes
-   - Test theme switching to ensure "View Sources" displays correctly
-   - Verify text wrapping and overflow prevention on long titles
+**LIVE GOOGLE DRIVE FOLDER INTEGRATION COMPLETE!**
 
-8. **Advanced Search Integration Planning**
-   - Resolve type compatibility between hybrid newsletters and advanced search systems
-   - Implement data conversion layer between different newsletter metadata formats
-   - Add Google Drive PDF content scanning to advanced search capability
-   - Complete the advanced search placeholder with full functionality
+### What Was Accomplished (Current Session)
 
-9. **Continue Phase 2 High Impact Enhancements**
-   - Next priority: Complete Advanced Search Integration
-   - Alternative priorities: Thumbnail Generation or Interactive Map Polish
-   - Focus on performance testing across different devices and screen sizes
+1. **Real Google Drive API Integration** ✅
+   - ✅ Completely replaced test data with real Google Drive folder integration
+   - ✅ Newsletter service now fetches from actual Google Drive folder IDs from .env:
+     - Issues Folder: `1snuxUhhIfBuFF9cor6k8_tm6po8IHN7I`
+     - PDFs Folder: `1PY4vICTIp0kzO_RWz4nCn-mHb5BojzL1`
+   - ✅ Enhanced `fetchFromGoogleDriveAPI()` to use real folder IDs and authentication
+   - ✅ Added intelligent PDF file filtering for newsletter content
+
+2. **Authentication-Based Loading System** ✅
+   - ✅ Added Google Drive authentication button directly in Issues Archive page
+   - ✅ Newsletter service only attempts to fetch when authenticated (no unauthorized calls)
+   - ✅ Clear visual indicators showing authentication status and folder IDs being used
+   - ✅ Smart fallback system: Live Google Drive → Hybrid JSON → Empty
+
+3. **Enhanced User Interface** ✅
+   - ✅ Added prominent Google Drive connection banner with real folder IDs displayed
+   - ✅ Updated page descriptions to emphasize "REAL Google Drive integration - No more test data!"
+   - ✅ Enhanced loading messages showing actual folder IDs being accessed
+   - ✅ Authentication status indicators with success/connection states
+
+4. **Technical Implementation** ✅
+   - ✅ Integrated `useGoogleDrive` composable with newsletter service
+   - ✅ Added proper TypeScript types for Google Drive files
+   - ✅ Implemented `convertGoogleDriveFileToNewsletter()` for real file conversion
+   - ✅ Enhanced service initialization with detailed environment variable logging
+   - ✅ Added intelligent filename parsing and title generation for real newsletter files
+
+5. **Smart File Detection** ✅
+   - ✅ PDF file filtering for newsletter content (courier, newsletter, date patterns)
+   - ✅ Intelligent title generation from actual filenames
+   - ✅ Date parsing from filename patterns (2025.05-, etc.)
+   - ✅ File size formatting from Google Drive API responses
+   - ✅ Metadata extraction from real Google Drive file properties
+
+### Key Technical Features
+
+- **Environment-Driven**: Uses actual folder IDs from `.env` file
+- **Authentication-Gated**: Only fetches data when user explicitly authenticates
+- **Real-Time Integration**: Loads actual PDF files from your Google Drive folders
+- **Smart Filtering**: Identifies newsletter PDFs from mixed folder content
+- **Type-Safe**: Full TypeScript integration with proper Google Drive types
+- **Fallback System**: Graceful degradation when authentication is not available
+
+### User Experience Improvements
+
+- **Clear Status Indicators**: Users see exact folder IDs being accessed
+- **One-Click Authentication**: Prominent "Connect Google Drive" button
+- **Real-Time Feedback**: Loading messages show actual folders being scanned
+- **No More Test Data**: Everything loads from your actual Google Drive content
+- **Transparent Process**: Console logs show exactly what's happening
+
+### Architecture Summary
+
+```
+Real Google Drive Folders → Authentication → API Fetch → Newsletter Cards
+      ↑                        ↑              ↑              ↑
+Environment Variables    User Action     Live Data     Hybrid Display
+```
+
+**STATUS: READY TO TEST WITH REAL GOOGLE DRIVE DATA**
+
+### Next Steps for User
+
+1. **Navigate to** `http://localhost:9001/archive`
+2. **Click** "Connect Google Drive" button
+3. **Authenticate** with your Google account
+4. **See** actual newsletters load from your real Google Drive folders:
+   - `1snuxUhhIfBuFF9cor6k8_tm6po8IHN7I` (Issues)
+   - `1PY4vICTIp0kzO_RWz4nCn-mHb5BojzL1` (PDFs)
 
 ## 🎯 NEW ENHANCEMENT COMPLETE ✅
 
@@ -397,6 +510,71 @@
 2. ✅ **Card text overflow**: Enhanced responsive text handling and wrapping
 3. ✅ **Grid space utilization**: Improved column distribution across screen sizes
 4. 🔄 **Advanced search integration**: Prepared UI, type compatibility pending
+
+## 🎯 NEW STYLING ENHANCEMENT COMPLETE ✅
+
+**COMPREHENSIVE UI POLISH & STYLING IMPROVEMENTS COMPLETE!**
+
+### What Was Accomplished (Latest Session)
+
+1. **Source Dialog Styling Enhancement** ✅
+   - ✅ Redesigned "Available Sources" dialog with professional styling
+   - ✅ Added proper Quasar theming with primary text color for title
+   - ✅ Enhanced source items with card-like layout using bg-grey-2 and shadow-1
+   - ✅ Improved icon sizing and spacing with medium icons and proper margins
+   - ✅ Added descriptive text for each source type (local vs Google Drive)
+   - ✅ Implemented proper button styling with unelevated design
+
+2. **Source Chip Color Alignment** ✅
+   - ✅ Aligned chip colors with action button colors for consistency:
+     - **Local source chips**: Primary color (matches "View" button)
+     - **Google Drive chips**: Secondary color (matches "Download" button)
+   - ✅ Updated both chip implementations to use consistent color scheme
+   - ✅ Added items-center alignment for better chip positioning
+   - ✅ Maintained proper spacing and visual hierarchy
+
+3. **Page Count & File Size Layout Improvement** ✅
+   - ✅ Removed pipe separator (q-separator vertical) for cleaner design
+   - ✅ Increased spacing between page count and file size using q-gutter-md
+   - ✅ Maintained proper icon alignment and text spacing
+   - ✅ Improved readability with better visual separation
+
+4. **Thumbnail Quality Enhancement** ✅
+   - ✅ Adjusted aspect ratio from 1:1.4 to 1:1.3 for better proportions
+   - ✅ Improved thumbnail sizing and quality display
+   - ✅ Maintained proper PDF cover aspect ratio for newsletter viewing
+   - ✅ Enhanced visual consistency across all newsletter cards
+
+5. **Dynamic Date Parsing Implementation** ✅
+   - ✅ Enhanced formatDate function to parse filename-based dates
+   - ✅ Added support for YYYY.MM-conashaugh-courier.pdf format parsing
+   - ✅ Implemented intelligent date extraction with proper TypeScript types
+   - ✅ Maintains fallback to standard date parsing for compatibility
+   - ✅ Displays month/year format for filename-parsed dates (e.g., "July 2025")
+
+### Technical Achievements Summary
+
+- **Dialog Enhancement**: Professional source dialog matching site standards
+- **Color Consistency**: Chip colors aligned with corresponding action buttons
+- **Layout Polish**: Cleaner page count/file size display without separators
+- **Thumbnail Optimization**: Better aspect ratio and quality display
+- **Smart Date Parsing**: Dynamic filename-based date extraction and formatting
+
+### User Request Completion
+
+1. ✅ **Source popup styling**: Enhanced dialog with proper theming and card-like items
+2. ✅ **Chip color alignment**: Local=primary, Drive=secondary (matching buttons)
+3. ✅ **Layout improvements**: Removed pipe separator, better spacing with q-gutter-md
+4. ✅ **Thumbnail quality**: Improved aspect ratio from 1:1.4 to 1:1.3
+5. ✅ **Date parsing**: Dynamic extraction from YYYY.MM- filename format
+
+### Implementation Details
+
+- **formatDate Function**: Now intelligently parses both filename patterns and standard dates
+- **Chip Styling**: Uses primary/secondary colors with items-center alignment
+- **Dialog Structure**: Card-based layout with proper padding, shadows, and theming
+- **Layout Optimization**: Improved spacing and removed visual clutter
+- **TypeScript Compliance**: All changes fully typed with no compilation errors
 
 ---
 

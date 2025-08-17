@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { useHybridNewsletters } from '../composables/useHybridNewsletters'
 import HybridNewsletterCard from '../components/HybridNewsletterCard.vue'
@@ -126,15 +126,28 @@ const getResponsiveClasses = (): string => {
   return 'col-12 col-xs-6 col-sm-4 col-md-4 col-lg-3 col-xl-3';
 };
 
+// Source count computed properties
+const hybridCount = computed(() => {
+  return rawIssues.value.filter(issue => issue.driveId && issue.localFile).length;
+});
+
+const localOnlyCount = computed(() => {
+  return rawIssues.value.filter(issue => issue.localFile && !issue.driveId).length;
+});
+
+const driveOnlyCount = computed(() => {
+  return rawIssues.value.filter(issue => issue.driveId && !issue.localFile).length;
+});
+
 onMounted(async () => {
   // Load hybrid newsletters
   await initialize();
 })
 
 async function initialize() {
-  console.log('🔄 Loading hybrid newsletters...');
+  console.log('🔄 Loading newsletters from local files and Google Drive...');
   await hybridNewsletters.loadNewsletters();
-  console.log('✅ Hybrid newsletters loaded successfully');
+  console.log('✅ Newsletter loading complete');
 }
 
 </script>
@@ -151,11 +164,12 @@ async function initialize() {
                 Issue Archive
               </div>
               <p class="text-body1">
-                Browse through past issues of The Courier with our hybrid hosting system.
-                Issues are available from both local web hosting and Google Drive archive,
-                ensuring fast access and reliable downloads.
+                Browse through past issues of The Courier with our <strong>REAL Google Drive integration</strong>.
+                Issues are loaded from your actual Google Drive folders and local web hosting,
+                ensuring fast access and reliable downloads. <strong>No more test data!</strong>
               </p>
 
+              <!-- Google Drive Integration Status -->
               <!-- Status and controls -->
               <div class="row q-gutter-md q-mt-md" v-if="error || isLoading">
                 <div class="col">
@@ -166,7 +180,7 @@ async function initialize() {
                     </template>
                     <div>
                       <strong>Loading Newsletter Archive...</strong><br>
-                      Loading newsletters from both local and Google Drive sources.
+                      Loading newsletters from local files and Google Drive folders...
                     </div>
                   </q-banner>
 
@@ -194,6 +208,23 @@ async function initialize() {
                 <q-chip v-if="archivedIssues.length > 0" color="primary" text-color="white" class="q-ml-sm">
                   {{ archivedIssues.length }} issues
                 </q-chip>
+                <!-- Source summary -->
+                <div class="q-mt-sm text-body2 text-grey-7" v-if="archivedIssues.length > 0">
+                  <q-chip v-if="hybridCount > 0" icon="sync" color="secondary" text-color="white" size="sm" dense>
+                    {{ hybridCount }} Hybrid
+                    <q-tooltip>Issues available from both local and Google Drive sources</q-tooltip>
+                  </q-chip>
+                  <q-chip v-if="localOnlyCount > 0" icon="computer" color="positive" text-color="white" size="sm" dense
+                    class="q-ml-xs">
+                    {{ localOnlyCount }} Local Only
+                    <q-tooltip>Issues available locally for fast web viewing</q-tooltip>
+                  </q-chip>
+                  <q-chip v-if="driveOnlyCount > 0" icon="cloud" color="info" text-color="white" size="sm" dense
+                    class="q-ml-xs">
+                    {{ driveOnlyCount }} Drive Only
+                    <q-tooltip>Issues available from Google Drive archive</q-tooltip>
+                  </q-chip>
+                </div>
               </div>
               <q-separator class="q-mb-md" />
 

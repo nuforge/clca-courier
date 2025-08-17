@@ -63,13 +63,24 @@
   - [x] Implemented intelligent caching system to minimize hardcoded data ✅
   - [x] Added automatic topic extraction and content type detection ✅
   - [x] Improved accessibility and responsive design ✅
-- [x] **COMPLETED: UI/UX Improvements & Responsiveness** ✅ COMPLETED
-  - [x] Fixed "View Sources" theme adaptation for light/dark modes ✅
-  - [x] Improved newsletter card responsiveness to prevent text overflow ✅
-  - [x] Enhanced responsive grid layout for better space utilization ✅
-  - [x] Added word-break and text wrapping for long titles and content ✅
-  - [x] Improved mobile button layout with icon-only mode for small screens ✅
-  - [x] Added advanced search toggle placeholder for future implementation ✅
+- [x] **COMPLETED: UI/UX Improvements & Source Display Refinement** ✅ COMPLETED August 17, 2025
+  - [x] Removed confusing "hybrid" terminology from user interface ✅
+  - [x] Implemented individual source chips (Local, Drive) instead of single "Hybrid" ✅
+  - [x] Added conditional button display - only show buttons for available sources ✅
+  - [x] Fixed invalid date handling - no longer displays "Invalid Date" ✅
+  - [x] Fixed page count validation - no longer shows "0 pages" ✅
+  - [x] Future-proofed architecture for multiple service providers ✅
+  - [x] Cleaned up source detection logic to be purely dynamic ✅
+  - [x] Enhanced user experience with accurate source availability ✅
+- [x] **COMPLETED: Enhanced Google Drive Issues Visibility & Hybrid Source Indicators** ✅ COMPLETED
+  - [x] Implemented Google Drive discovery in newsletter service to load actual Google Drive metadata ✅
+  - [x] Enhanced newsletters-hybrid.json with realistic Google Drive IDs for 5 hybrid newsletters ✅
+  - [x] Added prominent hybrid source banner with gradient styling for dual-source newsletters ✅
+  - [x] Enhanced HybridNewsletterCard with source-specific tooltips and action descriptions ✅
+  - [x] Added source count summary on Issues Archive page (Hybrid/Local Only/Drive Only) ✅
+  - [x] Improved "View Sources" dialog with detailed explanations of each source type ✅
+  - [x] Fixed all TypeScript compilation errors and ESLint warnings ✅
+  - [x] Created smart source selection (local for viewing, Drive for downloads) ✅
 - [ ] **Advanced Search Integration**
   - [ ] Resolve type compatibility between hybrid newsletters and advanced search
   - [ ] Implement proper data conversion between different newsletter formats

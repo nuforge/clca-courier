@@ -110,7 +110,9 @@ export function useHybridNewsletters() {
    */
   const hasHybridSources = async (newsletter: NewsletterMetadata): Promise<boolean> => {
     const sources = await getNewsletterSources(newsletter);
-    return sources.some((s) => s.type === 'hybrid' && s.available);
+    const hasLocal = sources.some((s) => s.type === 'local' && s.available);
+    const hasDrive = sources.some((s) => s.type === 'drive' && s.available);
+    return hasLocal && hasDrive;
   };
 
   /**
