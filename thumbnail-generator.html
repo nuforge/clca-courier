@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Thumbnail Generator</title>
+    <style>
+      .thumbnail {
+        width: 150px;
+        height: 200px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .month {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .year {
+        font-size: 20px;
+        font-weight: bold;
+      }
+      .courier {
+        font-size: 10px;
+        margin-top: 10px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Newsletter Thumbnails</h2>
+    <p>Right-click and "Save Image As" to save thumbnails to public/thumbnails/</p>
+
+    <div style="display: flex; flex-wrap: wrap">
+      <!-- 2024 Issues -->
+      <canvas id="feb2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="mar2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="apr2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="may2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="jun2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="aug2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="sep2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="oct2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="nov2024" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="dec2024" width="150" height="200" class="thumbnail"></canvas>
+
+      <!-- 2025 Issues -->
+      <canvas id="feb2025" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="may2025" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="jun2025" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="jul2025" width="150" height="200" class="thumbnail"></canvas>
+      <canvas id="aug2025" width="150" height="200" class="thumbnail"></canvas>
+    </div>
+
+    <script>
+      const thumbnails = [
+        {
+          id: 'feb2024',
+          month: 'February',
+          year: '2024',
+          filename: '2024-02-conashaugh-courier.jpg',
+        },
+        { id: 'mar2024', month: 'March', year: '2024', filename: '2024-03-conashaugh-courier.jpg' },
+        { id: 'apr2024', month: 'April', year: '2024', filename: '2024-04-conashaugh-courier.jpg' },
+        { id: 'may2024', month: 'May', year: '2024', filename: '2024-05-conashaugh-courier.jpg' },
+        { id: 'jun2024', month: 'June', year: '2024', filename: '2024-06-conashaugh-courier.jpg' },
+        {
+          id: 'aug2024',
+          month: 'August',
+          year: '2024',
+          filename: '2024-08-conashaugh-courier.jpg',
+        },
+        {
+          id: 'sep2024',
+          month: 'September',
+          year: '2024',
+          filename: '2024-09-conashaugh-courier.jpg',
+        },
+        {
+          id: 'oct2024',
+          month: 'October',
+          year: '2024',
+          filename: '2024-10-conashaugh-courier.jpg',
+        },
+        {
+          id: 'nov2024',
+          month: 'November',
+          year: '2024',
+          filename: '2024-11-conashaugh-courier.jpg',
+        },
+        {
+          id: 'dec2024',
+          month: 'December',
+          year: '2024',
+          filename: '2024-12-conashaugh-courier.jpg',
+        },
+        {
+          id: 'feb2025',
+          month: 'February',
+          year: '2025',
+          filename: '2025-02-conashaugh-courier.jpg',
+        },
+        { id: 'may2025', month: 'May', year: '2025', filename: '2025-05-conashaugh-courier.jpg' },
+        { id: 'jun2025', month: 'June', year: '2025', filename: '2025-06-conashaugh-courier.jpg' },
+        { id: 'jul2025', month: 'July', year: '2025', filename: '2025-07-conashaugh-courier.jpg' },
+        {
+          id: 'aug2025',
+          month: 'August',
+          year: '2025',
+          filename: '2025-08-conashaugh-courier.jpg',
+        },
+      ];
+
+      thumbnails.forEach((thumb) => {
+        const canvas = document.getElementById(thumb.id);
+        const ctx = canvas.getContext('2d');
+
+        // Create gradient
+        const gradient = ctx.createLinearGradient(0, 0, 150, 200);
+        gradient.addColorStop(0, '#667eea');
+        gradient.addColorStop(1, '#764ba2');
+
+        // Fill background
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 150, 200);
+
+        // Add border
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, 150, 200);
+
+        // Add text
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+
+        // Month
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(thumb.month, 75, 80);
+
+        // Year
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText(thumb.year, 75, 110);
+
+        // Courier text
+        ctx.font = '10px Arial';
+        ctx.globalAlpha = 0.8;
+        ctx.fillText('The Courier', 75, 140);
+        ctx.fillText('CLCA Newsletter', 75, 155);
+        ctx.globalAlpha = 1;
+      });
+    </script>
+  </body>
+</html>

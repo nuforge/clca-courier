@@ -336,6 +336,48 @@ export class GoogleDriveService {
 
     return allFiles;
   }
+
+  /**
+   * Export a Google Docs/Sheets document in specified format
+   */
+  async exportDocument(fileId: string, mimeType: string): Promise<string> {
+    if (!this.isInitialized()) {
+      throw new Error('Google Drive service not initialized');
+    }
+
+    try {
+      const response = await this.drive!.files.export({
+        fileId,
+        mimeType,
+      });
+
+      return response.data as string;
+    } catch (error) {
+      console.error('Error exporting document:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get document content as plain text (for Google Docs)
+   */
+  async getDocumentAsText(fileId: string): Promise<string> {
+    return this.exportDocument(fileId, 'text/plain');
+  }
+
+  /**
+   * Get document content as HTML (for Google Docs)
+   */
+  async getDocumentAsHtml(fileId: string): Promise<string> {
+    return this.exportDocument(fileId, 'text/html');
+  }
+
+  /**
+   * Get spreadsheet content as CSV (for Google Sheets)
+   */
+  async getSpreadsheetAsCsv(fileId: string): Promise<string> {
+    return this.exportDocument(fileId, 'text/csv');
+  }
 }
 
 // Export a singleton instance

@@ -1,169 +1,33 @@
 // src/services/google-drive-browser-service.ts
-export interface GoogleDriveAuthConfig {
-  apiKey: string;
-  clientId: string;
-  scope?: string;
-}
+// Browser-compatible Google Drive service with full functionality
 
-export interface GoogleDriveFileInfo {
-  id: string;
-  name: string;
-  mimeType: string;
-  size?: string;
-  webViewLink?: string;
-  webContentLink?: string;
-  thumbnailLink?: string;
-  createdTime?: string;
-  modifiedTime?: string;
-  parents?: string[];
-}
+import { SimpleGoogleDriveAuth } from './simple-google-auth-test';
+import type { GoogleDriveFile } from 'src/types/google-drive-content';
 
-export interface GoogleDriveSearchOptions {
-  query?: string;
-  pageSize?: number;
-  orderBy?: string;
-  parents?: string[];
-  mimeType?: string;
-}
+export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
+  private baseUrl = 'https://www.googleapis.com/drive/v3';
 
-export class GoogleDriveBrowserService {
-  private static instance: GoogleDriveBrowserService;
-  private apiKey: string = '';
-  private clientId: string = '';
-  private scope: string = 'https://www.googleapis.com/auth/drive.readonly';
-  private accessToken: string = '';
-  private isAuthenticated = false;
-  private readonly baseUrl = 'https://www.googleapis.com/drive/v3';
-
-  private constructor() {}
-
-  static getInstance(): GoogleDriveBrowserService {
-    if (!GoogleDriveBrowserService.instance) {
-      GoogleDriveBrowserService.instance = new GoogleDriveBrowserService();
-    }
-    return GoogleDriveBrowserService.instance;
+  constructor(clientId: string, apiKey: string) {
+    super(clientId, apiKey);
   }
 
   /**
-   * Initialize the service with API credentials
+   * Make authenticated API request to Google Drive
    */
-  initialize(config: GoogleDriveAuthConfig): void {
-    this.apiKey = config.apiKey;
-    this.clientId = config.clientId;
-    this.scope = config.scope || this.scope;
-  }
-
-  /**
-   * Load Google API client library
-   */
-  private async loadGoogleAPI(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (typeof window === 'undefined') {
-        reject(new Error('Google API can only be loaded in browser environment'));
-        return;
-      }
-
-      // Check if already loaded
-      if (window.gapi) {
-        resolve();
-        return;
-      }
-
-      // Load the API
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        window.gapi.load('auth2', () => {
-          resolve();
-        });
-      };
-      script.onerror = () => reject(new Error('Failed to load Google API'));
-      document.head.appendChild(script);
-    });
-  }
-
-  /**
-   * Authenticate with Google Drive
-   */
-  async authenticate(): Promise<boolean> {
-    try {
-      await this.loadGoogleAPI();
-
-      // Initialize the auth2 library
-      await window.gapi.auth2.init({
-        client_id: this.clientId,
-        scope: this.scope,
-      });
-
-      const authInstance = window.gapi.auth2.getAuthInstance();
-
-      // Check if already signed in
-      if (authInstance.isSignedIn.get()) {
-        const user = authInstance.currentUser.get();
-        this.accessToken = user.getAuthResponse().access_token;
-        this.isAuthenticated = true;
-        return true;
-      }
-
-      // Sign in
-      const user = await authInstance.signIn();
-      this.accessToken = user.getAuthResponse().access_token;
-      this.isAuthenticated = true;
-
-      console.log('Successfully authenticated with Google Drive');
-      return true;
-    } catch (error) {
-      console.error('Authentication failed:', error);
-      this.isAuthenticated = false;
-      return false;
-    }
-  }
-
-  /**
-   * Sign out from Google Drive
-   */
-  async signOut(): Promise<void> {
-    if (window.gapi && window.gapi.auth2) {
-      const authInstance = window.gapi.auth2.getAuthInstance();
-      await authInstance.signOut();
-    }
-    this.accessToken = '';
-    this.isAuthenticated = false;
-  }
-
-  /**
-   * Check if authenticated
-   */
-  isAuth(): boolean {
-    return this.isAuthenticated && this.accessToken !== '';
-  }
-
-  /**
-   * Make authenticated API request
-   */
-  private async makeRequest(
+  private async makeApiRequest(
     endpoint: string,
-    params: Record<string, unknown> = {},
-  ): Promise<unknown> {
-    if (!this.isAuth()) {
+    params: Record<string, string> = {},
+  ): Promise<Response> {
+    if (!this.isAuthenticated || !this.accessToken) {
       throw new Error('Not authenticated with Google Drive');
     }
 
     const url = new URL(`${this.baseUrl}${endpoint}`);
+    url.searchParams.set('key', this.apiKey);
 
-    // Add API key and access token
-    params.key = this.apiKey;
-
+    // Add query parameters
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        const stringValue =
-          typeof value === 'string'
-            ? value
-            : typeof value === 'number'
-              ? String(value)
-              : JSON.stringify(value);
-        url.searchParams.set(key, stringValue);
-      }
+      url.searchParams.set(key, value);
     });
 
     const response = await fetch(url.toString(), {
@@ -174,169 +38,189 @@ export class GoogleDriveBrowserService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API request failed: ${response.status} - ${error}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `Google Drive API error: ${response.status} ${response.statusText}. ${
+          errorData.error?.message || 'Unknown error'
+        }`,
+      );
     }
 
-    return response.json();
+    return response;
   }
 
   /**
-   * Get file metadata by ID
+   * Get details of a specific file by ID
    */
-  async getFile(fileId: string, fields?: string): Promise<GoogleDriveFileInfo | null> {
+  async getFile(fileId: string): Promise<GoogleDriveFile> {
     try {
-      const params = {
+      const response = await this.makeApiRequest(`/files/${fileId}`, {
         fields:
-          fields ||
-          'id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,createdTime,modifiedTime,parents',
-      };
+          'id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime',
+      });
 
-      const data = await this.makeRequest(`/files/${fileId}`, params);
-      return data as GoogleDriveFileInfo;
+      const fileData = await response.json();
+      return this.convertToGoogleDriveFile(fileData);
     } catch (error) {
       console.error('Error getting file:', error);
-      return null;
+      throw new Error(
+        `Failed to get file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
-   * Search for files in Google Drive
+   * List all files in a specific folder
    */
-  async searchFiles(options: GoogleDriveSearchOptions = {}): Promise<GoogleDriveFileInfo[]> {
+  async listFilesInFolder(folderId: string, pageSize: number = 100): Promise<GoogleDriveFile[]> {
     try {
-      let query = options.query || '';
-
-      // Add parent folder filter if specified
-      if (options.parents && options.parents.length > 0) {
-        const parentQuery = options.parents.map((parent) => `'${parent}' in parents`).join(' or ');
-        query = query ? `(${query}) and (${parentQuery})` : parentQuery;
-      }
-
-      // Add MIME type filter if specified
-      if (options.mimeType) {
-        const mimeQuery = `mimeType='${options.mimeType}'`;
-        query = query ? `(${query}) and ${mimeQuery}` : mimeQuery;
-      }
-
-      const params = {
-        q: query,
-        pageSize: options.pageSize || 100,
-        orderBy: options.orderBy || 'modifiedTime desc',
+      const response = await this.makeApiRequest('/files', {
+        q: `'${folderId}' in parents and trashed=false`,
+        pageSize: pageSize.toString(),
         fields:
-          'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,createdTime,modifiedTime,parents)',
-      };
+          'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime)',
+        orderBy: 'modifiedTime desc',
+      });
 
-      const data = (await this.makeRequest('/files', params)) as { files?: GoogleDriveFileInfo[] };
-      return data.files || [];
+      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
+    } catch (error) {
+      console.error('Error listing folder files:', error);
+      throw new Error(
+        `Failed to list folder files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Search for files by name or content
+   */
+  async searchFiles(query: string, pageSize: number = 50): Promise<GoogleDriveFile[]> {
+    try {
+      const response = await this.makeApiRequest('/files', {
+        q: `name contains '${query}' and trashed=false`,
+        pageSize: pageSize.toString(),
+        fields:
+          'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime)',
+        orderBy: 'modifiedTime desc',
+      });
+
+      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
     } catch (error) {
       console.error('Error searching files:', error);
-      return [];
+      throw new Error(
+        `Failed to search files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
-   * Search for images in Google Drive
+   * Search specifically for images in given folder IDs
    */
-  async searchImages(folderIds?: string[], query?: string): Promise<GoogleDriveFileInfo[]> {
-    const imageTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-      'image/bmp',
-    ];
+  async searchImages(folderIds: string[] = [], query: string = ''): Promise<GoogleDriveFile[]> {
+    try {
+      let searchQuery = "mimeType contains 'image/' and trashed=false";
 
-    const imageQuery = imageTypes.map((type) => `mimeType='${type}'`).join(' or ');
-    const searchQuery = query ? `(${query}) and (${imageQuery})` : imageQuery;
+      if (folderIds.length > 0) {
+        const folderQuery = folderIds.map((id) => `'${id}' in parents`).join(' or ');
+        searchQuery += ` and (${folderQuery})`;
+      }
 
-    const searchOptions: GoogleDriveSearchOptions = {
-      query: searchQuery,
-      orderBy: 'modifiedTime desc',
-    };
+      if (query.trim()) {
+        searchQuery += ` and name contains '${query.trim()}'`;
+      }
 
-    if (folderIds) {
-      searchOptions.parents = folderIds;
+      const response = await this.makeApiRequest('/files', {
+        q: searchQuery,
+        pageSize: '100',
+        fields:
+          'files(id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,parents,createdTime,modifiedTime)',
+        orderBy: 'modifiedTime desc',
+      });
+
+      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data.files || []).map((file: any) => this.convertToGoogleDriveFile(file));
+    } catch (error) {
+      console.error('Error searching images:', error);
+      throw new Error(
+        `Failed to search images: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
-
-    return this.searchFiles(searchOptions);
   }
 
   /**
    * Download file content as blob
    */
-  async downloadFile(fileId: string): Promise<Blob | null> {
-    if (!this.isAuth()) {
-      throw new Error('Not authenticated with Google Drive');
-    }
-
+  async downloadFile(fileId: string): Promise<Blob> {
     try {
-      const url = `${this.baseUrl}/files/${fileId}?alt=media&key=${this.apiKey}`;
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-        },
+      const response = await this.makeApiRequest(`/files/${fileId}`, {
+        alt: 'media',
       });
 
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status}`);
-      }
-
-      return response.blob();
+      return await response.blob();
     } catch (error) {
       console.error('Error downloading file:', error);
-      return null;
+      throw new Error(
+        `Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
-   * Get a direct download URL for a file (requires authentication)
+   * Get image URL for display (uses thumbnail if available, otherwise download URL)
    */
-  getAuthenticatedDownloadUrl(fileId: string): string {
-    return `${this.baseUrl}/files/${fileId}?alt=media&access_token=${this.accessToken}`;
+  getImageUrl(file: GoogleDriveFile): string {
+    if (file.thumbnailLink) {
+      return file.thumbnailLink;
+    }
+
+    if (file.webContentLink) {
+      return file.webContentLink;
+    }
+
+    // Fallback to direct download URL
+    return `https://drive.google.com/uc?id=${file.id}&export=download`;
   }
 
   /**
-   * Get a public thumbnail URL for an image file
+   * Convert Google Drive API response to our GoogleDriveFile interface
    */
-  getThumbnailUrl(fileId: string, size = 400): string {
-    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
-  }
-
-  /**
-   * Get a public direct view URL (may not work for all files)
-   */
-  getPublicDirectUrl(fileId: string): string {
-    return `https://drive.google.com/uc?export=view&id=${fileId}`;
-  }
-
-  /**
-   * List files in a specific folder
-   */
-  async listFilesInFolder(folderId: string, mimeType?: string): Promise<GoogleDriveFileInfo[]> {
-    const searchOptions: GoogleDriveSearchOptions = {
-      parents: [folderId],
-      orderBy: 'name',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private convertToGoogleDriveFile(apiFile: any): GoogleDriveFile {
+    return {
+      id: apiFile.id,
+      name: apiFile.name,
+      mimeType: apiFile.mimeType,
+      size: apiFile.size,
+      webViewLink: apiFile.webViewLink,
+      webContentLink: apiFile.webContentLink,
+      thumbnailLink: apiFile.thumbnailLink,
+      parents: apiFile.parents || [],
+      createdTime: apiFile.createdTime,
+      modifiedTime: apiFile.modifiedTime,
     };
-
-    if (mimeType) {
-      searchOptions.mimeType = mimeType;
-    }
-
-    return this.searchFiles(searchOptions);
   }
 
   /**
-   * Extract file ID from Google Drive URL
+   * Check if a URL is a Google Drive URL
+   */
+  static isGoogleDriveUrl(url: string): boolean {
+    return url.includes('drive.google.com') || url.includes('docs.google.com');
+  }
+
+  /**
+   * Extract Google Drive file ID from various URL formats
    */
   static extractFileId(url: string): string | null {
+    // Handle different Google Drive URL formats
     const patterns = [
       /\/file\/d\/([a-zA-Z0-9-_]+)/,
       /id=([a-zA-Z0-9-_]+)/,
       /\/d\/([a-zA-Z0-9-_]+)/,
-      /drive\.google\.com\/open\?id=([a-zA-Z0-9-_]+)/,
     ];
 
     for (const pattern of patterns) {
@@ -348,42 +232,4 @@ export class GoogleDriveBrowserService {
 
     return null;
   }
-
-  /**
-   * Check if a URL is a Google Drive URL
-   */
-  static isGoogleDriveUrl(url: string): boolean {
-    return url.includes('drive.google.com') || url.includes('docs.google.com');
-  }
-
-  /**
-   * Get current authentication status
-   */
-  getAuthStatus(): { isAuthenticated: boolean; hasToken: boolean } {
-    return {
-      isAuthenticated: this.isAuthenticated,
-      hasToken: this.accessToken !== '',
-    };
-  }
 }
-
-// Extend the Window interface to include Google API types
-declare global {
-  interface Window {
-    gapi: {
-      load: (api: string, callback: () => void) => void;
-      auth2: {
-        init: (config: { client_id: string; scope: string }) => Promise<unknown>;
-        getAuthInstance: () => {
-          isSignedIn: { get: () => boolean };
-          currentUser: { get: () => { getAuthResponse: () => { access_token: string } } };
-          signIn: () => Promise<{ getAuthResponse: () => { access_token: string } }>;
-          signOut: () => Promise<void>;
-        };
-      };
-    };
-  }
-}
-
-// Export a singleton instance
-export const googleDriveBrowserService = GoogleDriveBrowserService.getInstance();

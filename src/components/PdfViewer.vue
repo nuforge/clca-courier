@@ -84,11 +84,76 @@ async function initializeViewer() {
   loading.value = true
   error.value = null
 
+  // Suppress WebViewer console warnings/messages
+  const originalConsoleWarn = console.warn;
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+
+  const suppressMessages = (...args: unknown[]) => {
+    const message = args[0]?.toString() || '';
+    if (
+      message.includes('WebAssembly threads') ||
+      message.includes('Content-Encoding') ||
+      message.includes('linearized') ||
+      message.includes('demo mode') ||
+      message.includes('PDFNet is running') ||
+      message.includes('Permission:') ||
+      message.includes('Thank you for downloading WebViewer') ||
+      message.includes('trial') ||
+      message.includes('license') ||
+      message.includes('Byte ranges are not supported')
+    ) {
+      return; // Suppress these messages
+    }
+    // Allow other warnings to pass through
+    originalConsoleWarn.apply(console, args);
+  };
+
+  const suppressLogs = (...args: unknown[]) => {
+    const message = args[0]?.toString() || '';
+    if (
+      message.includes('WebAssembly threads') ||
+      message.includes('Content-Encoding') ||
+      message.includes('linearized') ||
+      message.includes('demo mode') ||
+      message.includes('PDFNet is running') ||
+      message.includes('Permission:') ||
+      message.includes('Thank you for downloading WebViewer') ||
+      message.includes('trial') ||
+      message.includes('license')
+    ) {
+      return; // Suppress these messages
+    }
+    // Allow other logs to pass through
+    originalConsoleLog.apply(console, args);
+  };
+
+  console.warn = suppressMessages;
+  console.log = suppressLogs;
+  console.error = (...args: unknown[]) => {
+    const message = args[0]?.toString() || '';
+    if (
+      message.includes('demo mode') ||
+      message.includes('PDFNet is running') ||
+      message.includes('linearized')
+    ) {
+      return; // Suppress these error messages too
+    }
+    originalConsoleError.apply(console, args);
+  };
+
   try {
     webviewerInstance = await WebViewer({
       path: '/webviewer',
       initialDoc: props.documentUrl,
-      licenseKey: props.licenseKey
+      licenseKey: props.licenseKey,
+      // Optimize for non-linearized PDFs
+      streaming: false,
+      useDownloader: false,
+      // Better error handling
+      enableRedaction: false,
+      enableMeasurement: false,
+      enableFilePicker: false
     }, viewerElement.value)
 
     if (webviewerInstance) {
@@ -98,6 +163,22 @@ async function initializeViewer() {
 
       // Apply user's PDF settings
       applyPdfSettings(webviewerInstance)
+
+      // Add error handling for document loading
+      const { documentViewer } = webviewerInstance.Core;
+
+      documentViewer.addEventListener('documentLoadError', (err) => {
+        console.error('Document load error:', err);
+        const errorMessage = 'Failed to load PDF document. The file may be corrupted or invalid.';
+        error.value = errorMessage;
+        loading.value = false;
+        emit('error', errorMessage);
+      });
+
+      documentViewer.addEventListener('documentLoaded', () => {
+        // Document loaded successfully
+        loading.value = false;
+      });
 
       // Simplify toolbar - just keep basic viewing tools
       webviewerInstance.UI.disableElements([
@@ -127,6 +208,11 @@ async function initializeViewer() {
     error.value = errorMessage
     loading.value = false
     emit('error', errorMessage)
+  } finally {
+    // Restore original console methods
+    console.warn = originalConsoleWarn;
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
   }
 }
 
@@ -136,8 +222,30 @@ function loadDocument(url: string) {
     error.value = null
 
     try {
-      void webviewerInstance.Core.documentViewer.loadDocument(url)
-      loading.value = false
+      const { documentViewer } = webviewerInstance.Core;
+
+      // Add event listeners for this specific document load
+      const onDocumentLoaded = () => {
+        loading.value = false;
+        documentViewer.removeEventListener('documentLoaded', onDocumentLoaded);
+        documentViewer.removeEventListener('documentLoadError', onDocumentLoadError);
+      };
+
+      const onDocumentLoadError = (err: unknown) => {
+        console.error('Error loading document:', err);
+        const errorMessage = 'Failed to load PDF document. The file may be corrupted or not accessible.';
+        error.value = errorMessage;
+        loading.value = false;
+        emit('error', errorMessage);
+        documentViewer.removeEventListener('documentLoaded', onDocumentLoaded);
+        documentViewer.removeEventListener('documentLoadError', onDocumentLoadError);
+      };
+
+      documentViewer.addEventListener('documentLoaded', onDocumentLoaded);
+      documentViewer.addEventListener('documentLoadError', onDocumentLoadError);
+
+      // Load the document
+      void documentViewer.loadDocument(url);
     } catch (err) {
       console.error('Error loading document:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error loading document'

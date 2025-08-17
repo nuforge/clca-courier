@@ -9,7 +9,8 @@ const routes: RouteRecordRaw[] = [
       { path: '/news', component: () => import('pages/NewsUpdatesPage.vue') },
       { path: '/classifieds', component: () => import('pages/ClassifiedsPage.vue') },
       { path: '/archive', component: () => import('pages/IssueArchivePage.vue') },
-      { path: '/archive/:id(\\d+)', component: () => import('pages/IssueDetailsPage.vue') },
+      { path: '/archive-hybrid', component: () => import('pages/HybridIssueArchivePage.vue') },
+      { path: '/archive/:id(\\d+)', component: () => import('pages/IssueDetailsPageEnhanced.vue') },
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contribute/article', component: () => import('pages/ArticleSubmissionPage.vue') },
       { path: '/contribute/photo', component: () => import('pages/PhotoSubmissionPage.vue') },
@@ -21,11 +22,15 @@ const routes: RouteRecordRaw[] = [
       { path: '/privacy', component: () => import('pages/PrivacyPolicyPage.vue') },
       { path: '/terms', component: () => import('pages/TermsOfServicePage.vue') },
       { path: '/accessibility', component: () => import('pages/AccessibilityPage.vue') },
-      // { path: '/map', component: () => import('pages/InteractiveMapPage.vue') }, // Temporarily disabled - use /map-refactored instead
       { path: '/map', component: () => import('pages/MapRefactoredPage.vue') }, // Use refactored version as main map
       { path: '/map-refactored', component: () => import('pages/MapRefactoredPage.vue') },
-      { path: '/demo/images', component: () => import('pages/ImageDemoPage.vue') }, // External image system demo
-      { path: '/demo/google-drive', component: () => import('pages/GoogleDriveDemoPage.vue') }, // Google Drive integration demo
+      { path: '/demo/google-drive', component: () => import('pages/GoogleDriveDemoPage.vue') },
+      { path: '/test/pdf-metadata', component: () => import('pages/PDFTestPage.vue') },
+      { path: '/test/pdf-diagnostics', component: () => import('pages/PdfDiagnosticsPage.vue') },
+      {
+        path: '/google-drive-content',
+        component: () => import('pages/GoogleDriveContentDashboard.vue'),
+      },
     ],
   },
 

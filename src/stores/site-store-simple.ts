@@ -2,16 +2,22 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Classified, NewsItem, Event } from '../components/models';
 import type { PdfDocument } from '../composables/usePdfViewer';
+import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 import { dataService, type CommunityStats } from '../services/data-service';
 import { useUserSettings } from '../composables/useUserSettings';
+import { useGoogleDrivePdfs } from '../composables/useGoogleDrivePdfs';
 
 export const useSiteStore = defineStore('site', () => {
   // Initialize user settings
   const userSettings = useUserSettings();
 
+  // Initialize Google Drive PDF management
+  const googleDrivePdfs = useGoogleDrivePdfs();
+
   // Site state
   const isMenuOpen = ref(false);
   const isLoading = ref(true);
+  const useGoogleDrive = ref(true); // Toggle between local JSON and Google Drive
 
   // Data loaded from JSON files (simulating API)
   const newsItems = ref<NewsItem[]>([]);
@@ -25,7 +31,24 @@ export const useSiteStore = defineStore('site', () => {
     issuesPerYear: 0,
   });
 
-  // Computed values
+  // Computed values that can switch between local and Google Drive data
+  const hybridArchivedIssues = computed(() => {
+    if (useGoogleDrive.value && googleDrivePdfs.state.value.issues.length > 0) {
+      // Convert Google Drive issues to PdfDocument format for compatibility
+      return googleDrivePdfs.archivedIssues.value.map(
+        (issue: IssueWithGoogleDrive): PdfDocument => ({
+          id: issue.id,
+          title: issue.title,
+          date: issue.date,
+          pages: issue.pages,
+          url: issue.googleDriveUrl || issue.localUrl || issue.url || '',
+          filename: issue.filename,
+        }),
+      );
+    }
+    return archivedIssues.value;
+  });
+
   const featuredNews = computed(() => newsItems.value.filter((item) => item.featured).slice(0, 3));
 
   const recentClassifieds = computed(() =>
@@ -41,10 +64,11 @@ export const useSiteStore = defineStore('site', () => {
       .slice(0, 5),
   );
 
-  // Get the latest issue (most recent)
+  // Get the latest issue (most recent) - now hybrid
   const latestIssue = computed(() => {
-    if (archivedIssues.value.length === 0) return null;
-    return archivedIssues.value[0]; // Assuming they're sorted by date, newest first
+    const issues = hybridArchivedIssues.value;
+    if (issues.length === 0) return null;
+    return issues[0]; // Assuming they're sorted by date, newest first
   });
 
   // Actions
@@ -80,6 +104,16 @@ export const useSiteStore = defineStore('site', () => {
       events.value = event;
       archivedIssues.value = issues;
       communityStats.value = stats;
+
+      // Initialize Google Drive PDF data if enabled
+      if (useGoogleDrive.value) {
+        try {
+          await googleDrivePdfs.initialize();
+        } catch (error) {
+          console.warn('Google Drive initialization failed, falling back to local data:', error);
+          useGoogleDrive.value = false;
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -127,11 +161,12 @@ export const useSiteStore = defineStore('site', () => {
     isDarkMode: userSettings.isDarkMode,
     isMenuOpen,
     isLoading,
+    useGoogleDrive,
     newsItems,
     classifieds,
     events,
     communityStats,
-    archivedIssues,
+    archivedIssues: hybridArchivedIssues, // Use hybrid computed property
 
     // User Settings
     userSettings: userSettings.userSettings,
@@ -161,5 +196,8 @@ export const useSiteStore = defineStore('site', () => {
     resetUserSettings: userSettings.resetSettings,
     exportUserSettings: userSettings.exportSettings,
     importUserSettings: userSettings.importSettings,
+
+    // Google Drive integration
+    googleDrivePdfs: computed(() => googleDrivePdfs),
   };
 });

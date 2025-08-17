@@ -1,4 +1,4 @@
-import { type NavigationItem } from '../components/NavigationItem.vue';
+import type { NavigationItem } from '../types/navigation';
 
 export const useNavigation = () => {
   const navigationItems: NavigationItem[] = [

@@ -1,5 +1,27 @@
 # Google Drive Integration Documentation
 
+## ⚠️ CRITICAL CORS LIMITATION
+
+**IMPORTANT:** Google Drive URLs are subject to strict CORS (Cross-Origin Resource Sharing) policies that CANNOT be bypassed through client-side JavaScript. This means:
+
+- ❌ **PDF.js cannot directly access Google Drive URLs** - even with URL conversion to export format
+- ❌ **Canvas/image processing fails** due to browser security restrictions
+- ❌ **Metadata extraction from Google Drive PDFs is impossible** in client-side code
+- ❌ **Direct fetch() requests to Drive URLs will always fail** with CORS errors
+
+**Why URL conversion doesn't work:** Converting `drive.google.com/file/d/ID` to `drive.google.com/uc?export=download&id=ID` still triggers CORS because it's the same origin domain with restrictive headers.
+
+**Solutions that DO work:**
+
+- ✅ Server-side proxy to fetch and serve Google Drive content
+- ✅ Google Drive API with proper authentication (server-side)
+- ✅ Download files to local storage and serve from your domain
+- ✅ Use Google Drive only for storage, not direct client access
+
+**This is a fundamental browser security feature, not a bug that can be "fixed" with clever URL manipulation.**
+
+---
+
 This document explains how to set up and use the Google Drive integration in the CLCA Courier application.
 
 ## Overview
