@@ -19,6 +19,14 @@ export interface PDFMetadata {
   author?: string;
   subject?: string;
   keywords?: string[];
+  producer?: string;
+  creator?: string;
+  language?: string;
+  pageSize?: { width: number; height: number };
+  aspectRatio?: number;
+  estimatedReadTime?: number;
+  contentType?: 'newsletter' | 'special' | 'annual';
+  extractedTopics?: string[];
 }
 
 export interface CachedPDFData {
@@ -64,11 +72,29 @@ class PDFMetadataService {
       const info = await pdf.getMetadata();
       const numPages = pdf.numPages;
 
-      // Generate thumbnail from first page
+      // Get first page for dimensions and aspect ratio
+      const firstPage = await pdf.getPage(1);
+      const viewport = firstPage.getViewport({ scale: 1 });
+      const pageSize = { width: viewport.width, height: viewport.height };
+      const aspectRatio = viewport.width / viewport.height;
+
+      // Generate thumbnail from first page (cover-facing)
       const thumbnailDataUrl = await this.generateThumbnailFromPDF(pdf);
 
       // Get file size (approximate from PDF data)
       const fileSize = await this.estimateFileSize(pdfUrl);
+
+      // Estimate reading time (approximately 2 minutes per page)
+      const estimatedReadTime = Math.max(1, Math.round(numPages * 2));
+
+      // Extract content type from filename and metadata
+      const contentType = this.determineContentType(filename, info.info as Record<string, unknown>);
+
+      // Extract potential topics from title and subject
+      const extractedTopics = this.extractTopicsFromMetadata(
+        filename,
+        info.info as Record<string, unknown>,
+      );
 
       // Create metadata object
       const pdfInfo = info.info as Record<string, unknown>; // PDF info has dynamic properties
@@ -82,11 +108,19 @@ class PDFMetadataService {
         modifiedDate: (pdfInfo?.ModDate as string)?.toString(),
         author: (pdfInfo?.Author as string)?.toString(),
         subject: (pdfInfo?.Subject as string)?.toString(),
+        producer: (pdfInfo?.Producer as string)?.toString(),
+        creator: (pdfInfo?.Creator as string)?.toString(),
+        language: (pdfInfo?.Language as string)?.toString(),
         keywords:
           (pdfInfo?.Keywords as string)
             ?.toString()
             ?.split(',')
             .map((k: string) => k.trim()) || [],
+        pageSize,
+        aspectRatio,
+        estimatedReadTime,
+        contentType,
+        extractedTopics,
       };
 
       // Cache the result
@@ -342,6 +376,123 @@ class PDFMetadataService {
     this.thumbnailCache.clear();
     localStorage.removeItem('pdf-metadata-cache');
     localStorage.removeItem('pdf-thumbnail-cache');
+  }
+
+  /**
+   * Determine content type from filename and metadata
+   */
+  private determineContentType(
+    filename: string,
+    pdfInfo: Record<string, unknown>,
+  ): 'newsletter' | 'special' | 'annual' {
+    const lowerFilename = filename.toLowerCase();
+    const subject = (pdfInfo?.Subject as string)?.toLowerCase() || '';
+    const title = (pdfInfo?.Title as string)?.toLowerCase() || '';
+
+    // Check for annual reports
+    if (
+      lowerFilename.includes('annual') ||
+      subject.includes('annual') ||
+      title.includes('annual')
+    ) {
+      return 'annual';
+    }
+
+    // Check for special issues
+    if (
+      lowerFilename.includes('special') ||
+      subject.includes('special') ||
+      title.includes('special') ||
+      lowerFilename.includes('holiday') ||
+      lowerFilename.includes('summer') ||
+      lowerFilename.includes('winter')
+    ) {
+      return 'special';
+    }
+
+    // Default to newsletter
+    return 'newsletter';
+  }
+
+  /**
+   * Extract topics from filename and PDF metadata
+   */
+  private extractTopicsFromMetadata(filename: string, pdfInfo: Record<string, unknown>): string[] {
+    const topics: string[] = [];
+    const subject = (pdfInfo?.Subject as string) || '';
+    const title = (pdfInfo?.Title as string) || '';
+    const keywords = (pdfInfo?.Keywords as string) || '';
+    const lowerFilename = filename.toLowerCase();
+
+    // Extract from filename patterns
+    if (lowerFilename.includes('summer')) topics.push('Summer');
+    if (lowerFilename.includes('winter')) topics.push('Winter');
+    if (lowerFilename.includes('spring')) topics.push('Spring');
+    if (lowerFilename.includes('fall') || lowerFilename.includes('autumn')) topics.push('Fall');
+    if (lowerFilename.includes('holiday')) topics.push('Holiday');
+    if (lowerFilename.includes('annual')) topics.push('Annual');
+
+    // Extract from title content
+    const lowerTitle = title.toLowerCase();
+    if (lowerTitle.includes('summer')) topics.push('Summer');
+    if (lowerTitle.includes('winter')) topics.push('Winter');
+    if (lowerTitle.includes('spring')) topics.push('Spring');
+    if (lowerTitle.includes('fall') || lowerTitle.includes('autumn')) topics.push('Fall');
+    if (lowerTitle.includes('holiday')) topics.push('Holiday');
+    if (lowerTitle.includes('annual')) topics.push('Annual');
+    if (lowerTitle.includes('special')) topics.push('Special Issue');
+
+    // Extract month/season from date pattern
+    const monthMatch = filename.match(/(\d{4})\.(\d{2})-/);
+    if (monthMatch && monthMatch[2]) {
+      const month = parseInt(monthMatch[2], 10);
+      const monthNames = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      if (month >= 1 && month <= 12) {
+        const monthName = monthNames[month - 1];
+        if (monthName) {
+          topics.push(monthName);
+        }
+
+        // Add seasonal topics
+        if ([12, 1, 2].includes(month)) topics.push('Winter');
+        else if ([3, 4, 5].includes(month)) topics.push('Spring');
+        else if ([6, 7, 8].includes(month)) topics.push('Summer');
+        else if ([9, 10, 11].includes(month)) topics.push('Fall');
+      }
+    }
+
+    // Extract from subject and keywords
+    if (subject) {
+      const subjectTopics = subject
+        .split(/[,;]/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 2);
+      topics.push(...subjectTopics);
+    }
+
+    if (keywords) {
+      const keywordTopics = keywords
+        .split(/[,;]/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 2);
+      topics.push(...keywordTopics);
+    }
+
+    // Remove duplicates and return
+    return Array.from(new Set(topics)).slice(0, 10); // Limit to 10 topics
   }
 }
 

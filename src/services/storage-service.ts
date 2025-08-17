@@ -56,7 +56,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   },
   pdf: {
     defaultZoom: 1.0,
-    pageLayout: 'facing',
+    pageLayout: 'cover',
     thumbnailSize: 'medium',
   },
 };
