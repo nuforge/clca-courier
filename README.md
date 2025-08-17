@@ -2,6 +2,10 @@
 
 The Courier @ Conashaugh Lakes.com
 
+## ⚠️ Important Development Notes
+
+**Google Drive CORS Limitation:** Google Drive URLs cannot be accessed directly from client-side JavaScript due to CORS policies. See [GOOGLE_DRIVE_INTEGRATION.md](./GOOGLE_DRIVE_INTEGRATION.md) for details and workarounds.
+
 ## Install the dependencies
 
 ```bash

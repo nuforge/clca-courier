@@ -7,6 +7,7 @@
 import type { PdfDocument } from '../composables/usePdfViewer';
 import { pdfMetadataService, type PDFMetadata } from './pdf-metadata-service';
 import type { GoogleDriveFile } from '../types/google-drive-content';
+import { convertToViewUrl } from '../utils/googleDriveUtils';
 
 export interface NewsletterMetadata extends PdfDocument {
   // Extended properties for hybrid hosting
@@ -286,7 +287,18 @@ class NewsletterService {
       return localSource.url;
     }
 
-    // Fallback to original URL
+    // For Google Drive sources, try to convert to a direct export URL if possible
+    const driveSource = sources.find((s) => s.type === 'drive' && s.available);
+    if (driveSource) {
+      // Use the utility function to convert to view format
+      return convertToViewUrl(driveSource.url);
+    }
+
+    // Fallback to original URL, but try to convert if it's a Google Drive URL
+    if (newsletter.url) {
+      return convertToViewUrl(newsletter.url);
+    }
+
     return newsletter.url;
   }
 

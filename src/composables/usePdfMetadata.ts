@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { isGoogleDriveUrl } from '../utils/googleDriveUtils';
 
 interface PdfMetadata {
   pageCount: number;
@@ -26,6 +27,23 @@ export function usePdfMetadata() {
       return metadataCache.value[url];
     }
 
+    // IMMEDIATE BAILOUT: Google Drive URLs cannot be processed with PDF.js due to CORS
+    if (isGoogleDriveUrl(url)) {
+      console.log(
+        'Skipping PDF metadata extraction for Google Drive URL - CORS restrictions make this impossible',
+      );
+
+      // Return fallback metadata immediately without any network requests
+      const fallbackMetadata: PdfMetadata = {
+        pageCount: 1, // Default fallback - actual page count unknown due to CORS
+        title: 'Google Drive PDF', // Generic title
+      };
+
+      // Cache the fallback to avoid repeated checks
+      metadataCache.value[url] = fallbackMetadata;
+      return fallbackMetadata;
+    }
+
     try {
       // Import PDF.js dynamically to avoid bundle size issues
       const pdfjs = await import('pdfjs-dist');
@@ -35,8 +53,11 @@ export function usePdfMetadata() {
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
       }
 
-      // Load PDF document
-      const loadingTask = pdfjs.getDocument(url);
+      // Load PDF document - only for NON-Google Drive URLs
+      const loadingTask = pdfjs.getDocument({
+        url: url,
+        withCredentials: false,
+      });
       const pdf = await loadingTask.promise;
 
       // Get basic metadata

@@ -324,6 +324,12 @@ const loadLiveMetadata = async () => {
       }
     } catch (error) {
       console.log('Could not load live metadata for', props.newsletter.title, ':', error);
+
+      // For Google Drive files that fail metadata extraction, this is expected behavior
+      // due to CORS restrictions. Don't treat this as a critical error.
+      if (pdfUrl && pdfUrl.includes('drive.google.com')) {
+        console.log('Metadata loading failed for Google Drive file - this is expected due to CORS restrictions when not authenticated');
+      }
     } finally {
       loading.metadata = false;
     }
