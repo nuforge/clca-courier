@@ -5,6 +5,7 @@
  */
 
 import type { PdfDocument } from '../composables/usePdfViewer';
+import { pdfMetadataService, type PDFMetadata } from './pdf-metadata-service';
 
 export interface NewsletterMetadata extends PdfDocument {
   // Extended properties for hybrid hosting
@@ -53,32 +54,138 @@ class NewsletterService {
     }
 
     try {
-      // Load enhanced newsletter data with hybrid metadata
-      const response = await fetch('/src/data/newsletters-hybrid.json');
-      if (response.ok) {
-        const data = await response.json();
-        const enhancedNewsletters = data.newsletters as NewsletterMetadata[];
-        this.cache.set(cacheKey, enhancedNewsletters);
-        return enhancedNewsletters;
-      }
+      // Generate newsletter list from local PDF files
+      const localPDFs = this.discoverLocalPDFs();
 
-      // Fallback to original issues.json
-      const fallbackResponse = await fetch('/src/data/issues.json');
-      const baseNewsletters = (await fallbackResponse.json()) as PdfDocument[];
+      // Extract PDF metadata for all local files
+      const pdfMetadataList = await pdfMetadataService.processPDFBatch(localPDFs);
 
-      // Enhance with hybrid metadata
-      const enhancedNewsletters = baseNewsletters.map((newsletter) =>
-        this.enhanceWithHybridMetadata(newsletter),
+      // Convert PDF metadata to newsletter metadata
+      const enhancedNewsletters = pdfMetadataList.map((pdfMeta) =>
+        this.convertPDFMetadataToNewsletter(pdfMeta),
+      );
+
+      // Sort by date (newest first)
+      enhancedNewsletters.sort(
+        (a, b) => new Date(b.publishDate || '').getTime() - new Date(a.publishDate || '').getTime(),
       );
 
       // Cache the results
       this.cache.set(cacheKey, enhancedNewsletters);
+      console.log(
+        `[NewsletterService] Generated metadata for ${enhancedNewsletters.length} newsletters`,
+      );
 
       return enhancedNewsletters;
     } catch (error) {
-      console.error('[NewsletterService] Error loading newsletters:', error);
+      console.error('[NewsletterService] Error generating newsletters:', error);
       return [];
     }
+  }
+
+  /**
+   * Discover all local PDF files
+   */
+  private discoverLocalPDFs(): Array<{ url: string; filename: string }> {
+    // List of known local PDF files (in production, this could be dynamic)
+    const knownPDFs = [
+      '2024.02-conashaugh-courier.pdf',
+      '2024.03-conashaugh-courier.pdf',
+      '2024.04-conashaugh-courier.pdf',
+      '2024.05-conashaugh-courier.pdf',
+      '2024.06-conashaugh-courier.pdf',
+      '2024.08-conashaugh-courier.pdf',
+      '2024.09-conashaugh-courier.pdf',
+      '2024.10-conashaugh-courier.pdf',
+      '2024.11-conashaugh-courier.pdf',
+      '2024.12-conashaugh-courier.pdf',
+      '2025.02-conashaugh-courier.pdf',
+      '2025.05-conashaugh-courier.pdf',
+      '2025.06-conashaugh-courier.pdf',
+      '2025.07-conashaugh-courier.pdf',
+      '2025.08-conashaugh-courier.pdf',
+    ];
+
+    return knownPDFs.map((filename) => ({
+      url: `${this.localBasePath}${filename}`,
+      filename,
+    }));
+  }
+
+  /**
+   * Convert PDF metadata to newsletter metadata
+   */
+  private convertPDFMetadataToNewsletter(pdfMeta: PDFMetadata): NewsletterMetadata {
+    const publishDate = this.parsePublishDateFromFilename(pdfMeta.filename);
+
+    return {
+      id: this.generateNumericId(pdfMeta.filename),
+      title: pdfMeta.title,
+      filename: pdfMeta.filename,
+      date: publishDate,
+      pages: pdfMeta.pages,
+      url: `${this.localBasePath}${pdfMeta.filename}`,
+      // Hybrid metadata
+      localFile: pdfMeta.filename,
+      thumbnailPath: pdfMeta.thumbnailDataUrl, // Use generated thumbnail
+      fileSize: pdfMeta.fileSize,
+      publishDate: new Date(publishDate).toISOString(),
+      contentType: 'newsletter' as const,
+      quality: 'web' as const,
+      // PDF metadata
+      ...(pdfMeta.author && { author: pdfMeta.author }),
+      ...(pdfMeta.subject && { subject: pdfMeta.subject }),
+      ...(pdfMeta.keywords && { keywords: pdfMeta.keywords }),
+    };
+  }
+
+  /**
+   * Parse publish date from filename
+   */
+  private parsePublishDateFromFilename(filename: string): string {
+    const match = filename.match(/^(\d{4})\.(\d{2})-/);
+    if (match) {
+      const [, year, month] = match;
+      return `${year}-${month}-01`; // First day of month
+    }
+    return new Date().toISOString().split('T')[0] || ''; // Fallback to today
+  }
+
+  /**
+   * Generate unique numeric ID from filename
+   */
+  private generateNumericId(filename: string): number {
+    // Convert filename to a consistent numeric ID
+    let hash = 0;
+    for (let i = 0; i < filename.length; i++) {
+      const char = filename.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
+   * Generate unique ID from filename
+   */
+  private generateId(filename: string): string {
+    return filename.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+  }
+
+  /**
+   * Enhance newsletter metadata that already has most fields populated
+   */
+  private enhanceNewsletterMetadata(newsletter: NewsletterMetadata): NewsletterMetadata {
+    const driveId = newsletter.driveId || this.extractDriveId();
+    const driveUrl = newsletter.driveUrl || this.generateDriveUrl();
+
+    return {
+      ...newsletter,
+      // Add any missing hybrid metadata
+      thumbnailPath: newsletter.thumbnailPath || this.generateThumbnailPath(newsletter.filename),
+      ...(driveId && { driveId }),
+      ...(driveUrl && { driveUrl }),
+    };
   }
 
   /**

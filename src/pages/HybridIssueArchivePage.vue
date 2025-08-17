@@ -149,6 +149,43 @@
                         </div>
                     </div>
 
+                    <!-- Google Drive Issues Section -->
+                    <q-card v-if="dynamicIssues.issues.value.length > 0" flat :class="cardClasses" class="q-mt-lg">
+                        <q-card-section>
+                            <div class="text-h5 q-mb-md">
+                                <q-icon name="cloud" class="q-mr-sm" />
+                                Google Drive Archive
+                                <q-badge color="info" :label="`${dynamicIssues.issues.value.length} issues`"
+                                    class="q-ml-sm" />
+                            </div>
+                            <p class="text-body2 text-grey-6 q-mb-md">
+                                High-quality issues available for download from Google Drive
+                            </p>
+
+                            <div class="row q-gutter-md">
+                                <div v-for="issue in dynamicIssues.issues.value" :key="issue.id"
+                                    class="col-12 col-md-6 col-lg-4">
+                                    <q-card flat bordered class="full-height">
+                                        <q-card-section>
+                                            <div class="text-subtitle1">{{ issue.title }}</div>
+                                            <div class="text-caption text-grey-6">{{ issue.date }}</div>
+                                            <div class="text-caption">{{ issue.pages }} pages</div>
+                                            <div v-if="issue.fileSize" class="text-caption">{{ issue.fileSize }}</div>
+                                        </q-card-section>
+                                        <q-card-actions>
+                                            <q-btn flat icon="cloud_download" label="Download" color="info"
+                                                :href="issue.url || '#'" target="_blank" :disable="!issue.url" />
+                                            <q-btn flat icon="open_in_new" label="View in Drive" color="secondary"
+                                                v-if="issue.googleDriveFileId"
+                                                :href="`https://drive.google.com/file/d/${issue.googleDriveFileId}/view`"
+                                                target="_blank" />
+                                        </q-card-actions>
+                                    </q-card>
+                                </div>
+                            </div>
+                        </q-card-section>
+                    </q-card>
+
                     <!-- Empty State -->
                     <q-card v-else flat :class="cardClasses">
                         <q-card-section class="text-center q-pa-xl">
@@ -174,10 +211,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import { useHybridNewsletters } from '../composables/useHybridNewsletters';
+import { useDynamicGoogleDriveIssues } from '../composables/useDynamicGoogleDriveIssues';
 import HybridNewsletterCard from '../components/HybridNewsletterCard.vue';
 
 const siteStore = useSiteStore();
 const hybridNewsletters = useHybridNewsletters();
+const dynamicIssues = useDynamicGoogleDriveIssues();
 
 // UI state
 const viewMode = ref<'list' | 'grid' | 'year'>('grid');
@@ -255,6 +294,8 @@ const sortOptions = [
 // Lifecycle
 onMounted(async () => {
     await hybridNewsletters.loadNewsletters();
+    // Also load Google Drive issues for the archive section
+    await dynamicIssues.loadIssues();
 });
 </script>
 
