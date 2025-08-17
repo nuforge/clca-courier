@@ -121,9 +121,9 @@ const parseFileSize = (sizeStr: string): number => {
 };
 
 // Responsive grid classes based on screen size and available width
-const getResponsiveCardClass = () => {
-  // Improved responsive grid for better space utilization
-  return 'col-12 col-xs-6 col-sm-4 col-md-4 col-lg-3 col-xl-2';
+const getResponsiveClasses = (): string => {
+  // Improved responsive grid for better space utilization with 4-5 columns max
+  return 'col-12 col-xs-6 col-sm-4 col-md-4 col-lg-3 col-xl-3';
 };
 
 onMounted(async () => {
@@ -261,7 +261,7 @@ async function initialize() {
                   <div v-for="(yearIssues, year) in issuesByYear" :key="year" class="q-mb-lg">
                     <div class="text-h6 q-mb-md">{{ year }}</div>
                     <div class="row q-col-gutter-md">
-                      <div :class="getResponsiveCardClass()" v-for="newsletter in yearIssues" :key="newsletter.id">
+                      <div :class="getResponsiveClasses()" v-for="newsletter in yearIssues" :key="newsletter.id">
                         <HybridNewsletterCard :newsletter="newsletter" />
                       </div>
                     </div>
@@ -271,7 +271,7 @@ async function initialize() {
                 <!-- All issues in chronological order -->
                 <div v-else>
                   <div class="row q-col-gutter-md">
-                    <div :class="getResponsiveCardClass()" v-for="newsletter in archivedIssues" :key="newsletter.id">
+                    <div :class="getResponsiveClasses()" v-for="newsletter in archivedIssues" :key="newsletter.id">
                       <HybridNewsletterCard :newsletter="newsletter" />
                     </div>
                   </div>

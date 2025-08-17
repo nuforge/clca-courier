@@ -44,6 +44,7 @@ class NewsletterService {
 
   /**
    * Get all newsletters with hybrid source information
+   * Primary data comes from actual files, JSON is fallback only
    */
   async getNewsletters(): Promise<NewsletterMetadata[]> {
     const cacheKey = 'newsletters';
@@ -54,16 +55,28 @@ class NewsletterService {
     }
 
     try {
-      // Generate newsletter list from local PDF files
+      // PHASE 1: Discover and process local PDF files (primary source)
       const localPDFs = this.discoverLocalPDFs();
+      console.log(`[NewsletterService] Found ${localPDFs.length} local PDF files`);
 
       // Extract PDF metadata for all local files
       const pdfMetadataList = await pdfMetadataService.processPDFBatch(localPDFs);
 
       // Convert PDF metadata to newsletter metadata
-      const enhancedNewsletters = pdfMetadataList.map((pdfMeta) =>
+      let enhancedNewsletters = pdfMetadataList.map((pdfMeta) =>
         this.convertPDFMetadataToNewsletter(pdfMeta),
       );
+
+      // PHASE 2: Check for Google Drive sources and merge
+      const googleDriveNewsletters = await this.discoverGoogleDriveNewsletters();
+      enhancedNewsletters = this.mergeLocalAndDriveSources(
+        enhancedNewsletters,
+        googleDriveNewsletters,
+      );
+
+      // PHASE 3: Load JSON fallback for any missing newsletters
+      const jsonFallback = await this.loadFallbackNewsletters();
+      enhancedNewsletters = this.mergeFallbackData(enhancedNewsletters, jsonFallback);
 
       // Sort by date (newest first)
       enhancedNewsletters.sort(
@@ -74,12 +87,16 @@ class NewsletterService {
       this.cache.set(cacheKey, enhancedNewsletters);
       console.log(
         `[NewsletterService] Generated metadata for ${enhancedNewsletters.length} newsletters`,
+        `(${enhancedNewsletters.filter((n) => n.localFile).length} local, ` +
+          `${enhancedNewsletters.filter((n) => n.driveId).length} drive, ` +
+          `${enhancedNewsletters.filter((n) => n.localFile && n.driveId).length} hybrid)`,
       );
 
       return enhancedNewsletters;
     } catch (error) {
       console.error('[NewsletterService] Error generating newsletters:', error);
-      return [];
+      // If all else fails, try loading from JSON
+      return await this.loadFallbackNewsletters();
     }
   }
 
@@ -419,6 +436,167 @@ class NewsletterService {
       cacheSize: this.cache.size,
       lastUpdated: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Discover newsletters from Google Drive (placeholder for future implementation)
+   */
+  private discoverGoogleDriveNewsletters(): Promise<NewsletterMetadata[]> {
+    // TODO: Implement Google Drive discovery
+    // For now, return empty array until Google Drive integration is complete
+    console.log('[NewsletterService] Google Drive discovery - placeholder implementation');
+    return Promise.resolve([]);
+  }
+
+  /**
+   * Merge local and Google Drive sources, marking hybrid availability
+   */
+  private mergeLocalAndDriveSources(
+    localNewsletters: NewsletterMetadata[],
+    driveNewsletters: NewsletterMetadata[],
+  ): NewsletterMetadata[] {
+    const merged = [...localNewsletters];
+
+    // For each Drive newsletter, check if we have a local version
+    for (const driveNewsletter of driveNewsletters) {
+      const localMatch = merged.find((local) => this.isSameNewsletter(local, driveNewsletter));
+
+      if (localMatch) {
+        // Merge Google Drive metadata into local newsletter
+        if (driveNewsletter.driveId) localMatch.driveId = driveNewsletter.driveId;
+        if (driveNewsletter.driveUrl) localMatch.driveUrl = driveNewsletter.driveUrl;
+        console.log(`[NewsletterService] Found hybrid source for: ${localMatch.filename}`);
+      } else {
+        // Add Drive-only newsletter
+        merged.push(driveNewsletter);
+        console.log(`[NewsletterService] Found Drive-only newsletter: ${driveNewsletter.filename}`);
+      }
+    }
+
+    return merged;
+  }
+
+  /**
+   * Load fallback newsletter data from JSON files
+   */
+  private async loadFallbackNewsletters(): Promise<NewsletterMetadata[]> {
+    try {
+      console.log('[NewsletterService] Loading fallback data from issues.json');
+
+      // Load the original issues.json as fallback
+      const response = await fetch('/src/data/issues.json');
+      const issuesData: PdfDocument[] = await response.json();
+
+      // Convert to NewsletterMetadata format with enhanced date parsing
+      return issuesData.map((issue) => this.convertFallbackToNewsletter(issue));
+    } catch (error) {
+      console.error('[NewsletterService] Failed to load fallback data:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Merge fallback data for any newsletters not found in primary sources
+   */
+  private mergeFallbackData(
+    primaryNewsletters: NewsletterMetadata[],
+    fallbackNewsletters: NewsletterMetadata[],
+  ): NewsletterMetadata[] {
+    const merged = [...primaryNewsletters];
+
+    for (const fallback of fallbackNewsletters) {
+      const exists = merged.some((primary) => this.isSameNewsletter(primary, fallback));
+
+      if (!exists) {
+        console.log(`[NewsletterService] Adding fallback newsletter: ${fallback.filename}`);
+        merged.push(fallback);
+      }
+    }
+
+    return merged;
+  }
+
+  /**
+   * Convert fallback JSON data to NewsletterMetadata with proper date parsing
+   */
+  private convertFallbackToNewsletter(issue: PdfDocument): NewsletterMetadata {
+    // Parse date from filename if possible, otherwise use provided date
+    let publishDate: string;
+
+    const filenameMatch = issue.filename?.match(/^(\d{4})\.(\d{2})-/);
+    if (filenameMatch) {
+      const [, year, month] = filenameMatch;
+      publishDate = `${year}-${month}-01`; // Default to 1st of month
+    } else {
+      // Try to parse the existing date field, defaulting to 1st of month
+      const dateMatch = issue.date.match(/^(\w+)\s+(\d{4})$/);
+      if (dateMatch) {
+        const [, monthName, year] = dateMatch;
+        if (monthName) {
+          const monthNumber = this.getMonthNumber(monthName);
+          publishDate = `${year}-${monthNumber.toString().padStart(2, '0')}-01`;
+        } else {
+          publishDate = new Date().toISOString().split('T')[0] || '1970-01-01';
+        }
+      } else {
+        // If all else fails, use current date
+        publishDate = new Date().toISOString().split('T')[0] || '1970-01-01';
+      }
+    }
+
+    return {
+      ...issue,
+      publishDate: new Date(publishDate).toISOString(),
+      contentType: this.determineContentType(issue.title),
+      quality: 'web',
+      localFile: issue.filename,
+      fileSize: 'Unknown', // Will be determined if file is accessible
+    };
+  }
+
+  /**
+   * Get month number from month name
+   */
+  private getMonthNumber(monthName: string): number {
+    const months: Record<string, number> = {
+      January: 1,
+      February: 2,
+      March: 3,
+      April: 4,
+      May: 5,
+      June: 6,
+      July: 7,
+      August: 8,
+      September: 9,
+      October: 10,
+      November: 11,
+      December: 12,
+      // Handle season names as well
+      Spring: 4,
+      Summer: 7,
+      Fall: 10,
+      Autumn: 10,
+      Winter: 1,
+    };
+    return months[monthName] || 1; // Default to January
+  }
+
+  /**
+   * Check if two newsletters represent the same publication
+   */
+  private isSameNewsletter(a: NewsletterMetadata, b: NewsletterMetadata): boolean {
+    // Compare by filename if available
+    if (a.filename && b.filename) {
+      return a.filename === b.filename;
+    }
+
+    // Compare by title and date
+    if (a.title === b.title && a.date === b.date) {
+      return true;
+    }
+
+    // Compare by ID
+    return a.id === b.id;
   }
 }
 

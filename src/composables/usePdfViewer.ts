@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import type { WebViewerInstance } from '@pdftron/webviewer';
 
 export interface PdfDocument {
@@ -15,6 +15,7 @@ const showViewer = ref(false);
 const selectedDocument = ref<PdfDocument | null>(null);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
+let webViewerInstance: WebViewerInstance | null = null;
 
 export function usePdfViewer() {
   // Open a PDF document in the viewer
@@ -31,18 +32,39 @@ export function usePdfViewer() {
     selectedDocument.value = null;
     isLoading.value = false;
     error.value = null;
+    webViewerInstance = null;
   };
 
-  // Switch to a different document
-  const switchDocument = (document: PdfDocument) => {
-    selectedDocument.value = document;
-    isLoading.value = true;
-    error.value = null;
+  // Switch to a different document (improved implementation)
+  const switchDocument = async (document: PdfDocument) => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      selectedDocument.value = document;
+
+      // If we have a WebViewer instance, load the new document directly
+      if (webViewerInstance) {
+        await nextTick(); // Ensure Vue reactivity has updated
+        const { documentViewer } = webViewerInstance.Core;
+
+        // Load the new document
+        await documentViewer.loadDocument(document.url);
+        isLoading.value = false;
+      } else {
+        // If no instance, the PdfViewer component will handle the new document
+        // Loading state will be cleared when the viewer is ready
+      }
+    } catch (err) {
+      console.error('Error switching document:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to switch document';
+      error.value = errorMessage;
+      isLoading.value = false;
+    }
   };
 
-  // Handle PDF viewer ready event
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Handle PDF viewer ready event (store instance reference)
   const onViewerReady = (instance: WebViewerInstance) => {
+    webViewerInstance = instance;
     isLoading.value = false;
   };
 

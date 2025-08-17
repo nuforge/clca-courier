@@ -16,7 +16,10 @@
               @click="switchDocument(document)" :class="{ 'bg-grey-2': selectedDocument?.id === document.id }">
               <q-item-section>
                 <q-item-label>{{ document.title }}</q-item-label>
-                <q-item-label caption>{{ document.date }}</q-item-label>
+                <q-item-label caption>{{ document.date }} • {{ document.pages }} pages</q-item-label>
+              </q-item-section>
+              <q-item-section side v-if="selectedDocument?.id === document.id">
+                <q-icon name="mdi-check" color="positive" />
               </q-item-section>
             </q-item>
           </q-list>
@@ -26,8 +29,23 @@
       </q-toolbar>
 
       <q-card-section class="q-pa-none" style="height: calc(100vh - 50px);">
-        <PdfViewer v-if="selectedDocument" :document-url="selectedDocument.url" @ready="onViewerReady"
-          @error="onViewerError" />
+        <!-- Loading indicator -->
+        <div v-if="isLoading" class="absolute-center">
+          <q-spinner-dots size="50px" color="primary" />
+          <div class="q-mt-md text-center">Loading PDF...</div>
+        </div>
+
+        <!-- Error indicator -->
+        <div v-else-if="error" class="absolute-center text-center">
+          <q-icon name="mdi-alert-circle" size="64px" color="negative" />
+          <div class="q-mt-md text-h6 text-negative">Error Loading PDF</div>
+          <div class="q-mt-sm text-body2">{{ error }}</div>
+          <q-btn class="q-mt-md" color="primary" label="Try Again" @click="retryLoadDocument" outline />
+        </div>
+
+        <!-- PDF Viewer -->
+        <PdfViewer v-if="selectedDocument && !error" :document-url="selectedDocument.url" :key="selectedDocument.id"
+          @ready="onViewerReady" @error="onViewerError" />
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -48,6 +66,8 @@ const siteStore = useSiteStore()
 const {
   showViewer,
   selectedDocument,
+  isLoading,
+  error,
   closeViewer,
   switchDocument,
   onViewerReady: handleViewerReady,
@@ -70,6 +90,14 @@ const onViewerError = (error: string) => {
     type: 'negative',
     icon: 'mdi-alert'
   })
+}
+
+// Retry loading the current document
+const retryLoadDocument = () => {
+  if (selectedDocument.value) {
+    // Reset error state and try switching to the same document (will trigger reload)
+    void switchDocument(selectedDocument.value)
+  }
 }
 </script>
 
