@@ -1,6 +1,7 @@
 // src/composables/useGoogleDrivePdfs.ts
 import { ref, computed } from 'vue';
 import { usePdfThumbnails } from './usePdfThumbnails';
+import { logger } from '../utils/logger';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 
 // Google API type definitions
@@ -127,7 +128,7 @@ export function useGoogleDrivePdfs() {
   const loadGoogleAPI = async (): Promise<void> => {
     if (gapiLoaded) return;
 
-    console.log('Loading Google API script and Google Identity Services...');
+    logger.drive('Loading Google API script and Google Identity Services...');
 
     // Test network connectivity first
     try {
@@ -135,9 +136,9 @@ export function useGoogleDrivePdfs() {
         method: 'HEAD',
         mode: 'no-cors',
       });
-      console.log('Network connectivity to Google APIs: OK');
+      logger.drive('Network connectivity to Google APIs: OK');
     } catch (error) {
-      console.warn('Network connectivity test failed:', error);
+      logger.warn('Network connectivity test failed:', error);
     }
 
     // Load both GAPI and Google Identity Services
@@ -146,11 +147,11 @@ export function useGoogleDrivePdfs() {
         const script = document.createElement('script');
         script.src = 'https://apis.google.com/js/api.js';
         script.onload = () => {
-          console.log('✅ Google API script loaded successfully');
+          logger.drive('Google API script loaded successfully');
           resolve();
         };
         script.onerror = (error) => {
-          console.error('❌ Failed to load Google API script:', error);
+          logger.error('Failed to load Google API script', error);
           reject(new Error('Failed to load Google API script'));
         };
         document.head.appendChild(script);
@@ -159,11 +160,11 @@ export function useGoogleDrivePdfs() {
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.onload = () => {
-          console.log('✅ Google Identity Services script loaded successfully');
+          logger.drive('Google Identity Services script loaded successfully');
           resolve();
         };
         script.onerror = (error) => {
-          console.error('❌ Failed to load Google Identity Services script:', error);
+          logger.error('Failed to load Google Identity Services script', error);
           reject(new Error('Failed to load Google Identity Services script'));
         };
         document.head.appendChild(script);
@@ -175,7 +176,7 @@ export function useGoogleDrivePdfs() {
 
     if (window.gapi && window.google?.accounts?.oauth2) {
       gapiLoaded = true;
-      console.log('✅ Both Google API and Google Identity Services are available');
+      logger.drive('Both Google API and Google Identity Services are available');
     } else {
       throw new Error('Google APIs not available after script load');
     }
@@ -184,17 +185,17 @@ export function useGoogleDrivePdfs() {
   // Initialize Google API with minimal permissions
   const initializeGoogleAPI = async (): Promise<void> => {
     if (gapiInitialized) {
-      console.log('✅ Google API already initialized');
+      logger.drive('Google API already initialized');
       return;
     }
 
-    console.log('🔧 Initializing Google API client...');
+    logger.drive('Initializing Google API client...');
 
     const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-    console.log('🔑 API Key present:', !!apiKey);
-    console.log('🆔 Client ID present:', !!clientId);
+    logger.debug('API Key present:', !!apiKey);
+    logger.debug('Client ID present:', !!clientId);
 
     if (!apiKey || !clientId) {
       throw new Error('Google API credentials not configured');
@@ -216,7 +217,7 @@ export function useGoogleDrivePdfs() {
       window.gapi.load('client', {
         callback: () => {
           clearTimeout(timeout);
-          console.log('📦 Google API client library loaded, initializing...');
+          logger.drive('Google API client library loaded, initializing...');
           window.gapi.client
             .init({
               apiKey: apiKey,
@@ -224,12 +225,11 @@ export function useGoogleDrivePdfs() {
             })
             .then(() => {
               gapiInitialized = true;
-              console.log('✅ Google API initialized successfully with Google Identity Services');
+              logger.drive('Google API initialized successfully with Google Identity Services');
               resolve();
             })
             .catch((error) => {
-              console.error('❌ Failed to initialize Google API client:', error);
-              console.error('Error details:', {
+              logger.error('Failed to initialize Google API client', error, {
                 name: error.name,
                 message: error.message,
                 stack: error.stack,
@@ -239,7 +239,7 @@ export function useGoogleDrivePdfs() {
         },
         onerror: (error: unknown) => {
           clearTimeout(timeout);
-          console.error('❌ Failed to load Google API client libraries:', error);
+          logger.error('Failed to load Google API client libraries', error);
           reject(new Error('Failed to load Google API client'));
         },
       });

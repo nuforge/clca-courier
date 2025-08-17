@@ -3,6 +3,7 @@
 
 import { googleDriveContentService } from '../services/google-drive-content-service';
 import { googleDriveConfig } from '../config/google-drive-pdf-config';
+import { logger } from './logger';
 
 /**
  * Initialize Google Drive PDF integration
@@ -11,19 +12,19 @@ import { googleDriveConfig } from '../config/google-drive-pdf-config';
 export function initializeGoogleDrivePdf(): Promise<boolean> {
   return new Promise((resolve) => {
     try {
-      console.log('🚀 Initializing Google Drive PDF integration...');
+      logger.drive('Initializing Google Drive PDF integration...');
 
       // Configure the service with credentials
       if (googleDriveConfig.apiKey && googleDriveConfig.clientId) {
         googleDriveContentService.configure(googleDriveConfig);
-        console.log('✅ Google Drive service configured successfully');
+        logger.success('Google Drive service configured successfully');
         resolve(true);
       } else {
-        console.warn('⚠️ Google Drive credentials not found - using local fallback');
+        logger.warn('Google Drive credentials not found - using local fallback');
         resolve(false);
       }
     } catch (error) {
-      console.error('❌ Failed to initialize Google Drive PDF integration:', error);
+      logger.error('Failed to initialize Google Drive PDF integration', error);
       resolve(false);
     }
   });
@@ -35,7 +36,7 @@ export function initializeGoogleDrivePdf(): Promise<boolean> {
  */
 export function cleanupPdfCaches(): void {
   try {
-    console.log('🧹 Cleaning up PDF caches...');
+    logger.cache('Cleaning up PDF caches...');
 
     // Clean up thumbnail cache
     const thumbnailCache = localStorage.getItem('google-drive-thumbnail-cache');
@@ -55,7 +56,7 @@ export function cleanupPdfCaches(): void {
 
       if (cleaned > 0) {
         localStorage.setItem('google-drive-thumbnail-cache', JSON.stringify(cache));
-        console.log(`🗑️ Cleaned ${cleaned} old thumbnail cache entries`);
+        logger.cache(`Cleaned ${cleaned} old thumbnail cache entries`);
       }
     }
 
@@ -77,11 +78,11 @@ export function cleanupPdfCaches(): void {
 
       if (cleaned > 0) {
         localStorage.setItem('pdf-metadata-cache', JSON.stringify(cache));
-        console.log(`🗑️ Cleaned ${cleaned} old metadata cache entries`);
+        logger.cache(`Cleaned ${cleaned} old metadata cache entries`);
       }
     }
   } catch (error) {
-    console.warn('⚠️ Failed to clean up caches:', error);
+    logger.warn('Failed to clean up caches:', error);
   }
 }
 
@@ -106,7 +107,7 @@ export function getCacheStats(): {
       totalCacheSize: thumbnailCacheSize + metadataCacheSize,
     };
   } catch (error) {
-    console.warn('Failed to get cache stats:', error);
+    logger.warn('Failed to get cache stats:', error);
     return {
       thumbnailCacheSize: 0,
       metadataCacheSize: 0,
@@ -121,7 +122,7 @@ export function getCacheStats(): {
  */
 export function clearAllPdfCaches(): void {
   try {
-    console.log('🧹 Clearing all PDF caches...');
+    logger.cache('Clearing all PDF caches...');
 
     // Clear Google Drive thumbnail cache
     localStorage.removeItem('google-drive-thumbnail-cache');
@@ -140,9 +141,9 @@ export function clearAllPdfCaches(): void {
       }
     });
 
-    console.log(`✅ Cleared all PDF caches (${cleared} thumbnail entries)`);
+    logger.success(`Cleared all PDF caches (${cleared} thumbnail entries)`);
   } catch (error) {
-    console.error('❌ Failed to clear caches:', error);
+    logger.error('Failed to clear caches', error);
   }
 }
 
