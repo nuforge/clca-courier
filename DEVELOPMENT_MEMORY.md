@@ -142,7 +142,7 @@ Code Implementation → ESLint Check → Fix Issues → Verify Clean → Complet
 
 1. **usePdfMetadata.ts - COMPLETE OVERHAUL:**
    - ❌ **REMOVED**: All attempts to process Google Drive URLs with PDF.js
-   - ❌ **REMOVED**: `getBestPdfJsUrl` usage and URL conversion attempts  
+   - ❌ **REMOVED**: `getBestPdfJsUrl` usage and URL conversion attempts
    - ✅ **ADDED**: **Immediate bailout** for Google Drive URLs with fallback metadata
    - ✅ **RESULT**: **Zero CORS errors** - no network requests to Google Drive for PDF processing
 
