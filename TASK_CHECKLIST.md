@@ -1,8 +1,75 @@
 # CLCA Courier - Development Task Checklist
 
 **Created:** August 16, 2025  
+**Updated:** August 17, 2025
 **Current Branch:** google  
 **Status:** Active Development
+
+---
+
+## � MANDATORY DEVELOPMENT STANDARDS
+
+### **ESLINT/TYPESCRIPT COMPLIANCE REQUIREMENT**
+
+> **⚠️ ALL TASKS MUST INCLUDE ESLINT VERIFICATION AS FINAL STEP**
+
+**Critical Rule:** Every coding task must end with ESLint/TypeScript error verification and resolution.
+
+**Required Workflow for ALL code changes:**
+
+1. Implement feature/fix
+2. Run `get_errors` tool on modified files
+3. Fix any TypeScript/ESLint issues found
+4. Re-verify until clean
+5. Only then mark task as complete
+
+**Prohibited Practices:**
+
+- ❌ Using `any` type without justification
+- ❌ Missing type imports for external interfaces
+- ❌ Declaring tasks complete while ESLint errors exist
+- ❌ Suggesting code without considering TypeScript compliance
+
+**Required Practices:**
+
+- ✅ Always import required types (`NewsletterMetadata`, etc.)
+- ✅ Use proper TypeScript interfaces for all objects
+- ✅ Verify compilation before task completion
+- ✅ Proactively prevent common typing issues
+
+---
+
+## �📋 CURRENT DEVELOPMENT TASKS (IN PROGRESS)
+
+### User Feedback Implementation - August 17, 2025
+
+- [x] **Fixed Group by Year Sorting** ✅ COMPLETED
+  - [x] Year view now respects date/title/pages/contentType sorting within each year group
+  - [x] Added computed property `sortedNewslettersByYear` to apply sorting to year groups
+- [x] **Enhanced Sources Dialog Theming** ✅ COMPLETED
+  - [x] Fixed sources popup to properly respond to Quasar dark/light theme changes
+  - [x] Added proper theme-aware styling with conditional classes
+  - [x] Improved visual consistency with rest of application
+- [x] **Removed Newsletter/Special Content Type Chips** ✅ COMPLETED
+  - [x] Removed contentType chips from HybridNewsletterCard as requested
+  - [x] Simplified UI to focus on source availability indicators only
+  - [x] Removed unused `contentTypeColor` computed property
+- [x] **Implemented Live PDF Metadata System** ✅ COMPLETED
+  - [x] Created `usePdfMetadata.ts` composable for real-time PDF analysis
+  - [x] Replaced hardcoded page count data with live PDF.js-based extraction
+  - [x] Added dynamic file size detection from PDF response headers
+  - [x] Enhanced HybridNewsletterCard with live metadata loading
+  - [x] Added loading indicators for metadata extraction process
+  - [x] Implemented intelligent caching to prevent repeated PDF analysis
+- [x] **Updated Documentation** ✅ COMPLETED
+  - [x] Updated TASK_CHECKLIST.md with current progress
+  - [x] Added new development task section for current work
+
+**Next Steps:**
+
+- [ ] Test the live metadata system with various PDF files
+- [ ] Consider extending live metadata to other components (IssueCard, IssueDetailsPage)
+- [ ] Monitor performance impact of PDF.js analysis on large files
 
 ---
 

@@ -79,13 +79,6 @@ const quickLinks: QuickLink[] = [
     icon: 'mdi-information',
     color: 'warning',
     link: '/about'
-  },
-  {
-    title: 'Issue Archive',
-    description: 'Browse complete archive of past issues with Google Drive integration',
-    icon: 'mdi-bookshelf',
-    color: 'deep-purple',
-    link: '/archive'
   }
 ];
 </script>

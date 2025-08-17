@@ -1,7 +1,81 @@
 # CLCA Courier - Development Memory & Notes
 
 **Created:** August 16, 2025  
+**Updated:** August 17, 2025
 **Purpose:** Track progress, failed attempts, user instructions, and important decisions
+
+---
+
+## � CRITICAL DEVELOPMENT REQUIREMENTS
+
+### **ESLINT/TYPESCRIPT COMPLIANCE MANDATE**
+
+> **⚠️ IMPERATIVE: All code must be ESLint/TypeScript compliant BEFORE completion**
+
+**User Requirement:** Code suggestions must account for lint errors that constantly arise and require follow-up prompts to resolve. All common typing issues must be resolved before finishing any coding task.
+
+**Implementation Standards:**
+
+1. **Always use proper TypeScript interfaces** - Never use `any` type
+2. **Import required types** - Add type imports when using external interfaces
+3. **Verify compilation** - Check for ESLint errors before declaring tasks complete
+4. **Proactive type checking** - Design code around preventing common typing issues
+5. **Use `get_errors` tool** - Always verify no ESLint errors remain after code changes
+
+**Common Issues to Prevent:**
+
+- ❌ `any` types in function parameters, return values, or variable declarations
+- ❌ Missing type imports when using external interfaces (e.g., `NewsletterMetadata`)
+- ❌ Untyped object properties and array elements
+- ❌ Missing interface definitions for complex objects
+
+**Workflow Requirement:**
+
+```
+Code Implementation → ESLint Check → Fix Issues → Verify Clean → Complete Task
+```
+
+---
+
+## �📝 RECENT DEVELOPMENT SESSION - August 17, 2025
+
+### User Feedback Addressed
+
+1. **Group by Year Sorting Issue** ✅ FIXED
+   - **Problem:** Year view prevented proper chronological sorting
+   - **Solution:** Added `sortedNewslettersByYear` computed property that applies sorting within each year group
+   - **Impact:** Year view now respects all sort options (date, title, pages, content type)
+
+2. **Sources Dialog Theming** ✅ FIXED
+   - **Problem:** Sources popup not responding to dark/light theme changes
+   - **Solution:** Added proper theme-aware classes using `$q.dark.isActive` conditionals
+   - **Impact:** Consistent theming across all components and dialogs
+
+3. **Content Type Chips Removal** ✅ COMPLETED
+   - **Problem:** Newsletter and Special chips considered unimportant clutter
+   - **Solution:** Removed contentType chips from HybridNewsletterCard, simplified UI
+   - **Impact:** Cleaner interface focusing only on source availability
+
+4. **Live PDF Metadata Implementation** ✅ MAJOR ENHANCEMENT
+   - **Problem:** Hardcoded page count data in JSON files
+   - **Solution:** Created `usePdfMetadata.ts` composable using PDF.js for live analysis
+   - **Features:**
+     - Real-time page count extraction from PDF files
+     - Dynamic file size detection from response headers
+     - Intelligent caching to prevent repeated analysis
+     - Loading indicators during metadata extraction
+   - **Impact:** Eliminated reliance on static data, improved accuracy
+
+5. **Thumbnail Generation** ✅ ALREADY IMPLEMENTED
+   - User mentioned this was already done - confirmed `usePdfThumbnails.ts` provides comprehensive fallback system
+   - Three-tier system: PDF.js → WebViewer → Styled placeholder
+
+### Technical Implementation Details
+
+- **Live Metadata System:** PDF.js integration for real-time PDF analysis
+- **Theme-Aware Components:** Proper Quasar dark mode integration
+- **Sorting Enhancement:** Year-grouped view with preserved sort functionality
+- **Performance:** Cached metadata to prevent repeated PDF parsing
 
 ---
 

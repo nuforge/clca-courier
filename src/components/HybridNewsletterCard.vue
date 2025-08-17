@@ -42,25 +42,25 @@
           <div class="row items-center q-gutter-md">
             <div v-if="validPageCount" class="flex items-center no-wrap">
               <q-icon name="description" size="sm" class="q-mr-xs" />
-              <span class="text-nowrap">{{ newsletter.pages }} pages</span>
+              <span class="text-nowrap">{{ validPageCount }} pages</span>
             </div>
 
-            <div v-if="newsletter.fileSize" class="flex items-center no-wrap">
+            <div v-if="displayFileSize" class="flex items-center no-wrap">
               <q-icon name="storage" size="sm" class="q-mr-xs" />
-              <span class="text-nowrap">{{ newsletter.fileSize }}</span>
+              <span class="text-nowrap">{{ displayFileSize }}</span>
+            </div>
+
+            <!-- Loading indicator for metadata -->
+            <div v-if="loading.metadata" class="flex items-center no-wrap">
+              <q-spinner-dots size="sm" class="q-mr-xs" />
+              <span class="text-caption text-grey-6">Loading info...</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Source indicators and content type as chips -->
-      <div class="row q-gutter-xs q-mt-sm items-center"
-        v-if="Object.keys(sources).length > 0 || newsletter.contentType">
-        <!-- Content Type Badge -->
-        <q-chip :color="contentTypeColor" :label="newsletter.contentType || 'newsletter'" size="sm" text-color="white"
-          dense outline class="q-my-none">
-        </q-chip>
-
+      <!-- Source indicators -->
+      <div class="row q-gutter-xs q-mt-sm items-center" v-if="Object.keys(sources).length > 0">
         <!-- Source Indicators -->
         <div class="q-gutter-xs">
           <!-- Local Source Available -->
@@ -158,12 +158,14 @@
 
     <!-- Sources Dialog -->
     <q-dialog v-model="showSourcesDialog">
-      <q-card class="q-pa-md" style="min-width: 350px; max-width: 500px;">
+      <q-card :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'" class="q-pa-md"
+        style="min-width: 350px; max-width: 500px;">
         <q-card-section class="q-pb-md">
           <div class="text-h6 text-primary q-mb-md">Available Sources</div>
           <div class="column q-gutter-md">
             <div v-for="source in availableSources" :key="source.type" v-show="source.available"
-              class="flex items-center justify-between q-pa-md rounded-borders bg-grey-2 shadow-1">
+              :class="$q.dark.isActive ? 'bg-grey-8 shadow-2' : 'bg-grey-2 shadow-1'"
+              class="flex items-center justify-between q-pa-md rounded-borders">
               <div class="flex items-center">
                 <q-icon :name="getSourceIcon(source.type)" :color="source.type === 'local' ? 'primary' : 'secondary'"
                   size="md" class="q-mr-md" />
@@ -171,7 +173,7 @@
                   <span class="text-subtitle1 text-weight-medium">
                     {{ source.type === 'local' ? 'Local File' : 'Google Drive' }}
                   </span>
-                  <span class="text-caption text-grey-6">
+                  <span :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'" class="text-caption">
                     {{ getSourceDescription(source.type) }}
                   </span>
                 </div>
@@ -201,8 +203,9 @@
           <div class="q-gutter-sm">
             <div><strong>Title:</strong> {{ newsletter.title }}</div>
             <div v-if="validDate"><strong>Date:</strong> {{ formatDate(newsletter.date) }}</div>
-            <div v-if="validPageCount"><strong>Pages:</strong> {{ newsletter.pages }}</div>
+            <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>
             <div><strong>Filename:</strong> {{ newsletter.filename }}</div>
+            <div v-if="displayFileSize"><strong>File Size:</strong> {{ displayFileSize }}</div>
             <div v-if="newsletter.publishDate && formatDate(newsletter.publishDate)">
               <strong>Published:</strong> {{ formatDate(newsletter.publishDate) }}
             </div>
@@ -229,6 +232,7 @@ import { useQuasar } from 'quasar';
 import type { NewsletterMetadata, NewsletterSource } from '../services/newsletter-service';
 import { useHybridNewsletters } from '../composables/useHybridNewsletters';
 import { usePdfViewer } from '../composables/usePdfViewer';
+import { usePdfMetadata } from '../composables/usePdfMetadata';
 
 interface Props {
   newsletter: NewsletterMetadata;
@@ -238,16 +242,20 @@ const props = defineProps<Props>();
 const $q = useQuasar();
 const hybridNewsletters = useHybridNewsletters();
 const pdfViewer = usePdfViewer();
+const { getPageCount, getFileSize } = usePdfMetadata();
 
 // Local state
 const showSourcesDialog = ref(false);
 const showDetails = ref(false);
 const availableSources = ref<NewsletterSource[]>([]);
+const livePageCount = ref<number | null>(null);
+const liveFileSize = ref<string | null>(null);
 const loading = reactive({
   webView: false,
   download: false,
   sources: false,
-  drive: false
+  drive: false,
+  metadata: false
 });
 
 // Computed properties
@@ -256,16 +264,15 @@ const sources = reactive({
   drive: false
 });
 
-const contentTypeColor = computed(() => {
-  switch (props.newsletter.contentType) {
-    case 'annual': return 'orange';
-    case 'special': return 'purple';
-    default: return 'primary';
-  }
+const validPageCount = computed(() => {
+  // Use live page count if available, otherwise fall back to static data
+  const pageCount = livePageCount.value || props.newsletter.pages;
+  return pageCount && pageCount > 0 ? pageCount : null;
 });
 
-const validPageCount = computed(() => {
-  return props.newsletter.pages && props.newsletter.pages > 0;
+const displayFileSize = computed(() => {
+  // Use live file size if available, otherwise fall back to static data
+  return liveFileSize.value || props.newsletter.fileSize;
 });
 
 const validDate = computed(() => {
@@ -281,6 +288,48 @@ const getSourceDescription = computed(() => (sourceType: string) => {
 });
 
 // Methods
+const loadLiveMetadata = async () => {
+  // Try to get a URL for metadata extraction
+  let pdfUrl: string | null = null;
+
+  // Get web view URL from the hybrid newsletters service
+  try {
+    pdfUrl = await hybridNewsletters.getWebViewUrl(props.newsletter);
+  } catch (error) {
+    console.log('Could not get web view URL for metadata extraction:', error);
+  }
+
+  // Fallback to constructing URL from local file
+  if (!pdfUrl && props.newsletter.localFile) {
+    pdfUrl = `/issues/${props.newsletter.localFile}`;
+  }
+
+  // Only proceed if we have a URL and don't already have live data
+  if (pdfUrl && (!livePageCount.value || !liveFileSize.value)) {
+    try {
+      loading.metadata = true;
+
+      // Load page count and file size concurrently
+      const [pageCount, fileSize] = await Promise.all([
+        livePageCount.value ? Promise.resolve(livePageCount.value) : getPageCount(pdfUrl),
+        liveFileSize.value ? Promise.resolve(liveFileSize.value) : getFileSize(pdfUrl)
+      ]);
+
+      if (pageCount !== null && !livePageCount.value) {
+        livePageCount.value = pageCount;
+      }
+
+      if (fileSize !== null && !liveFileSize.value) {
+        liveFileSize.value = fileSize;
+      }
+    } catch (error) {
+      console.log('Could not load live metadata for', props.newsletter.title, ':', error);
+    } finally {
+      loading.metadata = false;
+    }
+  }
+};
+
 const loadSources = async () => {
   try {
     loading.sources = true;
@@ -459,8 +508,10 @@ const getSourceIcon = (type: string) => {
 };
 
 // Lifecycle
-onMounted(() => {
-  void loadSources();
+onMounted(async () => {
+  await loadSources();
+  // Load live metadata after sources are loaded
+  await loadLiveMetadata();
 });
 </script>
 
