@@ -5,7 +5,7 @@
 
       <q-toolbar-title>
         <router-link to="/" class="logo-link">
-          <q-img src="/courier-logo.svg" style="height: 50px; max-width: 200px" fit="contain" alt="The Courier" />
+          <q-img :src="logoSrc" style="height: 50px; max-width: 200px" fit="contain" alt="The Courier" />
         </router-link>
       </q-toolbar-title>
 
@@ -16,8 +16,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, withDefaults, defineProps, defineEmits } from 'vue';
 import SearchInput from './SearchInput.vue';
+import { getPublicPath } from '../utils/path-utils';
 
 interface Props {
   showMenuButton?: boolean;
@@ -35,6 +36,9 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<Emits>();
+
+// Logo path with correct base path for production
+const logoSrc = computed(() => getPublicPath('courier-logo.svg'));
 
 // Local search state with sync to parent
 const searchValue = ref(props.modelValue);

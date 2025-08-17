@@ -10,6 +10,8 @@ import type { GoogleDriveFile } from '../types/google-drive-content';
 import { convertToViewUrl } from '../utils/googleDriveUtils';
 import { getDataPath } from '../utils/path-utils';
 
+import { getPublicPath } from '../utils/path-utils';
+
 export interface NewsletterMetadata extends PdfDocument {
   // Extended properties for hybrid hosting
   localFile?: string; // Local web-optimized filename
@@ -33,7 +35,7 @@ export interface NewsletterSource {
 
 class NewsletterService {
   private cache = new Map<string, NewsletterMetadata[]>();
-  private localBasePath = '/issues/';
+  private localBasePath = getPublicPath('issues/');
   private driveBaseUrl = 'https://drive.google.com/file/d/';
 
   constructor() {

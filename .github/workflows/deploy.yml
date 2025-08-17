@@ -22,6 +22,11 @@ jobs:
         run: npm install
 
       - name: Build project
+        env:
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID: ${{ secrets.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID }}
+          VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID: ${{ secrets.VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID }}
         run: |
           npm run build # Replace with your build script
           cp dist/spa/index.html dist/spa/404.html
