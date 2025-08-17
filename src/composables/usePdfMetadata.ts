@@ -48,9 +48,11 @@ export function usePdfMetadata() {
       // Import PDF.js dynamically to avoid bundle size issues
       const pdfjs = await import('pdfjs-dist');
 
-      // Set worker path
+      // Set worker path with correct base path for GitHub Pages
       if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-        pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        const isProduction = import.meta.env.PROD;
+        const basePath = isProduction ? '/clca-courier' : '';
+        pdfjs.GlobalWorkerOptions.workerSrc = `${basePath}/pdf.worker.min.js`;
       }
 
       // Load PDF document - only for NON-Google Drive URLs

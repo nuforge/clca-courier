@@ -283,8 +283,10 @@ export function usePdfThumbnails() {
 
       // Configure PDF.js worker at runtime to avoid Vite build issues
       if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        // Use dynamic path construction to avoid Vite processing the import
-        const workerPath = new URL('/pdf.worker.min.js', window.location.origin).href;
+        // Use dynamic path construction with correct base path for GitHub Pages
+        const isProduction = import.meta.env.PROD;
+        const basePath = isProduction ? '/clca-courier' : '';
+        const workerPath = new URL(`${basePath}/pdf.worker.min.js`, window.location.origin).href;
         pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
         console.log('📝 PDF.js worker configured:', workerPath);
       }

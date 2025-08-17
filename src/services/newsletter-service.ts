@@ -8,6 +8,7 @@ import type { PdfDocument } from '../composables/usePdfViewer';
 import { pdfMetadataService, type PDFMetadata } from './pdf-metadata-service';
 import type { GoogleDriveFile } from '../types/google-drive-content';
 import { convertToViewUrl } from '../utils/googleDriveUtils';
+import { getDataPath } from '../utils/path-utils';
 
 export interface NewsletterMetadata extends PdfDocument {
   // Extended properties for hybrid hosting
@@ -500,7 +501,7 @@ class NewsletterService {
    */
   private async loadGoogleDriveHybridData(): Promise<NewsletterMetadata[]> {
     try {
-      const response = await fetch('/src/data/newsletters-hybrid.json');
+      const response = await fetch(getDataPath('newsletters-hybrid.json'));
       const hybridData: { newsletters: Partial<NewsletterMetadata>[] } = await response.json();
 
       // Filter to only newsletters that have Google Drive information
@@ -758,7 +759,7 @@ class NewsletterService {
       console.log('[NewsletterService] Loading fallback data from issues.json');
 
       // Load the original issues.json as fallback
-      const response = await fetch('/src/data/issues.json');
+      const response = await fetch(getDataPath('issues.json'));
       const issuesData: PdfDocument[] = await response.json();
 
       // Convert to NewsletterMetadata format with enhanced date parsing

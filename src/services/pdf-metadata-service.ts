@@ -5,8 +5,17 @@
 
 import { getDocument, type PDFDocumentProxy, GlobalWorkerOptions } from 'pdfjs-dist';
 
-// Configure PDF.js worker
-GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Configure PDF.js worker with correct base path for GitHub Pages
+const getWorkerPath = () => {
+  if (typeof window !== 'undefined') {
+    const isProduction = import.meta.env.PROD;
+    const basePath = isProduction ? '/clca-courier' : '';
+    return `${basePath}/pdf.worker.min.js`;
+  }
+  return '/pdf.worker.min.js';
+};
+
+GlobalWorkerOptions.workerSrc = getWorkerPath();
 
 export interface PDFMetadata {
   filename: string;

@@ -25,6 +25,8 @@ jobs:
         run: |
           npm run build # Replace with your build script
           cp dist/spa/index.html dist/spa/404.html
+          # Create a simple .nojekyll file to prevent GitHub from processing the site with Jekyll
+          touch dist/spa/.nojekyll
 
       - name: Deploy to GH Pages
         uses: peaceiris/actions-gh-pages@v3

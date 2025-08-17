@@ -3,8 +3,17 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Configure PDF.js worker with correct base path for GitHub Pages
+const getWorkerPath = () => {
+  if (typeof window !== 'undefined') {
+    const isProduction = import.meta.env.PROD;
+    const basePath = isProduction ? '/clca-courier' : '';
+    return `${basePath}/pdf.worker.min.js`;
+  }
+  return '/pdf.worker.min.js';
+};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = getWorkerPath();
 
 export interface SearchFilters {
   query: string;

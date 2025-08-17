@@ -10,6 +10,7 @@ import type {
 
 // Import our working simple auth service
 import { SimpleGoogleDriveAuth } from './simple-google-auth-test';
+import { getDataPath } from '../utils/path-utils';
 
 // Use SimpleGoogleDriveAuth instead of the complex browser service
 class GoogleDriveBrowserServiceWrapper {
@@ -516,7 +517,7 @@ export class GoogleDriveContentService {
   ): Promise<IssueWithGoogleDrive[]> {
     // Load existing local issues
     try {
-      const response = await fetch('/src/data/issues.json');
+      const response = await fetch(getDataPath('issues.json'));
       const localIssues = await response.json();
 
       // Create a merged list prioritizing Google Drive files
