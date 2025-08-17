@@ -206,7 +206,7 @@ export function useGoogleDrivePdfs() {
       throw new Error('Google API script not loaded');
     }
 
-    console.log('📚 Loading Google API client libraries...');
+    logger.drive('Loading Google API client libraries...');
 
     await new Promise<void>((resolve, reject) => {
       // Set a timeout for the gapi.load operation
@@ -263,10 +263,10 @@ export function useGoogleDrivePdfs() {
       client_id: clientId,
       scope: 'https://www.googleapis.com/auth/drive.readonly',
       callback: (response: { access_token: string; error?: string }) => {
-        console.log('🎉 GOOGLE IDENTITY SERVICES CALLBACK TRIGGERED!', response);
+        logger.auth('Google Identity Services callback triggered', response);
 
         if (response.error) {
-          console.error('❌ Token client error:', response.error);
+          logger.error('Token client error:', response.error);
           state.value.isAuthenticated = false;
           localStorage.removeItem('google_drive_access_token');
 
@@ -278,12 +278,12 @@ export function useGoogleDrivePdfs() {
           return;
         }
 
-        console.log('✅ Authentication callback successful, access token received');
+        logger.success('Authentication callback successful, access token received');
         accessToken = response.access_token;
         localStorage.setItem('google_drive_access_token', accessToken);
         window.gapi.client.setToken({ access_token: accessToken });
         state.value.isAuthenticated = true;
-        console.log('✅ Authentication successful, loading data...');
+        logger.auth('Authentication successful, loading data...');
 
         // Load data immediately after authentication
         loadPDFsFromDrive()
@@ -291,7 +291,7 @@ export function useGoogleDrivePdfs() {
             state.value.issues = issues;
             state.value.isLoading = false;
             state.value.error = '';
-            console.log(`✅ Loaded ${issues.length} issues after authentication`);
+            logger.success(`Loaded ${issues.length} issues after authentication`);
 
             // Resolve authentication promise with success
             if (authenticationResolver) {
@@ -300,7 +300,7 @@ export function useGoogleDrivePdfs() {
             }
           })
           .catch((error) => {
-            console.error('❌ Failed to load data after authentication:', error);
+            logger.error('Failed to load data after authentication:', error);
             state.value.error = error.message;
             state.value.isLoading = false;
 
@@ -316,31 +316,31 @@ export function useGoogleDrivePdfs() {
 
   // Check if already authenticated (NO POPUP)
   const checkAuthentication = (): boolean => {
-    console.log('🔍 Checking authentication...');
-    console.log('🔍 Access token from storage:', accessToken ? '***exists***' : 'null');
-    console.log('🔍 GAPI client available:', !!window.gapi?.client);
+    logger.auth('Checking authentication...');
+    logger.debug('Access token from storage:', accessToken ? '***exists***' : 'null');
+    logger.debug('GAPI client available:', !!window.gapi?.client);
 
     if (accessToken) {
       // Set the token on the gapi client if we have one
       try {
         if (!window.gapi?.client) {
-          console.warn('⚠️ GAPI client not available yet, cannot set token');
+          logger.warn('GAPI client not available yet, cannot set token');
           return false;
         }
 
         window.gapi.client.setToken({ access_token: accessToken });
-        console.log('✅ Already authenticated with valid token');
+        logger.success('Already authenticated with valid token');
         state.value.isAuthenticated = true;
         return true;
       } catch (error) {
-        console.warn('⚠️ Failed to set token on gapi client:', error);
+        logger.warn('Failed to set token on gapi client:', error);
         // Clear invalid token
         accessToken = null;
         localStorage.removeItem('google_drive_access_token');
       }
     }
 
-    console.log('ℹ️ Not authenticated');
+    logger.info('Not authenticated');
     state.value.isAuthenticated = false;
     return false;
   };
@@ -360,7 +360,7 @@ export function useGoogleDrivePdfs() {
     }
 
     // Only show popup if we're not authenticated
-    console.log('🔐 Authentication required - showing popup...');
+    logger.auth('Authentication required - showing popup...');
 
     return new Promise<boolean>((resolve) => {
       try {
@@ -375,7 +375,7 @@ export function useGoogleDrivePdfs() {
         // Request access token (this will show the popup)
         tokenClient.requestAccessToken();
       } catch (error) {
-        console.error('❌ Authentication failed:', error);
+        logger.error('Authentication failed:', error);
         state.value.isAuthenticated = false;
         resolve(false);
       }
@@ -477,29 +477,27 @@ export function useGoogleDrivePdfs() {
     }
 
     try {
-      console.log(`📁 Loading PDFs from folder: ${folderId}`);
-      console.log(`🔍 Authenticated user attempting to access shared folder...`);
+      logger.drive(`Loading PDFs from folder: ${folderId}`);
+      logger.auth('Authenticated user attempting to access shared folder...');
 
       // First, test if API works at all by listing any files
-      console.log('🧪 Testing API access - listing any files...');
+      logger.debug('Testing API access - listing any files...');
       try {
         const testResponse = await window.gapi.client.drive.files.list({
           q: '',
           pageSize: 5,
           fields: 'files(id,name,mimeType)',
         });
-        console.log(
-          '✅ API test successful - user has access to:',
-          testResponse.result.files?.length || 0,
-          'files',
+        logger.success(
+          `API test successful - user has access to: ${testResponse.result.files?.length || 0} files`,
         );
       } catch (testError) {
-        console.error('❌ API test failed:', testError);
+        logger.error('API test failed:', testError);
       }
 
-      console.log('🚀 Making Google Drive API call for specific folder...');
+      logger.drive('Making Google Drive API call for specific folder...');
       const query = `'${folderId}' in parents and mimeType='application/pdf' and trashed=false`;
-      console.log('📋 Query:', query);
+      logger.debug('Query:', query);
 
       const response = await window.gapi.client.drive.files.list({
         q: query,
@@ -508,20 +506,20 @@ export function useGoogleDrivePdfs() {
         pageSize: 100, // Get up to 100 files
       });
 
-      console.log('✅ API Response received:', response);
-      console.log('� Raw result:', response.result);
+      logger.drive('API Response received:', response);
+      logger.debug('Raw result:', response.result);
 
       const files = response.result.files || [];
-      console.log(`📄 Found ${files.length} PDF files in Google Drive folder`);
-      console.log('📋 Files array:', files);
+      logger.success(`Found ${files.length} PDF files in Google Drive folder`);
+      logger.debug('Files array:', files);
 
       if (files.length === 0) {
-        console.warn('⚠️ No PDF files found in the specified folder');
-        console.warn('🔍 This could mean:');
-        console.warn('   1. The folder has no PDF files');
-        console.warn('   2. The folder is not shared with your account');
-        console.warn('   3. You need permission to access the folder');
-        console.warn(`   4. Folder ID ${folderId} may be incorrect`);
+        logger.warn('No PDF files found in the specified folder');
+        logger.debug('This could mean:');
+        logger.debug('   1. The folder has no PDF files');
+        logger.debug('   2. The folder is not shared with your account');
+        logger.debug('   3. You need permission to access the folder');
+        logger.debug(`   4. Folder ID ${folderId} may be incorrect`);
         return [];
       }
 
@@ -532,7 +530,7 @@ export function useGoogleDrivePdfs() {
       // Sort by date (newest first)
       return issues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } catch (error) {
-      console.error('❌ Failed to load PDFs from Google Drive:', error);
+      logger.error('Failed to load PDFs from Google Drive:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to load PDFs: ${errorMessage}`);
     }
@@ -544,7 +542,7 @@ export function useGoogleDrivePdfs() {
       state.value.isLoading = true;
       state.value.error = null;
 
-      console.log('🔄 Initializing Google Drive PDF loader...');
+      logger.drive('Initializing Google Drive PDF loader...');
 
       // 1. Load Google API (if not already loaded)
       await loadGoogleAPI();
@@ -555,7 +553,7 @@ export function useGoogleDrivePdfs() {
       // 3. Initialize Google Identity Services token client
       if (!tokenClient) {
         initializeTokenClient();
-        console.log('✅ Google Identity Services token client initialized');
+        logger.success('Google Identity Services token client initialized');
       }
 
       // 4. Check authentication (NO POPUP YET)
@@ -573,7 +571,7 @@ export function useGoogleDrivePdfs() {
       state.value.issues = issues;
       state.value.isInitialized = true;
 
-      console.log(`✅ Successfully loaded ${issues.length} issues from Google Drive`);
+      logger.success(`Successfully loaded ${issues.length} issues from Google Drive`);
 
       if (issues.length === 0) {
         state.value.error = 'No PDF issues found in Google Drive folder';
@@ -581,7 +579,7 @@ export function useGoogleDrivePdfs() {
 
       return true;
     } catch (error) {
-      console.error('❌ Error initializing Google Drive PDF loader:', error);
+      logger.error('Error initializing Google Drive PDF loader:', error);
       state.value.error = error instanceof Error ? error.message : 'Unknown error';
       state.value.isInitialized = true;
       return false;
@@ -600,14 +598,14 @@ export function useGoogleDrivePdfs() {
       await loadGoogleAPI();
       await initializeGoogleAPI();
 
-      console.log('🔄 Using legacy GAPI Auth2 authentication...');
+      logger.auth('Using legacy GAPI Auth2 authentication...');
 
       if (!window.gapi?.auth2) {
-        console.log('📦 Loading GAPI Auth2...');
+        logger.debug('Loading GAPI Auth2...');
         await new Promise<void>((resolve, reject) => {
           window.gapi.load('auth2', {
             callback: () => {
-              console.log('✅ GAPI Auth2 loaded');
+              logger.success('GAPI Auth2 loaded');
               resolve();
             },
             onerror: () => {
@@ -621,7 +619,7 @@ export function useGoogleDrivePdfs() {
       const isInitialized = Boolean(authInstance);
 
       if (!isInitialized) {
-        console.log('🔧 Initializing GAPI Auth2...');
+        logger.auth('Initializing GAPI Auth2...');
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         await window.gapi.auth2.init({
           client_id: clientId,
@@ -630,12 +628,12 @@ export function useGoogleDrivePdfs() {
       }
 
       const auth2Instance = window.gapi.auth2.getAuthInstance();
-      console.log('🚀 Starting GAPI Auth2 sign in...');
+      logger.auth('Starting GAPI Auth2 sign in...');
 
       const googleUser = await auth2Instance.signIn();
       const authResponse = googleUser.getAuthResponse();
 
-      console.log('🎉 LEGACY AUTH SUCCESS!', authResponse);
+      logger.success('Legacy auth success', authResponse);
 
       if (authResponse && authResponse.access_token) {
         accessToken = authResponse.access_token;
@@ -644,20 +642,20 @@ export function useGoogleDrivePdfs() {
           window.gapi.client.setToken({ access_token: accessToken });
         }
         state.value.isAuthenticated = true;
-        console.log('✅ Legacy authentication successful, loading data...');
+        logger.success('Legacy authentication successful, loading data...');
 
         // Load data immediately after authentication
         const issues = await loadPDFsFromDrive();
         state.value.issues = issues;
         state.value.isLoading = false;
         state.value.error = '';
-        console.log(`✅ Loaded ${issues.length} issues after legacy authentication`);
+        logger.success(`Loaded ${issues.length} issues after legacy authentication`);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('❌ Legacy authentication error:', error);
+      logger.error('Legacy authentication error:', error);
       state.value.error = error instanceof Error ? error.message : 'Legacy authentication failed';
       return false;
     } finally {
@@ -667,13 +665,13 @@ export function useGoogleDrivePdfs() {
 
   // Simple test function to verify Google Identity Services works at all
   const testGoogleIdentityServices = (): void => {
-    console.log('🧪 TESTING: Basic Google Identity Services');
+    logger.debug('Testing: Basic Google Identity Services');
 
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    console.log('🧪 Client ID for test:', clientId);
+    logger.debug('Client ID for test:', clientId);
 
     if (!window.google?.accounts?.oauth2) {
-      console.error('❌ TEST FAILED: Google Identity Services not available');
+      logger.error('Test failed: Google Identity Services not available');
       return;
     }
 
@@ -682,25 +680,25 @@ export function useGoogleDrivePdfs() {
       client_id: clientId,
       scope: 'https://www.googleapis.com/auth/drive.readonly',
       callback: (response: { access_token?: string; error?: string }) => {
-        console.log('🎉 TEST CALLBACK TRIGGERED!', response);
-        console.log('🎉 Response keys:', Object.keys(response));
+        logger.debug('Test callback triggered:', response);
+        logger.debug('Response keys:', Object.keys(response));
 
         if (response.error) {
-          console.error('❌ TEST: Authentication error:', response.error);
+          logger.error('Test authentication error:', response.error);
           return;
         }
 
         if (response.access_token) {
-          console.log('✅ TEST: Received access token length:', response.access_token.length);
+          logger.success(`Test: Received access token length: ${response.access_token.length}`);
         } else {
-          console.warn('⚠️ TEST: No access token in response');
+          logger.warn('Test: No access token in response');
         }
       },
     });
 
-    console.log('🧪 Test token client created, calling requestAccessToken...');
+    logger.debug('Test token client created, calling requestAccessToken...');
     testTokenClient.requestAccessToken();
-    console.log('🧪 Test requestAccessToken called');
+    logger.debug('Test requestAccessToken called');
   };
 
   // Separate authentication function (called by user action)
@@ -719,7 +717,7 @@ export function useGoogleDrivePdfs() {
       }
 
       // Force authentication popup (don't check if already authenticated)
-      console.log('🔐 Forcing authentication popup...');
+      logger.auth('Forcing authentication popup...');
 
       return new Promise<boolean>((resolve) => {
         try {
@@ -732,31 +730,31 @@ export function useGoogleDrivePdfs() {
           authenticationResolver = resolve;
 
           // Debug: Test Google Identity Services availability
-          console.log('🔍 Google Identity Services check:');
-          console.log('  - window.google exists:', !!window.google);
-          console.log('  - window.google.accounts exists:', !!window.google?.accounts);
-          console.log(
+          logger.debug('Google Identity Services check:');
+          logger.debug('  - window.google exists:', !!window.google);
+          logger.debug('  - window.google.accounts exists:', !!window.google?.accounts);
+          logger.debug(
             '  - window.google.accounts.oauth2 exists:',
             !!window.google?.accounts?.oauth2,
           );
-          console.log('  - tokenClient exists:', !!tokenClient);
-          console.log(
+          logger.debug('  - tokenClient exists:', !!tokenClient);
+          logger.debug(
             '  - tokenClient.requestAccessToken exists:',
             !!tokenClient?.requestAccessToken,
           );
 
           // Trigger the authentication popup
-          console.log('🚀 About to call requestAccessToken()...');
+          logger.debug('About to call requestAccessToken()...');
           tokenClient.requestAccessToken();
-          console.log('✅ requestAccessToken() called successfully');
+          logger.success('requestAccessToken() called successfully');
         } catch (error) {
-          console.error('❌ Authentication setup error:', error);
+          logger.error('Authentication setup error:', error);
           state.value.isLoading = false;
           resolve(false);
         }
       });
     } catch (error) {
-      console.error('❌ Authentication error:', error);
+      logger.error('Authentication error:', error);
       state.value.error = error instanceof Error ? error.message : 'Authentication failed';
       return false;
     } finally {
@@ -777,18 +775,18 @@ export function useGoogleDrivePdfs() {
     try {
       const pdfUrl = issue.url || issue.googleDriveUrl;
       if (!pdfUrl) {
-        console.warn(`No valid URL found for thumbnail: ${issue.filename}`);
+        logger.warn(`No valid URL found for thumbnail: ${issue.filename}`);
         return;
       }
 
-      console.log(`🖼️ Generating thumbnail for ${issue.filename}`);
+      logger.pdf(`Generating thumbnail for ${issue.filename}`);
       const thumbnail = await getThumbnail(pdfUrl);
       if (thumbnail) {
         state.value.thumbnails[cacheKey] = thumbnail;
-        console.log(`✅ Thumbnail generated for ${issue.filename}`);
+        logger.success(`Thumbnail generated for ${issue.filename}`);
       }
     } catch (error) {
-      console.warn(`Failed to load thumbnail for ${issue.filename}:`, error);
+      logger.warn(`Failed to load thumbnail for ${issue.filename}:`, error);
     } finally {
       state.value.loadingThumbnails.delete(cacheKey);
     }
@@ -863,7 +861,7 @@ export function useGoogleDrivePdfs() {
     accessToken = null;
     localStorage.removeItem('google_drive_access_token');
     state.value.isAuthenticated = false;
-    console.log('🧹 Authentication cleared');
+    logger.debug('Authentication cleared');
   };
 
   const getFileSize = (): Promise<string> => Promise.resolve('Unknown');

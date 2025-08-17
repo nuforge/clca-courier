@@ -8,6 +8,7 @@ import type { PdfDocument } from '../composables/usePdfViewer';
 import { pdfMetadataService, type PDFMetadata } from './pdf-metadata-service';
 import type { GoogleDriveFile } from '../types/google-drive-content';
 import { convertToViewUrl } from '../utils/googleDriveUtils';
+import { logger } from '../utils/logger';
 import { getDataPath, getPublicPath } from '../utils/path-utils';
 
 export interface NewsletterMetadata extends PdfDocument {
@@ -42,14 +43,15 @@ class NewsletterService {
 
   private initializeService() {
     // Load initial newsletter data
-    console.log(
-      '[NewsletterService] Initializing hybrid newsletter service with REAL Google Drive integration',
+    logger.info('Initializing hybrid newsletter service with real Google Drive integration');
+    logger.debug('Google Drive Folder IDs:');
+    logger.debug('- Issues Folder:', import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID);
+    logger.debug('- PDFs Folder:', import.meta.env.VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID);
+    logger.debug(
+      '- API Key:',
+      import.meta.env.VITE_GOOGLE_API_KEY ? 'Configured ✅' : 'Missing ❌',
     );
-    console.log('[NewsletterService] Google Drive Folder IDs:');
-    console.log('- Issues Folder:', import.meta.env.VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID);
-    console.log('- PDFs Folder:', import.meta.env.VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID);
-    console.log('- API Key:', import.meta.env.VITE_GOOGLE_API_KEY ? 'Configured ✅' : 'Missing ❌');
-    console.log(
+    logger.debug(
       '- Client ID:',
       import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'Configured ✅' : 'Missing ❌',
     );
@@ -67,12 +69,12 @@ class NewsletterService {
       return this.cache.get(cacheKey)!;
     }
 
-    console.log('[NewsletterService] Loading newsletters from REAL sources...');
+    logger.info('Loading newsletters from real sources...');
 
     try {
       // PHASE 1: Discover and process LOCAL PDF files (primary source)
       const localPDFs = this.discoverLocalPDFs();
-      console.log(`[NewsletterService] Found ${localPDFs.length} local PDF files`);
+      logger.success(`Found ${localPDFs.length} local PDF files`);
 
       // Extract PDF metadata for all local files
       const pdfMetadataList = await pdfMetadataService.processPDFBatch(localPDFs);
@@ -91,7 +93,7 @@ class NewsletterService {
 
       // PHASE 3: ONLY use JSON as absolute last resort if everything else fails
       if (enhancedNewsletters.length === 0) {
-        console.log('[NewsletterService] NO REAL DATA FOUND - using JSON fallback');
+        logger.warn('No real data found - using JSON fallback');
         const jsonFallback = await this.loadFallbackNewsletters();
         enhancedNewsletters = this.mergeFallbackData(enhancedNewsletters, jsonFallback);
       }
@@ -103,8 +105,8 @@ class NewsletterService {
 
       // Cache the results
       this.cache.set(cacheKey, enhancedNewsletters);
-      console.log(
-        `[NewsletterService] Generated metadata for ${enhancedNewsletters.length} newsletters`,
+      logger.success(
+        `Generated metadata for ${enhancedNewsletters.length} newsletters`,
         `(${enhancedNewsletters.filter((n) => n.localFile).length} local, ` +
           `${enhancedNewsletters.filter((n) => n.driveId).length} drive, ` +
           `${enhancedNewsletters.filter((n) => n.localFile && n.driveId).length} hybrid)`,
@@ -112,12 +114,10 @@ class NewsletterService {
 
       return enhancedNewsletters;
     } catch (error) {
-      console.error('[NewsletterService] Error generating newsletters:', error);
+      logger.error('Error generating newsletters:', error);
       // If all else fails, try loading from JSON
       const fallbackData = await this.loadFallbackNewsletters();
-      console.log(
-        `[NewsletterService] Fallback: Loaded ${fallbackData.length} newsletters from JSON`,
-      );
+      logger.info(`Fallback: Loaded ${fallbackData.length} newsletters from JSON`);
       return fallbackData;
     }
   }
@@ -472,14 +472,12 @@ class NewsletterService {
    */
   private async discoverGoogleDriveNewsletters(): Promise<NewsletterMetadata[]> {
     try {
-      console.log('[NewsletterService] Discovering Google Drive newsletters from REAL folders...');
+      logger.drive('Discovering Google Drive newsletters from real folders...');
 
       // Try to fetch from actual Google Drive API first
       const apiData = await this.fetchFromGoogleDriveAPI();
       if (apiData.length > 0) {
-        console.log(
-          `[NewsletterService] Found ${apiData.length} newsletters from Google Drive API`,
-        );
+        logger.success(`Found ${apiData.length} newsletters from Google Drive API`);
         return apiData;
       }
 

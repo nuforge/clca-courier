@@ -3,6 +3,8 @@
  * This service accesses publicly shared Google Drive folders without requiring OAuth authentication
  */
 
+import { logger } from '../utils/logger';
+
 // Google Drive API interfaces
 interface GoogleDriveFile {
   id: string;
@@ -44,18 +46,18 @@ export class GoogleDrivePublicAccess {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ API key test successful, folder accessible:', data.name);
+        logger.success('API key test successful, folder accessible:', data.name);
         return { valid: true };
       } else {
         const errorText = await response.text();
-        console.error('❌ API key test failed:', response.status, errorText);
+        logger.error('API key test failed:', response.status, errorText);
         return {
           valid: false,
           error: `${response.status}: ${response.statusText}`,
         };
       }
     } catch (error) {
-      console.error('❌ API key test error:', error);
+      logger.error('API key test error:', error);
       return {
         valid: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -68,7 +70,7 @@ export class GoogleDrivePublicAccess {
    * Updated to try both API key and public access methods
    */
   async testFolderAccess(folderId: string): Promise<boolean> {
-    console.log(`Testing folder access for: ${folderId}`);
+    logger.debug(`Testing folder access for: ${folderId}`);
 
     try {
       // First try: Direct API access with key
@@ -78,26 +80,26 @@ export class GoogleDrivePublicAccess {
 
       if (apiResponse.ok) {
         const data = await apiResponse.json();
-        console.log('✅ Folder accessible via API:', data);
+        logger.success('Folder accessible via API:', data);
         return true;
       }
 
       // If API fails, try checking if it's a publicly shared folder
       // by attempting to access it via the sharing link format
-      console.log('API access failed, trying public share access...');
+      logger.debug('API access failed, trying public share access...');
       const publicResponse = await fetch(`https://drive.google.com/drive/folders/${folderId}`, {
         method: 'HEAD',
       });
 
       if (publicResponse.ok || publicResponse.status === 200) {
-        console.log('✅ Folder appears to be publicly accessible');
+        logger.success('Folder appears to be publicly accessible');
         return true;
       }
 
-      console.error('❌ Folder access failed for both API and public methods');
+      logger.error('Folder access failed for both API and public methods');
       return false;
     } catch (error) {
-      console.error('Folder access test error:', error);
+      logger.error('Folder access test error:', error);
       return false;
     }
   }
@@ -108,7 +110,7 @@ export class GoogleDrivePublicAccess {
    */
   async listFolderFiles(folderId: string): Promise<GoogleDriveFile[]> {
     try {
-      console.log(`📂 Attempting to list files in folder: ${folderId}`);
+      logger.drive(`Attempting to list files in folder: ${folderId}`);
 
       // Try multiple query approaches for better compatibility
       const queries = [
@@ -122,17 +124,17 @@ export class GoogleDrivePublicAccess {
         const query = queries[i];
         if (!query) continue;
 
-        console.log(`📋 Trying query ${i + 1}: ${query}`);
+        logger.debug(`Trying query ${i + 1}: ${query}`);
 
         const apiUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,thumbnailLink,createdTime,modifiedTime,size,parents)&key=${this.apiKey}`;
-        console.log(`🔗 API URL: ${apiUrl}`);
+        logger.debug(`API URL: ${apiUrl}`);
 
         const apiResponse = await fetch(apiUrl);
-        console.log(`📊 Response status: ${apiResponse.status} ${apiResponse.statusText}`);
+        logger.debug(`Response status: ${apiResponse.status} ${apiResponse.statusText}`);
 
         if (apiResponse.ok) {
           const data: GoogleDriveFileListResponse = await apiResponse.json();
-          console.log(`✅ API Response successful:`, data);
+          logger.success('API Response successful:', data);
 
           let files = data.files || [];
 
@@ -141,14 +143,14 @@ export class GoogleDrivePublicAccess {
             files = files.filter((file) => file.parents && file.parents.includes(folderId));
           }
 
-          console.log(
-            `📄 Found ${files.length} PDF files in folder ${folderId}:`,
+          logger.success(
+            `Found ${files.length} PDF files in folder ${folderId}:`,
             files.map((f) => f.name),
           );
           return files;
         } else {
           const errorText = await apiResponse.text();
-          console.error(`❌ Query ${i + 1} failed:`, {
+          logger.error(`Query ${i + 1} failed:`, {
             status: apiResponse.status,
             statusText: apiResponse.statusText,
             response: errorText,
@@ -165,11 +167,11 @@ export class GoogleDrivePublicAccess {
 
       return [];
     } catch (error) {
-      console.error('❌ Error listing folder files:', error);
+      logger.error('Error listing folder files:', error);
 
       // If we can't access the folder, try to provide some hardcoded files as a backup
       // based on what we know exists in the public folder
-      console.log('🔄 Attempting fallback: creating entries for known files...');
+      logger.debug('Attempting fallback: creating entries for known files...');
       return this.createFallbackFileEntries(folderId);
     }
   }
@@ -189,7 +191,7 @@ export class GoogleDrivePublicAccess {
       'Conashaugh Winter 2022 Web.pdf',
     ];
 
-    console.log(`📋 Creating fallback entries for ${knownFiles.length} known files`);
+    logger.debug(`Creating fallback entries for ${knownFiles.length} known files`);
 
     return knownFiles.map(
       (filename, index): GoogleDriveFile => ({
@@ -215,14 +217,14 @@ export class GoogleDrivePublicAccess {
 
       if (response.ok) {
         const data: GoogleDriveFile = await response.json();
-        console.log(`File metadata for ${fileId}:`, data);
+        logger.debug(`File metadata for ${fileId}:`, data);
         return data;
       } else {
-        console.error('Failed to get file metadata:', response.status, response.statusText);
+        logger.error('Failed to get file metadata:', response.status, response.statusText);
         throw new Error(`Failed to access file: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error getting file metadata:', error);
+      logger.error('Error getting file metadata:', error);
       throw error;
     }
   }
@@ -234,7 +236,7 @@ export class GoogleDrivePublicAccess {
     const results: { [key: string]: boolean } = {};
 
     for (const [name, folderId] of Object.entries(folderIds)) {
-      console.log(`Testing folder ${name} (${folderId})...`);
+      logger.debug(`Testing folder ${name} (${folderId})...`);
       results[name] = await this.testFolderAccess(folderId);
     }
 
