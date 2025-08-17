@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, withDefaults, defineProps, defineEmits } from 'vue';
+import { ref, computed } from 'vue';
 import SearchInput from './SearchInput.vue';
 import { getPublicPath } from '../utils/path-utils';
 
