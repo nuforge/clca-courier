@@ -76,25 +76,48 @@ const props = withDefaults(defineProps<HeroProps>(), {
   })
 });
 
-// External image handling
-const backgroundImageRef = computed(() => props.backgroundImage || null);
+// Background image handling - simpler approach for local images
+const backgroundImageUrl = computed(() => props.backgroundImage || null);
 
+// Only use external image loading for actual external URLs
+const isExternalUrl = computed(() => {
+  return backgroundImageUrl.value?.startsWith('http') || false;
+});
+
+// For external URLs only
 const {
-  imageUrl,
-  isLoading,
-  hasError,
-  error,
-  loadProgress,
-  load: loadImage,
-  reload: reloadImage
+  imageUrl: externalImageUrl,
+  isLoading: externalIsLoading,
+  hasError: externalHasError,
+  error: externalError,
+  loadProgress: externalLoadProgress,
+  load: loadExternalImage,
+  reload: reloadExternalImage
 } = useExternalImage(
-  backgroundImageRef,
+  computed(() => isExternalUrl.value ? backgroundImageUrl.value : null),
   {
     ...props.imageOptions,
     lazy: !props.autoLoad,
-    fallback: getPublicPath('images/clca-lake-3.jpg') // Local fallback image
+    fallback: getPublicPath('images/clca-lake-3.jpg')
   }
 );
+
+// Final values - use external service only for external URLs
+const finalImageUrl = computed(() => {
+  if (isExternalUrl.value) {
+    return externalImageUrl.value;
+  }
+  return backgroundImageUrl.value; // Use local image directly
+});
+
+const isLoading = computed(() => isExternalUrl.value ? externalIsLoading.value : false);
+const hasError = computed(() => isExternalUrl.value ? externalHasError.value : false);
+const error = computed(() => isExternalUrl.value ? externalError.value : null);
+const loadProgress = computed(() => isExternalUrl.value ? externalLoadProgress.value : 100);
+
+// Methods
+const loadImage = () => isExternalUrl.value ? loadExternalImage() : Promise.resolve();
+const reloadImage = () => isExternalUrl.value ? reloadExternalImage() : Promise.resolve();
 
 // Computed styles
 const heroStyles = computed(() => ({
@@ -102,7 +125,7 @@ const heroStyles = computed(() => ({
   minHeight: props.minHeight,
   maxHeight: props.maxHeight,
   backgroundColor: props.backgroundColor,
-  backgroundImage: imageUrl.value ? `url(${imageUrl.value})` : undefined,
+  backgroundImage: finalImageUrl.value ? `url(${finalImageUrl.value})` : undefined,
   backgroundSize: props.backgroundSize,
   backgroundPosition: props.backgroundPosition,
   backgroundRepeat: 'no-repeat',
@@ -130,27 +153,27 @@ const subtitleClasses = computed(() => [
 
 // Auto-load image on mount if enabled
 onMounted(() => {
-  if (props.autoLoad && props.backgroundImage) {
+  if (props.autoLoad && props.backgroundImage && isExternalUrl.value) {
     void loadImage();
   }
 });
 
 // Watch for background image changes
 watch(() => props.backgroundImage, (newImage) => {
-  if (newImage && props.autoLoad) {
+  if (newImage && props.autoLoad && isExternalUrl.value) {
     void loadImage();
   }
 });
 
 // Expose methods for manual control
 defineExpose({
-  loadImage,
-  reloadImage,
-  imageUrl,
-  isLoading,
-  hasError,
-  error,
-  loadProgress
+  loadImage: loadImage,
+  reloadImage: reloadImage,
+  imageUrl: finalImageUrl,
+  isLoading: isLoading,
+  hasError: hasError,
+  error: error,
+  loadProgress: loadProgress
 });
 </script>
 

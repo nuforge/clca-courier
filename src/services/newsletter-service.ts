@@ -67,8 +67,10 @@ class NewsletterService {
       return this.cache.get(cacheKey)!;
     }
 
+    console.log('[NewsletterService] Loading newsletters from REAL sources...');
+
     try {
-      // PHASE 1: Discover and process local PDF files (primary source)
+      // PHASE 1: Discover and process LOCAL PDF files (primary source)
       const localPDFs = this.discoverLocalPDFs();
       console.log(`[NewsletterService] Found ${localPDFs.length} local PDF files`);
 
@@ -87,9 +89,12 @@ class NewsletterService {
         googleDriveNewsletters,
       );
 
-      // PHASE 3: Load JSON fallback for any missing newsletters
-      const jsonFallback = await this.loadFallbackNewsletters();
-      enhancedNewsletters = this.mergeFallbackData(enhancedNewsletters, jsonFallback);
+      // PHASE 3: ONLY use JSON as absolute last resort if everything else fails
+      if (enhancedNewsletters.length === 0) {
+        console.log('[NewsletterService] NO REAL DATA FOUND - using JSON fallback');
+        const jsonFallback = await this.loadFallbackNewsletters();
+        enhancedNewsletters = this.mergeFallbackData(enhancedNewsletters, jsonFallback);
+      }
 
       // Sort by date (newest first)
       enhancedNewsletters.sort(
@@ -109,7 +114,11 @@ class NewsletterService {
     } catch (error) {
       console.error('[NewsletterService] Error generating newsletters:', error);
       // If all else fails, try loading from JSON
-      return await this.loadFallbackNewsletters();
+      const fallbackData = await this.loadFallbackNewsletters();
+      console.log(
+        `[NewsletterService] Fallback: Loaded ${fallbackData.length} newsletters from JSON`,
+      );
+      return fallbackData;
     }
   }
 

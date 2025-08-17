@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useTheme } from '../composables/useTheme';
 import { useSiteStore } from '../stores/site-store-simple';
-import HeroSection from '../components/HeroSection.vue';
 import { getPublicPath } from '../utils/path-utils';
 
 const { cardClasses, textClasses } = useTheme();
@@ -86,15 +85,34 @@ const quickLinks: QuickLink[] = [
 
 <template>
   <q-page>
-    <!-- Hero Section with Google Drive Background -->
-    <HeroSection :background-image="heroBackgroundImage" title="Welcome to The Courier"
-      subtitle="Your source for Conashaugh Lakes community news and updates" height="70vh" min-height="500px"
-      variant="centered" :overlay="true" overlay-color="rgba(0, 0, 0, 0.4)" :actions="heroActions" :image-options="{
-        maxWidth: 2048,
-        maxHeight: 1152,
-        quality: 0.9,
-        lazy: false
-      }" />
+    <!-- Hero Section with Direct Background Image -->
+    <div class="hero-section" :style="{
+      height: '70vh',
+      minHeight: '500px',
+      backgroundImage: `url(${heroBackgroundImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }">
+      <!-- Overlay -->
+      <div class="absolute-full" style="background-color: rgba(0, 0, 0, 0.4);"></div>
+
+      <!-- Content -->
+      <div class="relative-position text-center text-white q-pa-lg">
+        <h1 class="text-h2 text-weight-bold q-mb-md">Welcome to The Courier</h1>
+        <p class="text-h5 text-weight-light q-mb-lg">Your source for Conashaugh Lakes community news and updates</p>
+
+        <!-- Actions -->
+        <div class="q-gutter-md">
+          <q-btn v-for="action in heroActions" :key="action.label" :label="action.label" :icon="action.icon"
+            :color="action.color" :to="action.to" size="lg" unelevated class="q-px-lg" />
+        </div>
+      </div>
+    </div>
 
     <!-- Main Content -->
     <div class="q-pa-md">
