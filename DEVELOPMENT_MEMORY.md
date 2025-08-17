@@ -742,10 +742,11 @@ Environment Variables    User Action     Live Data     Hybrid Display
 **IMPORTANT - GitHub Repository Configuration Needed:**
 
 You need to add these secrets to your GitHub repository:
+
 1. Go to GitHub: `Settings` → `Secrets and variables` → `Actions`
 2. Add Repository Secrets:
    - `VITE_GOOGLE_API_KEY`: Your Google API key
-   - `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth client ID  
+   - `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth client ID
    - `VITE_GOOGLE_DRIVE_ISSUES_FOLDER_ID`: Your Google Drive issues folder ID
    - `VITE_GOOGLE_DRIVE_PDFS_FOLDER_ID`: Your Google Drive PDFs folder ID
 
