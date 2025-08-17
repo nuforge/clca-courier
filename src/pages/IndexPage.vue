@@ -2,12 +2,13 @@
 import { useTheme } from '../composables/useTheme';
 import { useSiteStore } from '../stores/site-store-simple';
 import HeroSection from '../components/HeroSection.vue';
+import { getPublicPath } from '../utils/path-utils';
 
 const { cardClasses, textClasses } = useTheme();
 const siteStore = useSiteStore();
 
 // Google Drive image downloaded locally - WORKING SOLUTION!
-const heroBackgroundImage = '/images/hero-background.jpg';
+const heroBackgroundImage = getPublicPath('images/hero-background.jpg');
 // Original Google Drive URL (CORS blocked): 'https://drive.google.com/file/d/14M00bRp3NxPG2d1Itj-E9WAmmB_C6vWh/view?usp=sharing'
 
 // Hero actions

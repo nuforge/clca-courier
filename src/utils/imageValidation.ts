@@ -3,6 +3,8 @@
  * Utility functions for image validation and fallback handling
  */
 
+import { getPublicPath } from './path-utils';
+
 /**
  * Check if an image URL is accessible
  */
@@ -46,9 +48,8 @@ export async function getFallbackImage(fallback?: string): Promise<string | null
  * Default fallback images in order of preference
  */
 export const DEFAULT_FALLBACKS = [
-  '/images/clca-lake-3.jpg',
-  '/images/clca-moon-logo.png',
-  '/clca-moon-logo.png',
+  getPublicPath('images/clca-lake-3.jpg'),
+  getPublicPath('clca-moon-logo.png'),
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiBmaWxsPSIjZjVmNWY1Ii8+Cjx0ZXh0IHg9Ijk2MCIgeT0iNTQwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNDgiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+SW1hZ2UgTm90IEF2YWlsYWJsZTwvdGV4dD4KPHN2Zz4K', // "Image Not Available" placeholder
 ];
 

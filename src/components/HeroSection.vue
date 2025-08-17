@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, onMounted } from 'vue';
 import { useExternalImage, type UseExternalImageOptions } from '../composables/useExternalImage';
+import { getPublicPath } from '../utils/path-utils';
 
 export interface HeroAction {
   label: string;
@@ -91,7 +92,7 @@ const {
   {
     ...props.imageOptions,
     lazy: !props.autoLoad,
-    fallback: '/images/clca-lake-3.jpg' // Local fallback image
+    fallback: getPublicPath('images/clca-lake-3.jpg') // Local fallback image
   }
 );
 

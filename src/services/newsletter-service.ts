@@ -8,9 +8,7 @@ import type { PdfDocument } from '../composables/usePdfViewer';
 import { pdfMetadataService, type PDFMetadata } from './pdf-metadata-service';
 import type { GoogleDriveFile } from '../types/google-drive-content';
 import { convertToViewUrl } from '../utils/googleDriveUtils';
-import { getDataPath } from '../utils/path-utils';
-
-import { getPublicPath } from '../utils/path-utils';
+import { getDataPath, getPublicPath } from '../utils/path-utils';
 
 export interface NewsletterMetadata extends PdfDocument {
   // Extended properties for hybrid hosting
@@ -339,7 +337,7 @@ class NewsletterService {
    */
   private generateThumbnailPath(filename: string): string {
     const baseName = filename.replace(/\.pdf$/i, '');
-    return `/thumbnails/${baseName}.jpg`;
+    return getPublicPath(`thumbnails/${baseName}.jpg`);
   }
 
   /**

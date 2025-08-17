@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { pdfMetadataService } from '../services/pdf-metadata-service';
+import { getPublicPath } from '../utils/path-utils';
 import type { PDFMetadata } from '../services/pdf-metadata-service';
 
 const loading = ref(false);
@@ -56,9 +57,9 @@ const testPDFMetadata = async () => {
     try {
         // Test with a few PDFs
         const testPDFs = [
-            { url: '/issues/2024.02-conashaugh-courier.pdf', filename: '2024.02-conashaugh-courier.pdf' },
-            { url: '/issues/2024.03-conashaugh-courier.pdf', filename: '2024.03-conashaugh-courier.pdf' },
-            { url: '/issues/2025.08-conashaugh-courier.pdf', filename: '2025.08-conashaugh-courier.pdf' }
+            { url: getPublicPath('issues/2024.02-conashaugh-courier.pdf'), filename: '2024.02-conashaugh-courier.pdf' },
+            { url: getPublicPath('issues/2024.03-conashaugh-courier.pdf'), filename: '2024.03-conashaugh-courier.pdf' },
+            { url: getPublicPath('issues/2025.08-conashaugh-courier.pdf'), filename: '2025.08-conashaugh-courier.pdf' }
         ];
 
         console.log('Testing PDF metadata extraction...');
