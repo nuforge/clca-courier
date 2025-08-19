@@ -1,8 +1,6 @@
-import { ref, computed, watch, readonly } from 'vue';
-import type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+import { ref, computed, readonly } from 'vue';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 import { pdfMetadataService } from '../services/pdf-metadata-service';
-import PDF_CONFIG from '../utils/pdf-config';
 
 export interface SearchFilters {
   query: string;
@@ -14,7 +12,7 @@ export interface SearchFilters {
   categories: string[];
   minPages: number | null;
   maxPages: number | null;
-  includeContent: boolean; // Whether to search inside PDF content
+  includeContent: boolean; // Whether to search inside PDF content - now opt-in only
 }
 
 export interface SearchResult {
@@ -39,17 +37,10 @@ export interface SearchResult {
   googleDriveUrl?: string | undefined;
   cacheThumbnailUrl?: string | undefined;
 
-  // Search-specific properties
+  // Lightweight search properties
   score: number;
-  matchType: 'title' | 'description' | 'content' | 'metadata';
+  matchType: 'title' | 'filename' | 'metadata' | 'content';
   snippet?: string | undefined;
-  highlightedText?: string | undefined;
-  pageNumber?: number | undefined;
-  highlights: {
-    title?: string | undefined;
-    description?: string | undefined;
-    content?: readonly string[] | undefined;
-  };
   matchedTerms: readonly string[];
 
   // Keep the original issue for backward compatibility
@@ -59,11 +50,8 @@ export interface SearchResult {
 export interface SearchStats {
   totalResults: number;
   searchTime: number;
-  indexedPdfs: number;
-  skippedPdfs: number;
-  cachedIssues: number;
-  hasContentMatches: boolean;
-  averageScore: number;
+  searchMode: 'lightweight' | 'content';
+  cachedResults: number;
 }
 
 export function useAdvancedSearch() {
@@ -74,14 +62,11 @@ export function useAdvancedSearch() {
   const searchStats = ref<SearchStats>({
     totalResults: 0,
     searchTime: 0,
-    indexedPdfs: 0,
-    skippedPdfs: 0,
-    cachedIssues: 0,
-    hasContentMatches: false,
-    averageScore: 0,
+    searchMode: 'lightweight',
+    cachedResults: 0,
   });
 
-  // Search filters
+  // Search filters - lightweight by default
   const filters = ref<SearchFilters>({
     query: '',
     dateRange: {
@@ -92,7 +77,7 @@ export function useAdvancedSearch() {
     categories: [],
     minPages: null,
     maxPages: null,
-    includeContent: true,
+    includeContent: false, // Default to false for fast performance
   });
 
   // Filtered results based on current filters
@@ -146,31 +131,15 @@ export function useAdvancedSearch() {
     return results.sort((a, b) => b.score - a.score);
   });
 
-  // Watch for filter changes to re-filter results
-  watch(
-    () => filters.value,
-    () => {
-      // Results are automatically filtered via computed property
-    },
-    { deep: true },
-  );
-
   /**
    * Create a SearchResult from an IssueWithGoogleDrive
    */
   function createSearchResult(
     issue: IssueWithGoogleDrive,
     score: number,
-    matchType: 'title' | 'description' | 'content' | 'metadata',
+    matchType: 'title' | 'filename' | 'metadata' | 'content',
     options: {
       snippet?: string;
-      highlightedText?: string;
-      pageNumber?: number;
-      highlights?: {
-        title?: string;
-        description?: string;
-        content?: readonly string[];
-      };
       matchedTerms?: readonly string[];
     } = {},
   ): SearchResult {
@@ -200,77 +169,11 @@ export function useAdvancedSearch() {
       score,
       matchType,
       snippet: options.snippet,
-      highlightedText: options.highlightedText,
-      pageNumber: options.pageNumber,
-      highlights: options.highlights || {
-        title: undefined,
-        description: undefined,
-        content: undefined as readonly string[] | undefined,
-      },
       matchedTerms: options.matchedTerms || [],
 
       // Keep original issue for backward compatibility
       issue,
     };
-  }
-
-  /**
-   * Extract text content from PDF (using cached content when available)
-   */
-  async function extractPdfText(pdfUrl: string, filename?: string): Promise<string> {
-    try {
-      // First, try to get cached text content from PDF metadata service
-      if (filename) {
-        const cachedMetadata = pdfMetadataService.getCachedMetadata(filename);
-        if (cachedMetadata?.searchableText) {
-          console.log(`[AdvancedSearch] Using cached text content for ${filename}`);
-          return cachedMetadata.searchableText;
-        }
-      }
-
-      // Fallback to direct PDF text extraction
-      console.log(`[AdvancedSearch] Extracting text directly from PDF: ${filename || pdfUrl}`);
-
-      // Use centralized PDF configuration to prevent 431 errors
-      const loadingTask = PDF_CONFIG.createSafeLoadingTask(pdfUrl);
-
-      const pdf = await loadingTask.promise;
-      let fullText = '';
-
-      // Extract text from all pages (limit to first 10 pages for performance)
-      const maxPages = Math.min(pdf.numPages, 10);
-      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: TextItem | TextMarkedContent) => {
-            if ('str' in item) {
-              return item.str;
-            }
-            return '';
-          })
-          .join(' ');
-        fullText += pageText + ' ';
-      }
-
-      return fullText.trim();
-    } catch (error) {
-      // Handle specific 431 error (Request Header Fields Too Large)
-      if (
-        error instanceof Error &&
-        (error.message.includes('431') ||
-          error.message.includes('Request Header Fields Too Large') ||
-          error.message.includes('header fields too large'))
-      ) {
-        console.warn(
-          `[AdvancedSearch] 431 error for ${filename || pdfUrl}: Header fields too large. Skipping text extraction.`,
-        );
-        return ''; // Return empty string instead of throwing
-      }
-
-      console.error('Error extracting PDF text:', error);
-      throw error;
-    }
   }
 
   /**
@@ -289,13 +192,13 @@ export function useAdvancedSearch() {
       case 'title':
         score += 100;
         break;
-      case 'description':
+      case 'filename':
         score += 80;
         break;
-      case 'content':
+      case 'metadata':
         score += 60;
         break;
-      case 'metadata':
+      case 'content':
         score += 40;
         break;
     }
@@ -306,6 +209,9 @@ export function useAdvancedSearch() {
     }
     if (issue.description?.toLowerCase().includes(queryLower)) {
       score += 30;
+    }
+    if (issue.filename?.toLowerCase().includes(queryLower)) {
+      score += 40;
     }
 
     // Boost for recent content
@@ -342,95 +248,98 @@ export function useAdvancedSearch() {
   }
 
   /**
-   * Search within a single PDF
+   * LIGHTWEIGHT: Search only in metadata, filenames, and cached info
+   * No PDF processing - instant results
    */
-  async function searchInPdf(issue: IssueWithGoogleDrive, query: string): Promise<SearchResult[]> {
-    if (!filters.value.includeContent || !issue.url) {
-      return [];
-    }
+  function performLightweightSearch(issues: IssueWithGoogleDrive[], query: string): SearchResult[] {
+    if (!query || query.length < 2) return [];
 
-    try {
-      const pdfUrl = issue.url || '';
-
-      // Skip Google Drive files for now due to CORS limitations
-      // Future enhancement: implement server-side proxy or Google Drive API
-      if (pdfUrl.includes('drive.google.com') || pdfUrl.includes('googleusercontent.com')) {
-        searchStats.value.skippedPdfs++;
-        return [];
-      }
-
-      // Try to extract text from PDF
-      const pdfText = await extractPdfText(pdfUrl, issue.filename);
-      searchStats.value.indexedPdfs++;
-
-      if (pdfText.toLowerCase().includes(query.toLowerCase())) {
-        const snippet = generateSnippet(pdfText, query);
-        const score = calculateRelevanceScore(issue, query, 'content');
-
-        return [
-          createSearchResult(issue, score, 'content', {
-            snippet,
-            highlightedText: snippet,
-            highlights: {
-              content: [snippet],
-            },
-            matchedTerms: [query],
-          }),
-        ];
-      }
-    } catch (error) {
-      console.warn(`Failed to search in PDF: ${issue.title}`, error);
-      searchStats.value.skippedPdfs++;
-    }
-
-    return [];
-  }
-
-  /**
-   * Search in issue metadata (title, description, etc.)
-   */
-  function searchInMetadata(issue: IssueWithGoogleDrive, query: string): SearchResult[] {
-    const results: SearchResult[] = [];
     const queryLower = query.toLowerCase();
+    const results: SearchResult[] = [];
 
-    // Search in title
-    if (issue.title?.toLowerCase().includes(queryLower)) {
-      results.push(
-        createSearchResult(issue, calculateRelevanceScore(issue, query, 'title'), 'title', {
-          highlightedText: issue.title,
-          highlights: {
-            title: issue.title,
-          },
-          matchedTerms: [query],
-        }),
-      );
-    }
+    issues.forEach((issue) => {
+      let score = 0;
+      let matchType: 'title' | 'filename' | 'metadata' | 'content' = 'metadata';
+      const matchedTerms: string[] = [];
 
-    // Search in description
-    if (issue.description?.toLowerCase().includes(queryLower)) {
-      const snippet = generateSnippet(issue.description, query);
-      results.push(
-        createSearchResult(
-          issue,
-          calculateRelevanceScore(issue, query, 'description'),
-          'description',
-          {
+      // Search in title (highest priority)
+      if (issue.title?.toLowerCase().includes(queryLower)) {
+        score += 100;
+        matchType = 'title';
+        matchedTerms.push(query);
+      }
+
+      // Search in filename (high priority)
+      if (issue.filename?.toLowerCase().includes(queryLower)) {
+        score += 80;
+        if (matchType === 'metadata') matchType = 'filename';
+        matchedTerms.push(query);
+      }
+
+      // Search in description (medium priority)
+      if (issue.description?.toLowerCase().includes(queryLower)) {
+        score += 60;
+        matchedTerms.push(query);
+      }
+
+      // Search in tags (medium priority)
+      if (issue.tags?.some((tag) => tag.toLowerCase().includes(queryLower))) {
+        score += 40;
+        matchedTerms.push(query);
+      }
+
+      // Check cached metadata for additional search terms
+      const cachedMetadata = pdfMetadataService.getCachedMetadata(issue.filename);
+      if (cachedMetadata) {
+        // Search in cached extracted topics
+        if (
+          cachedMetadata.extractedTopics?.some((topic) => topic.toLowerCase().includes(queryLower))
+        ) {
+          score += 30;
+          matchedTerms.push(query);
+        }
+
+        // If content search is enabled and we have cached text, search it
+        if (
+          filters.value.includeContent &&
+          cachedMetadata.searchableText?.toLowerCase().includes(queryLower)
+        ) {
+          score += 50;
+          matchType = 'content';
+          matchedTerms.push(query);
+        }
+      }
+
+      // Boost for recent content
+      if (issue.date) {
+        const publishDate = new Date(issue.date);
+        const daysSincePublish = (Date.now() - publishDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSincePublish < 30) score += 20;
+        else if (daysSincePublish < 90) score += 10;
+      }
+
+      if (score > 0) {
+        const snippet =
+          issue.description ||
+          (cachedMetadata?.searchableText
+            ? generateSnippet(cachedMetadata.searchableText, query)
+            : issue.title) ||
+          '';
+
+        results.push(
+          createSearchResult(issue, score, matchType, {
             snippet,
-            highlightedText: snippet,
-            highlights: {
-              description: snippet,
-            },
-            matchedTerms: [query],
-          },
-        ),
-      );
-    }
+            matchedTerms,
+          }),
+        );
+      }
+    });
 
     return results;
   }
 
   /**
-   * Perform advanced search across all issues
+   * MAIN SEARCH FUNCTION: Fast by default, with optional cached content search
    */
   async function performSearch(
     issues: IssueWithGoogleDrive[],
@@ -448,70 +357,26 @@ export function useAdvancedSearch() {
     searchError.value = null;
     const startTime = Date.now();
 
-    // Reset stats
-    searchStats.value = {
-      totalResults: 0,
-      searchTime: 0,
-      indexedPdfs: 0,
-      skippedPdfs: 0,
-      cachedIssues: 0,
-      hasContentMatches: false,
-      averageScore: 0,
-    };
-
     try {
-      const allResults: SearchResult[] = [];
+      // Always start with lightweight search (instant)
+      const lightweightResults = performLightweightSearch(issues, query);
+      searchResults.value = lightweightResults;
 
-      // Process issues in parallel for metadata search
-      const metadataPromises = issues.map((issue) =>
-        Promise.resolve(searchInMetadata(issue, query)),
-      );
-
-      const metadataResults = await Promise.all(metadataPromises);
-      metadataResults.forEach((results) => allResults.push(...results));
-
-      // Process PDFs for content search (if enabled)
-      if (filters.value.includeContent) {
-        // Process PDFs in smaller batches to avoid overwhelming the browser
-        const batchSize = 5;
-        for (let i = 0; i < issues.length; i += batchSize) {
-          const batch = issues.slice(i, i + batchSize);
-          const pdfPromises = batch.map((issue) => searchInPdf(issue, query));
-          const pdfResults = await Promise.all(pdfPromises);
-          pdfResults.forEach((results) => allResults.push(...results));
-        }
-      }
-
-      // Remove duplicates and merge results by issue
-      const uniqueResults = new Map<string, SearchResult>();
-      for (const result of allResults) {
-        const key = String(result.id);
-        const existing = uniqueResults.get(key);
-
-        if (!existing || result.score > existing.score) {
-          uniqueResults.set(key, result);
-        }
-      }
-
-      searchResults.value = Array.from(uniqueResults.values());
-
-      // Update stats
-      const totalResults = searchResults.value.length;
-      const hasContentMatches = searchResults.value.some((r) => r.matchType === 'content');
-      const averageScore =
-        totalResults > 0
-          ? searchResults.value.reduce((sum, r) => sum + r.score, 0) / totalResults
-          : 0;
+      // Count how many results came from cached content
+      const cachedContentResults = lightweightResults.filter(
+        (r) => r.matchType === 'content',
+      ).length;
 
       searchStats.value = {
-        totalResults,
+        totalResults: lightweightResults.length,
         searchTime: Date.now() - startTime,
-        indexedPdfs: searchStats.value.indexedPdfs,
-        skippedPdfs: searchStats.value.skippedPdfs,
-        cachedIssues: 0, // Not implemented yet
-        hasContentMatches,
-        averageScore,
+        searchMode: filters.value.includeContent ? 'content' : 'lightweight',
+        cachedResults: cachedContentResults,
       };
+
+      console.log(
+        `[AdvancedSearch] Found ${lightweightResults.length} results in ${searchStats.value.searchTime}ms (${cachedContentResults} from cached content)`,
+      );
     } catch (error) {
       console.error('Search error:', error);
       searchError.value = error instanceof Error ? error.message : 'Search failed';
@@ -531,11 +396,8 @@ export function useAdvancedSearch() {
     searchStats.value = {
       totalResults: 0,
       searchTime: 0,
-      indexedPdfs: 0,
-      skippedPdfs: 0,
-      cachedIssues: 0,
-      hasContentMatches: false,
-      averageScore: 0,
+      searchMode: 'lightweight',
+      cachedResults: 0,
     };
   }
 
@@ -544,14 +406,6 @@ export function useAdvancedSearch() {
    */
   function updateFilters(newFilters: Partial<SearchFilters>): void {
     Object.assign(filters.value, newFilters);
-  }
-
-  /**
-   * Clear content cache (placeholder)
-   */
-  function clearContentCache(): void {
-    // Placeholder for cache clearing functionality
-    searchStats.value.cachedIssues = 0;
   }
 
   /**
@@ -564,8 +418,9 @@ export function useAdvancedSearch() {
     const queryLower = query.toLowerCase();
 
     issues.forEach((issue) => {
-      // Extract words from title and description
-      const text = `${issue.title || ''} ${issue.description || ''}`.toLowerCase();
+      // Extract words from title, filename, and description
+      const text =
+        `${issue.title || ''} ${issue.filename || ''} ${issue.description || ''}`.toLowerCase();
       const words = text.match(/\b\w{3,}\b/g) || [];
 
       words.forEach((word) => {
@@ -573,9 +428,19 @@ export function useAdvancedSearch() {
           suggestions.add(word);
         }
       });
+
+      // Add suggestions from cached metadata
+      const cachedMetadata = pdfMetadataService.getCachedMetadata(issue.filename);
+      if (cachedMetadata?.extractedTopics) {
+        cachedMetadata.extractedTopics.forEach((topic) => {
+          if (topic.toLowerCase().includes(queryLower) && topic.toLowerCase() !== queryLower) {
+            suggestions.add(topic);
+          }
+        });
+      }
     });
 
-    return Array.from(suggestions).slice(0, 5);
+    return Array.from(suggestions).slice(0, 8);
   }
 
   return {
@@ -593,10 +458,8 @@ export function useAdvancedSearch() {
     clearSearch,
     updateFilters,
     getSearchSuggestions,
-    clearContentCache,
 
     // Utility methods for external use
-    extractPdfText,
     calculateRelevanceScore,
     generateSnippet,
   };
