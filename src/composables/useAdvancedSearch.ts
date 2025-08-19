@@ -43,6 +43,13 @@ export interface SearchResult {
   snippet?: string | undefined;
   matchedTerms: readonly string[];
 
+  // Highlighting for search results
+  highlights?: {
+    title?: string;
+    description?: string;
+    content?: readonly string[];
+  };
+
   // Keep the original issue for backward compatibility
   issue: IssueWithGoogleDrive;
 }
@@ -52,6 +59,10 @@ export interface SearchStats {
   searchTime: number;
   searchMode: 'lightweight' | 'content';
   cachedResults: number;
+  cachedIssues: number;
+  hasContentMatches: boolean;
+  averageScore: number;
+  indexedPdfs: number;
 }
 
 export function useAdvancedSearch() {
@@ -64,6 +75,10 @@ export function useAdvancedSearch() {
     searchTime: 0,
     searchMode: 'lightweight',
     cachedResults: 0,
+    cachedIssues: 0,
+    hasContentMatches: false,
+    averageScore: 0,
+    indexedPdfs: 0,
   });
 
   // Search filters - lightweight by default
@@ -362,16 +377,30 @@ export function useAdvancedSearch() {
       const lightweightResults = performLightweightSearch(issues, query);
       searchResults.value = lightweightResults;
 
+      // Allow any pending background operations to complete
+      await Promise.resolve();
+
       // Count how many results came from cached content
       const cachedContentResults = lightweightResults.filter(
         (r) => r.matchType === 'content',
       ).length;
+
+      // Calculate additional stats
+      const hasContentMatches = lightweightResults.some((r) => r.matchType === 'content');
+      const averageScore =
+        lightweightResults.length > 0
+          ? lightweightResults.reduce((sum, r) => sum + r.score, 0) / lightweightResults.length
+          : 0;
 
       searchStats.value = {
         totalResults: lightweightResults.length,
         searchTime: Date.now() - startTime,
         searchMode: filters.value.includeContent ? 'content' : 'lightweight',
         cachedResults: cachedContentResults,
+        cachedIssues: cachedContentResults,
+        hasContentMatches,
+        averageScore,
+        indexedPdfs: issues.length,
       };
 
       console.log(
@@ -398,6 +427,10 @@ export function useAdvancedSearch() {
       searchTime: 0,
       searchMode: 'lightweight',
       cachedResults: 0,
+      cachedIssues: 0,
+      hasContentMatches: false,
+      averageScore: 0,
+      indexedPdfs: 0,
     };
   }
 
@@ -443,6 +476,18 @@ export function useAdvancedSearch() {
     return Array.from(suggestions).slice(0, 8);
   }
 
+  /**
+   * Clear cached PDF content
+   */
+  function clearContentCache(): void {
+    try {
+      pdfMetadataService.clearCache();
+      console.log('[AdvancedSearch] PDF content cache cleared');
+    } catch (error) {
+      console.error('[AdvancedSearch] Error clearing cache:', error);
+    }
+  }
+
   return {
     // State
     isSearching: readonly(isSearching),
@@ -456,6 +501,7 @@ export function useAdvancedSearch() {
     // Methods
     performSearch,
     clearSearch,
+    clearContentCache,
     updateFilters,
     getSearchSuggestions,
 

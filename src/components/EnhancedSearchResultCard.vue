@@ -9,7 +9,7 @@
         <q-card-section>
             <!-- Title with highlighting -->
             <div class="text-h6 q-mb-sm">
-                <div v-if="result.highlights.title" v-html="result.highlights.title" class="highlighted-title"></div>
+                <div v-if="result.highlights?.title" v-html="result.highlights.title" class="highlighted-title"></div>
                 <div v-else>{{ result.title }}</div>
             </div>
 
@@ -31,13 +31,13 @@
 
             <!-- Description with highlighting -->
             <div v-if="result.description" class="text-body2 q-mb-sm text-grey-7">
-                <div v-if="result.highlights.description" v-html="result.highlights.description"
+                <div v-if="result.highlights?.description" v-html="result.highlights.description"
                     class="highlighted-description"></div>
                 <div v-else>{{ truncatedDescription }}</div>
             </div>
 
             <!-- Content highlights -->
-            <div v-if="result.highlights.content && result.highlights.content.length > 0"
+            <div v-if="result.highlights?.content && result.highlights.content.length > 0"
                 class="content-highlights q-mb-sm">
                 <div class="text-caption text-grey-6 q-mb-xs">
                     <q-icon name="mdi-text-search" size="xs" class="q-mr-xs" />

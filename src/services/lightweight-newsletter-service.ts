@@ -61,10 +61,10 @@ class LightweightNewsletterService {
       const newsletters = this.createBaseNewsletters(discoveredPDFs);
 
       // Step 3: Enhance with cached metadata (instant if available)
-      await this.enhanceWithCachedMetadata(newsletters);
+      this.enhanceWithCachedMetadata(newsletters);
 
       // Step 4: Queue remaining PDFs for background processing
-      await this.queueUnprocessedPDFs(newsletters);
+      this.queueUnprocessedPDFs(newsletters);
 
       // Sort by date (newest first)
       newsletters.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -83,91 +83,35 @@ class LightweightNewsletterService {
   }
 
   /**
-   * Fast PDF discovery using optimized patterns
+   * Fast PDF discovery using newsletters-complete.json data
    */
   private async discoverLocalPDFs(): Promise<Array<{ url: string; filename: string }>> {
-    logger.info('Discovering PDF files with optimized patterns...');
+    logger.info('Discovering PDF files from newsletters data...');
 
-    const validFiles: Array<{ url: string; filename: string }> = [];
-    const filenames = this.generateOptimizedFilenames();
+    try {
+      const response = await fetch('/data/newsletters-complete.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch newsletters data: ${response.status}`);
+      }
 
-    // Process in smaller, faster batches
-    const batchSize = 5;
-    for (let i = 0; i < filenames.length; i += batchSize) {
-      const batch = filenames.slice(i, i + batchSize);
+      const newsletters = await response.json();
+      const validFiles: Array<{ url: string; filename: string }> = [];
 
-      const batchPromises = batch.map(async (filename: string) => {
-        const url = `${this.localBasePath}${filename}`;
-
-        // Quick URL length check
-        if (url.length > 2000) return false;
-
-        try {
-          const controller = new AbortController();
-          setTimeout(() => controller.abort(), 1000); // 1 second timeout
-
-          const response = await fetch(url, {
-            method: 'HEAD',
-            signal: controller.signal,
+      for (const newsletter of newsletters) {
+        if (newsletter.filename) {
+          validFiles.push({
+            url: `${this.localBasePath}${newsletter.filename}`,
+            filename: newsletter.filename,
           });
-
-          if (response.ok) {
-            validFiles.push({ url, filename });
-            return true;
-          }
-        } catch {
-          // File doesn't exist or timeout, skip silently
         }
-        return false;
-      });
-
-      await Promise.allSettled(batchPromises);
-
-      // Very small delay to keep UI responsive
-      if (i + batchSize < filenames.length) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
-    }
-
-    return validFiles;
-  }
-
-  /**
-   * Generate optimized filename patterns (focus on likely files)
-   */
-  private generateOptimizedFilenames(): string[] {
-    const filenames: string[] = [];
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-
-    // Prioritize recent years first (more likely to exist)
-    const years = [];
-    for (let year = currentYear; year >= 2014; year--) {
-      years.push(year);
-    }
-
-    for (const year of years) {
-      const maxMonth = year === currentYear ? currentMonth : 12;
-
-      // Monthly format: YYYY.MM-conashaugh-courier.pdf (most common)
-      for (let month = maxMonth; month >= 1; month--) {
-        const monthStr = month.toString().padStart(2, '0');
-        filenames.push(`${year}.${monthStr}-conashaugh-courier.pdf`);
       }
 
-      // Seasonal format: YYYY.season-conashaugh-courier.pdf
-      const seasons = ['winter', 'spring', 'summer', 'fall'];
-      for (const season of seasons) {
-        filenames.push(`${year}.${season}-conashaugh-courier.pdf`);
-      }
-
-      // Special issues (less common, lower priority)
-      filenames.push(`${year}-special-conashaugh-courier.pdf`);
-      filenames.push(`${year}.special-conashaugh-courier.pdf`);
-      filenames.push(`${year}-annual-conashaugh-courier.pdf`);
+      logger.success(`Found ${validFiles.length} PDF files from data`);
+      return validFiles;
+    } catch (error) {
+      logger.error('Failed to load newsletters data:', error);
+      return [];
     }
-
-    return filenames;
   }
 
   /**
@@ -176,7 +120,7 @@ class LightweightNewsletterService {
   private createBaseNewsletters(
     pdfs: Array<{ url: string; filename: string }>,
   ): LightweightNewsletter[] {
-    return pdfs.map((pdf, index) => ({
+    return pdfs.map((pdf) => ({
       id: this.generateNumericId(pdf.filename),
       title: this.extractTitleFromFilename(pdf.filename),
       filename: pdf.filename,
@@ -191,7 +135,7 @@ class LightweightNewsletterService {
   /**
    * Enhance newsletters with cached metadata (instant)
    */
-  private async enhanceWithCachedMetadata(newsletters: LightweightNewsletter[]): Promise<void> {
+  private enhanceWithCachedMetadata(newsletters: LightweightNewsletter[]): void {
     let enhancedCount = 0;
 
     for (const newsletter of newsletters) {
@@ -220,7 +164,7 @@ class LightweightNewsletterService {
   /**
    * Queue unprocessed PDFs for background processing
    */
-  private async queueUnprocessedPDFs(newsletters: LightweightNewsletter[]): Promise<void> {
+  private queueUnprocessedPDFs(newsletters: LightweightNewsletter[]): void {
     const unprocessed = newsletters.filter((n) => !n.isProcessed);
 
     if (unprocessed.length === 0) {
@@ -243,7 +187,7 @@ class LightweightNewsletterService {
       };
     });
 
-    await pdfMetadataStorageService.bulkAddToQueue(queueItems);
+    pdfMetadataStorageService.bulkAddToQueue(queueItems);
 
     logger.info(`Queued ${unprocessed.length} newsletters for background processing`);
   }

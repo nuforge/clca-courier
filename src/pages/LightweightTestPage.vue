@@ -193,9 +193,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
 import { useAdvancedSearch } from '../composables/useAdvancedSearch';
+
+interface LightweightNewsletter {
+  id: number;
+  title: string;
+  filename: string;
+  date: string;
+  pages: number;
+  url: string;
+  isProcessed: boolean;
+  isProcessing: boolean;
+  fileSize?: string;
+  thumbnailUrl?: string;
+  topics?: string[];
+  contentType?: string;
+}
+
+interface SearchResultItem {
+  id: number;
+  title: string;
+  date: string;
+  filename: string;
+  pages?: number;
+  score: number;
+  snippet?: string | undefined;
+  isProcessed?: boolean;
+  isProcessing?: boolean;
+  topics?: string[] | undefined;
+}
 
 // Services
 const {
@@ -208,10 +236,10 @@ const {
 } = useAdvancedSearch();
 
 // Local state
-const newsletters = ref<any[]>([]);
+const newsletters = ref<LightweightNewsletter[]>([]);
 const searchQuery = ref('');
 const searchMode = ref<'lightweight' | 'content'>('lightweight');
-const searchResults = ref<any[]>([]);
+const searchResults = ref<SearchResultItem[]>([]);
 const isLoading = ref(true);
 const processingStats = ref({
   total: 0,
@@ -262,7 +290,20 @@ const performSearch = async () => {
   try {
     if (searchMode.value === 'lightweight') {
       // Use lightweight newsletter service search
-      searchResults.value = await lightweightNewsletterService.searchNewsletters(searchQuery.value);
+      const lightweightResults = await lightweightNewsletterService.searchNewsletters(searchQuery.value);
+
+      // Transform to SearchResultItem format
+      searchResults.value = lightweightResults.map(newsletter => ({
+        id: newsletter.id,
+        title: newsletter.title,
+        date: newsletter.date,
+        filename: newsletter.filename,
+        pages: newsletter.pages,
+        score: 1.0, // Default score for lightweight results
+        isProcessed: newsletter.isProcessed,
+        isProcessing: newsletter.isProcessing,
+        topics: newsletter.topics ?? undefined,
+      }));
 
       console.log(`[LightweightTest] Lightweight search completed: ${searchResults.value.length} results`);
     } else {
@@ -270,7 +311,7 @@ const performSearch = async () => {
       updateFilters({ includeContent: true });
 
       // Convert newsletters to format expected by advanced search
-      const searchableIssues = newsletters.value.map((newsletter, index) => ({
+      const searchableIssues = newsletters.value.map((newsletter) => ({
         id: newsletter.id,
         title: newsletter.title,
         date: newsletter.date,
@@ -278,16 +319,27 @@ const performSearch = async () => {
         filename: newsletter.filename,
         status: 'local' as const,
         syncStatus: 'synced' as const,
-        url: newsletter.url,
-        description: newsletter.title,
-        fileSize: newsletter.fileSize,
-        thumbnailUrl: newsletter.thumbnailUrl,
-        tags: newsletter.topics || [],
-        category: newsletter.contentType,
+        url: newsletter.url ?? '',
+        description: newsletter.title ?? '',
+        fileSize: newsletter.fileSize ?? '',
+        thumbnailUrl: newsletter.thumbnailUrl ?? '',
+        tags: newsletter.topics ?? [],
+        category: newsletter.contentType ?? '',
       }));
 
       await performAdvancedSearch(searchableIssues, searchQuery.value);
-      searchResults.value = advancedSearchResults.value.map(r => r.issue);
+
+      // Transform advanced search results to SearchResultItem format
+      searchResults.value = advancedSearchResults.value.map(r => ({
+        id: r.id,
+        title: r.title,
+        date: r.date,
+        filename: r.filename,
+        pages: r.pages,
+        score: r.score,
+        snippet: r.snippet || undefined,
+        topics: r.tags ? [...r.tags] : undefined,
+      }));
     }
 
     console.log(`[LightweightTest] Found ${searchResults.value.length} results in ${Date.now() - startTime}ms`);
@@ -308,7 +360,7 @@ const onSearchModeChange = (mode: 'lightweight' | 'content') => {
   updateFilters({ includeContent: mode === 'content' });
 
   if (searchQuery.value && searchQuery.value.length >= 2) {
-    performSearch();
+    void performSearch();
   }
 };
 
@@ -318,7 +370,7 @@ watch(searchQuery, (newQuery) => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     if (newQuery && newQuery.length >= 2) {
-      performSearch();
+      void performSearch();
     } else {
       searchResults.value = [];
     }

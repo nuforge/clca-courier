@@ -132,8 +132,8 @@
 
       <div class="row q-col-gutter-md">
         <div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="result in searchResults" :key="result.id">
-          <enhanced-search-result-card :result="result" :search-terms="getSearchTerms()"
-            @click="$emit('open-issue', result)" @regenerate-thumbnail="$emit('regenerate-thumbnail', result)" />
+          <enhanced-search-result-card :result="result as SearchResult" :search-terms="getSearchTerms()"
+            @click="$emit('open-issue', result as SearchResult)" @regenerate-thumbnail="$emit('regenerate-thumbnail', result as SearchResult)" />
         </div>
       </div>
     </div>

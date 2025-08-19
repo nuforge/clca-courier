@@ -39,7 +39,7 @@ class PDFMetadataStorageService {
   private isProcessing = false;
 
   constructor() {
-    this.initializeStorage();
+    void this.initializeStorage();
     this.loadQuickCache();
   }
 
@@ -50,7 +50,8 @@ class PDFMetadataStorageService {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () =>
+        reject(new Error(request.error?.message || 'IndexedDB initialization failed'));
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
@@ -132,7 +133,8 @@ class PDFMetadataStorageService {
           resolve(null);
         }
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () =>
+        reject(new Error(request.error?.message || 'Failed to get metadata from IndexedDB'));
     });
   }
 
@@ -174,14 +176,15 @@ class PDFMetadataStorageService {
       const request = store.put(metadata);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () =>
+        reject(new Error(request.error?.message || 'Failed to store metadata in IndexedDB'));
     });
   }
 
   /**
    * Add PDF to processing queue
    */
-  async addToQueue(filename: string, url: string, priority: number = 5): Promise<void> {
+  addToQueue(filename: string, url: string, priority: number = 5): void {
     // Check if already processed or in queue
     if (this.quickCache.has(filename)) return;
 
@@ -481,11 +484,9 @@ class PDFMetadataStorageService {
   /**
    * Bulk add multiple PDFs to processing queue
    */
-  async bulkAddToQueue(
-    items: Array<{ filename: string; url: string; priority?: number }>,
-  ): Promise<void> {
+  bulkAddToQueue(items: Array<{ filename: string; url: string; priority?: number }>): void {
     for (const item of items) {
-      await this.addToQueue(item.filename, item.url, item.priority || 5);
+      this.addToQueue(item.filename, item.url, item.priority || 5);
     }
     console.log(`[PDFMetadataStorage] Added ${items.length} items to processing queue`);
   }

@@ -87,15 +87,15 @@
         </div>
       </div>
 
-      <!-- Tags and Topics -->
-      <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mt-sm">
+      <!-- Topics -->
+      <div v-if="newsletter.topics && newsletter.topics.length > 0" class="q-mt-sm">
         <div class="row q-gutter-xs">
-          <q-chip v-for="tag in newsletter.tags.slice(0, 3)" :key="tag" dense size="sm" outline color="primary"
+          <q-chip v-for="topic in newsletter.topics.slice(0, 3)" :key="topic" dense size="sm" outline color="primary"
             class="text-caption">
-            {{ tag }}
+            {{ topic }}
           </q-chip>
-          <q-chip v-if="newsletter.tags.length > 3" dense size="sm" outline color="grey" class="text-caption">
-            +{{ newsletter.tags.length - 3 }} more
+          <q-chip v-if="newsletter.topics.length > 3" dense size="sm" outline color="grey" class="text-caption">
+            +{{ newsletter.topics.length - 3 }} more
           </q-chip>
         </div>
       </div>
@@ -154,7 +154,7 @@
           </q-item>
 
           <!-- Check File Availability -->
-          <q-item v-if="props.newsletter.localFile" clickable @click="validateLocalFile"
+          <q-item v-if="hasLocalSource" clickable @click="validateLocalFile"
             :disable="fileValidation.isValidating">
             <q-item-section avatar>
               <q-icon :name="fileValidation.isValidating ? 'hourglass_empty' : 'refresh'" />
@@ -183,14 +183,11 @@
             <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>
             <div><strong>Filename:</strong> {{ newsletter.filename }}</div>
             <div v-if="displayFileSize"><strong>File Size:</strong> {{ displayFileSize }}</div>
-            <div v-if="newsletter.publishDate">
-              <strong>Published:</strong> {{ formatDate(newsletter.publishDate) }}
+            <div v-if="newsletter.date">
+              <strong>Published:</strong> {{ formatDate(newsletter.date) }}
             </div>
             <div v-if="newsletter.topics?.length">
               <strong>Topics:</strong> {{ newsletter.topics.join(', ') }}
-            </div>
-            <div v-if="newsletter.tags?.length">
-              <strong>Tags:</strong> {{ newsletter.tags.join(', ') }}
             </div>
             <div v-if="hasLocalSource || hasDriveSource">
               <strong>Available Sources:</strong>
@@ -206,7 +203,7 @@
             </div>
 
             <!-- File validation status -->
-            <div v-if="props.newsletter.localFile">
+            <div v-if="hasLocalSource">
               <strong>Local File Status:</strong>
               <div class="q-mt-xs">
                 <q-badge v-if="fileValidation.isValidating" color="orange" icon="hourglass_empty" label="Checking..." />
@@ -234,13 +231,12 @@ import { date, useQuasar } from 'quasar'
 import { usePdfThumbnails } from '../composables/usePdfThumbnails'
 import { usePdfViewer } from '../composables/usePdfViewer'
 import { getPublicPath } from '../utils/path-utils'
-import { convertToViewUrl } from '../utils/googleDriveUtils'
 import { validatePdfFile } from '../utils/pdfValidator'
-import type { NewsletterMetadata } from '../services/newsletter-service'
+import type { LightweightNewsletter } from '../services/lightweight-newsletter-service'
 import { logger } from '../utils/logger'
 
 interface Props {
-  newsletter: NewsletterMetadata
+  newsletter: LightweightNewsletter
   showSourceIndicators?: boolean
 }
 
@@ -274,26 +270,14 @@ const fileValidation = ref({
 
 // Computed properties for source detection
 const hasLocalSource = computed(() => {
-  const hasFileProperty = props.newsletter.localFile && props.newsletter.localFile.length > 0
-
-  // TEMPORARILY DISABLED: File validation causes issues in development
-  // During development, trust the metadata rather than HTTP validation
-  if (import.meta.env.DEV) {
-    return hasFileProperty
-  }
-
-  // In production, use validated result if available
-  if (fileValidation.value.localFileExists === null) {
-    return hasFileProperty
-  }
-
-  // Use validated result
-  return hasFileProperty && fileValidation.value.localFileExists
+  // Check if URL is a local file (contains /issues/)
+  return props.newsletter.url && props.newsletter.url.includes('/issues/')
 })
 
-const hasDriveSource = computed(() =>
-  props.newsletter.driveId && props.newsletter.driveId.length > 0
-)
+const hasDriveSource = computed(() => {
+  // Check if URL is a Google Drive URL
+  return props.newsletter.url && props.newsletter.url.includes('drive.google.com')
+})
 
 const canGenerateThumbnail = computed(() =>
   hasLocalSource.value && !generatedThumbnail.value && !isGeneratingThumbnail.value
@@ -301,8 +285,9 @@ const canGenerateThumbnail = computed(() =>
 
 // Thumbnail URLs with priority system
 const localThumbnailUrl = computed(() => {
-  if (props.newsletter.thumbnailPath) {
-    return getPublicPath(`thumbnails/${props.newsletter.thumbnailPath}`)
+  // Use cached thumbnail URL if available (from lightweight service)
+  if (props.newsletter.thumbnailUrl) {
+    return props.newsletter.thumbnailUrl
   }
 
   // Generate thumbnail path from filename
@@ -359,8 +344,7 @@ const generateThumbnail = async () => {
     isGeneratingThumbnail.value = true
     logger.debug('Generating thumbnail for:', props.newsletter.title)
 
-    const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
-    const thumbnail = await regenerateThumbnail(pdfUrl)
+    const thumbnail = await regenerateThumbnail(props.newsletter.url)
 
     if (thumbnail) {
       generatedThumbnail.value = thumbnail
@@ -378,43 +362,25 @@ const generateThumbnail = async () => {
 }
 
 const openWebViewer = () => {
-  // Try local source first - use URL from newsletter metadata
-  if (props.newsletter.localFile && props.newsletter.url) {
+  // Use the newsletter URL directly (works for both local and drive sources)
+  if (props.newsletter.url) {
     console.log('Opening PDF with URL:', props.newsletter.url)
     console.log('Newsletter data:', props.newsletter)
 
-    // Use the URL from newsletter metadata (already properly constructed)
+    // Use the URL from newsletter (already properly constructed)
     pdfViewer.openDocument({
       id: props.newsletter.id,
       title: props.newsletter.title,
       date: props.newsletter.date,
       pages: props.newsletter.pages || 0,
-      url: props.newsletter.url, // Use the URL from metadata
-      filename: props.newsletter.filename
-    })
-    return
-  }
-
-  // Fallback to cloud version if available
-  if (hasDriveSource.value) {
-    logger.info('Using cloud version as fallback for viewing:', props.newsletter.title)
-
-    // Convert Google Drive ID to direct view URL for PDF viewer using utility
-    const driveViewUrl = convertToViewUrl(`https://drive.google.com/file/d/${props.newsletter.driveId}/view`)
-
-    pdfViewer.openDocument({
-      id: props.newsletter.id,
-      title: props.newsletter.title,
-      date: props.newsletter.date,
-      pages: props.newsletter.pages || 0,
-      url: driveViewUrl,
+      url: props.newsletter.url,
       filename: props.newsletter.filename
     })
     return
   }
 
   // No sources available - provide user feedback
-  logger.warn('No local or cloud source available for viewing:', props.newsletter.title)
+  logger.warn('No source available for viewing:', props.newsletter.title)
 
   $q.notify({
     type: 'warning',
@@ -432,9 +398,8 @@ const downloadFromDrive = () => {
     return
   }
 
-  // Open Google Drive download URL in new tab
-  const driveDownloadUrl = `https://drive.google.com/file/d/${props.newsletter.driveId}/view`
-  window.open(driveDownloadUrl, '_blank')
+  // Open newsletter URL in new tab (should be Google Drive URL)
+  window.open(props.newsletter.url, '_blank')
 }
 
 const downloadLocal = () => {
@@ -443,10 +408,9 @@ const downloadLocal = () => {
     return
   }
 
-  // Create download link for local file
-  const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
+  // Create download link for local file using newsletter URL
   const link = document.createElement('a')
-  link.href = pdfUrl
+  link.href = props.newsletter.url
   link.download = props.newsletter.filename
   document.body.appendChild(link)
   link.click()
@@ -457,7 +421,7 @@ const copyLink = async () => {
   try {
     const url = hasLocalSource.value
       ? `${window.location.origin}/archive?view=${props.newsletter.filename}`
-      : `https://drive.google.com/file/d/${props.newsletter.driveId}/view`
+      : props.newsletter.url // Use the newsletter URL directly
 
     await navigator.clipboard.writeText(url)
 
@@ -478,7 +442,7 @@ const copyLink = async () => {
 
 // File validation methods
 const validateLocalFile = async (): Promise<boolean> => {
-  if (!props.newsletter.localFile) {
+  if (!hasLocalSource.value) {
     fileValidation.value.localFileExists = false
     return false
   }
@@ -490,8 +454,7 @@ const validateLocalFile = async (): Promise<boolean> => {
   fileValidation.value.isValidating = true
 
   try {
-    const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
-    const validation = await validatePdfFile(pdfUrl)
+    const validation = await validatePdfFile(props.newsletter.url)
 
     fileValidation.value.localFileExists = validation.isValid
     fileValidation.value.lastChecked = new Date()
@@ -527,14 +490,13 @@ const validateLocalFile = async (): Promise<boolean> => {
 onMounted(async () => {
   // TEMPORARILY DISABLED: File validation during development
   // Only validate in production builds where static file serving is stable
-  if (import.meta.env.PROD && props.newsletter.localFile && fileValidation.value.localFileExists === null) {
+  if (import.meta.env.PROD && hasLocalSource.value && fileValidation.value.localFileExists === null) {
     await validateLocalFile()
   }
 
   if (hasLocalSource.value && !localThumbnailUrl.value) {
     try {
-      const pdfUrl = getPublicPath(`issues/${props.newsletter.localFile}`)
-      const thumbnail = await getThumbnail(pdfUrl)
+      const thumbnail = await getThumbnail(props.newsletter.url)
       if (thumbnail) {
         generatedThumbnail.value = thumbnail
       }

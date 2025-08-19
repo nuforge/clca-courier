@@ -277,7 +277,7 @@ import { useSiteStore } from '../stores/site-store-simple'
 import { useHybridNewsletters } from '../composables/useHybridNewsletters'
 import { useAdvancedSearch } from '../composables/useAdvancedSearch'
 import AdvancedNewsletterCard from '../components/AdvancedNewsletterCard.vue'
-import type { NewsletterMetadata } from '../services/newsletter-service'
+import type { LightweightNewsletter } from '../services/lightweight-newsletter-service'
 import type { IssueWithGoogleDrive } from '../types/google-drive-content'
 
 const siteStore = useSiteStore()
@@ -361,7 +361,7 @@ const error = computed(() => hybridNewsletters.error.value)
 // Year filter options
 const yearFilterOptions = computed(() => {
   const years = new Set<number>()
-  allIssues.value.forEach((issue: NewsletterMetadata) => {
+  allIssues.value.forEach((issue: LightweightNewsletter) => {
     const date = new Date(issue.date)
     const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
     years.add(year)
@@ -377,11 +377,11 @@ const hasActiveFilters = computed(() => {
 })
 
 // Helper functions for filtering
-const hasLocalSource = (issue: NewsletterMetadata) => issue.localFile && issue.localFile.length > 0
-const hasDriveSource = (issue: NewsletterMetadata) => issue.driveId && issue.driveId.length > 0
+const hasLocalSource = (issue: LightweightNewsletter) => issue.url && issue.url.includes('/issues/')
+const hasDriveSource = (issue: LightweightNewsletter) => issue.url && issue.url.includes('drive.google.com')
 
 // Convert newsletter metadata to format expected by advanced search
-const convertNewslettersToIssues = (newsletters: NewsletterMetadata[]): IssueWithGoogleDrive[] => {
+const convertNewslettersToIssues = (newsletters: LightweightNewsletter[]): IssueWithGoogleDrive[] => {
   return newsletters.map((newsletter, index) => {
     const issue: IssueWithGoogleDrive = {
       id: index + 1,
@@ -395,7 +395,7 @@ const convertNewslettersToIssues = (newsletters: NewsletterMetadata[]): IssueWit
     }
 
     // Add optional fields only if they exist
-    const url = newsletter.url || newsletter.localFile || newsletter.driveUrl
+    const url = newsletter.url
     if (url) {
       issue.url = url
     }
@@ -405,23 +405,18 @@ const convertNewslettersToIssues = (newsletters: NewsletterMetadata[]): IssueWit
     if (newsletter.fileSize) {
       issue.fileSize = newsletter.fileSize
     }
-    if (newsletter.thumbnailPath) {
-      issue.thumbnailUrl = newsletter.thumbnailPath
+    if (newsletter.thumbnailUrl) {
+      issue.thumbnailUrl = newsletter.thumbnailUrl
     }
-    if (newsletter.tags) {
-      issue.tags = [...newsletter.tags] as readonly string[]
-    }
-    if (newsletter.driveId) {
-      issue.googleDriveFileId = newsletter.driveId
-    }
+    // Tags and driveId are not available in LightweightNewsletter interface
     if (newsletter.contentType) {
       issue.category = newsletter.contentType
     }
-    if (newsletter.localFile) {
-      issue.localUrl = newsletter.localFile
+    if (hasLocalSource(newsletter)) {
+      issue.localUrl = newsletter.url
     }
-    if (newsletter.driveUrl) {
-      issue.googleDriveUrl = newsletter.driveUrl
+    if (hasDriveSource(newsletter)) {
+      issue.googleDriveUrl = newsletter.url
     }
 
     return issue
@@ -465,15 +460,12 @@ const filteredIssues = computed(() => {
         filename: result.filename,
         url: result.url || '',
         contentType: result.category as 'newsletter' | 'special' | 'annual' | undefined,
-        source: result.status,
-        localFile: result.localUrl,
-        driveUrl: result.googleDriveUrl,
-        driveId: result.googleDriveFileId,
-        thumbnailPath: result.thumbnailUrl,
         fileSize: result.fileSize,
-        tags: result.tags ? [...result.tags] : [],
+        thumbnailUrl: result.thumbnailUrl,
         topics: result.description?.split(', ').filter(Boolean) || [],
-      } as NewsletterMetadata
+        isProcessed: false,
+        isProcessing: false
+      } as LightweightNewsletter
     })
   }
 
@@ -488,17 +480,16 @@ const filteredIssues = computed(() => {
   // Simple text search
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
-    issues = issues.filter((issue: NewsletterMetadata) =>
+    issues = issues.filter((issue: LightweightNewsletter) =>
       issue.title.toLowerCase().includes(query) ||
       issue.filename.toLowerCase().includes(query) ||
-      (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query))) ||
-      (issue.tags && issue.tags.some((tag: string) => tag.toLowerCase().includes(query)))
+      (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query)))
     )
   }
 
   // Apply other filters (year, availability, etc.)
   if (filters.year) {
-    issues = issues.filter((issue: NewsletterMetadata) => {
+    issues = issues.filter((issue: LightweightNewsletter) => {
       const date = new Date(issue.date)
       const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
       return year === filters.year
@@ -506,7 +497,7 @@ const filteredIssues = computed(() => {
   }
 
   if (filters.availability) {
-    issues = issues.filter((issue: NewsletterMetadata) => {
+    issues = issues.filter((issue: LightweightNewsletter) => {
       const hasLocal = hasLocalSource(issue)
       const hasDrive = hasDriveSource(issue)
 
@@ -528,7 +519,7 @@ const filteredIssues = computed(() => {
   }
 
   if (filters.pageCount) {
-    issues = issues.filter((issue: NewsletterMetadata) => {
+    issues = issues.filter((issue: LightweightNewsletter) => {
       const pageCount = issue.pages || 0
       switch (filters.pageCount) {
         case '1-5':
@@ -546,7 +537,7 @@ const filteredIssues = computed(() => {
   }
 
   if (filters.actions) {
-    issues = issues.filter((issue: NewsletterMetadata) => {
+    issues = issues.filter((issue: LightweightNewsletter) => {
       switch (filters.actions) {
         case 'view':
           return hasLocalSource(issue)
@@ -555,7 +546,7 @@ const filteredIssues = computed(() => {
         case 'search':
           return hasLocalSource(issue)
         case 'thumbnail':
-          return !!(issue.thumbnailPath)
+          return !!(issue.thumbnailUrl)
         default:
           return true
       }
@@ -570,7 +561,7 @@ const sortedIssues = computed(() => {
   const issues = [...filteredIssues.value]
   const [field, direction] = quickSort.value.split('-')
 
-  return issues.sort((a: NewsletterMetadata, b: NewsletterMetadata) => {
+  return issues.sort((a: LightweightNewsletter, b: LightweightNewsletter) => {
     let comparison = 0
 
     switch (field) {
@@ -596,9 +587,9 @@ const sortedIssues = computed(() => {
 
 // Grouped by year for alternative view
 const sortedNewslettersByYear = computed(() => {
-  const grouped = new Map<number, NewsletterMetadata[]>()
+  const grouped = new Map<number, LightweightNewsletter[]>()
 
-  sortedIssues.value.forEach((issue: NewsletterMetadata) => {
+  sortedIssues.value.forEach((issue: LightweightNewsletter) => {
     const date = new Date(issue.date)
     const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
 

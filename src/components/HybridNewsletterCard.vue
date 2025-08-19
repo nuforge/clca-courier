@@ -13,9 +13,9 @@
     </q-card-section>
 
     <!-- Thumbnail preview with tall aspect ratio -->
-    <q-card-section v-if="newsletter.thumbnailPath" class="q-pa-sm">
+    <q-card-section v-if="newsletter.thumbnailUrl" class="q-pa-sm">
       <div class="thumbnail-container">
-        <q-img :src="newsletter.thumbnailPath" :alt="`${newsletter.title} cover`"
+        <q-img :src="newsletter.thumbnailUrl" :alt="`${newsletter.title} cover`"
           class="rounded-borders newsletter-thumbnail" loading="lazy" fit="cover" :ratio="1 / 1.3"
           @error="onThumbnailError" @click="openWebViewer">
           <template v-slot:error>
@@ -206,14 +206,8 @@
             <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>
             <div><strong>Filename:</strong> {{ newsletter.filename }}</div>
             <div v-if="displayFileSize"><strong>File Size:</strong> {{ displayFileSize }}</div>
-            <div v-if="newsletter.publishDate && formatDate(newsletter.publishDate)">
-              <strong>Published:</strong> {{ formatDate(newsletter.publishDate) }}
-            </div>
             <div v-if="newsletter.topics?.length">
               <strong>Topics:</strong> {{ newsletter.topics.join(', ') }}
-            </div>
-            <div v-if="newsletter.tags?.length">
-              <strong>Tags:</strong> {{ newsletter.tags.join(', ') }}
             </div>
           </div>
         </q-card-section>
@@ -229,13 +223,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import type { NewsletterMetadata, NewsletterSource } from '../services/newsletter-service';
+import type { LightweightNewsletter } from '../services/lightweight-newsletter-service';
 import { useHybridNewsletters } from '../composables/useHybridNewsletters';
 import { usePdfViewer } from '../composables/usePdfViewer';
 import { usePdfMetadata } from '../composables/usePdfMetadata';
 
 interface Props {
-  newsletter: NewsletterMetadata;
+  newsletter: LightweightNewsletter;
 }
 
 const props = defineProps<Props>();
@@ -247,7 +241,7 @@ const { getPageCount, getFileSize } = usePdfMetadata();
 // Local state
 const showSourcesDialog = ref(false);
 const showDetails = ref(false);
-const availableSources = ref<NewsletterSource[]>([]);
+const availableSources = ref<Array<{ type: string; url: string; available: boolean }>>([]);
 const livePageCount = ref<number | null>(null);
 const liveFileSize = ref<string | null>(null);
 const loading = reactive({
@@ -294,14 +288,14 @@ const loadLiveMetadata = async () => {
 
   // Get web view URL from the hybrid newsletters service
   try {
-    pdfUrl = await hybridNewsletters.getWebViewUrl(props.newsletter);
+    pdfUrl = hybridNewsletters.getWebViewUrl(props.newsletter);
   } catch (error) {
     console.log('Could not get web view URL for metadata extraction:', error);
   }
 
   // Fallback to constructing URL from local file
-  if (!pdfUrl && props.newsletter.localFile) {
-    pdfUrl = `/issues/${props.newsletter.localFile}`;
+  if (!pdfUrl) {
+    pdfUrl = props.newsletter.url; // Use the direct URL from lightweight newsletter
   }
 
   // Only proceed if we have a URL and don't already have live data
@@ -336,14 +330,14 @@ const loadLiveMetadata = async () => {
   }
 };
 
-const loadSources = async () => {
+const loadSources = () => {
   try {
     loading.sources = true;
-    availableSources.value = await hybridNewsletters.getNewsletterSources(props.newsletter);
+    availableSources.value = hybridNewsletters.getNewsletterSources(props.newsletter);
 
     // Update source indicators
-    sources.local = await hybridNewsletters.hasLocalSource(props.newsletter);
-    sources.drive = await hybridNewsletters.hasDriveSource(props.newsletter);
+    sources.local = hybridNewsletters.hasLocalSource(props.newsletter);
+    sources.drive = hybridNewsletters.hasDriveSource(props.newsletter);
   } catch (error) {
     console.error('Error loading sources:', error);
   } finally {
@@ -351,10 +345,10 @@ const loadSources = async () => {
   }
 };
 
-const openWebViewer = async () => {
+const openWebViewer = () => {
   try {
     loading.webView = true;
-    const webUrl = await hybridNewsletters.getWebViewUrl(props.newsletter);
+    const webUrl = hybridNewsletters.getWebViewUrl(props.newsletter);
 
     if (webUrl) {
       // Use the existing PDF viewer
@@ -379,10 +373,10 @@ const openWebViewer = async () => {
   }
 };
 
-const downloadNewsletter = async () => {
+const downloadNewsletter = () => {
   try {
     loading.download = true;
-    const downloadUrl = await hybridNewsletters.getDownloadUrl(props.newsletter);
+    const downloadUrl = hybridNewsletters.getDownloadUrl(props.newsletter);
 
     if (downloadUrl) {
       window.open(downloadUrl, '_blank');
@@ -411,17 +405,10 @@ const openInDrive = () => {
   try {
     loading.drive = true;
     // Find the Google Drive URL from available sources
-    const driveSource = availableSources.value.find(s => s.type === 'drive' && s.available);
+    const driveSource = availableSources.value.find((s: { type: string; url: string; available: boolean }) => s.type === 'drive' && s.available);
 
     if (driveSource) {
       window.open(driveSource.url, '_blank');
-      $q.notify({
-        type: 'positive',
-        message: 'Opening in Google Drive'
-      });
-    } else if (props.newsletter.driveUrl) {
-      // Fallback to newsletter's drive URL
-      window.open(props.newsletter.driveUrl, '_blank');
       $q.notify({
         type: 'positive',
         message: 'Opening in Google Drive'
@@ -445,7 +432,7 @@ const openInDrive = () => {
 
 const copyLink = async () => {
   try {
-    const webUrl = await hybridNewsletters.getWebViewUrl(props.newsletter);
+    const webUrl = hybridNewsletters.getWebViewUrl(props.newsletter);
     if (webUrl) {
       await navigator.clipboard.writeText(window.location.origin + webUrl);
       $q.notify({
@@ -462,13 +449,13 @@ const copyLink = async () => {
   }
 };
 
-const openSource = (source: NewsletterSource) => {
+const openSource = (source: { type: string; url: string; available: boolean }) => {
   window.open(source.url, '_blank');
   showSourcesDialog.value = false;
 };
 
 const onThumbnailError = () => {
-  console.warn(`Thumbnail not found: ${props.newsletter.thumbnailPath}`);
+  console.warn(`Thumbnail not found:`, props.newsletter.thumbnailUrl);
 };
 
 // Utility functions
@@ -515,7 +502,7 @@ const getSourceIcon = (type: string) => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadSources();
+  loadSources();
   // Load live metadata after sources are loaded
   await loadLiveMetadata();
 });

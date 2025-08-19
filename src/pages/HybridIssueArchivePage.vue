@@ -207,7 +207,7 @@ import { useSiteStore } from '../stores/site-store-simple';
 import { useHybridNewsletters } from '../composables/useHybridNewsletters';
 import { useDynamicGoogleDriveIssues } from '../composables/useDynamicGoogleDriveIssues';
 import HybridNewsletterCard from '../components/HybridNewsletterCard.vue';
-import type { NewsletterMetadata } from '../services/newsletter-service';
+import type { LightweightNewsletter } from '../services/lightweight-newsletter-service';
 
 const siteStore = useSiteStore();
 const hybridNewsletters = useHybridNewsletters();
@@ -241,9 +241,6 @@ const filteredNewsletters = computed(() => {
       newsletter.filename.toLowerCase().includes(query) ||
       (newsletter.topics && newsletter.topics.some(topic =>
         topic.toLowerCase().includes(query)
-      )) ||
-      (newsletter.tags && newsletter.tags.some(tag =>
-        tag.toLowerCase().includes(query)
       ))
     );
   }
@@ -254,8 +251,8 @@ const filteredNewsletters = computed(() => {
 
     switch (sortBy.value) {
       case 'date':
-        comparison = new Date(a.publishDate || a.date).getTime() -
-          new Date(b.publishDate || b.date).getTime();
+        comparison = new Date(a.date).getTime() -
+          new Date(b.date).getTime();
         break;
       case 'title':
         comparison = a.title.localeCompare(b.title);
@@ -281,7 +278,7 @@ const displayNewsletters = computed(() => {
 // Sorted newsletters by year (applies sorting to each year group)
 const sortedNewslettersByYear = computed(() => {
   const yearGroups = hybridNewsletters.newslettersByYear.value;
-  const sortedGroups: Record<string, NewsletterMetadata[]> = {};
+  const sortedGroups: Record<string, LightweightNewsletter[]> = {};
 
   for (const [year, newsletters] of Object.entries(yearGroups)) {
     sortedGroups[year] = [...newsletters].sort((a, b) => {
@@ -289,8 +286,8 @@ const sortedNewslettersByYear = computed(() => {
 
       switch (sortBy.value) {
         case 'date':
-          comparison = new Date(a.publishDate || a.date).getTime() -
-            new Date(b.publishDate || b.date).getTime();
+          comparison = new Date(a.date).getTime() -
+            new Date(b.date).getTime();
           break;
         case 'title':
           comparison = a.title.localeCompare(b.title);

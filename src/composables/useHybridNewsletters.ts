@@ -5,10 +5,9 @@
 
 import { ref, computed } from 'vue';
 import {
-  newsletterService,
-  type NewsletterMetadata,
-  type NewsletterSource,
-} from '../services/newsletter-service';
+  lightweightNewsletterService,
+  type LightweightNewsletter,
+} from '../services/lightweight-newsletter-service';
 
 interface ServiceStats {
   totalNewsletters: number;
@@ -22,7 +21,7 @@ interface ServiceStats {
 }
 
 export function useHybridNewsletters() {
-  const newsletters = ref<NewsletterMetadata[]>([]);
+  const newsletters = ref<LightweightNewsletter[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const serviceStats = ref<ServiceStats | null>(null);
@@ -36,11 +35,20 @@ export function useHybridNewsletters() {
       error.value = null;
 
       console.log('[useHybridNewsletters] Loading newsletters...');
-      const data = await newsletterService.getNewsletters();
+      const data = await lightweightNewsletterService.getNewsletters();
       newsletters.value = data;
 
       // Load service statistics
-      serviceStats.value = await newsletterService.getServiceStats();
+      serviceStats.value = {
+        totalNewsletters: data.length,
+        sourceCounts: {
+          local: data.length,
+          drive: 0,
+          hybrid: 0,
+        },
+        cacheSize: 0,
+        lastUpdated: new Date().toISOString(),
+      };
 
       console.log(`[useHybridNewsletters] Loaded ${data.length} newsletters`);
     } catch (err) {
@@ -52,85 +60,71 @@ export function useHybridNewsletters() {
   };
 
   /**
-   * Get sources for a specific newsletter
+   * Get sources for a specific newsletter (simplified for lightweight service)
    */
-  const getNewsletterSources = async (
-    newsletter: NewsletterMetadata,
-  ): Promise<NewsletterSource[]> => {
-    try {
-      return await newsletterService.getNewsletterSources(newsletter);
-    } catch (err) {
-      console.error('[useHybridNewsletters] Error getting newsletter sources:', err);
-      return [];
+  const getNewsletterSources = (
+    newsletter: LightweightNewsletter,
+  ): Array<{ type: string; url: string; available: boolean }> => {
+    // Simplified source detection for lightweight service
+    const sources = [];
+
+    if (newsletter.url.includes('/issues/')) {
+      sources.push({ type: 'local', url: newsletter.url, available: true });
     }
+
+    if (newsletter.url.includes('drive.google.com')) {
+      sources.push({ type: 'drive', url: newsletter.url, available: true });
+    }
+
+    return sources;
   };
 
   /**
    * Get the best URL for web viewing
    */
-  const getWebViewUrl = async (newsletter: NewsletterMetadata): Promise<string | null> => {
-    try {
-      return await newsletterService.getWebViewUrl(newsletter);
-    } catch (err) {
-      console.error('[useHybridNewsletters] Error getting web view URL:', err);
-      return newsletter.url; // Fallback to original URL
-    }
+  const getWebViewUrl = (newsletter: LightweightNewsletter): string | null => {
+    return newsletter.url; // Direct URL access for lightweight approach
   };
 
   /**
    * Get the best URL for downloading
    */
-  const getDownloadUrl = async (newsletter: NewsletterMetadata): Promise<string | null> => {
-    try {
-      return await newsletterService.getDownloadUrl(newsletter);
-    } catch (err) {
-      console.error('[useHybridNewsletters] Error getting download URL:', err);
-      return newsletter.url; // Fallback to original URL
-    }
+  const getDownloadUrl = (newsletter: LightweightNewsletter): string | null => {
+    return newsletter.url; // Direct URL access for lightweight approach
   };
 
   /**
    * Check if newsletter has local source available
    */
-  const hasLocalSource = async (newsletter: NewsletterMetadata): Promise<boolean> => {
-    const sources = await getNewsletterSources(newsletter);
-    return sources.some((s) => s.type === 'local' && s.available);
+  const hasLocalSource = (newsletter: LightweightNewsletter): boolean => {
+    return newsletter.url.includes('/issues/');
   };
 
   /**
    * Check if newsletter has Google Drive source available
    */
-  const hasDriveSource = async (newsletter: NewsletterMetadata): Promise<boolean> => {
-    const sources = await getNewsletterSources(newsletter);
-    return sources.some((s) => s.type === 'drive' && s.available);
+  const hasDriveSource = (newsletter: LightweightNewsletter): boolean => {
+    return newsletter.url.includes('drive.google.com');
   };
 
   /**
    * Check if newsletter has hybrid sources (both local and drive)
    */
-  const hasHybridSources = async (newsletter: NewsletterMetadata): Promise<boolean> => {
-    const sources = await getNewsletterSources(newsletter);
-    const hasLocal = sources.some((s) => s.type === 'local' && s.available);
-    const hasDrive = sources.some((s) => s.type === 'drive' && s.available);
-    return hasLocal && hasDrive;
-  };
-
-  /**
+  const hasHybridSources = (newsletter: LightweightNewsletter): boolean => {
+    return newsletter.isProcessed; // For lightweight service, this indicates enhanced metadata
+  }; /**
    * Refresh newsletter data
    */
   const refresh = async () => {
-    newsletterService.clearCache();
     await loadNewsletters();
   };
 
   // Computed properties for filtered and sorted newsletters
   const newslettersByYear = computed(() => {
-    const groupedByYear: Record<string, NewsletterMetadata[]> = {};
+    const groupedByYear: Record<string, LightweightNewsletter[]> = {};
 
     newsletters.value.forEach((newsletter) => {
-      const year = newsletter.publishDate
-        ? new Date(newsletter.publishDate).getFullYear().toString()
-        : 'Unknown';
+      const year = newsletter.date ? new Date(newsletter.date).getFullYear().toString() : 'Unknown';
       if (!groupedByYear[year]) {
         groupedByYear[year] = [];
       }
@@ -144,15 +138,15 @@ export function useHybridNewsletters() {
       return parseInt(b) - parseInt(a);
     });
 
-    const result: Record<string, NewsletterMetadata[]> = {};
+    const result: Record<string, LightweightNewsletter[]> = {};
     sortedYears.forEach((year) => {
-      // Sort newsletters within each year by publish date (newest first)
+      // Sort newsletters within each year by date (newest first)
       const yearNewsletters = groupedByYear[year];
       if (yearNewsletters) {
         result[year] = yearNewsletters.sort((a, b) => {
-          if (!a.publishDate) return 1;
-          if (!b.publishDate) return -1;
-          return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
       }
     });
@@ -164,15 +158,15 @@ export function useHybridNewsletters() {
     return newsletters.value
       .slice()
       .sort((a, b) => {
-        if (!a.publishDate) return 1;
-        if (!b.publishDate) return -1;
-        return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
       })
       .slice(0, 5);
   });
 
   const newslettersByContentType = computed(() => {
-    const grouped: Record<string, NewsletterMetadata[]> = {
+    const grouped: Record<string, LightweightNewsletter[]> = {
       newsletter: [],
       special: [],
       annual: [],

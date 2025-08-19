@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { useHybridNewsletters } from '../composables/useHybridNewsletters'
 import HybridNewsletterCard from '../components/HybridNewsletterCard.vue'
-import type { NewsletterMetadata } from '../services/newsletter-service'
+import type { LightweightNewsletter } from '../services/lightweight-newsletter-service'
 
 const siteStore = useSiteStore()
 const hybridNewsletters = useHybridNewsletters()
@@ -41,11 +41,10 @@ const filteredIssues = computed(() => {
   // Apply simple search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    issues = issues.filter((issue: NewsletterMetadata) =>
+    issues = issues.filter((issue: LightweightNewsletter) =>
       issue.title.toLowerCase().includes(query) ||
       issue.filename.toLowerCase().includes(query) ||
-      (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query))) ||
-      (issue.tags && issue.tags.some((tag: string) => tag.toLowerCase().includes(query)))
+      (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query)))
     );
   }
 
@@ -81,8 +80,8 @@ const filteredIssues = computed(() => {
 const archivedIssues = computed(() => filteredIssues.value)
 
 const issuesByYear = computed(() => {
-  const grouped: Record<string, NewsletterMetadata[]> = {};
-  filteredIssues.value.forEach((issue: NewsletterMetadata) => {
+  const grouped: Record<string, LightweightNewsletter[]> = {};
+  filteredIssues.value.forEach((issue: LightweightNewsletter) => {
     const year = new Date(issue.date).getFullYear().toString();
     if (!grouped[year]) {
       grouped[year] = [];
@@ -128,15 +127,15 @@ const getResponsiveClasses = (): string => {
 
 // Source count computed properties
 const hybridCount = computed(() => {
-  return rawIssues.value.filter(issue => issue.driveId && issue.localFile).length;
+  return rawIssues.value.filter(issue => issue.isProcessed).length;
 });
 
 const localOnlyCount = computed(() => {
-  return rawIssues.value.filter(issue => issue.localFile && !issue.driveId).length;
+  return rawIssues.value.filter(issue => issue.url.includes('/issues/')).length;
 });
 
 const driveOnlyCount = computed(() => {
-  return rawIssues.value.filter(issue => issue.driveId && !issue.localFile).length;
+  return rawIssues.value.filter(issue => issue.url.includes('drive.google.com')).length;
 });
 
 onMounted(async () => {

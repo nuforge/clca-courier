@@ -6,7 +6,7 @@ import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 import { dataService, type CommunityStats } from '../services/data-service';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useGoogleDrivePdfs } from '../composables/useGoogleDrivePdfs';
-import { newsletterService } from '../services/newsletter-service';
+import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
 
 export const useSiteStore = defineStore('site', () => {
   // Initialize user settings
@@ -141,8 +141,8 @@ export const useSiteStore = defineStore('site', () => {
 
   async function loadArchivedIssues() {
     try {
-      // Load real PDF files using newsletter service - NO HARDCODED LISTS
-      const newsletters = await newsletterService.getNewsletters();
+      // Load real PDF files using lightweight newsletter service - NO HARDCODED LISTS
+      const newsletters = await lightweightNewsletterService.getNewsletters();
 
       // Convert newsletter metadata to PdfDocument format
       archivedIssues.value = newsletters.map((newsletter) => ({
