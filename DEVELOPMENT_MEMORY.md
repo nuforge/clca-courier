@@ -1,16 +1,43 @@
 # CLCA Courier - Development Memory & Notes
 
 **Created:** August 16, 2025  
-**Updated:** August 18, 2025  
+**Updated:** August 19, 2025  
 **Purpose:** Track progress, failed attempts, user instructions, and important decisions
 
 ---
 
 ## 🎯 LATEST MILESTONE ACHIEVED ✅
 
-**PDF PROCESSING ENHANCEMENT & ADVANCED SEARCH INTEGRATION COMPLETE!**
+**431 ERROR RESOLUTION & CENTRALIZED PDF CONFIGURATION COMPLETE!**
 
-### What Was Accomplished (Current Session - August 18, 2025)
+### What Was Accomplished (Current Session - August 19, 2025)
+
+1. **Comprehensive 431 Error Resolution** ✅
+   - ✅ Created centralized PDF configuration utility (`pdf-config.ts`) to prevent header size issues
+   - ✅ Implemented URL length validation (2000 char limit) to prevent oversized requests
+   - ✅ Added specific 431 error detection and handling with graceful fallbacks
+
+2. **Request Throttling & Batch Processing Improvements** ✅
+   - ✅ Reduced concurrent PDF processing from unlimited to 3 requests maximum
+   - ✅ Added 100ms delays between batches to prevent server overload
+   - ✅ Enhanced PDF metadata service with intelligent request pacing
+
+3. **Centralized PDF.js Configuration** ✅
+   - ✅ Consolidated all PDF.js configurations into single `PDF_CONFIG` utility
+   - ✅ Simplified PDF loading task creation with consistent error handling
+   - ✅ Removed duplicate PDF.js worker setup across multiple services
+
+4. **Enhanced Error Handling & Blacklisting** ✅
+   - ✅ Added immediate blacklisting for 431 errors to prevent retry loops
+   - ✅ Improved error categorization with specific 431 error detection
+   - ✅ Enhanced fallback metadata generation for problematic files
+
+5. **Development Server Stability** ✅
+   - ✅ Successfully eliminated 431 errors from development environment
+   - ✅ Verified clean server startup without header size limit errors
+   - ✅ Maintained full PDF processing functionality with safer request patterns
+
+### Previous Session Accomplishments (August 18, 2025)
 
 1. **PDF Processing Console Spam Elimination** ✅
    - ✅ Implemented warning suppression system to eliminate PDF.js console noise

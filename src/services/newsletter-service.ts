@@ -128,6 +128,13 @@ class NewsletterService {
       // Process batch in parallel
       const batchPromises = batch.map(async (filename: string) => {
         const url = `${this.localBasePath}${filename}`;
+
+        // Check URL length to prevent 431 errors
+        if (url.length > 2000) {
+          logger.warn(`Skipping ${filename}: URL too long (${url.length} chars)`);
+          return false;
+        }
+
         try {
           const controller = new AbortController();
           setTimeout(() => controller.abort(), 2000); // 2 second timeout per file
@@ -143,8 +150,17 @@ class NewsletterService {
             logger.debug(`✓ Found: ${filename}`);
             return true;
           }
-        } catch {
-          // File doesn't exist or timeout, skip silently
+        } catch (error) {
+          // Handle 431 errors specifically
+          if (
+            error instanceof Error &&
+            (error.message.includes('431') ||
+              error.message.includes('Request Header Fields Too Large') ||
+              error.message.includes('header fields too large'))
+          ) {
+            logger.warn(`431 error for ${filename}: Header fields too large`);
+          }
+          // File doesn't exist or other error, skip silently
         }
         return false;
       });

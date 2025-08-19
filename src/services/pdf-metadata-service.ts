@@ -3,19 +3,8 @@
  * Generates thumbnails from PDF covers and extracts metadata from local PDFs
  */
 
-import { getDocument, type PDFDocumentProxy, GlobalWorkerOptions } from 'pdfjs-dist';
-
-// Configure PDF.js worker with correct base path for GitHub Pages
-const getWorkerPath = () => {
-  if (typeof window !== 'undefined') {
-    const isProduction = import.meta.env.PROD;
-    const basePath = isProduction ? '/clca-courier' : '';
-    return `${basePath}/pdf.worker.min.js`;
-  }
-  return '/pdf.worker.min.js';
-};
-
-GlobalWorkerOptions.workerSrc = getWorkerPath();
+import { type PDFDocumentProxy } from 'pdfjs-dist';
+import PDF_CONFIG from '../utils/pdf-config';
 
 // Reduce PDF.js console noise by overriding console methods during PDF processing
 const suppressPDFWarnings = () => {
@@ -151,8 +140,8 @@ class PDFMetadataService {
       warningController.suppress();
 
       try {
-        // Load PDF document
-        const pdf = await getDocument(pdfUrl).promise;
+        // Load PDF document with centralized safe configuration
+        const pdf = await PDF_CONFIG.createSafeLoadingTask(pdfUrl).promise;
 
         // Extract basic metadata
         const info = await pdf.getMetadata();
@@ -379,28 +368,40 @@ class PDFMetadataService {
   }
 
   /**
-   * Process multiple PDFs in batch
+   * Process multiple PDFs in batch with throttling to avoid 431 errors
    */
   async processPDFBatch(pdfs: Array<{ url: string; filename: string }>): Promise<PDFMetadata[]> {
-    console.log(`[PDFMetadataService] Processing batch of ${pdfs.length} PDFs`);
-
-    const results = await Promise.allSettled(
-      pdfs.map((pdf) => this.extractPDFMetadata(pdf.url, pdf.filename)),
-    );
+    console.log(`[PDFMetadataService] Processing batch of ${pdfs.length} PDFs with throttling`);
 
     const metadata: PDFMetadata[] = [];
     const failedFiles: string[] = [];
 
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && result.value) {
-        metadata.push(result.value);
-      } else {
-        const pdf = pdfs[index];
-        if (pdf?.filename && !this.blacklistedFiles.has(pdf.filename)) {
-          failedFiles.push(pdf.filename);
+    // Process in smaller batches to avoid overwhelming the server with concurrent requests
+    const batchSize = 3; // Reduced from processing all at once
+    for (let i = 0; i < pdfs.length; i += batchSize) {
+      const batch = pdfs.slice(i, i + batchSize);
+
+      const results = await Promise.allSettled(
+        batch.map((pdf) => this.extractPDFMetadata(pdf.url, pdf.filename)),
+      );
+
+      results.forEach((result, batchIndex) => {
+        const actualIndex = i + batchIndex;
+        if (result.status === 'fulfilled' && result.value) {
+          metadata.push(result.value);
+        } else {
+          const pdf = pdfs[actualIndex];
+          if (pdf?.filename && !this.blacklistedFiles.has(pdf.filename)) {
+            failedFiles.push(pdf.filename);
+          }
         }
+      });
+
+      // Add a small delay between batches to prevent server overload
+      if (i + batchSize < pdfs.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-    });
+    }
 
     // Only log failures for non-blacklisted files - but be much quieter
     if (failedFiles.length > 0 && failedFiles.length < 20) {
@@ -635,6 +636,19 @@ class PDFMetadataService {
       errorObj.message?.includes('Invalid PDF structure');
     const isWorkerError =
       errorObj.message?.includes('worker') || errorObj.message?.includes('getHexString');
+    const is431Error =
+      errorObj.message?.includes('431') ||
+      errorObj.message?.includes('Request Header Fields Too Large') ||
+      errorObj.message?.includes('header fields too large');
+
+    // For 431 errors, immediately blacklist and don't retry
+    if (is431Error) {
+      console.warn(
+        `[PDFMetadataService] 431 error for ${filename}: Header fields too large. Adding to blacklist.`,
+      );
+      this.addToBlacklist(filename);
+      return this.createFallbackMetadata(filename);
+    }
 
     // Log only the first occurrence or critical errors
     if (retryCount === 1 || (!isInvalidPDF && !isWorkerError)) {

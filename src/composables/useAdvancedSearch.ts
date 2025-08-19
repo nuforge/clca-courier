@@ -1,20 +1,8 @@
 import { ref, computed, watch, readonly } from 'vue';
-import * as pdfjsLib from 'pdfjs-dist';
 import type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 import { pdfMetadataService } from '../services/pdf-metadata-service';
-
-// Configure PDF.js worker with correct base path for GitHub Pages
-const getWorkerPath = () => {
-  if (typeof window !== 'undefined') {
-    const isProduction = import.meta.env.PROD;
-    const basePath = isProduction ? '/clca-courier' : '';
-    return `${basePath}/pdf.worker.min.js`;
-  }
-  return '/pdf.worker.min.js';
-};
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = getWorkerPath();
+import PDF_CONFIG from '../utils/pdf-config';
 
 export interface SearchFilters {
   query: string;
@@ -242,11 +230,9 @@ export function useAdvancedSearch() {
 
       // Fallback to direct PDF text extraction
       console.log(`[AdvancedSearch] Extracting text directly from PDF: ${filename || pdfUrl}`);
-      const loadingTask = pdfjsLib.getDocument({
-        url: pdfUrl,
-        cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
-        cMapPacked: true,
-      });
+
+      // Use centralized PDF configuration to prevent 431 errors
+      const loadingTask = PDF_CONFIG.createSafeLoadingTask(pdfUrl);
 
       const pdf = await loadingTask.promise;
       let fullText = '';
@@ -269,6 +255,19 @@ export function useAdvancedSearch() {
 
       return fullText.trim();
     } catch (error) {
+      // Handle specific 431 error (Request Header Fields Too Large)
+      if (
+        error instanceof Error &&
+        (error.message.includes('431') ||
+          error.message.includes('Request Header Fields Too Large') ||
+          error.message.includes('header fields too large'))
+      ) {
+        console.warn(
+          `[AdvancedSearch] 431 error for ${filename || pdfUrl}: Header fields too large. Skipping text extraction.`,
+        );
+        return ''; // Return empty string instead of throwing
+      }
+
       console.error('Error extracting PDF text:', error);
       throw error;
     }
