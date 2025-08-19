@@ -2,6 +2,7 @@ import { ref, computed, watch, readonly } from 'vue';
 import * as pdfjsLib from 'pdfjs-dist';
 import type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
+import { pdfMetadataService } from '../services/pdf-metadata-service';
 
 // Configure PDF.js worker with correct base path for GitHub Pages
 const getWorkerPath = () => {
@@ -226,10 +227,21 @@ export function useAdvancedSearch() {
   }
 
   /**
-   * Extract text content from PDF
+   * Extract text content from PDF (using cached content when available)
    */
-  async function extractPdfText(pdfUrl: string): Promise<string> {
+  async function extractPdfText(pdfUrl: string, filename?: string): Promise<string> {
     try {
+      // First, try to get cached text content from PDF metadata service
+      if (filename) {
+        const cachedMetadata = pdfMetadataService.getCachedMetadata(filename);
+        if (cachedMetadata?.searchableText) {
+          console.log(`[AdvancedSearch] Using cached text content for ${filename}`);
+          return cachedMetadata.searchableText;
+        }
+      }
+
+      // Fallback to direct PDF text extraction
+      console.log(`[AdvancedSearch] Extracting text directly from PDF: ${filename || pdfUrl}`);
       const loadingTask = pdfjsLib.getDocument({
         url: pdfUrl,
         cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
@@ -349,7 +361,7 @@ export function useAdvancedSearch() {
       }
 
       // Try to extract text from PDF
-      const pdfText = await extractPdfText(pdfUrl);
+      const pdfText = await extractPdfText(pdfUrl, issue.filename);
       searchStats.value.indexedPdfs++;
 
       if (pdfText.toLowerCase().includes(query.toLowerCase())) {

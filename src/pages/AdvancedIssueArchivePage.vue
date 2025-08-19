@@ -46,14 +46,32 @@
           <!-- Search and Filter Interface -->
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
+              <!-- Search Mode Toggle -->
+              <div class="row items-center q-mb-md">
+                <div class="text-subtitle2 text-weight-medium q-mr-md">Search Mode:</div>
+                <q-btn-toggle v-model="useAdvancedSearchMode" :options="[
+                  { label: 'Simple', value: false, icon: 'search' },
+                  { label: 'Advanced (PDF Content)', value: true, icon: 'find_in_page' }
+                ]" color="primary" toggle-color="secondary" class="q-mr-md" />
+                <q-space />
+                <div v-if="useAdvancedSearchMode && searchStats.indexedPdfs > 0" class="text-caption text-grey-6">
+                  {{ searchStats.indexedPdfs }} PDFs indexed
+                </div>
+                <div v-if="isSearching" class="text-caption text-primary">
+                  <q-spinner size="14px" class="q-mr-xs" />
+                  Searching...
+                </div>
+              </div>
+
               <!-- Main Search Bar -->
               <div class="row q-gutter-md q-mb-md">
                 <div class="col-12 col-md-8">
-                  <q-input v-model="searchQuery" label="Search newsletters by title, content, or tags..." outlined dense
-                    :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }" clearable
-                    @clear="searchQuery = ''">
+                  <q-input v-model="searchQuery"
+                    :label="useAdvancedSearchMode ? 'Search inside PDFs by title, content, or tags...' : 'Search newsletters by title, filename, or tags...'"
+                    outlined dense :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }"
+                    clearable :loading="isSearching" @clear="searchQuery = ''">
                     <template v-slot:prepend>
-                      <q-icon name="search" />
+                      <q-icon :name="useAdvancedSearchMode ? 'find_in_page' : 'search'" />
                     </template>
                     <template v-slot:append>
                       <q-btn flat dense round icon="tune" @click="showFilters = !showFilters" color="primary">
@@ -61,6 +79,9 @@
                       </q-btn>
                     </template>
                   </q-input>
+                  <div v-if="useAdvancedSearchMode" class="text-caption text-grey-6 q-mt-xs">
+                    Advanced search reads inside PDF content and may take a moment for first-time searches.
+                  </div>
                 </div>
                 <div class="col-12 col-md-4">
                   <q-select v-model="quickSort" :options="quickSortOptions" label="Quick Sort" outlined dense emit-value
@@ -251,20 +272,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { useHybridNewsletters } from '../composables/useHybridNewsletters'
+import { useAdvancedSearch } from '../composables/useAdvancedSearch'
 import AdvancedNewsletterCard from '../components/AdvancedNewsletterCard.vue'
 import type { NewsletterMetadata } from '../services/newsletter-service'
+import type { IssueWithGoogleDrive } from '../types/google-drive-content'
 
 const siteStore = useSiteStore()
 const hybridNewsletters = useHybridNewsletters()
+
+// Initialize advanced search
+const {
+  isSearching,
+  searchResults,
+  searchStats,
+  performSearch,
+  clearSearch,
+  updateFilters
+} = useAdvancedSearch()
 
 // UI state
 const showFilters = ref(false)
 const groupByYear = ref(false)
 const searchQuery = ref('')
 const quickSort = ref('date-desc')
+const useAdvancedSearchMode = ref(true) // Enable advanced search by default
 
 // Filter object
 const filters = reactive({
@@ -346,11 +380,112 @@ const hasActiveFilters = computed(() => {
 const hasLocalSource = (issue: NewsletterMetadata) => issue.localFile && issue.localFile.length > 0
 const hasDriveSource = (issue: NewsletterMetadata) => issue.driveId && issue.driveId.length > 0
 
-// Main filtering logic
+// Convert newsletter metadata to format expected by advanced search
+const convertNewslettersToIssues = (newsletters: NewsletterMetadata[]): IssueWithGoogleDrive[] => {
+  return newsletters.map((newsletter, index) => {
+    const issue: IssueWithGoogleDrive = {
+      id: index + 1,
+      title: newsletter.title,
+      date: newsletter.date,
+      pages: newsletter.pages || 0,
+      filename: newsletter.filename,
+      status: hasLocalSource(newsletter) && hasDriveSource(newsletter) ? 'hybrid' :
+        hasLocalSource(newsletter) ? 'local' : 'google-drive',
+      syncStatus: 'synced',
+    }
+
+    // Add optional fields only if they exist
+    const url = newsletter.url || newsletter.localFile || newsletter.driveUrl
+    if (url) {
+      issue.url = url
+    }
+    if (newsletter.topics) {
+      issue.description = newsletter.topics.join(', ')
+    }
+    if (newsletter.fileSize) {
+      issue.fileSize = newsletter.fileSize
+    }
+    if (newsletter.thumbnailPath) {
+      issue.thumbnailUrl = newsletter.thumbnailPath
+    }
+    if (newsletter.tags) {
+      issue.tags = [...newsletter.tags] as readonly string[]
+    }
+    if (newsletter.driveId) {
+      issue.googleDriveFileId = newsletter.driveId
+    }
+    if (newsletter.contentType) {
+      issue.category = newsletter.contentType
+    }
+    if (newsletter.localFile) {
+      issue.localUrl = newsletter.localFile
+    }
+    if (newsletter.driveUrl) {
+      issue.googleDriveUrl = newsletter.driveUrl
+    }
+
+    return issue
+  })
+}
+
+// Debounced search function
+let searchTimeout: NodeJS.Timeout
+const debouncedSearch = (query: string) => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    if (useAdvancedSearchMode.value && query.trim()) {
+      // Update search filters
+      updateFilters({ query: query.trim() })
+
+      // Convert newsletters and perform search
+      const issuesForSearch = convertNewslettersToIssues(allIssues.value)
+      void performSearch(issuesForSearch, query)
+    } else if (!query.trim()) {
+      // Clear search when query is empty
+      clearSearch()
+    }
+  }, 300)
+}// Watch for search query changes and trigger advanced search
+watch(searchQuery, (newQuery) => {
+  debouncedSearch(newQuery)
+})
+
+// Main filtering logic - use advanced search results when available, fallback to simple filtering
 const filteredIssues = computed(() => {
+  // If we're using advanced search and have results, convert them back to newsletters
+  if (useAdvancedSearchMode.value && searchResults.value.length > 0) {
+    return searchResults.value.map((result) => {
+      // Find the original newsletter from the search result
+      const originalNewsletter = allIssues.value.find(n => n.filename === result.filename)
+      return originalNewsletter || {
+        id: result.id,
+        title: result.title,
+        date: result.date,
+        pages: result.pages,
+        filename: result.filename,
+        url: result.url || '',
+        contentType: result.category as 'newsletter' | 'special' | 'annual' | undefined,
+        source: result.status,
+        localFile: result.localUrl,
+        driveUrl: result.googleDriveUrl,
+        driveId: result.googleDriveFileId,
+        thumbnailPath: result.thumbnailUrl,
+        fileSize: result.fileSize,
+        tags: result.tags ? [...result.tags] : [],
+        topics: result.description?.split(', ').filter(Boolean) || [],
+      } as NewsletterMetadata
+    })
+  }
+
+  // If no search query and in advanced mode, show all issues
+  if (useAdvancedSearchMode.value && !searchQuery.value.trim()) {
+    return allIssues.value
+  }
+
+  // Fallback to simple filtering for non-advanced mode
   let issues = [...allIssues.value]
 
-  // Text search
+  // Simple text search
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
     issues = issues.filter((issue: NewsletterMetadata) =>
@@ -361,7 +496,7 @@ const filteredIssues = computed(() => {
     )
   }
 
-  // Year filter
+  // Apply other filters (year, availability, etc.)
   if (filters.year) {
     issues = issues.filter((issue: NewsletterMetadata) => {
       const date = new Date(issue.date)
@@ -370,7 +505,6 @@ const filteredIssues = computed(() => {
     })
   }
 
-  // Availability filter
   if (filters.availability) {
     issues = issues.filter((issue: NewsletterMetadata) => {
       const hasLocal = hasLocalSource(issue)
@@ -378,9 +512,9 @@ const filteredIssues = computed(() => {
 
       switch (filters.availability) {
         case 'viewable':
-          return hasLocal // Can view online if has local source
+          return hasLocal
         case 'downloadable':
-          return hasLocal || hasDrive // Can download if has any source
+          return hasLocal || hasDrive
         case 'local-only':
           return hasLocal && !hasDrive
         case 'cloud-only':
@@ -393,7 +527,6 @@ const filteredIssues = computed(() => {
     })
   }
 
-  // Page count filter
   if (filters.pageCount) {
     issues = issues.filter((issue: NewsletterMetadata) => {
       const pageCount = issue.pages || 0
@@ -412,7 +545,6 @@ const filteredIssues = computed(() => {
     })
   }
 
-  // Actions filter
   if (filters.actions) {
     issues = issues.filter((issue: NewsletterMetadata) => {
       switch (filters.actions) {
@@ -421,7 +553,7 @@ const filteredIssues = computed(() => {
         case 'download':
           return hasLocalSource(issue) || hasDriveSource(issue)
         case 'search':
-          return hasLocalSource(issue) // Only local files can be searched within
+          return hasLocalSource(issue)
         case 'thumbnail':
           return !!(issue.thumbnailPath)
         default:

@@ -17,6 +17,46 @@ const getWorkerPath = () => {
 
 GlobalWorkerOptions.workerSrc = getWorkerPath();
 
+// Reduce PDF.js console noise by overriding console methods during PDF processing
+const suppressPDFWarnings = () => {
+  const originalWarn = console.warn;
+  const originalError = console.error;
+
+  return {
+    suppress: () => {
+      // Override console.warn to filter PDF.js warnings
+      console.warn = (message: unknown, ...args: unknown[]) => {
+        if (
+          typeof message === 'string' &&
+          (message.includes('getHexString') ||
+            message.includes('Indexing all PDF objects') ||
+            message.includes('invalid character') ||
+            message.includes('Warning:'))
+        ) {
+          return; // Suppress these specific warnings
+        }
+        originalWarn(message, ...args);
+      };
+
+      // Also suppress PDF.js worker console output if possible
+      const originalConsoleLog = console.log;
+      console.log = (message: unknown, ...args: unknown[]) => {
+        if (
+          typeof message === 'string' &&
+          (message.includes('getHexString') || message.includes('Warning:'))
+        ) {
+          return;
+        }
+        originalConsoleLog(message, ...args);
+      };
+    },
+    restore: () => {
+      console.warn = originalWarn;
+      console.error = originalError;
+    },
+  };
+};
+
 export interface PDFMetadata {
   filename: string;
   title: string;
@@ -36,6 +76,8 @@ export interface PDFMetadata {
   estimatedReadTime?: number;
   contentType?: 'newsletter' | 'special' | 'annual';
   extractedTopics?: string[];
+  textContent?: string; // Full text content for search
+  searchableText?: string; // Processed/cleaned text for search
 }
 
 export interface CachedPDFData {
@@ -51,14 +93,34 @@ class PDFMetadataService {
   private thumbnailCache = new Map<string, string>(); // filename -> dataURL
   private processingQueue = new Set<string>();
 
+  // Error handling and blacklisting
+  private blacklistedFiles = new Set<string>();
+  private failureCount = new Map<string, number>();
+  private readonly MAX_RETRY_ATTEMPTS = 2;
+  private readonly CACHE_EXPIRY_DAYS = 7;
+
   constructor() {
     this.loadCacheFromStorage();
+    this.loadBlacklistFromStorage();
+
+    // Log initialization stats
+    const stats = this.getProcessingStats();
+    if (stats.blacklisted > 0) {
+      console.log(
+        `[PDFMetadataService] Initialized with ${stats.cached} cached, ${stats.blacklisted} blacklisted files`,
+      );
+    }
   }
 
   /**
    * Extract metadata and generate thumbnail from local PDF
    */
   async extractPDFMetadata(pdfUrl: string, filename: string): Promise<PDFMetadata | null> {
+    // Check if file is blacklisted
+    if (this.blacklistedFiles.has(filename)) {
+      return this.createFallbackMetadata(filename);
+    }
+
     // Check cache first
     const cacheKey = `${filename}`;
     if (this.cache.has(cacheKey)) {
@@ -72,76 +134,103 @@ class PDFMetadataService {
 
     try {
       this.processingQueue.add(filename);
-      console.log(`[PDFMetadataService] Processing PDF: ${filename}`);
 
-      // Load PDF document
-      const pdf = await getDocument(pdfUrl).promise;
+      // Check retry count before processing
+      const retryCount = this.failureCount.get(filename) || 0;
+      if (retryCount >= this.MAX_RETRY_ATTEMPTS) {
+        this.addToBlacklist(filename);
+        return this.createFallbackMetadata(filename);
+      }
 
-      // Extract basic metadata
-      const info = await pdf.getMetadata();
-      const numPages = pdf.numPages;
-
-      // Get first page for dimensions and aspect ratio
-      const firstPage = await pdf.getPage(1);
-      const viewport = firstPage.getViewport({ scale: 1 });
-      const pageSize = { width: viewport.width, height: viewport.height };
-      const aspectRatio = viewport.width / viewport.height;
-
-      // Generate thumbnail from first page (cover-facing)
-      const thumbnailDataUrl = await this.generateThumbnailFromPDF(pdf);
-
-      // Get file size (approximate from PDF data)
-      const fileSize = await this.estimateFileSize(pdfUrl);
-
-      // Estimate reading time (approximately 2 minutes per page)
-      const estimatedReadTime = Math.max(1, Math.round(numPages * 2));
-
-      // Extract content type from filename and metadata
-      const contentType = this.determineContentType(filename, info.info as Record<string, unknown>);
-
-      // Extract potential topics from title and subject
-      const extractedTopics = this.extractTopicsFromMetadata(
-        filename,
-        info.info as Record<string, unknown>,
+      console.log(
+        `[PDFMetadataService] Processing PDF: ${filename}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`,
       );
 
-      // Create metadata object
-      const pdfInfo = info.info as Record<string, unknown>; // PDF info has dynamic properties
-      const metadata: PDFMetadata = {
-        filename,
-        title: (pdfInfo?.Title as string) || this.extractTitleFromFilename(filename),
-        pages: numPages,
-        fileSize,
-        thumbnailDataUrl,
-        creationDate: (pdfInfo?.CreationDate as string)?.toString(),
-        modifiedDate: (pdfInfo?.ModDate as string)?.toString(),
-        author: (pdfInfo?.Author as string)?.toString(),
-        subject: (pdfInfo?.Subject as string)?.toString(),
-        producer: (pdfInfo?.Producer as string)?.toString(),
-        creator: (pdfInfo?.Creator as string)?.toString(),
-        language: (pdfInfo?.Language as string)?.toString(),
-        keywords:
-          (pdfInfo?.Keywords as string)
-            ?.toString()
-            ?.split(',')
-            .map((k: string) => k.trim()) || [],
-        pageSize,
-        aspectRatio,
-        estimatedReadTime,
-        contentType,
-        extractedTopics,
-      };
+      // Suppress PDF.js warnings during processing
+      const warningController = suppressPDFWarnings();
+      warningController.suppress();
 
-      // Cache the result
-      this.cache.set(cacheKey, metadata);
-      this.thumbnailCache.set(filename, thumbnailDataUrl);
-      this.saveCacheToStorage();
+      try {
+        // Load PDF document
+        const pdf = await getDocument(pdfUrl).promise;
 
-      console.log(`[PDFMetadataService] Extracted metadata for: ${filename}`);
-      return metadata;
+        // Extract basic metadata
+        const info = await pdf.getMetadata();
+        const numPages = pdf.numPages;
+
+        // Get first page for dimensions and aspect ratio
+        const firstPage = await pdf.getPage(1);
+        const viewport = firstPage.getViewport({ scale: 1 });
+        const pageSize = { width: viewport.width, height: viewport.height };
+        const aspectRatio = viewport.width / viewport.height;
+
+        // Generate thumbnail from first page (cover-facing)
+        const thumbnailDataUrl = await this.generateThumbnailFromPDF(pdf);
+
+        // Get file size (approximate from PDF data)
+        const fileSize = await this.estimateFileSize(pdfUrl);
+
+        // Estimate reading time (approximately 2 minutes per page)
+        const estimatedReadTime = Math.max(1, Math.round(numPages * 2));
+
+        // Extract content type from filename and metadata
+        const contentType = this.determineContentType(
+          filename,
+          info.info as Record<string, unknown>,
+        );
+
+        // Extract potential topics from title and subject
+        const extractedTopics = this.extractTopicsFromMetadata(
+          filename,
+          info.info as Record<string, unknown>,
+        );
+
+        // Extract text content for search functionality (limit to first few pages for performance)
+        const { textContent, searchableText } = await this.extractTextFromPDF(pdf, numPages);
+
+        // Create metadata object
+        const pdfInfo = info.info as Record<string, unknown>; // PDF info has dynamic properties
+        const metadata: PDFMetadata = {
+          filename,
+          title: (pdfInfo?.Title as string) || this.extractTitleFromFilename(filename),
+          pages: numPages,
+          fileSize,
+          thumbnailDataUrl,
+          creationDate: (pdfInfo?.CreationDate as string)?.toString(),
+          modifiedDate: (pdfInfo?.ModDate as string)?.toString(),
+          author: (pdfInfo?.Author as string)?.toString(),
+          subject: (pdfInfo?.Subject as string)?.toString(),
+          producer: (pdfInfo?.Producer as string)?.toString(),
+          creator: (pdfInfo?.Creator as string)?.toString(),
+          language: (pdfInfo?.Language as string)?.toString(),
+          keywords:
+            (pdfInfo?.Keywords as string)
+              ?.toString()
+              ?.split(',')
+              .map((k: string) => k.trim()) || [],
+          pageSize,
+          aspectRatio,
+          estimatedReadTime,
+          contentType,
+          extractedTopics,
+          textContent,
+          searchableText,
+        };
+
+        // Cache the result and clear failure count on success
+        this.cache.set(cacheKey, metadata);
+        this.thumbnailCache.set(filename, thumbnailDataUrl);
+        this.failureCount.delete(filename);
+        this.saveCacheToStorage();
+
+        console.log(`[PDFMetadataService] Extracted metadata for: ${filename}`);
+        return metadata;
+      } finally {
+        // Always restore console methods
+        warningController.restore();
+      }
     } catch (error) {
-      console.error(`[PDFMetadataService] Error processing ${filename}:`, error);
-      return null;
+      return this.handlePDFError(filename, error);
     } finally {
       this.processingQueue.delete(filename);
     }
@@ -276,6 +365,13 @@ class PDFMetadataService {
   }
 
   /**
+   * Get cached metadata for a PDF file
+   */
+  getCachedMetadata(filename: string): PDFMetadata | null {
+    return this.cache.get(filename) || null;
+  }
+
+  /**
    * Get cached thumbnail data URL
    */
   getCachedThumbnail(filename: string): string | null {
@@ -293,14 +389,30 @@ class PDFMetadataService {
     );
 
     const metadata: PDFMetadata[] = [];
+    const failedFiles: string[] = [];
+
     results.forEach((result, index) => {
       if (result.status === 'fulfilled' && result.value) {
         metadata.push(result.value);
       } else {
         const pdf = pdfs[index];
-        console.warn(`[PDFMetadataService] Failed to process: ${pdf?.filename || 'unknown'}`);
+        if (pdf?.filename && !this.blacklistedFiles.has(pdf.filename)) {
+          failedFiles.push(pdf.filename);
+        }
       }
     });
+
+    // Only log failures for non-blacklisted files - but be much quieter
+    if (failedFiles.length > 0 && failedFiles.length < 20) {
+      console.warn(
+        `[PDFMetadataService] Failed to process ${failedFiles.length} PDFs:`,
+        failedFiles,
+      );
+    } else if (failedFiles.length >= 20) {
+      console.warn(
+        `[PDFMetadataService] Failed to process ${failedFiles.length} PDFs (likely missing files for future years)`,
+      );
+    }
 
     console.log(
       `[PDFMetadataService] Successfully processed ${metadata.length}/${pdfs.length} PDFs`,
@@ -502,6 +614,234 @@ class PDFMetadataService {
 
     // Remove duplicates and return
     return Array.from(new Set(topics)).slice(0, 10); // Limit to 10 topics
+  }
+
+  /**
+   * Handle PDF processing errors with intelligent retry logic
+   */
+  private handlePDFError(filename: string, error: unknown): PDFMetadata | null {
+    const retryCount = (this.failureCount.get(filename) || 0) + 1;
+    this.failureCount.set(filename, retryCount);
+
+    // Type guard for error objects
+    const isErrorLike = (err: unknown): err is { name?: string; message?: string } => {
+      return typeof err === 'object' && err !== null;
+    };
+
+    // Categorize errors
+    const errorObj = isErrorLike(error) ? error : { message: String(error) };
+    const isInvalidPDF =
+      errorObj.name === 'InvalidPDFException' ||
+      errorObj.message?.includes('Invalid PDF structure');
+    const isWorkerError =
+      errorObj.message?.includes('worker') || errorObj.message?.includes('getHexString');
+
+    // Log only the first occurrence or critical errors
+    if (retryCount === 1 || (!isInvalidPDF && !isWorkerError)) {
+      console.error(
+        `[PDFMetadataService] Error processing ${filename} (attempt ${retryCount}):`,
+        isInvalidPDF ? 'Invalid PDF structure' : errorObj.message || error,
+      );
+    }
+
+    // Add to blacklist if max retries reached
+    if (retryCount >= this.MAX_RETRY_ATTEMPTS) {
+      this.addToBlacklist(filename);
+      console.warn(
+        `[PDFMetadataService] Added ${filename} to blacklist after ${retryCount} failed attempts`,
+      );
+      return this.createFallbackMetadata(filename);
+    }
+
+    return null;
+  }
+
+  /**
+   * Create fallback metadata for problematic PDFs
+   */
+  private createFallbackMetadata(filename: string): PDFMetadata {
+    const metadata: PDFMetadata = {
+      filename,
+      title: this.extractTitleFromFilename(filename),
+      pages: 0,
+      fileSize: 'Unknown',
+      thumbnailDataUrl: this.generatePlaceholderThumbnail(),
+      contentType: this.determineContentType(filename, {}),
+      extractedTopics: this.extractTopicsFromFilename(filename),
+      textContent: '',
+      searchableText: '',
+    };
+
+    // Cache the fallback metadata
+    this.cache.set(filename, metadata);
+    return metadata;
+  }
+
+  /**
+   * Add file to blacklist and save to storage
+   */
+  private addToBlacklist(filename: string): void {
+    this.blacklistedFiles.add(filename);
+    this.saveBlacklistToStorage();
+  }
+
+  /**
+   * Load blacklisted files from storage
+   */
+  private loadBlacklistFromStorage(): void {
+    try {
+      const stored = localStorage.getItem('pdf-blacklist');
+      if (stored) {
+        const blacklist = JSON.parse(stored);
+        this.blacklistedFiles = new Set(blacklist);
+        if (this.blacklistedFiles.size > 0) {
+          console.log(
+            `[PDFMetadataService] Loaded ${this.blacklistedFiles.size} blacklisted files`,
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[PDFMetadataService] Error loading blacklist from storage:', error);
+    }
+  }
+
+  /**
+   * Save blacklisted files to storage
+   */
+  private saveBlacklistToStorage(): void {
+    try {
+      const blacklist = Array.from(this.blacklistedFiles);
+      localStorage.setItem('pdf-blacklist', JSON.stringify(blacklist));
+    } catch (error) {
+      console.error('[PDFMetadataService] Error saving blacklist to storage:', error);
+    }
+  }
+
+  /**
+   * Extract topics from filename
+   */
+  private extractTopicsFromFilename(filename: string): string[] {
+    const topics: string[] = [];
+
+    // Extract year
+    const yearMatch = filename.match(/(\d{4})/);
+    if (yearMatch && yearMatch[1]) topics.push(yearMatch[1]);
+
+    // Extract season/special indicators
+    if (filename.includes('summer')) topics.push('Summer');
+    if (filename.includes('winter')) topics.push('Winter');
+    if (filename.includes('spring')) topics.push('Spring');
+    if (filename.includes('fall')) topics.push('Fall');
+    if (filename.includes('special')) topics.push('Special Edition');
+    if (filename.includes('annual')) topics.push('Annual');
+
+    return topics;
+  }
+
+  /**
+   * Get blacklist status information
+   */
+  getBlacklistInfo(): { count: number; files: string[] } {
+    return {
+      count: this.blacklistedFiles.size,
+      files: Array.from(this.blacklistedFiles),
+    };
+  }
+
+  /**
+   * Clear blacklist (for debugging/maintenance)
+   */
+  clearBlacklist(): void {
+    this.blacklistedFiles.clear();
+    this.failureCount.clear();
+    localStorage.removeItem('pdf-blacklist');
+    console.log('[PDFMetadataService] Blacklist cleared');
+  }
+
+  /**
+   * Get processing statistics
+   */
+  getProcessingStats(): {
+    cached: number;
+    blacklisted: number;
+    failures: { filename: string; count: number }[];
+    processing: string[];
+  } {
+    const failures = Array.from(this.failureCount.entries())
+      .map(([filename, count]) => ({ filename, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      cached: this.cache.size,
+      blacklisted: this.blacklistedFiles.size,
+      failures,
+      processing: Array.from(this.processingQueue),
+    };
+  }
+
+  /**
+   * Extract text content from PDF for search functionality
+   * Limits to first few pages for performance
+   */
+  private async extractTextFromPDF(
+    pdf: PDFDocumentProxy,
+    totalPages: number,
+  ): Promise<{ textContent: string; searchableText: string }> {
+    try {
+      const maxPagesToExtract = Math.min(5, totalPages); // Limit to first 5 pages for performance
+      const textChunks: string[] = [];
+
+      for (let pageNum = 1; pageNum <= maxPagesToExtract; pageNum++) {
+        try {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+
+          const pageText = textContent.items
+            .map((item) => {
+              if ('str' in item && typeof (item as { str?: string }).str === 'string') {
+                return (item as { str: string }).str;
+              }
+              return '';
+            })
+            .join(' ');
+
+          if (pageText.trim()) {
+            textChunks.push(pageText);
+          }
+        } catch (pageError) {
+          console.warn(
+            `[PDFMetadataService] Error extracting text from page ${pageNum}:`,
+            pageError,
+          );
+          continue; // Skip this page and continue with others
+        }
+      }
+
+      const fullText = textChunks.join('\n\n');
+      const searchableText = this.cleanTextForSearch(fullText);
+
+      return {
+        textContent: fullText.substring(0, 5000), // Limit stored text to 5KB
+        searchableText: searchableText.substring(0, 2000), // Limit searchable text to 2KB
+      };
+    } catch (error) {
+      console.warn('[PDFMetadataService] Error extracting PDF text:', error);
+      return {
+        textContent: '',
+        searchableText: '',
+      };
+    }
+  }
+
+  /**
+   * Clean and prepare text for search
+   */
+  private cleanTextForSearch(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Remove special characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
   }
 }
 

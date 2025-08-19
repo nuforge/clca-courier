@@ -169,11 +169,14 @@ class NewsletterService {
   private generateComprehensiveFilenames(): string[] {
     const filenames: string[] = [];
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // getMonth() is 0-based
 
-    // Years where newsletters exist (2014-2025+)
-    for (let year = 2014; year <= currentYear + 1; year++) {
+    // Years where newsletters exist (2014-current year only)
+    for (let year = 2014; year <= currentYear; year++) {
+      const maxMonth = year === currentYear ? currentMonth : 12; // Don't check future months in current year
+
       // Monthly format: YYYY.MM-conashaugh-courier.pdf
-      for (let month = 1; month <= 12; month++) {
+      for (let month = 1; month <= maxMonth; month++) {
         const monthStr = month.toString().padStart(2, '0');
         filenames.push(`${year}.${monthStr}-conashaugh-courier.pdf`);
       }
