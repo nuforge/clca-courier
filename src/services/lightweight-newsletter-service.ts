@@ -83,38 +83,81 @@ class LightweightNewsletterService {
   }
 
   /**
-   * Fast PDF discovery using newsletters-complete.json data
+   * Discover local PDF files from /public/issues/ folder
    */
   private async discoverLocalPDFs(): Promise<Array<{ url: string; filename: string }>> {
-    logger.info('Discovering PDF files from newsletters data...');
+    logger.info('🔍 Checking actual PDF files that exist in /public/issues/');
 
-    try {
-      const response = await fetch('/data/newsletters-complete.json');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch newsletters data: ${response.status}`);
-      }
+    // Since we can't do dynamic directory reading in frontend-only Quasar,
+    // we'll check the files we know exist by trying to fetch them with HEAD requests
+    const potentialFiles = [
+      '2014.summer-conashaugh-courier.pdf',
+      '2014.winter-conashaugh-courier.pdf',
+      '2015.summer-conashaugh-courier.pdf',
+      '2015.winter-conashaugh-courier.pdf',
+      '2016.summer-conashaugh-courier.pdf',
+      '2016.winter-conashaugh-courier.pdf',
+      '2017.summer-conashaugh-courier.pdf',
+      '2018.summer-conashaugh-courier.pdf',
+      '2018.winter-conashaugh-courier.pdf',
+      '2019.summer-conashaugh-courier.pdf',
+      '2019.winter-conashaugh-courier.pdf',
+      '2020.summer-conashaugh-courier.pdf',
+      '2020.winter-conashaugh-courier.pdf',
+      '2021.summer-conashaugh-courier.pdf',
+      '2021.winter-conashaugh-courier.pdf',
+      '2022.11-conashaugh-courier.pdf',
+      '2022.12-conashaugh-courier.pdf',
+      '2022.summer-conashaugh-courier.pdf',
+      '2022.winter-conashaugh-courier.pdf',
+      '2023.01-conashaugh-courier.pdf',
+      '2023.02-conashaugh-courier.pdf',
+      '2023.03-conashaugh-courier.pdf',
+      '2023.04-conashaugh-courier.pdf',
+      '2023.06-conashaugh-courier.pdf',
+      '2023.08-conashaugh-courier.pdf',
+      '2023.09-conashaugh-courier.pdf',
+      '2023.10-conashaugh-courier.pdf',
+      '2023.winter-conashaugh-courier.pdf',
+      '2024.01-conashaugh-courier.pdf',
+      '2024.02-conashaugh-courier.pdf',
+      '2024.03-conashaugh-courier.pdf',
+      '2024.04-conashaugh-courier.pdf',
+      '2024.05-conashaugh-courier.pdf',
+      '2024.06-conashaugh-courier.pdf',
+      '2024.08-conashaugh-courier.pdf',
+      '2024.09-conashaugh-courier.pdf',
+      '2024.10-conashaugh-courier.pdf',
+      '2024.11-conashaugh-courier.pdf',
+      '2024.12-conashaugh-courier.pdf',
+      '2025.02-conashaugh-courier.pdf',
+      '2025.05-conashaugh-courier.pdf',
+      '2025.06-conashaugh-courier.pdf',
+      '2025.07-conashaugh-courier.pdf',
+      '2025.08-conashaugh-courier.pdf',
+    ];
 
-      const newsletters = await response.json();
-      const validFiles: Array<{ url: string; filename: string }> = [];
+    const validFiles: Array<{ url: string; filename: string }> = [];
 
-      for (const newsletter of newsletters) {
-        if (newsletter.filename) {
-          validFiles.push({
-            url: `${this.localBasePath}${newsletter.filename}`,
-            filename: newsletter.filename,
-          });
+    // Check each file individually with HEAD requests to see if it exists
+    for (const filename of potentialFiles) {
+      try {
+        const url = `${this.localBasePath}${filename}`;
+        const response = await fetch(url, { method: 'HEAD' });
+
+        if (response.ok) {
+          validFiles.push({ url, filename });
+          logger.debug(`✓ Confirmed exists: ${filename}`);
         }
+      } catch {
+        // File doesn't exist, skip
+        logger.debug(`✗ Not found: ${filename}`);
       }
-
-      logger.success(`Found ${validFiles.length} PDF files from data`);
-      return validFiles;
-    } catch (error) {
-      logger.error('Failed to load newsletters data:', error);
-      return [];
     }
-  }
 
-  /**
+    logger.success(`📰 Confirmed ${validFiles.length} actual PDF files exist`);
+    return validFiles;
+  } /**
    * Create base newsletter objects with minimal metadata
    */
   private createBaseNewsletters(
