@@ -3,6 +3,5 @@
 </template>
 
 <script setup lang="ts">
-// Import debug utilities for development
-import './utils/debug-pdf-service';
+// App entry point - minimal setup
 </script>

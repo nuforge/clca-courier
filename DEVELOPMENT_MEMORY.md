@@ -1,32 +1,38 @@
 # CLCA Courier - Development Memory & Notes
 
 **Created:** August 16, 2025  
-**Updated:** August 19, 2025  
+**Updated:** August 20, 2025  
 **Purpose:** Track progress, failed attempts, user instructions, and important decisions
 
 ---
 
 ## 🎯 LATEST MILESTONE ACHIEVED ✅
 
-**LIGHTWEIGHT PDF ARCHITECTURE IMPLEMENTATION & INTERFACE MIGRATION COMPLETE!**
-**CRITICAL FIX: REMOVED TEST DATA VIOLATION - REAL FILE DISCOVERY RESTORED**
+**CRITICAL HARDCODED DATA VIOLATION ELIMINATED & ARCHITECTURE CONSOLIDATION**
+**MAJOR CLEANUP: ORPHANED FILES REMOVED - MANIFEST-BASED DISCOVERY IMPLEMENTED**
 
 ### What Was Accomplished (Current Session - August 20, 2025)
 
-1. **CRITICAL TEST DATA VIOLATION FIXED** ✅
-   - ✅ **VIOLATION IDENTIFIED**: Lightweight service was loading from `newsletters-complete.json` (TEST DATA)
-   - ✅ **CORRECTED**: Restored REAL file discovery using HTTP HEAD requests to `/public/issues/`
-   - ✅ **NO MORE TEST DATA**: Service now discovers actual PDF files dynamically
-   - ✅ **FILE VALIDATION**: Uses HTTP HEAD requests to verify each PDF exists before including
-   - ✅ **PERFORMANCE MAINTAINED**: Batch processing with timeouts for responsive discovery
-   - ✅ **ERROR HANDLING**: Clean ESLint compliance with proper unused variable handling
+1. **CRITICAL HARDCODED DATA VIOLATION ELIMINATED** ✅
+   - 🚨 **VIOLATION DISCOVERED**: Service contained 42+ hardcoded PDF filenames in arrays
+   - ✅ **VIOLATION FIXED**: Completely removed all hardcoded filename generation code
+   - ✅ **REPLACED WITH**: Manifest-based discovery using actual file list
+   - ✅ **MANIFEST SYSTEM**: Created build-time script to generate `pdf-manifest.json` from real files
+   - ✅ **RULE COMPLIANCE**: Now respects "NO HARDCODED DATA LISTS" rule completely
 
-2. **CODE QUALITY IMPROVEMENTS** ✅
-   - ✅ **Boot File Created**: Added `pdf-directory.ts` boot file for future API endpoint development
-   - ✅ **ESLint Compliance**: Fixed all TypeScript compilation errors and unused variable warnings
-   - ✅ **Interface Consistency**: Maintained LightweightNewsletter interface across all components
+2. **MAJOR ORPHANED FILE CLEANUP** ✅
+   - ✅ **REMOVED**: `IssueArchivePage.vue` and `HybridIssueArchivePage.vue` (consolidated)
+   - ✅ **REMOVED**: `PDFTestPage.vue`, `GoogleDriveDemoPage.vue`, `PdfDiagnosticsPage.vue` (test files)
+   - ✅ **REMOVED**: `debug-pdf-service.ts` and import from App.vue
+   - ✅ **IMPACT**: Eliminated 6 orphaned files, reduced maintenance burden
 
-### What Was Accomplished (Previous Session - August 19, 2025)
+3. **SERVICE ARCHITECTURE ANALYSIS** ✅
+   - ✅ **DOCUMENTED**: Current service dependencies and overlaps
+   - ✅ **IDENTIFIED**: Interface fragmentation issues
+   - ✅ **CREATED**: `UnifiedNewsletter` interface for future consolidation
+   - ✅ **BUILD SUCCESS**: Project builds with zero TypeScript/ESLint errors
+
+### Previous Session Notes (August 19, 2025)
 
 1. **Complete TypeScript Interface Migration** ✅
    - ✅ Migrated all page components from `NewsletterMetadata` to `LightweightNewsletter` interface
