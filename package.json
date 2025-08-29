@@ -20,6 +20,7 @@
     "@quasar/extras": "^1.16.4",
     "@types/gapi": "^0.0.47",
     "@types/gapi.auth2": "^0.0.61",
+    "@xmldom/xmldom": "^0.8.11",
     "axios": "^1.2.1",
     "google-auth-library": "^10.2.1",
     "googleapis": "^156.0.0",

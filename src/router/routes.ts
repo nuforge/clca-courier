@@ -23,6 +23,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/accessibility', component: () => import('pages/AccessibilityPage.vue') },
       { path: '/map', component: () => import('pages/MapRefactoredPage.vue') }, // Use refactored version as main map
       { path: '/map-refactored', component: () => import('pages/MapRefactoredPage.vue') },
+      { path: '/property-map', component: () => import('pages/PropertyMapPage.vue') }, // New property lots map
       // Demo and test routes - commented out for production cleanup but preserved for development
       // { path: '/demo/google-drive', component: () => import('pages/GoogleDriveDemoPage.vue') },
       // { path: '/test/pdf-metadata', component: () => import('pages/PDFTestPage.vue') },

@@ -23,6 +23,11 @@ export const useNavigation = () => {
       link: '/map',
     },
     {
+      title: 'Property Map',
+      icon: 'mdi-map-marker-multiple',
+      link: '/property-map',
+    },
+    {
       title: 'Contribute',
       icon: 'mdi-pencil',
       link: '/contribute',
