@@ -865,6 +865,12 @@ class AdvancedPdfTextExtractionService {
             }
           }
         }
+
+        if (imageIndex > 0) {
+          console.log(
+            `[PDF Image Extraction] Fallback method extracted ${imageIndex} image objects from page ${pageNum}`,
+          );
+        }
       }
     } catch (error) {
       console.warn(`Error extracting embedded images from page ${pageNum}:`, error);
