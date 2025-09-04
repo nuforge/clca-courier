@@ -291,7 +291,7 @@
                           <div>Format: {{ image.format.toUpperCase() }}</div>
                           <div>Data Size: {{ (image.size / 1024).toFixed(1) }} KB</div>
                           <div v-if="image.description" class="q-mt-xs">{{ image.description
-                          }}</div>
+                            }}</div>
                         </div>
                         <q-btn flat size="sm" icon="download" label="Download"
                           @click="downloadImage(image, pageIndex, imageIndex)" class="q-mt-sm" />
@@ -605,7 +605,46 @@ async function processFiles(mode: 'text' | 'images' | 'both') {
 function updateOrAddPdfData(newData: ExtractedPdfData) {
   const existingIndex = extractedData.value.findIndex(item => item.filename === newData.filename);
   if (existingIndex >= 0) {
-    extractedData.value[existingIndex] = newData;
+    // Merge data additively instead of replacing
+    const existing = extractedData.value[existingIndex];
+    if (existing) {
+      extractedData.value[existingIndex] = {
+        ...existing,
+        ...newData,
+        // Merge text content if both exist
+        textContent: newData.textContent || existing.textContent,
+        wordCount: Math.max(newData.wordCount, existing.wordCount),
+        characterCount: Math.max(newData.characterCount, existing.characterCount),
+        // Merge pages data additively
+        pages: newData.pages.map((newPage, index) => {
+          const existingPage = existing.pages[index];
+          if (existingPage) {
+            return {
+              ...existingPage,
+              ...newPage,
+              // Keep text content if either exists
+              content: newPage.content || existingPage.content,
+              wordCount: Math.max(newPage.wordCount, existingPage.wordCount),
+              // Combine images from both extractions
+              hasImages: newPage.hasImages || existingPage.hasImages,
+              extractedImages: [
+                ...existingPage.extractedImages,
+                ...newPage.extractedImages.filter(newImg =>
+                  !existingPage.extractedImages.some(existingImg =>
+                    existingImg.pageNumber === newImg.pageNumber &&
+                    existingImg.format === newImg.format &&
+                    existingImg.thumbnail === newImg.thumbnail
+                  )
+                )
+              ]
+            };
+          }
+          return newPage;
+        }),
+        // Keep the latest extraction timestamp
+        extractedAt: newData.extractedAt,
+      };
+    }
   } else {
     extractedData.value.push(newData);
   }
@@ -707,8 +746,8 @@ async function extractPdfTextOnly(filename: string): Promise<ExtractedPdfData | 
         pageNumber: page.pageNumber,
         content: page.cleanedText,
         wordCount: page.wordCount,
-        hasImages: false, // Explicitly disable images for text-only
-        extractedImages: [], // No images for text-only extraction
+        hasImages: page.hasImages, // Keep the actual image status from extraction
+        extractedImages: page.extractedImages, // Keep any images that were found
       })),
       metadata: {
         ...(advancedExtraction.metadata.author && { author: advancedExtraction.metadata.author }),

@@ -654,86 +654,220 @@ class AdvancedPdfTextExtractionService {
     const extractedImages: ExtractedImage[] = [];
 
     try {
-      // Get page operator list to find image operations
-      const operatorList = await page.getOperatorList();
+      // Access page resources to find image XObjects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resources = (page as any)._pageInfo?.resources;
+      if (resources && resources.XObject) {
+        const xObjects = resources.XObject;
+        let imageIndex = 0;
 
-      let imageIndex = 0;
-      for (let i = 0; i < operatorList.fnArray.length; i++) {
-        const fn = operatorList.fnArray[i];
-        const args = operatorList.argsArray[i];
-
-        // Look for image painting operations (Do operator with image objects)
-        if (fn === 84 || fn === 85) {
-          // OPS.paintImageXObject or OPS.paintInlineImageXObject
+        for (const [name, obj] of Object.entries(xObjects)) {
           try {
-            const imageName = args[0];
+            const xObj = obj as {
+              dict?: {
+                get?: (key: string) => { name?: string } | number | null;
+              };
+              getBytes?: () => Promise<Uint8Array>;
+            };
 
-            // Try to extract the actual image data
-            let extractedImageData: string | null = null;
-            let width = 0,
-              height = 0;
+            // Check if this is an image XObject
+            const subtype = xObj?.dict?.get?.('Subtype') as { name?: string } | undefined;
+            if (xObj && xObj.dict && xObj.dict.get && subtype?.name === 'Image') {
+              const width = xObj.dict.get('Width') as number;
+              const height = xObj.dict.get('Height') as number;
+              const bitsPerComponent = (xObj.dict.get('BitsPerComponent') as number) || 8;
 
-            // Check if we can get the image from page resources
-            if (page.objs && page.objs.has && page.objs.has(imageName)) {
-              const imgObj = page.objs.get(imageName);
-              if (imgObj && imgObj.data && imgObj.width && imgObj.height) {
-                // Only process if we have actual image data and reasonable dimensions
-                if (imgObj.width > 10 && imgObj.height > 10) {
+              // Only process reasonably sized images
+              if (width > 10 && height > 10 && width < 5000 && height < 5000) {
+                try {
+                  // Get the image data
+                  const imageData = xObj.getBytes ? await xObj.getBytes() : null;
+
+                  if (imageData && imageData.length > 0) {
+                    // Create canvas to render the image
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    if (ctx) {
+                      canvas.width = width;
+                      canvas.height = height;
+
+                      // Try to create image data from raw bytes
+                      let extractedImageData: string | null = null;
+
+                      try {
+                        // For simple RGB images
+                        if (bitsPerComponent === 8 && imageData.length >= width * height * 3) {
+                          const imgData = ctx.createImageData(width, height);
+                          const data = imgData.data;
+
+                          // Convert RGB to RGBA
+                          for (let i = 0; i < width * height; i++) {
+                            const srcIdx = i * 3;
+                            const dstIdx = i * 4;
+
+                            if (srcIdx + 2 < imageData.length) {
+                              data[dstIdx] = imageData[srcIdx] ?? 0; // R
+                              data[dstIdx + 1] = imageData[srcIdx + 1] ?? 0; // G
+                              data[dstIdx + 2] = imageData[srcIdx + 2] ?? 0; // B
+                              data[dstIdx + 3] = 255; // A
+                            }
+                          }
+
+                          ctx.putImageData(imgData, 0, 0);
+                          extractedImageData = canvas.toDataURL('image/png');
+                        }
+                        // For JPEG images (try to create blob and convert)
+                        else if (imageData.length > 100) {
+                          // Try to detect JPEG header
+                          if (imageData[0] === 0xff && imageData[1] === 0xd8) {
+                            const blob = new Blob([new Uint8Array(imageData)], {
+                              type: 'image/jpeg',
+                            });
+                            const img = new Image();
+
+                            await new Promise((resolve, reject) => {
+                              img.onload = () => {
+                                ctx.drawImage(img, 0, 0);
+                                extractedImageData = canvas.toDataURL('image/png');
+                                resolve(void 0);
+                              };
+                              img.onerror = reject;
+                              img.src = URL.createObjectURL(blob);
+                            });
+                          }
+                        }
+                      } catch (conversionError) {
+                        console.warn(`Failed to convert image data for ${name}:`, conversionError);
+                      }
+
+                      // Add successfully extracted image
+                      if (extractedImageData) {
+                        extractedImages.push({
+                          pageNumber: pageNum,
+                          position: {
+                            x: 0,
+                            y: 0,
+                            width: width,
+                            height: height,
+                          },
+                          description: `Embedded Image "${name}" from page ${pageNum} (${width}x${height})`,
+                          thumbnail: extractedImageData,
+                          size: imageData.length,
+                          format: imageData[0] === 0xff && imageData[1] === 0xd8 ? 'jpeg' : 'png',
+                          isSignificant: width > 50 && height > 50,
+                        });
+                        imageIndex++;
+
+                        console.log(
+                          `[PDF Image Extraction] Successfully extracted embedded image: ${name} (${width}x${height}) from page ${pageNum}`,
+                        );
+                      }
+                    }
+                  }
+                } catch (imageProcessingError) {
+                  console.warn(`Failed to process embedded image ${name}:`, imageProcessingError);
+                }
+              }
+            }
+          } catch (objError) {
+            console.warn(`Error processing XObject ${name}:`, objError);
+          }
+        }
+
+        if (imageIndex > 0) {
+          console.log(
+            `[PDF Image Extraction] Extracted ${imageIndex} embedded images from page ${pageNum}`,
+          );
+        }
+      }
+
+      // Method 3: Fallback - operator list approach (original method, but enhanced)
+      if (extractedImages.length === 0) {
+        const operatorList = await page.getOperatorList();
+        let imageIndex = 0;
+
+        for (let i = 0; i < operatorList.fnArray.length; i++) {
+          const fn = operatorList.fnArray[i];
+          const args = operatorList.argsArray[i];
+
+          // Look for image painting operations
+          if (fn === 84 || fn === 85) {
+            // OPS.paintImageXObject or OPS.paintInlineImageXObject
+            try {
+              const imageName = args[0];
+
+              // Try to get image from page objects
+              const pageObjs = (
+                page as unknown as {
+                  objs?: { has?: (name: string) => boolean; get?: (name: string) => unknown };
+                }
+              ).objs;
+              if (pageObjs?.has?.(imageName)) {
+                const imgObj = pageObjs.get?.(imageName) as
+                  | { width?: number; height?: number }
+                  | undefined;
+
+                if (
+                  imgObj &&
+                  imgObj.width &&
+                  imgObj.height &&
+                  imgObj.width > 10 &&
+                  imgObj.height > 10
+                ) {
+                  // Found a valid image object
+                  console.log(
+                    `[PDF Image Extraction] Found image object: ${imageName} (${imgObj.width}x${imgObj.height})`,
+                  );
+
+                  // Create a placeholder or attempt to extract the actual image data
                   const canvas = document.createElement('canvas');
                   const ctx = canvas.getContext('2d');
 
                   if (ctx) {
-                    canvas.width = imgObj.width;
-                    canvas.height = imgObj.height;
-                    width = imgObj.width;
-                    height = imgObj.height;
+                    canvas.width = Math.min(imgObj.width, 800); // Limit canvas size
+                    canvas.height = Math.min(imgObj.height, 600);
 
-                    try {
-                      // Create ImageData and put it on canvas
-                      const imageData = ctx.createImageData(width, height);
-                      imageData.data.set(imgObj.data);
-                      ctx.putImageData(imageData, 0, 0);
+                    // Fill with a placeholder indicating we found an embedded image
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`Embedded Image`, canvas.width / 2, canvas.height / 2 - 10);
+                    ctx.fillText(
+                      `${imgObj.width}x${imgObj.height}`,
+                      canvas.width / 2,
+                      canvas.height / 2 + 10,
+                    );
 
-                      extractedImageData = canvas.toDataURL('image/png');
-                    } catch (imageProcessingError) {
-                      console.warn(
-                        `Failed to process image data for ${imageName}:`,
-                        imageProcessingError,
-                      );
-                    }
+                    extractedImages.push({
+                      pageNumber: pageNum,
+                      position: {
+                        x: args[1] || 0,
+                        y: args[2] || 0,
+                        width: imgObj.width,
+                        height: imgObj.height,
+                      },
+                      description: `Embedded Image "${imageName}" from page ${pageNum} (${imgObj.width}x${imgObj.height})`,
+                      thumbnail: canvas.toDataURL('image/png'),
+                      size: Math.round((imgObj.width * imgObj.height * 3) / 1024), // Estimated size in KB
+                      format: 'embedded',
+                      isSignificant: imgObj.width > 50 && imgObj.height > 50,
+                    });
+
+                    imageIndex++;
                   }
                 }
               }
+            } catch (imageError) {
+              console.warn(`Error extracting image from operator list:`, imageError);
             }
-
-            // Only add to results if we successfully extracted actual image data
-            if (extractedImageData && width > 10 && height > 10) {
-              extractedImages.push({
-                pageNumber: pageNum,
-                position: {
-                  x: args[1] || 0,
-                  y: args[2] || 0,
-                  width: width,
-                  height: height,
-                },
-                description: `Embedded Image ${imageIndex + 1} from page ${pageNum}`,
-                thumbnail: extractedImageData,
-                size: Math.round(extractedImageData.length * 0.75),
-                format: 'png',
-                isSignificant: width > 50 && height > 50, // Consider significant if reasonably sized
-              });
-              imageIndex++;
-            }
-          } catch (imageError) {
-            console.warn(
-              `Error extracting embedded image ${imageIndex} from page ${pageNum}:`,
-              imageError,
-            );
           }
         }
       }
     } catch (error) {
-      console.warn(`Error accessing operator list for page ${pageNum}:`, error);
+      console.warn(`Error extracting embedded images from page ${pageNum}:`, error);
     }
 
     return extractedImages;
