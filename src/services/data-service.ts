@@ -1,19 +1,12 @@
 // Data service to simulate API calls by loading local JSON files
 // This service is specifically for the site-store-simple.ts
-import type { NewsItem, Classified, Event } from '../components/models';
+import type { NewsItem, ClassifiedAd, Event, CommunityStats } from '../types';
 
 // Import JSON data - NO ISSUES.JSON REFERENCE
 import newsData from '../data/news.json';
 import classifiedsData from '../data/classifieds.json';
 import eventsData from '../data/events.json';
 import communityStatsData from '../data/community-stats.json';
-
-export interface CommunityStats {
-  households: number;
-  lakes: number;
-  yearsPublished: number;
-  issuesPerYear: number;
-}
 
 // Simulate API delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -26,9 +19,9 @@ export const dataService = {
   },
 
   // Simulate fetching classifieds from API
-  async getClassifieds(): Promise<Classified[]> {
+  async getClassifieds(): Promise<ClassifiedAd[]> {
     await delay(100);
-    return classifiedsData as Classified[];
+    return classifiedsData as ClassifiedAd[];
   },
 
   // Simulate fetching events from API

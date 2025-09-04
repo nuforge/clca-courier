@@ -2,49 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 
-// Types for our data structures
-export interface NewsItem {
-  id: string;
-  title: string;
-  summary: string;
-  content: string;
-  author: string;
-  date: string;
-  category: 'news' | 'announcement' | 'event';
-  featured?: boolean;
-}
-
-export interface ClassifiedAd {
-  id: string;
-  title: string;
-  description: string;
-  price?: string;
-  category: 'for-sale' | 'services' | 'wanted' | 'free';
-  contact: {
-    name: string;
-    email?: string;
-    phone?: string;
-  };
-  datePosted: string;
-  featured?: boolean;
-}
-
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location?: string;
-  organizer?: string;
-}
-
-export interface CommunityStats {
-  households: number;
-  lakes: number;
-  yearsPublished: number;
-  issuesPerYear: number;
-}
+// Import centralized types
+import type { NewsItem, ClassifiedAd, Event, CommunityStats } from '../types';
 
 export const useSiteStore = defineStore('site', () => {
   // Site state

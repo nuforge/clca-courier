@@ -1,7 +1,7 @@
 // API Service for handling data operations
 // This abstraction makes it easy to switch from JSON files to real APIs
 
-import type { NewsItem, ClassifiedAd, Event, CommunityStats } from '../stores/site-store';
+import type { NewsItem, ClassifiedAd, Event, CommunityStats } from '../types';
 
 export class ApiService {
   private static instance: ApiService;

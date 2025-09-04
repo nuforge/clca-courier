@@ -9,12 +9,12 @@ import type {
 } from '../types/google-drive-content';
 
 // Import our working simple auth service
-import { SimpleGoogleDriveAuth } from './simple-google-auth-test';
+import { LegacySimpleGoogleDriveAuth } from './google-drive/legacy-compatibility.service';
 import { getDataPath } from '../utils/path-utils';
 
-// Use SimpleGoogleDriveAuth instead of the complex browser service
+// Use LegacySimpleGoogleDriveAuth instead of the complex browser service
 class GoogleDriveBrowserServiceWrapper {
-  private authService: SimpleGoogleDriveAuth | null = null;
+  private authService: LegacySimpleGoogleDriveAuth | null = null;
 
   authenticate(): Promise<boolean> {
     if (!this.authService) {
@@ -32,7 +32,7 @@ class GoogleDriveBrowserServiceWrapper {
       apiKey: config.apiKey ? `${config.apiKey.substring(0, 10)}...` : 'none',
       clientId: config.clientId ? `${config.clientId.substring(0, 20)}...` : 'none',
     });
-    this.authService = new SimpleGoogleDriveAuth(config.clientId, config.apiKey);
+    this.authService = new LegacySimpleGoogleDriveAuth(config.clientId, config.apiKey);
   }
 
   getAuthStatus() {

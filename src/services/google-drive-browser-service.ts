@@ -1,10 +1,10 @@
 // src/services/google-drive-browser-service.ts
 // Browser-compatible Google Drive service with full functionality
 
-import { SimpleGoogleDriveAuth } from './simple-google-auth-test';
-import type { GoogleDriveFile } from 'src/types/google-drive-content';
+import { LegacySimpleGoogleDriveAuth } from './google-drive/legacy-compatibility.service';
+import type { GoogleDriveFile } from '../types';
 
-export class GoogleDriveBrowserService extends SimpleGoogleDriveAuth {
+export class GoogleDriveBrowserService extends LegacySimpleGoogleDriveAuth {
   private baseUrl = 'https://www.googleapis.com/drive/v3';
 
   constructor(clientId: string, apiKey: string) {

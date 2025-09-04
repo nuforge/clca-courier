@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { Classified, NewsItem, Event } from '../components/models';
+import type { ClassifiedAd, NewsItem, Event, CommunityStats } from '../types';
 import type { PdfDocument } from '../composables/usePdfViewer';
 import type { IssueWithGoogleDrive } from '../types/google-drive-content';
-import { dataService, type CommunityStats } from '../services/data-service';
+import { dataService } from '../services/data-service';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useGoogleDrivePdfs } from '../composables/useGoogleDrivePdfs';
 import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
@@ -22,7 +22,7 @@ export const useSiteStore = defineStore('site', () => {
 
   // Data loaded from real PDF files (not JSON)
   const newsItems = ref<NewsItem[]>([]);
-  const classifieds = ref<Classified[]>([]);
+  const classifieds = ref<ClassifiedAd[]>([]);
   const events = ref<Event[]>([]);
   const archivedIssues = ref<PdfDocument[]>([]);
   const communityStats = ref<CommunityStats>({
@@ -54,7 +54,10 @@ export const useSiteStore = defineStore('site', () => {
 
   const recentClassifieds = computed(() =>
     classifieds.value
-      .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+      .sort(
+        (a: ClassifiedAd, b: ClassifiedAd) =>
+          new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime(),
+      )
       .slice(0, 4),
   );
 
