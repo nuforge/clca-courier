@@ -32,7 +32,8 @@ export interface ExtractedImage {
   pageNumber: number;
   position: { x: number; y: number; width: number; height: number };
   description?: string;
-  thumbnail: string; // Base64 image data
+  thumbnail: string; // Base64 image data (small for display)
+  fullSize: string; // Base64 image data (full resolution for download)
   size: number; // File size in bytes
   format: string; // Image format (jpeg, png, etc.)
   isSignificant: boolean; // Whether image meets size/content criteria
@@ -43,6 +44,8 @@ export interface ExtractionOptions {
   extractText?: boolean;
   extractArticles?: boolean;
   extractTopics?: boolean;
+  generateThumbnails?: boolean; // Generate optimized thumbnails for extracted images
+  thumbnailMaxSize?: number; // Maximum thumbnail dimension (default: 200)
 }
 
 export interface AdvancedPdfExtraction {
@@ -115,6 +118,8 @@ class AdvancedPdfTextExtractionService {
       extractText: true,
       extractArticles: true,
       extractTopics: true,
+      generateThumbnails: true,
+      thumbnailMaxSize: 200,
     },
   ): Promise<AdvancedPdfExtraction> {
     const startTime = Date.now();
@@ -263,20 +268,10 @@ class AdvancedPdfTextExtractionService {
     // Only extract images if requested
     if (options.extractImages !== false) {
       try {
-        // Method 1: Extract actual embedded images using PDF.js operator list
-        const embeddedImages = await this.extractEmbeddedImages(page, pageNum);
-        extractedImages.push(...embeddedImages);
-
-        // Method 2: Extract SVG/vector graphics
-        const svgImages = await this.extractSvgGraphics(page, pageNum);
-        extractedImages.push(...svgImages);
-
-        // Method 3: Page thumbnail as fallback (keep your current approach)
-        if (extractedImages.length === 0 && cleanedText.length > 100) {
-          const pageThumbnail = await this.createPageThumbnail(page, pageNum);
-          if (pageThumbnail) {
-            extractedImages.push(pageThumbnail);
-          }
+        // Simple approach: Create one high-quality page thumbnail
+        const pageThumbnail = await this.createPageThumbnail(page, pageNum, options);
+        if (pageThumbnail) {
+          extractedImages.push(pageThumbnail);
         }
 
         hasImages = extractedImages.length > 0;
@@ -650,6 +645,7 @@ class AdvancedPdfTextExtractionService {
   private async extractEmbeddedImages(
     page: PDFPageProxy,
     pageNum: number,
+    options: ExtractionOptions = {},
   ): Promise<ExtractedImage[]> {
     const extractedImages: ExtractedImage[] = [];
 
@@ -715,7 +711,14 @@ class AdvancedPdfTextExtractionService {
                           }
 
                           ctx.putImageData(imgData, 0, 0);
-                          extractedImageData = canvas.toDataURL('image/png');
+                          extractedImageData =
+                            options.generateThumbnails !== false
+                              ? this.generateOptimizedThumbnail(
+                                  canvas,
+                                  options.thumbnailMaxSize || 200,
+                                  0.7,
+                                )
+                              : canvas.toDataURL('image/png');
                         }
                         // For JPEG images (try to create blob and convert)
                         else if (imageData.length > 100) {
@@ -729,7 +732,14 @@ class AdvancedPdfTextExtractionService {
                             await new Promise((resolve, reject) => {
                               img.onload = () => {
                                 ctx.drawImage(img, 0, 0);
-                                extractedImageData = canvas.toDataURL('image/png');
+                                extractedImageData =
+                                  options.generateThumbnails !== false
+                                    ? this.generateOptimizedThumbnail(
+                                        canvas,
+                                        options.thumbnailMaxSize || 200,
+                                        0.8,
+                                      )
+                                    : canvas.toDataURL('image/png');
                                 resolve(void 0);
                               };
                               img.onerror = reject;
@@ -753,6 +763,7 @@ class AdvancedPdfTextExtractionService {
                           },
                           description: `Embedded Image "${name}" from page ${pageNum} (${width}x${height})`,
                           thumbnail: extractedImageData,
+                          fullSize: extractedImageData, // Same as thumbnail for embedded images
                           size: imageData.length,
                           format: imageData[0] === 0xff && imageData[1] === 0xd8 ? 'jpeg' : 'png',
                           isSignificant: width > 50 && height > 50,
@@ -820,43 +831,121 @@ class AdvancedPdfTextExtractionService {
                     `[PDF Image Extraction] Found image object: ${imageName} (${imgObj.width}x${imgObj.height})`,
                   );
 
-                  // Create a placeholder or attempt to extract the actual image data
+                  // Try to extract the actual image by rendering a region of the page
                   const canvas = document.createElement('canvas');
                   const ctx = canvas.getContext('2d');
 
                   if (ctx) {
-                    canvas.width = Math.min(imgObj.width, 800); // Limit canvas size
-                    canvas.height = Math.min(imgObj.height, 600);
+                    // Set up canvas size based on image dimensions
+                    const maxDimension = 400; // Reasonable size for extraction
+                    const aspectRatio = imgObj.width / imgObj.height;
 
-                    // Fill with a placeholder indicating we found an embedded image
-                    ctx.fillStyle = '#f0f0f0';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = '#666';
-                    ctx.font = '16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(`Embedded Image`, canvas.width / 2, canvas.height / 2 - 10);
-                    ctx.fillText(
-                      `${imgObj.width}x${imgObj.height}`,
-                      canvas.width / 2,
-                      canvas.height / 2 + 10,
-                    );
+                    let canvasWidth, canvasHeight;
+                    if (imgObj.width > imgObj.height) {
+                      canvasWidth = Math.min(imgObj.width, maxDimension);
+                      canvasHeight = Math.round(canvasWidth / aspectRatio);
+                    } else {
+                      canvasHeight = Math.min(imgObj.height, maxDimension);
+                      canvasWidth = Math.round(canvasHeight * aspectRatio);
+                    }
 
-                    extractedImages.push({
-                      pageNumber: pageNum,
-                      position: {
-                        x: args[1] || 0,
-                        y: args[2] || 0,
-                        width: imgObj.width,
-                        height: imgObj.height,
-                      },
-                      description: `Embedded Image "${imageName}" from page ${pageNum} (${imgObj.width}x${imgObj.height})`,
-                      thumbnail: canvas.toDataURL('image/png'),
-                      size: Math.round((imgObj.width * imgObj.height * 3) / 1024), // Estimated size in KB
-                      format: 'embedded',
-                      isSignificant: imgObj.width > 50 && imgObj.height > 50,
-                    });
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
 
-                    imageIndex++;
+                    try {
+                      // Render the page to extract the actual image
+                      const viewport = page.getViewport({ scale: 1.0 });
+                      const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport,
+                      };
+
+                      await page.render(renderContext).promise;
+
+                      // Generate optimized thumbnail from the rendered page
+                      const thumbnail =
+                        options.generateThumbnails !== false
+                          ? this.generateOptimizedThumbnail(
+                              canvas,
+                              options.thumbnailMaxSize || 200,
+                              0.8,
+                            )
+                          : canvas.toDataURL('image/png');
+
+                      console.log(
+                        `[PDF Image Extraction] Successfully extracted embedded image: ${imageName} (${imgObj.width}x${imgObj.height}) from page ${pageNum} - Full page rendered`,
+                      );
+
+                      extractedImages.push({
+                        pageNumber: pageNum,
+                        position: {
+                          x: args[1] || 0,
+                          y: args[2] || 0,
+                          width: imgObj.width,
+                          height: imgObj.height,
+                        },
+                        description: `Embedded Image "${imageName}" detected on page ${pageNum} (${imgObj.width}x${imgObj.height}) - Full page rendered`,
+                        thumbnail: thumbnail,
+                        fullSize: thumbnail, // Same as thumbnail for this method
+                        size: Math.round((imgObj.width * imgObj.height * 3) / 1024), // Estimated size in KB
+                        format: 'embedded',
+                        isSignificant: imgObj.width > 50 && imgObj.height > 50,
+                      });
+
+                      imageIndex++;
+                    } catch (renderError) {
+                      console.warn(`Failed to render page for image extraction:`, renderError);
+
+                      // Fallback to a more informative placeholder
+                      ctx.fillStyle = '#e3f2fd';
+                      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                      ctx.strokeStyle = '#1976d2';
+                      ctx.lineWidth = 2;
+                      ctx.strokeRect(2, 2, canvasWidth - 4, canvasHeight - 4);
+
+                      ctx.fillStyle = '#1976d2';
+                      ctx.font = 'bold 14px Arial';
+                      ctx.textAlign = 'center';
+                      ctx.fillText('EMBEDDED', canvasWidth / 2, canvasHeight / 2 - 15);
+                      ctx.fillText('IMAGE', canvasWidth / 2, canvasHeight / 2);
+                      ctx.font = '12px Arial';
+                      ctx.fillText(
+                        `${imgObj.width}×${imgObj.height}`,
+                        canvasWidth / 2,
+                        canvasHeight / 2 + 15,
+                      );
+
+                      const thumbnail =
+                        options.generateThumbnails !== false
+                          ? this.generateOptimizedThumbnail(
+                              canvas,
+                              options.thumbnailMaxSize || 200,
+                              0.8,
+                            )
+                          : canvas.toDataURL('image/png');
+
+                      console.log(
+                        `[PDF Image Extraction] Fallback placeholder created for embedded image: ${imageName} (${imgObj.width}x${imgObj.height}) from page ${pageNum} - Render failed`,
+                      );
+
+                      extractedImages.push({
+                        pageNumber: pageNum,
+                        position: {
+                          x: args[1] || 0,
+                          y: args[2] || 0,
+                          width: imgObj.width,
+                          height: imgObj.height,
+                        },
+                        description: `Embedded Image "${imageName}" from page ${pageNum} (${imgObj.width}x${imgObj.height}) - Detected but render failed`,
+                        thumbnail: thumbnail,
+                        fullSize: thumbnail, // Same as thumbnail for fallback
+                        size: Math.round((imgObj.width * imgObj.height * 3) / 1024),
+                        format: 'embedded',
+                        isSignificant: imgObj.width > 50 && imgObj.height > 50,
+                      });
+
+                      imageIndex++;
+                    }
                   }
                 }
               }
@@ -880,9 +969,124 @@ class AdvancedPdfTextExtractionService {
   }
 
   /**
+   * Create a high-quality render of the full page containing all visual content
+   */
+  private async createFullPageRender(
+    page: PDFPageProxy,
+    pageNum: number,
+    options: ExtractionOptions = {},
+  ): Promise<ExtractedImage | null> {
+    try {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      if (!context) return null;
+
+      // Use higher scale for better quality
+      const scale = 1.5;
+      const viewport = page.getViewport({ scale });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      // Render the page with all its content
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+      };
+
+      await page.render(renderContext).promise;
+
+      // Generate optimized thumbnail
+      const thumbnail =
+        options.generateThumbnails !== false
+          ? this.generateOptimizedThumbnail(canvas, options.thumbnailMaxSize || 300, 0.85)
+          : canvas.toDataURL('image/png', 0.9);
+
+      // Determine the actual format based on what was generated
+      const actualFormat = options.generateThumbnails !== false ? 'jpeg' : 'png';
+
+      // Generate full-size image for download
+      const fullSize = canvas.toDataURL('image/jpeg', 0.95);
+
+      return {
+        pageNumber: pageNum,
+        position: { x: 0, y: 0, width: viewport.width, height: viewport.height },
+        description: `Full page render from page ${pageNum} - Contains all visual content including embedded images`,
+        thumbnail: thumbnail,
+        fullSize: fullSize,
+        size: Math.round(fullSize.length * 0.75),
+        format: actualFormat,
+        isSignificant: true,
+      };
+    } catch (error) {
+      console.warn(`Error creating full page render for page ${pageNum}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate optimized thumbnail from image data or canvas
+   */
+  private generateOptimizedThumbnail(
+    sourceCanvas: HTMLCanvasElement,
+    maxSize: number = 200,
+    quality: number = 0.7,
+  ): string {
+    try {
+      const sourceWidth = sourceCanvas.width;
+      const sourceHeight = sourceCanvas.height;
+
+      // Calculate thumbnail dimensions maintaining aspect ratio
+      let thumbnailWidth = sourceWidth;
+      let thumbnailHeight = sourceHeight;
+
+      if (sourceWidth > maxSize || sourceHeight > maxSize) {
+        const aspectRatio = sourceWidth / sourceHeight;
+
+        if (sourceWidth > sourceHeight) {
+          thumbnailWidth = maxSize;
+          thumbnailHeight = Math.round(maxSize / aspectRatio);
+        } else {
+          thumbnailHeight = maxSize;
+          thumbnailWidth = Math.round(maxSize * aspectRatio);
+        }
+      }
+
+      // Create thumbnail canvas
+      const thumbnailCanvas = document.createElement('canvas');
+      const thumbnailCtx = thumbnailCanvas.getContext('2d');
+
+      if (!thumbnailCtx) {
+        return sourceCanvas.toDataURL('image/jpeg', quality);
+      }
+
+      thumbnailCanvas.width = thumbnailWidth;
+      thumbnailCanvas.height = thumbnailHeight;
+
+      // Use better image scaling
+      thumbnailCtx.imageSmoothingEnabled = true;
+      thumbnailCtx.imageSmoothingQuality = 'medium';
+
+      // Draw scaled image
+      thumbnailCtx.drawImage(sourceCanvas, 0, 0, thumbnailWidth, thumbnailHeight);
+
+      // Return optimized thumbnail with specified quality
+      return thumbnailCanvas.toDataURL('image/jpeg', quality);
+    } catch (error) {
+      console.warn('Error generating optimized thumbnail:', error);
+      // Fallback to original canvas with lower quality
+      return sourceCanvas.toDataURL('image/jpeg', 0.5);
+    }
+  }
+
+  /**
    * Extract SVG and vector graphics from PDF page
    */
-  private async extractSvgGraphics(page: PDFPageProxy, pageNum: number): Promise<ExtractedImage[]> {
+  private async extractSvgGraphics(
+    page: PDFPageProxy,
+    pageNum: number,
+    options: ExtractionOptions = {},
+  ): Promise<ExtractedImage[]> {
     const extractedImages: ExtractedImage[] = [];
 
     try {
@@ -925,8 +1129,14 @@ class AdvancedPdfTextExtractionService {
 
             await page.render(renderContext).promise;
 
-            // Convert to data URL (we'll treat this as our "SVG" extraction)
-            const svgDataUrl = canvas.toDataURL('image/png', 0.9);
+            // Convert to data URL with optimized thumbnail
+            const svgDataUrl =
+              options.generateThumbnails !== false
+                ? this.generateOptimizedThumbnail(canvas, options.thumbnailMaxSize || 200, 0.8)
+                : canvas.toDataURL('image/png', 0.9);
+
+            // Determine actual format
+            const actualFormat = options.generateThumbnails !== false ? 'jpeg' : 'png';
 
             extractedImages.push({
               pageNumber: pageNum,
@@ -938,8 +1148,9 @@ class AdvancedPdfTextExtractionService {
               },
               description: `Vector Graphics from page ${pageNum} (${pathCount} paths)`,
               thumbnail: svgDataUrl,
+              fullSize: svgDataUrl, // Same as thumbnail for SVG
               size: Math.round(svgDataUrl.length * 0.75),
-              format: 'svg', // Conceptually SVG, but stored as PNG
+              format: actualFormat,
               isSignificant: pathCount > 10,
             });
           }
@@ -960,6 +1171,7 @@ class AdvancedPdfTextExtractionService {
   private async createPageThumbnail(
     page: PDFPageProxy,
     pageNum: number,
+    options: ExtractionOptions = {},
   ): Promise<ExtractedImage | null> {
     try {
       const canvas = document.createElement('canvas');
@@ -981,14 +1193,22 @@ class AdvancedPdfTextExtractionService {
       await page.render(renderContext).promise;
 
       // Create a thumbnail of the whole page
-      const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+      // Generate optimized thumbnail for display
+      const thumbnail =
+        options.generateThumbnails !== false
+          ? this.generateOptimizedThumbnail(canvas, options.thumbnailMaxSize || 200, 0.8)
+          : canvas.toDataURL('image/jpeg', 0.8);
+
+      // Generate full-size image for download (higher quality)
+      const fullSize = canvas.toDataURL('image/jpeg', 0.95);
 
       return {
         pageNumber: pageNum,
         position: { x: 0, y: 0, width: viewport.width, height: viewport.height },
-        description: `Page ${pageNum} thumbnail`,
+        description: `Page ${pageNum} thumbnail - Complete page visual content`,
         thumbnail: thumbnail,
-        size: Math.round(thumbnail.length * 0.75),
+        fullSize: fullSize,
+        size: Math.round(fullSize.length * 0.75),
         format: 'jpeg',
         isSignificant: true,
       };

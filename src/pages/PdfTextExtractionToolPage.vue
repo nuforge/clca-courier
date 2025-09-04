@@ -58,7 +58,18 @@
           <q-btn @click="startFullExtraction" :loading="isProcessingText || isProcessingImages"
             :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="green"
             icon="auto_awesome" label="Extract Text + Images" class="col-12 col-md-3" />
+        </div>
 
+        <!-- Feature info -->
+        <div class="row q-mt-sm">
+          <div class="col-12">
+            <q-chip color="blue" text-color="white" icon="speed" size="sm">
+              ✨ Now with optimized thumbnails for faster processing
+            </q-chip>
+          </div>
+        </div>
+
+        <div class="row q-mt-md">
           <div class="col-12 col-md-3">
             <div class="text-subtitle2 q-mb-sm">Export Actions</div>
             <div class="row q-gutter-sm">
@@ -184,12 +195,12 @@
     </q-card>
 
     <!-- Full Text Dialog -->
-    <q-dialog v-model="showTextDialog" maximized>
+    <q-dialog v-model="showTextDialog" maximized position="standard">
       <q-card>
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ selectedPdf?.filename }} - Full Text Content</div>
           <q-space />
-          <q-btn icon="close" flat round dense @click="showTextDialog = false" />
+          <q-btn icon="close" flat round dense @click="showTextDialog = false" color="grey-8" size="md" />
         </q-card-section>
 
         <q-card-section class="q-pt-none" style="max-height: 70vh; overflow-y: auto;">
@@ -205,7 +216,24 @@
             </q-chip>
           </div>
 
-          <div class="text-body1 q-pa-md" style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace;">
+          <!-- Page-by-page text content -->
+          <div v-if="selectedPdf?.pages">
+            <q-expansion-item v-for="(page, pageIndex) in selectedPdf.pages" :key="pageIndex"
+              :label="`Page ${page.pageNumber} (${page.wordCount} words)`"
+              :caption="`${page.content.substring(0, 100)}...`" class="q-mb-sm">
+              <q-card>
+                <q-card-section>
+                  <div class="text-body1 q-pa-md"
+                    style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; border-radius: 4px;">
+                    {{ page.content }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </q-expansion-item>
+          </div>
+
+          <!-- Fallback for combined text content -->
+          <div v-else class="text-body1 q-pa-md" style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace;">
             {{ selectedPdf?.textContent }}
           </div>
         </q-card-section>
@@ -213,12 +241,12 @@
     </q-dialog>
 
     <!-- Structure Dialog -->
-    <q-dialog v-model="showStructureDialog" maximized>
+    <q-dialog v-model="showStructureDialog" maximized position="standard">
       <q-card>
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ selectedPdf?.filename }} - Page Structure</div>
           <q-space />
-          <q-btn icon="close" flat round dense @click="showStructureDialog = false" />
+          <q-btn icon="close" flat round dense @click="showStructureDialog = false" color="grey-8" size="md" />
         </q-card-section>
 
         <q-card-section class="q-pt-none">
@@ -249,12 +277,12 @@
     </q-dialog>
 
     <!-- Images Dialog -->
-    <q-dialog v-model="showImagesDialog" maximized>
+    <q-dialog v-model="showImagesDialog" maximized position="standard">
       <q-card>
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ selectedPdf?.filename }} - Extracted Images</div>
           <q-space />
-          <q-btn icon="close" flat round dense @click="showImagesDialog = false" />
+          <q-btn icon="close" flat round dense @click="showImagesDialog = false" color="grey-8" size="md" />
         </q-card-section>
 
         <q-card-section class="q-pt-none">
@@ -291,7 +319,7 @@
                           <div>Format: {{ image.format.toUpperCase() }}</div>
                           <div>Data Size: {{ (image.size / 1024).toFixed(1) }} KB</div>
                           <div v-if="image.description" class="q-mt-xs">{{ image.description
-                            }}</div>
+                          }}</div>
                         </div>
                         <q-btn flat size="sm" icon="download" label="Download"
                           @click="downloadImage(image, pageIndex, imageIndex)" class="q-mt-sm" />
@@ -317,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { advancedPdfTextExtractionService, type AdvancedPdfExtraction } from '../services/advanced-pdf-text-extraction-service';
 import { pdfTextDatabaseService } from '../services/pdf-text-database-service';
@@ -653,6 +681,27 @@ function updateOrAddPdfData(newData: ExtractedPdfData) {
 // Initialize
 onMounted(async () => {
   await loadAvailablePdfs();
+
+  // Add keyboard shortcuts for closing dialogs
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      if (showImagesDialog.value) {
+        showImagesDialog.value = false;
+      } else if (showStructureDialog.value) {
+        showStructureDialog.value = false;
+      } else if (showTextDialog.value) {
+        showTextDialog.value = false;
+      }
+    }
+  };
+
+  // Listen for keyboard events
+  window.addEventListener('keydown', handleKeyDown);
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+  });
 });
 
 // Load available PDFs from manifest
@@ -684,7 +733,9 @@ async function extractPdfText(filename: string): Promise<ExtractedPdfData | null
       extractText: true,
       extractImages: true,
       extractArticles: true,
-      extractTopics: true
+      extractTopics: true,
+      generateThumbnails: true,
+      thumbnailMaxSize: 200
     });
 
     return {
@@ -732,7 +783,8 @@ async function extractPdfTextOnly(filename: string): Promise<ExtractedPdfData | 
       extractText: true,
       extractImages: false,
       extractArticles: true,
-      extractTopics: true
+      extractTopics: true,
+      generateThumbnails: false // Skip thumbnails for text-only extraction
     });
 
     return {
@@ -780,7 +832,9 @@ async function extractPdfImagesOnly(filename: string): Promise<ExtractedPdfData 
       extractText: false,
       extractImages: true,
       extractArticles: false,
-      extractTopics: false
+      extractTopics: false,
+      generateThumbnails: true, // Enable thumbnails for image extraction
+      thumbnailMaxSize: 150 // Smaller thumbnails for faster processing
     });
 
     return {
@@ -833,25 +887,34 @@ function showImages(pdf: ExtractedPdfData) {
 
 // Download image function
 function downloadImage(
-  image: {
-    thumbnail: string;
-    format: string;
-    description?: string;
-  },
+  image: { thumbnail: string; fullSize?: string;[key: string]: unknown },
   pageIndex: number,
   imageIndex: number
 ) {
   try {
+    // Use fullSize if available, otherwise fallback to thumbnail
+    const imageDataUrl: string = image.fullSize || image.thumbnail;
+
+    // Determine actual format from image data URL
+    let actualFormat = 'png'; // default
+    if (imageDataUrl.includes('data:image/jpeg')) {
+      actualFormat = 'jpg';
+    } else if (imageDataUrl.includes('data:image/png')) {
+      actualFormat = 'png';
+    } else if (imageDataUrl.includes('data:image/webp')) {
+      actualFormat = 'webp';
+    }
+
     const link = document.createElement('a');
-    link.href = image.thumbnail;
-    link.download = `${selectedPdf.value?.filename || 'pdf'}-page${pageIndex + 1}-image${imageIndex + 1}.${image.format}`;
+    link.href = imageDataUrl;
+    link.download = `${selectedPdf.value?.filename || 'pdf'}-page${pageIndex + 1}-image${imageIndex + 1}.${actualFormat}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     $q.notify({
       type: 'positive',
-      message: 'Image downloaded successfully',
+      message: `${image.fullSize ? 'Full-size' : 'Thumbnail'} image downloaded successfully`,
       timeout: 2000,
     });
   } catch (error) {
@@ -964,7 +1027,10 @@ async function saveToDatabase() {
             cleanedText: page.content,
             wordCount: page.wordCount,
             hasImages: page.hasImages,
-            extractedImages: page.extractedImages,
+            extractedImages: page.extractedImages.map(img => ({
+              ...img,
+              fullSize: (img as { fullSize?: string }).fullSize || img.thumbnail // Fallback for existing data
+            })),
           })),
           articles: (pdf.articles || []).map(article => ({
             title: article.title,

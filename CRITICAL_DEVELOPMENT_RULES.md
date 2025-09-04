@@ -29,7 +29,21 @@
   - ✅ **CORRECT**: File system scanning and API calls
 - **IMPACT**: All content must be discovered from actual files that exist
 
-### 3. PATH/FILE ASSUMPTIONS 🚫
+### 3. THEME INTERFERENCE 🚫
+
+- **RULE**: NEVER HARDCODE BACKGROUND COLORS OR THEME-SPECIFIC STYLES
+- **WHY**: User enforced "stop setting background colors. You keep fucking up with the dark theme"
+- **EXAMPLES**:
+  - ❌ **WRONG**: `background-color: #f5f5f5` or any hardcoded colors
+  - ❌ **WRONG**: `style="background: white"` or similar theme assumptions
+  - ❌ **WRONG**: CSS classes that force light/dark theme colors
+  - ✅ **CORRECT**: Use Quasar's theme-aware color classes (`bg-primary`, `text-on-dark`, etc.)
+  - ✅ **CORRECT**: Let components inherit theme colors naturally
+  - ✅ **CORRECT**: Use CSS variables that adapt to theme
+- **IMPACT**: All styling must respect user's chosen light/dark theme
+- **ADDED**: September 4, 2025 - After PDF tool theme conflicts
+
+### 4. PATH ASSUMPTIONS 🚫
 
 - **RULE**: ALWAYS VERIFY BEFORE IMPLEMENTING
 - **WHY**: User was frustrated: "SHOULDN'T YOU UFKCING CHECK OR KNOW ALL PATHING! ARE YOU JUST GUESSING!?"
