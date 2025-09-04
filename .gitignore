@@ -280,3 +280,4 @@ cypress/downloads/
 coverage/
 .jest-cache/
 .env
+test-lot-search.html
