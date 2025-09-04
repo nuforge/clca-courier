@@ -29,6 +29,10 @@ const routes: RouteRecordRaw[] = [
       // { path: '/test/pdf-diagnostics', component: () => import('pages/PdfDiagnosticsPage.vue') },
       { path: '/test/lightweight', component: () => import('pages/LightweightTestPage.vue') },
       {
+        path: '/admin/pdf-extraction',
+        component: () => import('pages/PdfTextExtractionToolPage.vue'),
+      },
+      {
         path: '/google-drive-content',
         component: () => import('pages/GoogleDriveContentDashboard.vue'),
       },
