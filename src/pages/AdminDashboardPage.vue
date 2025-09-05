@@ -17,9 +17,9 @@
           </q-card>
 
           <!-- Main Admin Sections -->
-          <div class="row q-gutter-md">
+          <div class="row">
             <!-- Newsletter Management -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6 q-pa-md">
               <q-card>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
@@ -43,7 +43,7 @@
             </div>
 
             <!-- Content Management -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6 q-pa-md">
               <q-card>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
@@ -67,7 +67,7 @@
             </div>
 
             <!-- System Tools -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6 q-pa-md">
               <q-card>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
@@ -90,7 +90,7 @@
             </div>
 
             <!-- User Management -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6 q-pa-md">
               <q-card>
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
@@ -122,10 +122,18 @@
                 Quick Actions
               </div>
 
-              <div class="row q-gutter-md">
-                <q-btn color="positive" icon="mdi-home" label="View Site" to="/" class="col" />
-                <q-btn color="info" icon="mdi-refresh" label="Refresh Cache" @click="refreshCache" class="col" />
-                <q-btn color="warning" icon="mdi-backup-restore" label="Backup Data" @click="backupData" class="col" />
+              <div class="row">
+                <div class="col-12 col-sm-4 q-pa-sm">
+                  <q-btn color="positive" icon="mdi-home" label="View Site" to="/" class="full-width" />
+                </div>
+                <div class="col-12 col-sm-4 q-pa-sm">
+                  <q-btn color="info" icon="mdi-refresh" label="Refresh Cache" @click="refreshCache"
+                    class="full-width" />
+                </div>
+                <div class="col-12 col-sm-4 q-pa-sm">
+                  <q-btn color="warning" icon="mdi-backup-restore" label="Backup Data" @click="backupData"
+                    class="full-width" />
+                </div>
               </div>
             </q-card-section>
           </q-card>
@@ -138,16 +146,16 @@
                 System Status
               </div>
 
-              <div class="row q-gutter-md">
-                <div class="col-12 col-md-4">
+              <div class="row">
+                <div class="col-12 col-md-4 q-pa-sm">
                   <q-linear-progress :value="0.8" color="positive" class="q-mb-sm" />
                   <div class="text-caption">Storage: 80% used</div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-4 q-pa-sm">
                   <q-linear-progress :value="0.3" color="info" class="q-mb-sm" />
                   <div class="text-caption">Memory: 30% used</div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-4 q-pa-sm">
                   <q-linear-progress :value="0.95" color="positive" class="q-mb-sm" />
                   <div class="text-caption">Uptime: 95%</div>
                 </div>
