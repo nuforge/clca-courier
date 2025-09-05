@@ -1,349 +1,3 @@
-<template>
-  <div class="pdf-extraction-tool q-pa-md">
-    <q-card>
-      <q-card-section>
-        <div class="text-h4 q-mb-sm">📄 PDF Text Extraction Tool</div>
-        <div class="text-subtitle1">
-          Extract text content and images from PDF newsletters for database storage
-        </div>
-      </q-card-section>
-
-      <!-- File Selection Section -->
-      <q-card-section>
-        <div class="text-h6 q-mb-md">Available PDF Files ({{ availablePdfs.length }})</div>
-
-        <div class="row q-gutter-md q-mb-md">
-          <q-btn @click="selectAll" color="primary" icon="select_all" label="Select All" size="sm" />
-          <q-btn @click="selectNone" color="grey" icon="deselect" label="Select None" size="sm" />
-          <q-btn @click="selectRecent" color="blue" icon="schedule" label="Select Recent (10)" size="sm" />
-          <q-space />
-          <q-chip :label="`${selectedFiles.length} selected`" color="orange" text-color="white" />
-        </div>
-
-        <q-scroll-area style="height: 300px; border: 1px solid #ddd; border-radius: 4px;">
-          <q-list separator>
-            <q-item v-for="filename in availablePdfs" :key="filename" clickable @click="toggleFileSelection(filename)">
-              <q-item-section avatar>
-                <q-checkbox v-model="selectedFiles" :val="filename" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ filename }}</q-item-label>
-                <q-item-label caption>
-                  {{ getFileInfo(filename) }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-icon name="picture_as_pdf" color="red" />
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-scroll-area>
-      </q-card-section>
-
-      <!-- Action Buttons -->
-      <q-card-actions class="q-pa-md">
-        <div class="row q-gutter-md full-width">
-          <div class="col-12 q-mb-md">
-            <div class="text-subtitle2 q-mb-sm">Processing Actions</div>
-          </div>
-
-          <q-btn @click="startTextExtraction" :loading="isProcessingText"
-            :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="primary"
-            icon="article" label="Extract Text Only" class="col-12 col-md-3" />
-
-          <q-btn @click="startImageExtraction" :loading="isProcessingImages"
-            :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="purple" icon="image"
-            label="Extract Images Only" class="col-12 col-md-3" />
-
-          <q-btn @click="startFullExtraction" :loading="isProcessingText || isProcessingImages"
-            :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="green"
-            icon="auto_awesome" label="Extract Text + Images" class="col-12 col-md-3" />
-        </div>
-
-        <!-- Feature info -->
-        <div class="row q-mt-sm">
-          <div class="col-12">
-            <q-chip color="blue" text-color="white" icon="speed" size="sm">
-              ✨ Now with optimized thumbnails for faster processing
-            </q-chip>
-          </div>
-        </div>
-
-        <div class="row q-mt-md">
-          <div class="col-12 col-md-3">
-            <div class="text-subtitle2 q-mb-sm">Export Actions</div>
-            <div class="row q-gutter-sm">
-              <q-btn @click="exportToJson" :disable="extractedData.length === 0" color="blue" icon="download"
-                label="JSON" size="sm" />
-              <q-btn @click="exportToCSV" :disable="extractedData.length === 0" color="orange" icon="table_chart"
-                label="CSV" size="sm" />
-              <q-btn @click="saveToDatabase" :disable="extractedData.length === 0" color="cyan" icon="storage"
-                label="Database" size="sm" />
-            </div>
-          </div>
-        </div>
-      </q-card-actions>
-
-      <!-- Progress Section -->
-      <q-card-section v-if="isProcessingText || isProcessingImages || extractedData.length > 0">
-        <div class="text-h6 q-mb-md">Processing Progress</div>
-
-        <div class="row q-gutter-md q-mb-md">
-          <div class="col-12 col-md-4">
-            <q-circular-progress :value="selectedFiles.length > 0 ? (processedCount / selectedFiles.length) * 100 : 0"
-              size="80px" :thickness="0.15" color="primary" track-color="grey-3" class="q-ma-md">
-              {{ processedCount }}/{{ selectedFiles.length }}
-            </q-circular-progress>
-          </div>
-          <div class="col-12 col-md-8">
-            <q-linear-progress :value="selectedFiles.length > 0 ? (processedCount / selectedFiles.length) : 0"
-              size="20px" color="primary" class="q-mb-sm" />
-            <div v-if="currentProcessingFile" class="text-body2">
-              Currently processing: <strong>{{ currentProcessingFile }}</strong>
-            </div>
-            <div class="text-caption">
-              {{ successCount }} successful, {{ errorCount }} errors
-              <span v-if="isProcessingText">(Text Extraction)</span>
-              <span v-if="isProcessingImages">(Image Extraction)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Error List -->
-        <div v-if="errors.length > 0" class="q-mt-md">
-          <q-expansion-item icon="error" :label="`Processing Errors (${errors.length})`" header-class="text-negative">
-            <q-list separator>
-              <q-item v-for="error in errors" :key="error.filename + error.type">
-                <q-item-section avatar>
-                  <q-icon name="error" color="negative" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ error.filename }}</q-item-label>
-                  <q-item-label caption>{{ error.type }}: {{ error.error }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-        </div>
-      </q-card-section>
-
-      <!-- Results Preview -->
-      <q-card-section v-if="extractedData.length > 0">
-        <div class="text-h6 q-mb-md">Extracted Data Preview</div>
-
-        <!-- Summary Stats -->
-        <div class="row q-gutter-md q-mb-md">
-          <q-card flat bordered class="col-12 col-md-3">
-            <q-card-section class="text-center">
-              <div class="text-h4 text-primary">{{ extractedData.length }}</div>
-              <div class="text-caption">Total PDFs Processed</div>
-            </q-card-section>
-          </q-card>
-          <q-card flat bordered class="col-12 col-md-3">
-            <q-card-section class="text-center">
-              <div class="text-h4 text-green">{{ totalWords.toLocaleString() }}</div>
-              <div class="text-caption">Total Words Extracted</div>
-            </q-card-section>
-          </q-card>
-          <q-card flat bordered class="col-12 col-md-3">
-            <q-card-section class="text-center">
-              <div class="text-h4 text-orange">{{ totalPages }}</div>
-              <div class="text-caption">Total Pages</div>
-            </q-card-section>
-          </q-card>
-          <q-card flat bordered class="col-12 col-md-3">
-            <q-card-section class="text-center">
-              <div class="text-h4 text-purple">{{ averageWordsPerPdf }}</div>
-              <div class="text-caption">Avg Words/PDF</div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Data Table -->
-        <q-table :rows="extractedData" :columns="tableColumns" row-key="filename" :pagination="{ rowsPerPage: 10 }" flat
-          bordered>
-          <template v-slot:body-cell-preview="props">
-            <q-td :props="props">
-              <div class="text-body2" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
-                {{ props.row.textContent.substring(0, 100) }}...
-              </div>
-              <q-btn flat dense size="sm" icon="visibility" @click="showFullText(props.row)" label="View Full Text" />
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-structure="props">
-            <q-td :props="props">
-              <q-btn flat dense size="sm" icon="account_tree" @click="showStructure(props.row)"
-                :label="`${props.row.pages.length} pages`" />
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-images="props">
-            <q-td :props="props">
-              <div class="text-center">
-                <div class="text-body2">
-                  {{ props.value || 0 }}
-                </div>
-                <q-btn v-if="props.value > 0" flat dense size="sm" icon="image" @click="showImages(props.row)"
-                  :label="`View ${props.value} images`" />
-                <div v-else class="text-grey-5 text-caption">No images</div>
-              </div>
-            </q-td>
-          </template>
-        </q-table>
-      </q-card-section>
-    </q-card>
-
-    <!-- Full Text Dialog -->
-    <q-dialog v-model="showTextDialog" maximized position="standard">
-      <q-card>
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ selectedPdf?.filename }} - Full Text Content</div>
-          <q-space />
-          <q-btn icon="close" flat round dense @click="showTextDialog = false" color="grey-8" size="md" />
-        </q-card-section>
-
-        <q-card-section class="q-pt-none" style="max-height: 70vh; overflow-y: auto;">
-          <div v-if="selectedPdf" class="q-mb-md">
-            <q-chip icon="article" color="primary" text-color="white">
-              {{ selectedPdf.wordCount.toLocaleString() }} words
-            </q-chip>
-            <q-chip icon="description" color="green" text-color="white">
-              {{ selectedPdf.pages.length }} pages
-            </q-chip>
-            <q-chip icon="schedule" color="orange" text-color="white">
-              ~{{ Math.ceil(selectedPdf.wordCount / 200) }} min read
-            </q-chip>
-          </div>
-
-          <!-- Page-by-page text content -->
-          <div v-if="selectedPdf?.pages">
-            <q-expansion-item v-for="(page, pageIndex) in selectedPdf.pages" :key="pageIndex"
-              :label="`Page ${page.pageNumber} (${page.wordCount} words)`"
-              :caption="`${page.content.substring(0, 100)}...`" class="q-mb-sm">
-              <q-card>
-                <q-card-section>
-                  <div class="text-body1 q-pa-md"
-                    style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; border-radius: 4px;">
-                    {{ page.content }}
-                  </div>
-                </q-card-section>
-              </q-card>
-            </q-expansion-item>
-          </div>
-
-          <!-- Fallback for combined text content -->
-          <div v-else class="text-body1 q-pa-md" style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace;">
-            {{ selectedPdf?.textContent }}
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <!-- Structure Dialog -->
-    <q-dialog v-model="showStructureDialog" maximized position="standard">
-      <q-card>
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ selectedPdf?.filename }} - Page Structure</div>
-          <q-space />
-          <q-btn icon="close" flat round dense @click="showStructureDialog = false" color="grey-8" size="md" />
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <div v-if="selectedPdf">
-            <q-list separator>
-              <q-item v-for="(page, index) in selectedPdf.pages" :key="index">
-                <q-item-section avatar>
-                  <q-avatar color="primary" text-color="white">
-                    {{ index + 1 }}
-                  </q-avatar>
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Page {{ index + 1 }}</q-item-label>
-                  <q-item-label caption>
-                    {{ page.wordCount }} words | {{ page.content.length }} characters
-                  </q-item-label>
-                  <q-item-label class="q-mt-sm">
-                    <div class="q-pa-sm rounded-borders" style="max-height: 100px; overflow-y: auto;">
-                      {{ page.content.substring(0, 300) }}...
-                    </div>
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <!-- Images Dialog -->
-    <q-dialog v-model="showImagesDialog" maximized position="standard">
-      <q-card>
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ selectedPdf?.filename }} - Extracted Images</div>
-          <q-space />
-          <q-btn icon="close" flat round dense @click="showImagesDialog = false" color="grey-8" size="md" />
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <div v-if="selectedPdf">
-            <div class="text-subtitle1 q-mb-md">
-              Total Images Found: {{selectedPdf.pages.reduce((count, page) => count +
-                page.extractedImages.length,
-                0)
-              }}
-            </div>
-
-            <div v-for="(page, pageIndex) in selectedPdf.pages" :key="pageIndex" class="q-mb-xl">
-              <div v-if="page.extractedImages.length > 0">
-                <q-separator class="q-mb-md" />
-                <div class="text-h6 q-mb-md">
-                  <q-icon name="article" class="q-mr-sm" />
-                  Page {{ page.pageNumber }} - {{ page.extractedImages.length }} image(s)
-                </div>
-
-                <div class="row q-gutter-md">
-                  <div v-for="(image, imageIndex) in page.extractedImages" :key="imageIndex"
-                    class="col-12 col-md-6 col-lg-4">
-                    <q-card flat bordered>
-                      <q-card-section class="text-center">
-                        <div class="text-subtitle2 q-mb-sm">
-                          Image {{ imageIndex + 1 }}
-                        </div>
-                        <img :src="image.thumbnail" :alt="image.description || 'Extracted image'"
-                          style="max-width: 100%; max-height: 300px; border-radius: 4px;" class="q-mb-sm" />
-                        <div class="text-caption text-grey-7">
-                          <div>Size: {{ Math.round(image.position.width) }} × {{
-                            Math.round(image.position.height) }} px
-                          </div>
-                          <div>Format: {{ image.format.toUpperCase() }}</div>
-                          <div>Data Size: {{ (image.size / 1024).toFixed(1) }} KB</div>
-                          <div v-if="image.description" class="q-mt-xs">{{ image.description
-                          }}</div>
-                        </div>
-                        <q-btn flat size="sm" icon="download" label="Download"
-                          @click="downloadImage(image, pageIndex, imageIndex)" class="q-mt-sm" />
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="selectedPdf.pages.every(page => page.extractedImages.length === 0)" class="text-center q-py-xl">
-              <q-icon name="image_not_supported" size="64px" class="text-grey-5" />
-              <div class="text-h6 text-grey-6 q-mt-md">No Images Found</div>
-              <div class="text-body2 text-grey-5">
-                This PDF doesn't contain any significant images that meet our extraction criteria.
-              </div>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useQuasar } from 'quasar';
@@ -1079,3 +733,340 @@ async function saveToDatabase() {
   }
 }
 </script>
+
+<template>
+  <div class="pdf-extraction-tool q-pa-md">
+    <q-card>
+      <q-card-section>
+        <div class="text-h4 q-mb-sm">📄 PDF Text Extraction Tool</div>
+        <div class="text-subtitle1">
+          Extract text content and images from PDF newsletters for database storage
+        </div>
+      </q-card-section>
+
+      <!-- File Selection Section -->
+      <q-card-section>
+        <div class="text-h6 q-mb-md">Available PDF Files ({{ availablePdfs.length }})</div>
+
+        <div class="row q-gutter-md q-mb-md">
+          <q-btn @click="selectAll" color="primary" icon="select_all" label="Select All" size="sm" />
+          <q-btn @click="selectNone" color="grey" icon="deselect" label="Select None" size="sm" />
+          <q-btn @click="selectRecent" color="blue" icon="schedule" label="Select Recent (10)" size="sm" />
+          <q-space />
+          <q-chip :label="`${selectedFiles.length} selected`" color="orange" text-color="white" />
+        </div>
+
+        <q-scroll-area style="height: 300px; border: 1px solid #ddd; border-radius: 4px;">
+          <q-list separator>
+            <q-item v-for="filename in availablePdfs" :key="filename" clickable @click="toggleFileSelection(filename)">
+              <q-item-section avatar>
+                <q-checkbox v-model="selectedFiles" :val="filename" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ filename }}</q-item-label>
+                <q-item-label caption>
+                  {{ getFileInfo(filename) }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="picture_as_pdf" color="red" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-scroll-area>
+      </q-card-section>
+
+      <!-- Action Buttons -->
+      <q-card-actions class="q-pa-md">
+        <div class="row q-gutter-md full-width">
+          <div class="col-12 q-mb-md">
+            <div class="text-subtitle2 q-mb-sm">Processing Actions</div>
+          </div>
+
+          <q-btn @click="startTextExtraction" :loading="isProcessingText"
+            :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="primary"
+            icon="article" label="Extract Text Only" class="col-12 col-md-3" />
+
+          <q-btn @click="startImageExtraction" :loading="isProcessingImages"
+            :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="purple" icon="image"
+            label="Extract Images Only" class="col-12 col-md-3" />
+
+          <q-btn @click="startFullExtraction" :loading="isProcessingText || isProcessingImages"
+            :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="green"
+            icon="auto_awesome" label="Extract Text + Images" class="col-12 col-md-3" />
+        </div>
+
+        <!-- Feature info -->
+
+        <div class="q-mt-md q-gutter-sm ">
+          <div class="text-subtitle2 q-mb-sm">Export Actions</div>
+          <div class="row q-gutter-sm">
+            <q-btn @click="exportToJson" :disable="extractedData.length === 0" color="blue" icon="download" label="JSON"
+              size="sm" />
+            <q-btn @click="exportToCSV" :disable="extractedData.length === 0" color="orange" icon="table_chart"
+              label="CSV" size="sm" />
+            <q-btn @click="saveToDatabase" :disable="extractedData.length === 0" color="cyan" icon="storage"
+              label="Database" size="sm" />
+          </div>
+        </div>
+      </q-card-actions>
+
+      <!-- Progress Section -->
+      <q-card-section v-if="isProcessingText || isProcessingImages || extractedData.length > 0">
+        <div class="text-h6 q-mb-md">Processing Progress</div>
+
+        <div class="row q-gutter-md q-mb-md">
+          <div class="col-2">
+            <q-circular-progress :value="selectedFiles.length > 0 ? (processedCount / selectedFiles.length) * 100 : 0"
+              size="80px" :thickness="0.15" color="primary" track-color="grey-3" class="q-ma-md">
+              {{ processedCount }}/{{ selectedFiles.length }}
+            </q-circular-progress>
+          </div>
+          <div class="col ">
+            <q-linear-progress :value="selectedFiles.length > 0 ? (processedCount / selectedFiles.length) : 0"
+              size="20px" color="primary" class="q-mb-sm" />
+            <div v-if="currentProcessingFile" class="text-body2">
+              Currently processing: <strong>{{ currentProcessingFile }}</strong>
+            </div>
+            <div class="text-caption">
+              {{ successCount }} successful, {{ errorCount }} errors
+              <span v-if="isProcessingText">(Text Extraction)</span>
+              <span v-if="isProcessingImages">(Image Extraction)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error List -->
+        <div v-if="errors.length > 0" class="q-mt-md">
+          <q-expansion-item icon="error" :label="`Processing Errors (${errors.length})`" header-class="text-negative">
+            <q-list separator>
+              <q-item v-for="error in errors" :key="error.filename + error.type">
+                <q-item-section avatar>
+                  <q-icon name="error" color="negative" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ error.filename }}</q-item-label>
+                  <q-item-label caption>{{ error.type }}: {{ error.error }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
+        </div>
+      </q-card-section>
+
+      <!-- Results Preview -->
+      <q-card-section v-if="extractedData.length > 0">
+        <div class="text-h6 q-mb-md">Extracted Data Preview</div>
+
+        <!-- Summary Stats -->
+        <div class="row q-gutter-md q-mb-md">
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h4 text-primary">{{ extractedData.length }}</div>
+              <div class="text-caption">Total PDFs Processed</div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h4 text-green">{{ totalWords.toLocaleString() }}</div>
+              <div class="text-caption">Total Words Extracted</div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h4 text-orange">{{ totalPages }}</div>
+              <div class="text-caption">Total Pages</div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class=" text-center">
+              <div class="text-h4 text-purple">{{ averageWordsPerPdf }}</div>
+              <div class="text-caption">Avg Words/PDF</div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- Data Table -->
+        <q-table :rows="extractedData" :columns="tableColumns" row-key="filename" :pagination="{ rowsPerPage: 10 }" flat
+          bordered>
+          <template v-slot:body-cell-preview="props">
+            <q-td :props="props">
+              <div class="text-body2" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                {{ props.row.textContent.substring(0, 100) }}...
+              </div>
+              <q-btn flat dense size="sm" icon="visibility" @click="showFullText(props.row)" label="View Full Text" />
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-structure="props">
+            <q-td :props="props">
+              <q-btn flat dense size="sm" icon="account_tree" @click="showStructure(props.row)"
+                :label="`${props.row.pages.length} pages`" />
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-images="props">
+            <q-td :props="props">
+              <div class="text-center">
+                <div class="text-body2">
+                  {{ props.value || 0 }}
+                </div>
+                <q-btn v-if="props.value > 0" flat dense size="sm" icon="image" @click="showImages(props.row)"
+                  :label="`View ${props.value} images`" />
+                <div v-else class="text-grey-5 text-caption">No images</div>
+              </div>
+            </q-td>
+          </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <!-- Full Text Dialog -->
+    <q-dialog v-model="showTextDialog" maximized position="standard">
+      <q-card>
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ selectedPdf?.filename }} - Full Text Content</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="showTextDialog = false" color="grey-8" size="md" />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" style="max-height: 70vh; overflow-y: auto;">
+          <div v-if="selectedPdf" class="q-mb-md">
+            <q-chip icon="article" color="primary" text-color="white">
+              {{ selectedPdf.wordCount.toLocaleString() }} words
+            </q-chip>
+            <q-chip icon="description" color="green" text-color="white">
+              {{ selectedPdf.pages.length }} pages
+            </q-chip>
+            <q-chip icon="schedule" color="orange" text-color="white">
+              ~{{ Math.ceil(selectedPdf.wordCount / 200) }} min read
+            </q-chip>
+          </div>
+
+          <!-- Page-by-page text content -->
+          <div v-if="selectedPdf?.pages">
+            <q-expansion-item v-for="(page, pageIndex) in selectedPdf.pages" :key="pageIndex"
+              :label="`Page ${page.pageNumber} (${page.wordCount} words)`"
+              :caption="`${page.content.substring(0, 100)}...`" class="q-mb-sm">
+              <q-card>
+                <q-card-section>
+                  <div class="text-body1 q-pa-md"
+                    style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; border-radius: 4px;">
+                    {{ page.content }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </q-expansion-item>
+          </div>
+
+          <!-- Fallback for combined text content -->
+          <div v-else class="text-body1 q-pa-md" style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace;">
+            {{ selectedPdf?.textContent }}
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Structure Dialog -->
+    <q-dialog v-model="showStructureDialog" maximized position="standard">
+      <q-card>
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ selectedPdf?.filename }} - Page Structure</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="showStructureDialog = false" color="grey-8" size="md" />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div v-if="selectedPdf">
+            <q-list separator>
+              <q-item v-for="(page, index) in selectedPdf.pages" :key="index">
+                <q-item-section avatar>
+                  <q-avatar color="primary" text-color="white">
+                    {{ index + 1 }}
+                  </q-avatar>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Page {{ index + 1 }}</q-item-label>
+                  <q-item-label caption>
+                    {{ page.wordCount }} words | {{ page.content.length }} characters
+                  </q-item-label>
+                  <q-item-label class="q-mt-sm">
+                    <div class="q-pa-sm rounded-borders" style="max-height: 100px; overflow-y: auto;">
+                      {{ page.content.substring(0, 300) }}...
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Images Dialog -->
+    <q-dialog v-model="showImagesDialog" maximized position="standard">
+      <q-card>
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ selectedPdf?.filename }} - Extracted Images</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="showImagesDialog = false" color="grey-8" size="md" />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div v-if="selectedPdf">
+            <div class="text-subtitle1 q-mb-md">
+              Total Images Found: {{selectedPdf.pages.reduce((count, page) => count +
+                page.extractedImages.length,
+                0)
+              }}
+            </div>
+
+            <div v-for="(page, pageIndex) in selectedPdf.pages" :key="pageIndex" class="q-mb-xl">
+              <div v-if="page.extractedImages.length > 0">
+                <q-separator class="q-mb-md" />
+                <div class="text-h6 q-mb-md">
+                  <q-icon name="article" class="q-mr-sm" />
+                  Page {{ page.pageNumber }} - {{ page.extractedImages.length }} image(s)
+                </div>
+
+                <div class="row q-gutter-md">
+                  <div v-for="(image, imageIndex) in page.extractedImages" :key="imageIndex"
+                    class="col-12 col-md-6 col-lg-4">
+                    <q-card flat bordered>
+                      <q-card-section class="text-center">
+                        <div class="text-subtitle2 q-mb-sm">
+                          Image {{ imageIndex + 1 }}
+                        </div>
+                        <img :src="image.thumbnail" :alt="image.description || 'Extracted image'"
+                          style="max-width: 100%; max-height: 300px; border-radius: 4px;" class="q-mb-sm" />
+                        <div class="text-caption text-grey-7">
+                          <div>Size: {{ Math.round(image.position.width) }} × {{
+                            Math.round(image.position.height) }} px
+                          </div>
+                          <div>Format: {{ image.format.toUpperCase() }}</div>
+                          <div>Data Size: {{ (image.size / 1024).toFixed(1) }} KB</div>
+                          <div v-if="image.description" class="q-mt-xs">{{ image.description
+                          }}</div>
+                        </div>
+                        <q-btn flat size="sm" icon="download" label="Download"
+                          @click="downloadImage(image, pageIndex, imageIndex)" class="q-mt-sm" />
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="selectedPdf.pages.every(page => page.extractedImages.length === 0)" class="text-center q-py-xl">
+              <q-icon name="image_not_supported" size="64px" class="text-grey-5" />
+              <div class="text-h6 text-grey-6 q-mt-md">No Images Found</div>
+              <div class="text-body2 text-grey-5">
+                This PDF doesn't contain any significant images that meet our extraction criteria.
+              </div>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
