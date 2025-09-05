@@ -1,0 +1,562 @@
+<template>
+  <q-form
+    @submit="onSubmit"
+    @reset="onReset"
+    class="q-gutter-md"
+  >
+    <!-- Content Type Selection -->
+    <div class="row q-gutter-md">
+      <div class="col-12">
+        <q-select
+          v-model="formData.type"
+          :options="contentTypeOptions"
+          option-value="value"
+          option-label="label"
+          label="Content Type"
+          emit-value
+          map-options
+          outlined
+          :rules="[val => !!val || 'Please select a content type']"
+          @update:model-value="onTypeChange"
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section avatar>
+                <q-icon :name="scope.opt.icon" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ scope.opt.label }}</q-item-label>
+                <q-item-label caption>{{ scope.opt.description }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
+      </div>
+    </div>
+
+    <!-- Basic Information -->
+    <div class="row q-gutter-md">
+      <div class="col-12 col-md-8">
+        <q-input
+          v-model="formData.title"
+          label="Title"
+          outlined
+          :rules="[val => !!val || 'Title is required']"
+          :placeholder="getTitlePlaceholder()"
+        />
+      </div>
+      <div class="col-12 col-md-4">
+        <q-select
+          v-model="formData.priority"
+          :options="priorityOptions"
+          option-value="value"
+          option-label="label"
+          label="Priority"
+          emit-value
+          map-options
+          outlined
+        />
+      </div>
+    </div>
+
+    <!-- Category Selection -->
+    <div class="row q-gutter-md">
+      <div class="col-12 col-md-6">
+        <q-select
+          v-model="formData.category"
+          :options="allCategories"
+          label="Category"
+          outlined
+          use-input
+          fill-input
+          hide-selected
+          input-debounce="300"
+          new-value-mode="add-unique"
+          :rules="[val => !!val || 'Category is required']"
+          @filter="filterCategories"
+          @new-value="addNewCategory"
+        >
+          <template v-slot:prepend>
+            <q-icon name="label" />
+          </template>
+          <template v-slot:hint>
+            Type to search existing categories or create a new one
+          </template>
+        </q-select>
+      </div>
+      <div class="col-12 col-md-6" v-if="showTargetIssue">
+        <q-input
+          v-model="formData.targetIssue"
+          label="Target Newsletter Issue (Optional)"
+          outlined
+          placeholder="e.g., 2025 Summer Issue"
+        />
+      </div>
+    </div>
+
+    <!-- Type-Specific Metadata -->
+    <div v-if="formData.type" class="q-mt-md">
+      <q-separator class="q-mb-md" />
+      <h6 class="q-mt-none q-mb-md">{{ getMetadataTitle() }}</h6>
+
+      <component
+        :is="getMetadataComponent()"
+        v-model="formData.metadata"
+        :content-type="formData.type"
+      />
+    </div>
+
+    <!-- Rich Text Content -->
+    <div class="q-mt-md">
+      <q-separator class="q-mb-md" />
+      <h6 class="q-mt-none q-mb-md">Content</h6>
+
+      <RichTextEditor
+        v-model="formData.content"
+        :placeholder="getContentPlaceholder()"
+        min-height="300px"
+      />
+    </div>
+
+    <!-- External Media Attachments -->
+    <div class="q-mt-md">
+      <q-separator class="q-mb-md" />
+      <h6 class="q-mt-none q-mb-md">Images & Media</h6>
+      <p class="text-caption text-grey-7 q-mb-md">
+        We recommend hosting images on Google Photos or Google Drive to keep costs low and maintain quality.
+      </p>
+
+      <ExternalImageUpload
+        v-model="formData.attachments"
+        :max-attachments="10"
+      />
+    </div>
+
+    <!-- Form Actions -->
+    <div class="row q-gutter-md q-mt-lg">
+      <div class="col-12 col-sm-auto">
+        <q-btn
+          type="submit"
+          color="primary"
+          :loading="submitting"
+          :disable="!isFormValid"
+        >
+          <q-icon name="send" class="q-mr-sm" />
+          Submit for Review
+        </q-btn>
+      </div>
+      <div class="col-12 col-sm-auto">
+        <q-btn
+          type="button"
+          color="grey-7"
+          outline
+          @click="saveDraft"
+          :loading="savingDraft"
+          :disable="!formData.title"
+        >
+          <q-icon name="save" class="q-mr-sm" />
+          Save Draft
+        </q-btn>
+      </div>
+      <div class="col-12 col-sm-auto">
+        <q-btn
+          type="reset"
+          color="grey-7"
+          flat
+          :disable="submitting || savingDraft"
+        >
+          Reset
+        </q-btn>
+      </div>
+    </div>
+
+    <!-- Preview Button -->
+    <div class="row q-mt-md">
+      <div class="col-12">
+        <q-btn
+          color="info"
+          outline
+          icon="preview"
+          label="Preview"
+          @click="showPreview = true"
+          :disable="!formData.title || !formData.content"
+        />
+      </div>
+    </div>
+
+    <!-- Preview Dialog -->
+    <ContentPreview
+      v-model="showPreview"
+      :content="previewContent"
+    />
+  </q-form>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { useQuasar } from 'quasar';
+import { contentSubmissionService } from '../../services/content-submission.service';
+import type {
+  ContentType,
+  ContentSubmissionData,
+  BaseContentItem,
+} from '../../types/core/content.types';
+
+// Import components (these will be created next)
+import RichTextEditor from './RichTextEditor.vue';
+import ExternalImageUpload from './ExternalImageUpload.vue';
+import ContentPreview from './ContentPreview.vue';
+import ArticleMetadataFields from './metadata/ArticleMetadataFields.vue';
+import EventMetadataFields from './metadata/EventMetadataFields.vue';
+import ProjectMetadataFields from './metadata/ProjectMetadataFields.vue';
+import ClassifiedMetadataFields from './metadata/ClassifiedMetadataFields.vue';
+import PhotoStoryMetadataFields from './metadata/PhotoStoryMetadataFields.vue';
+import AnnouncementMetadataFields from './metadata/AnnouncementMetadataFields.vue';
+
+interface Props {
+  editMode?: boolean;
+  existingContent?: BaseContentItem;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  editMode: false,
+});
+
+const emit = defineEmits<{
+  submitted: [contentId: string];
+  draftSaved: [contentId: string];
+  cancelled: [];
+}>();
+
+const $q = useQuasar();
+
+// Form state
+const formData = ref<ContentSubmissionData>({
+  type: 'article',
+  title: '',
+  content: '',
+  category: '',
+  priority: 'medium',
+  targetIssue: '',
+  metadata: {},
+  attachments: [],
+});
+
+const submitting = ref(false);
+const savingDraft = ref(false);
+const showPreview = ref(false);
+const showTargetIssue = ref(true);
+
+// Categories
+const predefinedCategories = ref<string[]>([]);
+const userDefinedCategories = ref<string[]>([]);
+const filteredCategories = ref<string[]>([]);
+
+// Content type options
+const contentTypeOptions = [
+  {
+    value: 'article',
+    label: 'Article',
+    icon: 'article',
+    description: 'General articles, stories, and written content',
+  },
+  {
+    value: 'event',
+    label: 'Event',
+    icon: 'event',
+    description: 'Community events, meetings, and activities',
+  },
+  {
+    value: 'project',
+    label: 'Project',
+    icon: 'engineering',
+    description: 'Community projects and initiatives',
+  },
+  {
+    value: 'announcement',
+    label: 'Announcement',
+    icon: 'campaign',
+    description: 'Official announcements and notices',
+  },
+  {
+    value: 'classified',
+    label: 'Classified',
+    icon: 'local_offer',
+    description: 'For sale, wanted, services, and housing',
+  },
+  {
+    value: 'photo_story',
+    label: 'Photo Story',
+    icon: 'photo_library',
+    description: 'Photo collections with stories',
+  },
+];
+
+const priorityOptions = [
+  { value: 'low', label: 'Low Priority' },
+  { value: 'medium', label: 'Medium Priority' },
+  { value: 'high', label: 'High Priority' },
+];
+
+// Computed properties
+const allCategories = computed(() => [
+  ...predefinedCategories.value,
+  ...userDefinedCategories.value,
+].filter(Boolean));
+
+const isFormValid = computed(() => {
+  return !!(
+    formData.value.type &&
+    formData.value.title &&
+    formData.value.content &&
+    formData.value.category
+  );
+});
+
+const previewContent = computed((): BaseContentItem => ({
+  id: 'preview',
+  type: formData.value.type,
+  title: formData.value.title,
+  author: {
+    uid: 'current-user',
+    displayName: 'You',
+    email: '',
+  },
+  content: formData.value.content,
+  status: 'draft',
+  metadata: formData.value.metadata,
+  attachments: formData.value.attachments,
+  reviewHistory: [],
+  submittedAt: Date.now(),
+  priority: formData.value.priority,
+  category: formData.value.category,
+  ...(formData.value.targetIssue && { targetIssue: formData.value.targetIssue }),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+}));
+
+// Lifecycle
+onMounted(async () => {
+  await loadCategories();
+
+  if (props.editMode && props.existingContent) {
+    loadExistingContent();
+  } else {
+    initializeNewContent();
+  }
+});
+
+// Watch for type changes to update metadata
+watch(() => formData.value.type, (newType) => {
+  if (newType) {
+    formData.value.metadata = contentSubmissionService.createMetadataTemplate(newType);
+  }
+});
+
+// Methods
+async function loadCategories() {
+  try {
+    predefinedCategories.value = contentSubmissionService.getPredefinedCategories();
+    userDefinedCategories.value = await contentSubmissionService.getUserDefinedCategories();
+    filteredCategories.value = allCategories.value;
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load categories',
+    });
+  }
+}
+
+function loadExistingContent() {
+  if (!props.existingContent) return;
+
+  const content = props.existingContent;
+  formData.value = {
+    type: content.type,
+    title: content.title,
+    content: content.content,
+    category: content.category,
+    priority: content.priority,
+    targetIssue: content.targetIssue || '',
+    metadata: content.metadata,
+    attachments: content.attachments,
+  };
+}
+
+function initializeNewContent() {
+  formData.value.metadata = contentSubmissionService.createMetadataTemplate(formData.value.type);
+}
+
+function onTypeChange(newType: ContentType) {
+  formData.value.metadata = contentSubmissionService.createMetadataTemplate(newType);
+}
+
+function getTitlePlaceholder(): string {
+  switch (formData.value.type) {
+    case 'article':
+      return 'e.g., "Summer Activities at the Lake"';
+    case 'event':
+      return 'e.g., "Annual Community BBQ"';
+    case 'project':
+      return 'e.g., "Dock Renovation Project"';
+    case 'announcement':
+      return 'e.g., "Important Lake Safety Notice"';
+    case 'classified':
+      return 'e.g., "Kayak for Sale - Excellent Condition"';
+    case 'photo_story':
+      return 'e.g., "Wildlife at Conashaugh Lakes"';
+    default:
+      return 'Enter a descriptive title';
+  }
+}
+
+function getContentPlaceholder(): string {
+  switch (formData.value.type) {
+    case 'article':
+      return 'Share your story, thoughts, or experiences with the community...';
+    case 'event':
+      return 'Describe the event details, what to expect, and how to participate...';
+    case 'project':
+      return 'Explain the project goals, progress, and how residents can get involved...';
+    case 'announcement':
+      return 'Provide important information that the community needs to know...';
+    case 'classified':
+      return 'Describe the item or service, including condition, price, and contact details...';
+    case 'photo_story':
+      return 'Tell the story behind your photos...';
+    default:
+      return 'Write your content here...';
+  }
+}
+
+function getMetadataTitle(): string {
+  switch (formData.value.type) {
+    case 'article':
+      return 'Article Details';
+    case 'event':
+      return 'Event Information';
+    case 'project':
+      return 'Project Details';
+    case 'announcement':
+      return 'Announcement Settings';
+    case 'classified':
+      return 'Listing Details';
+    case 'photo_story':
+      return 'Photo Information';
+    default:
+      return 'Additional Information';
+  }
+}
+
+function getMetadataComponent() {
+  switch (formData.value.type) {
+    case 'article':
+      return ArticleMetadataFields;
+    case 'event':
+      return EventMetadataFields;
+    case 'project':
+      return ProjectMetadataFields;
+    case 'announcement':
+      return AnnouncementMetadataFields;
+    case 'classified':
+      return ClassifiedMetadataFields;
+    case 'photo_story':
+      return PhotoStoryMetadataFields;
+    default:
+      return 'div';
+  }
+}
+
+function filterCategories(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    if (val === '') {
+      filteredCategories.value = allCategories.value;
+    } else {
+      const needle = val.toLowerCase();
+      filteredCategories.value = allCategories.value.filter(
+        category => category.toLowerCase().includes(needle)
+      );
+    }
+  });
+}
+
+function addNewCategory(val: string, done: (item?: string) => void) {
+  if (val.length > 0 && !allCategories.value.includes(val)) {
+    userDefinedCategories.value.push(val);
+    done(val);
+  } else {
+    done();
+  }
+}
+
+async function onSubmit() {
+  if (!isFormValid.value) return;
+
+  submitting.value = true;
+  try {
+    const contentId = await contentSubmissionService.submitContent(formData.value);
+
+    $q.notify({
+      type: 'positive',
+      message: 'Content submitted successfully! It will be reviewed by our editorial team.',
+      timeout: 3000,
+    });
+
+    emit('submitted', contentId);
+    onReset();
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to submit content',
+    });
+  } finally {
+    submitting.value = false;
+  }
+}
+
+function saveDraft() {
+  if (!formData.value.title) return;
+
+  savingDraft.value = true;
+  try {
+    // For now, just show a notification - draft functionality can be implemented later
+    $q.notify({
+      type: 'info',
+      message: 'Draft saved locally',
+    });
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to save draft',
+    });
+  } finally {
+    savingDraft.value = false;
+  }
+}
+
+function onReset() {
+  formData.value = {
+    type: 'article',
+    title: '',
+    content: '',
+    category: '',
+    priority: 'medium',
+    targetIssue: '',
+    metadata: {},
+    attachments: [],
+  };
+  initializeNewContent();
+}
+</script>
+
+<style scoped>
+.q-form {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+h6 {
+  color: var(--q-primary);
+  font-weight: 600;
+}
+</style>

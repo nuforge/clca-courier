@@ -85,3 +85,209 @@ export type ContentCategory = 'news' | 'announcement' | 'event' | 'classified' |
  * Content status for content management workflows
  */
 export type ContentStatus = 'draft' | 'published' | 'archived' | 'featured';
+
+/**
+ * Unified Content Submission System
+ * Flexible base structure for all user-generated content
+ */
+
+/**
+ * Review status for iterative workflow
+ */
+export type ReviewStatus =
+  | 'draft' // Author working
+  | 'submitted' // Ready for review
+  | 'under_review' // Being reviewed
+  | 'needs_revision' // Feedback provided, author revising
+  | 'approved' // Ready for publication
+  | 'rejected' // Not suitable
+  | 'published'; // Live in newsletter
+
+/**
+ * Content types for unified submission system
+ */
+export type ContentType =
+  | 'article'
+  | 'event'
+  | 'project'
+  | 'announcement'
+  | 'classified'
+  | 'photo_story';
+
+/**
+ * Review entry for iterative feedback
+ */
+export interface ReviewEntry {
+  id: string;
+  reviewerId: string;
+  reviewerName: string;
+  timestamp: number; // Unix timestamp
+  status: ReviewStatus;
+  feedback?: string;
+  section?: string; // Which part of content (for modular review)
+}
+
+/**
+ * Content attachment with external hosting preference
+ */
+export interface ContentAttachment {
+  id: string;
+  type: 'external_image' | 'external_video' | 'firebase_image' | 'firebase_pdf';
+
+  // External hosting (preferred for cost efficiency)
+  externalUrl?: string;
+  hostingProvider?: 'google_photos' | 'google_drive' | 'instagram' | 'facebook' | 'other';
+
+  // Firebase storage (fallback)
+  filename?: string;
+  firebaseUrl?: string;
+  thumbnailUrl?: string;
+
+  // Common properties
+  caption?: string;
+  alt?: string;
+  isUserHosted: boolean; // True for external, false for Firebase
+}
+
+/**
+ * Author information
+ */
+export interface ContentAuthor {
+  uid: string;
+  displayName: string;
+  email: string;
+  avatar?: string;
+}
+
+/**
+ * Base content item for unified submission system
+ * All submissions inherit from this flexible structure
+ */
+export interface BaseContentItem {
+  id: string;
+  type: ContentType;
+  title: string;
+  author: ContentAuthor;
+  content: string; // Rich text/HTML content
+  status: ReviewStatus;
+
+  // Flexible metadata that adapts to content type
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: Record<string, any>;
+
+  // Media attachments with external hosting preference
+  attachments: ContentAttachment[];
+
+  // Iterative workflow tracking
+  reviewHistory: ReviewEntry[];
+  submittedAt: number; // Unix timestamp
+  lastReviewedAt?: number;
+  publishedAt?: number;
+
+  // Newsletter integration
+  targetIssue?: string;
+  priority: 'low' | 'medium' | 'high';
+  category: string; // User-defined with smart defaults
+
+  // Timestamps
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Type-specific metadata structures
+ */
+
+/**
+ * Article metadata (basic content)
+ */
+export interface ArticleMetadata {
+  subtitle?: string;
+  readTime?: number; // estimated minutes
+  tags?: string[];
+}
+
+/**
+ * Event metadata (date/time/location specific)
+ */
+export interface EventMetadata {
+  startDate: number; // Unix timestamp
+  endDate?: number;
+  location: string;
+  registrationRequired: boolean;
+  contactInfo?: string;
+  maxAttendees?: number;
+  currentAttendees?: number;
+}
+
+/**
+ * Project metadata (progress and involvement)
+ */
+export interface ProjectMetadata {
+  projectStatus: 'planning' | 'in_progress' | 'completed';
+  involvedResidents?: string[];
+  budget?: number;
+  completionDate?: number; // Unix timestamp
+  startDate?: number;
+  progressPercentage?: number;
+}
+
+/**
+ * Classified metadata (buying/selling)
+ */
+export interface ClassifiedMetadata {
+  price?: number;
+  category: 'for_sale' | 'wanted' | 'services' | 'housing';
+  contactMethod: 'email' | 'phone' | 'both';
+  expirationDate?: number; // Unix timestamp
+  condition?: 'new' | 'like_new' | 'good' | 'fair' | 'poor';
+  location?: string;
+}
+
+/**
+ * Photo story metadata (visual content)
+ */
+export interface PhotoStoryMetadata {
+  photographerName?: string;
+  photographyDate?: number; // Unix timestamp
+  location?: string;
+  cameraInfo?: string;
+  story?: string; // Background story about the photos
+}
+
+/**
+ * Announcement metadata (official communications)
+ */
+export interface AnnouncementMetadata {
+  urgency: 'low' | 'medium' | 'high' | 'urgent';
+  expirationDate?: number; // Unix timestamp
+  affectedAreas?: string[]; // Lake sections, streets, etc.
+  contactPerson?: string;
+  actionRequired?: boolean;
+}
+
+/**
+ * Union type for all metadata types
+ */
+export type ContentMetadata =
+  | ArticleMetadata
+  | EventMetadata
+  | ProjectMetadata
+  | ClassifiedMetadata
+  | PhotoStoryMetadata
+  | AnnouncementMetadata;
+
+/**
+ * Content submission form data interface
+ */
+export interface ContentSubmissionData {
+  type: ContentType;
+  title: string;
+  content: string;
+  category: string;
+  priority: 'low' | 'medium' | 'high';
+  targetIssue?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: Record<string, any>;
+  attachments: ContentAttachment[];
+}
