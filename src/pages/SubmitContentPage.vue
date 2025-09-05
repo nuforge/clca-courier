@@ -60,8 +60,8 @@
         <q-separator class="q-mb-lg" />
         <h5 class="q-mt-none q-mb-md">Need Help?</h5>
 
-        <div class="row q-gutter-lg">
-          <div class="col-12 col-md-4">
+        <div class="row">
+          <div class="col-12 col-md-4 q-pa-lg">
             <q-card flat bordered class="help-card">
               <q-card-section>
                 <div class="text-center">

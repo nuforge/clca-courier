@@ -1,6 +1,7 @@
 # 🚨 CRITICAL DEVELOPMENT RULES - DO NOT VIOLATE 🚨
 
 **CREATED:** August 17, 2025  
+**LAST UPDATED:** September 5, 2025  
 **PURPOSE:** Permanent record of user-enforced development rules  
 **PRIORITY:** HIGHEST - These rules override all other considerations
 
@@ -43,7 +44,20 @@
 - **IMPACT**: All styling must respect user's chosen light/dark theme
 - **ADDED**: September 4, 2025 - After PDF tool theme conflicts
 
-### 4. PATH ASSUMPTIONS 🚫
+### 4. RESPONSIVE LAYOUT GUTTER VIOLATIONS 🚫
+
+- **RULE**: NEVER USE `q-gutter-*` CLASSES WITH PRECISE COLUMN LAYOUTS
+- **WHY**: User experienced consistent column overflow: "4 columns will have 3 cols on one row and the fourth on the next"
+- **ROOT CAUSE**: `q-gutter` classes add margin that breaks 12-column grid math on widescreen monitors
+- **EXAMPLES**:
+  - ❌ **WRONG**: `<div class="row q-gutter-md"><div class="col-12 col-md-6">`
+  - ❌ **WRONG**: `<div class="row q-gutter-lg"><div class="col-12 col-sm-4">`
+  - ✅ **CORRECT**: `<div class="row"><div class="col-12 col-md-6 q-pa-md">`
+  - ✅ **CORRECT**: `<div class="row"><div class="col-12 col-sm-4 q-pa-md">`
+- **IMPACT**: All responsive layouts must use padding-based spacing instead of margin-based gutters
+- **ADDED**: September 5, 2025 - After systematic site-wide responsive layout fixes
+
+### 5. PATH ASSUMPTIONS 🚫
 
 - **RULE**: ALWAYS VERIFY BEFORE IMPLEMENTING
 - **WHY**: User was frustrated: "SHOULDN'T YOU UFKCING CHECK OR KNOW ALL PATHING! ARE YOU JUST GUESSING!?"

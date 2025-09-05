@@ -17,13 +17,13 @@
 
               <!-- Service Statistics -->
               <div v-if="hybridNewsletters.serviceStats.value" class="q-mt-md">
-                <div class="row q-gutter-md text-center">
-                  <div class="col">
+                <div class="row text-center">
+                  <div class="col q-pa-md">
                     <div class="text-h6 text-primary">{{
                       hybridNewsletters.serviceStats.value.totalNewsletters }}</div>
                     <div class="text-caption">Total Issues</div>
                   </div>
-                  <div class="col">
+                  <div class="col q-pa-md">
                     <div class="text-h6 text-positive">{{
                       hybridNewsletters.serviceStats.value.sourceCounts.hybrid }}</div>
                     <div class="text-caption">Multiple Sources</div>
@@ -64,8 +64,8 @@
               </div>
 
               <!-- Main Search Bar -->
-              <div class="row q-gutter-md q-mb-md">
-                <div class="col-12 col-md-8">
+              <div class="row q-mb-md">
+                <div class="col-12 col-md-8 q-pa-md">
                   <q-input v-model="searchQuery"
                     :label="useAdvancedSearchMode ? 'Search inside PDFs by title, content, or tags...' : 'Search newsletters by title, filename, or tags...'"
                     outlined dense :class="{ 'bg-grey-1': !siteStore.isDarkMode, 'bg-grey-9': siteStore.isDarkMode }"
@@ -621,4 +621,3 @@ onMounted(() => {
   min-height: 200px;
 }
 </style>
-

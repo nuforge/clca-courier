@@ -1,8 +1,8 @@
 <template>
-  <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
+  <q-form @submit="onSubmit" @reset="onReset">
     <!-- Content Type Selection -->
-    <div class="row q-gutter-md">
-      <div class="col-12">
+    <div class="row">
+      <div class="col-12 q-pa-md">
         <q-select v-model="formData.type" :options="contentTypeOptions" option-value="value" option-label="label"
           label="Content Type" emit-value map-options outlined :rules="[val => !!val || 'Please select a content type']"
           @update:model-value="onTypeChange">
@@ -22,20 +22,20 @@
     </div>
 
     <!-- Basic Information -->
-    <div class="row q-gutter-md">
-      <div class="col-12 col-md-8">
+    <div class="row">
+      <div class="col-12 col-md-8 q-pa-md">
         <q-input v-model="formData.title" label="Title" outlined :rules="[val => !!val || 'Title is required']"
           :placeholder="getTitlePlaceholder()" />
       </div>
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-4 q-pa-md">
         <q-select v-model="formData.priority" :options="priorityOptions" option-value="value" option-label="label"
           label="Priority" emit-value map-options outlined />
       </div>
     </div>
 
     <!-- Category Selection -->
-    <div class="row q-gutter-md">
-      <div class="col-12 col-md-6 col-lg-6">
+    <div class="row">
+      <div class="col-12 col-md-6 col-lg-6 q-pa-md">
         <q-select v-model="formData.category" :options="allCategories" label="Category" outlined use-input fill-input
           hide-selected input-debounce="300" new-value-mode="add-unique"
           :rules="[val => !!val || 'Category is required']" @filter="filterCategories" @new-value="addNewCategory">
@@ -47,7 +47,7 @@
           </template>
         </q-select>
       </div>
-      <div class="col-12 col-md-6 col-lg-6" v-if="showTargetIssue">
+      <div class="col-12 col-md-6 col-lg-6 q-pa-md" v-if="showTargetIssue">
         <q-input v-model="formData.targetIssue" label="Target Newsletter Issue (Optional)" outlined
           placeholder="e.g., 2025 Summer Issue" />
       </div>
@@ -81,21 +81,21 @@
     </div>
 
     <!-- Form Actions -->
-    <div class="row q-gutter-md q-mt-lg">
-      <div class="col-12 col-sm-auto">
+    <div class="row q-mt-lg">
+      <div class="col-12 col-sm-auto q-pa-md">
         <q-btn type="submit" color="primary" :loading="submitting" :disable="!isFormValid">
           <q-icon name="send" class="q-mr-sm" />
           Submit for Review
         </q-btn>
       </div>
-      <div class="col-12 col-sm-auto">
+      <div class="col-12 col-sm-auto q-pa-md">
         <q-btn type="button" color="grey-7" outline @click="saveDraft" :loading="savingDraft"
           :disable="!formData.title">
           <q-icon name="save" class="q-mr-sm" />
           Save Draft
         </q-btn>
       </div>
-      <div class="col-12 col-sm-auto">
+      <div class="col-12 col-sm-auto q-pa-md">
         <q-btn type="reset" color="grey-7" flat :disable="submitting || savingDraft">
           Reset
         </q-btn>
@@ -104,7 +104,7 @@
 
     <!-- Preview Button -->
     <div class="row q-mt-md">
-      <div class="col-12">
+      <div class="col-12 q-pa-md">
         <q-btn color="info" outline icon="preview" label="Preview" @click="showPreview = true"
           :disable="!formData.title || !formData.content" />
       </div>
