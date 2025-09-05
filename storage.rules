@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserProfile() {
+      return firestore.get(/databases/(default)/documents/userProfiles/$(request.auth.uid));
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && getUserProfile().data.role == role;
+    }
+    
+    function hasAnyRole(roles) {
+      return isAuthenticated() && getUserProfile().data.role in roles;
+    }
+    
+    function isEditor() {
+      return hasAnyRole(['editor', 'admin']);
+    }
+    
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // Newsletter PDFs - public read, editor write
+    match /newsletters/{allPaths=**} {
+      allow read: if true; // Public access to published newsletters
+      allow write: if isEditor(); // Only editors can upload/manage newsletters
+    }
+
+    // User uploads - authenticated users can upload their own files
+    match /user-uploads/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && 
+                     (request.auth.uid == userId || isEditor());
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // General user uploads folder (legacy)
+    match /user-uploads/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Thumbnails - public read, system write
+    match /thumbnails/{allPaths=**} {
+      allow read: if true; // Public access to thumbnails
+      allow write: if isAuthenticated(); // Any authenticated user can generate thumbnails
+    }
+
+    // Temporary files - authenticated users only, limited access
+    match /temp/{userId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Admin-only areas
+    match /admin/{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

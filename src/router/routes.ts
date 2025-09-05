@@ -36,6 +36,10 @@ const routes: RouteRecordRaw[] = [
         path: '/google-drive-content',
         component: () => import('pages/GoogleDriveContentDashboard.vue'),
       },
+      {
+        path: '/firebase-demo',
+        component: () => import('pages/FirebaseDemoPage.vue'),
+      },
     ],
   },
 

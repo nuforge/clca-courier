@@ -1,6 +1,26 @@
-# The Courier (CLCA Courier)
+# The Courier @ Conashaugh Lakes 🚀
 
-Community newsletter and information platform for Conashaugh Lakes.
+A modern Vue 3 + Quasar application for managing and distributing the CLCA community newsletter with **Firebase backend integration**.
+
+## 🌟 Key Features
+
+### Core Functionality
+
+- 📰 **Newsletter Archive & Search** - Complete digital archive with advanced search
+- 📁 **Dual PDF Viewer** - PDFTron WebViewer & PDF.js integration
+- 🗺️ **Interactive Community Map** - Google Maps with lot visualization
+- 📧 **Content Submission System** - User-friendly submission workflow
+- 🔍 **Advanced Search & Filtering** - Find content across all newsletters
+- 📱 **Responsive Design** - Optimized for all devices
+
+### 🔥 Firebase Integration (NEW!)
+
+- 🔐 **Multi-Provider Authentication** - Google, Facebook, Twitter, GitHub OAuth
+- 📊 **Real-time Database** - Firestore for newsletters, user content, profiles
+- 📁 **Cloud Storage** - Firebase Storage for PDFs and user uploads
+- 👥 **User Management** - Role-based access (Reader, Contributor, Editor, Admin)
+- ✍️ **Content Workflow** - Submission → Review → Approval → Publication
+- 🔔 **Real-time Updates** - Live notifications and collaborative features
 
 ## 🚨 CRITICAL DEVELOPMENT RULES
 
@@ -15,17 +35,7 @@ Community newsletter and information platform for Conashaugh Lakes.
 - ✅ **Dynamic Content Discovery**: Generate content from actual files using manifest system
 - ✅ **Path Verification**: Check existence before referencing any files or directories
 - ✅ **History Mode Only**: Application runs in history mode routing
-
-## 📚 Documentation
-
-Complete documentation is available in the [`docs/`](./docs/) directory:
-
-- **[📖 Documentation Index](./docs/README.md)** - Start here for all documentation
-- **[🔧 Development Guide](./docs/development/README.md)** - Setup, standards, and workflow
-- **[🔌 Google Drive Integration](./docs/integrations/google-drive.md)** - Cloud storage setup
-- **[📄 PDF Viewer Integration](./docs/integrations/pdf-viewer.md)** - Document viewing system
-- **[🗺️ Interactive Map](./docs/features/interactive-map.md)** - Community mapping features
-- **[🎨 User Interface](./docs/features/user-interface.md)** - UI components and UX
+- ✅ **Firebase Integration**: Use Firebase services for data and authentication
 
 ## ⚡ Quick Start
 
@@ -33,6 +43,8 @@ Complete documentation is available in the [`docs/`](./docs/) directory:
 
 - Node.js 18+
 - npm or yarn
+- Firebase account
+- Google API credentials
 
 ### Installation
 
@@ -44,15 +56,189 @@ cd clca-courier
 # Install dependencies
 npm install
 
-# Copy environment template
+# Set up Firebase (see docs/firebase-setup-guide.md)
 cp .env.example .env
+# Edit .env with Firebase and Google API keys
 
 # Generate PDF manifest
 node scripts/generate-pdf-manifest.js
 
 # Start development server
 npm run dev
+
+# Test Firebase integration
+# Visit: http://localhost:9000/firebase-demo
 ```
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- **Framework**: Vue 3 with Composition API + Quasar Framework v2
+- **Language**: TypeScript (strict mode)
+- **State**: Pinia stores
+- **Build**: Vite
+
+### Backend & Services
+
+- **Authentication**: Firebase Auth (Multi-provider OAuth)
+- **Database**: Firebase Firestore (NoSQL, real-time)
+- **Storage**: Firebase Storage (PDFs, uploads)
+- **PDF Processing**: PDFTron WebViewer + PDF.js
+- **Maps**: Google Maps API
+- **Legacy**: Google Drive API (migrating to Firebase)
+
+## 📚 Documentation
+
+Complete documentation available in [`docs/`](./docs/):
+
+### Setup & Configuration
+
+- **[📘 Firebase Setup Guide](./docs/firebase-setup-guide.md)** - Complete Firebase setup
+- **[📙 Firebase Migration Guide](./docs/firebase-migration-guide.md)** - Migrate from Google Drive
+- **[📖 Documentation Index](./docs/README.md)** - Start here for all docs
+- **[🔧 Development Guide](./docs/development/README.md)** - Setup and workflow
+
+### Integrations & Features
+
+- **[🔌 Google Drive Integration](./docs/integrations/google-drive.md)** - Legacy cloud storage
+- **[📄 PDF Viewer Integration](./docs/integrations/pdf-viewer.md)** - Document viewing
+- **[🗺️ Interactive Map](./docs/features/interactive-map.md)** - Community mapping
+- **[🎨 User Interface](./docs/features/user-interface.md)** - UI components
+
+### Firebase Documentation
+
+- **[🔥 Firebase Complete Guide](./FIREBASE_COMPLETE.md)** - All Firebase features
+- **[📊 Implementation Summary](./FIREBASE_IMPLEMENTATION_SUMMARY.md)** - Technical overview
+
+## 🚀 Firebase Features
+
+### Authentication System
+
+- **Multi-Provider OAuth**: Google (primary), Facebook, Twitter, GitHub
+- **User Profiles**: Stored in Firestore with roles and permissions
+- **Role-Based Access**: Reader → Contributor → Editor → Admin
+- **Session Management**: Automatic state persistence
+
+### Content Management
+
+- **Newsletter Metadata**: Complete storage and search in Firestore
+- **User-Generated Content**: Article submissions with approval workflow
+- **File Uploads**: Progress tracking and secure storage
+- **Real-time Collaboration**: Live updates for editors
+
+### Security & Performance
+
+- **Production-Ready Security Rules**: Granular access controls
+- **Offline Support**: Built-in persistence and sync
+- **Real-time Updates**: Efficient Firestore listeners
+- **Cost Optimization**: Intelligent caching patterns
+
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable Vue components
+├── pages/              # Route components
+├── services/           # API and business logic
+│   ├── firebase-auth.service.ts      # Authentication
+│   ├── firebase-firestore.service.ts # Database operations
+│   ├── firebase-storage.service.ts   # File storage
+│   └── newsletter-service.ts         # Newsletter management
+├── composables/        # Vue composables
+│   └── useFirebase.ts               # Firebase integration
+├── stores/             # Pinia state management
+├── config/             # Configuration files
+│   └── firebase.config.ts           # Firebase setup
+├── boot/               # Quasar boot files
+│   └── firebase.ts                  # Firebase initialization
+└── utils/              # Helper functions
+
+Firebase Configuration:
+├── firebase.json              # Firebase project config
+├── firestore.rules           # Database security rules
+├── storage.rules             # File storage security rules
+└── firestore.indexes.json    # Database indexes
+```
+
+## 🔧 Available Scripts
+
+```bash
+# Development
+npm run dev              # Start development server with hot reload
+npm run build            # Production build
+npm run build:prod       # High-memory production build
+
+# Code Quality
+npm run lint             # Run ESLint
+npm run format           # Format code with Prettier
+
+# Firebase (after setup)
+firebase emulators:start # Start local Firebase emulators
+firebase deploy          # Deploy to Firebase hosting
+```
+
+## 🚀 Deployment
+
+### Firebase Hosting (Recommended)
+
+```bash
+npm run build
+firebase deploy --only hosting
+```
+
+### Traditional Hosting
+
+```bash
+npm run build
+# Deploy contents of dist/spa/ to your hosting provider
+```
+
+## 🧪 Testing & Demo
+
+- **Firebase Demo Page**: Visit `/firebase-demo` to test all Firebase features
+- **Firebase Emulators**: Local development with `firebase emulators:start`
+- **Build Testing**: `npm run build` verifies production readiness
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Follow development rules in `CRITICAL_DEVELOPMENT_RULES.md`
+4. Test with Firebase emulators
+5. Commit changes: `git commit -m 'Add amazing feature'`
+6. Push to branch: `git push origin feature/amazing-feature`
+7. Open Pull Request
+
+## 📞 Support & Resources
+
+### Getting Help
+
+- 📚 Check comprehensive documentation in `docs/`
+- 🧪 Test features with Firebase demo page at `/firebase-demo`
+- 🔧 Use Firebase Console for debugging
+- 📊 Monitor usage and costs in Firebase Console
+
+### Resources
+
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [Vue 3 Documentation](https://v3.vuejs.org/)
+- [Quasar Framework](https://quasar.dev/)
+
+## 📄 License
+
+This project is proprietary software for the Conashaugh Lakes Community Association.
+
+---
+
+**🚀✨ Ready to launch!** Your CLCA Courier application features a modern, scalable Firebase backend with authentication, real-time database, and secure file storage.
+node scripts/generate-pdf-manifest.js
+
+# Start development server
+
+npm run dev
+
+````
 
 ## 🛠️ Development Commands
 
@@ -63,7 +249,7 @@ npm run dev           # Start dev server with hot reload
 npm run type-check    # TypeScript compilation check
 npm run lint          # ESLint code quality check
 npm run format        # Prettier code formatting
-```
+````
 
 ### Build
 

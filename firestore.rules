@@ -1,0 +1,105 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid));
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && getUserProfile().data.role == role;
+    }
+    
+    function hasAnyRole(roles) {
+      return isAuthenticated() && getUserProfile().data.role in roles;
+    }
+    
+    function isEditor() {
+      return hasAnyRole(['editor', 'admin']);
+    }
+    
+    function isAdmin() {
+      return hasRole('admin');
+    }
+    
+    function isOwner(resourcePath) {
+      return isAuthenticated() && request.auth.uid == resource.data.authorId;
+    }
+
+    // Newsletter metadata collection
+    match /newsletters/{newsletterId} {
+      // Anyone can read published newsletters
+      allow read: if resource.data.isPublished == true;
+      
+      // Only editors and admins can create/update newsletters
+      allow create, update: if isEditor();
+      
+      // Only admins can delete newsletters
+      allow delete: if isAdmin();
+    }
+
+    // User-generated content collection
+    match /userContent/{contentId} {
+      // Users can read their own content, editors can read all
+      allow read: if isAuthenticated() && 
+                     (resource.data.authorId == request.auth.uid || isEditor());
+      
+      // Users can create content (will be pending by default)
+      allow create: if isAuthenticated() && 
+                       request.auth.uid == request.resource.data.authorId;
+      
+      // Users can update their own pending content
+      allow update: if isAuthenticated() && 
+                       (resource.data.authorId == request.auth.uid && 
+                        resource.data.status == 'pending') ||
+                       isEditor();
+      
+      // Only editors can delete content
+      allow delete: if isEditor();
+    }
+
+    // User profiles collection
+    match /userProfiles/{userId} {
+      // Users can read their own profile, editors can read all
+      allow read: if isAuthenticated() && 
+                     (request.auth.uid == userId || isEditor());
+      
+      // Users can create/update their own profile (except role and permissions)
+      allow create, update: if isAuthenticated() && 
+                               request.auth.uid == userId &&
+                               (!('role' in request.resource.data) || 
+                                request.resource.data.role == resource.data.role) &&
+                               (!('permissions' in request.resource.data) || 
+                                request.resource.data.permissions == resource.data.permissions);
+      
+      // Only admins can update roles and permissions
+      allow update: if isAdmin() && request.auth.uid != userId;
+      
+      // Only admins can delete user profiles
+      allow delete: if isAdmin();
+    }
+
+    // Newsletter issues collection (for editorial workflow)
+    match /newsletterIssues/{issueId} {
+      // Anyone can read published issues
+      allow read: if resource.data.status == 'published';
+      
+      // Editors can read all issues
+      allow read: if isEditor();
+      
+      // Only editors can create/update/delete issues
+      allow create, update, delete: if isEditor();
+    }
+
+    // Approval queue collection
+    match /approvalQueue/{queueId} {
+      // Only editors can read/write approval queue
+      allow read, write: if isEditor();
+    }
+  }
+}
