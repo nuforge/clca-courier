@@ -19,12 +19,22 @@ I've successfully integrated Firebase into your CLCA Courier project with a comp
 - **Role-based Access**: Reader, Contributor, Editor, Admin
 - **Session Management**: Automatic state persistence
 
-### 3. **Content Management**
+### 3. **Content Management (Enhanced with Multi-Tier Storage)**
 
-- **Newsletter Metadata**: Full metadata storage in Firestore
-- **PDF Storage**: Secure Firebase Storage with organized folder structure
-- **User-Generated Content**: Submission and approval workflow
-- **Search Functionality**: Full-text search across newsletters
+- **Newsletter Metadata**: Full metadata storage in Firestore with storage tier configuration
+- **Multi-Tier PDF Storage**:
+  - **Firebase Storage**: Web-optimized PDFs and thumbnails for fast delivery
+  - **External Storage**: High-quality PDFs via Backblaze B2/Cloudflare R2 for cost-effective downloads
+- **Smart Storage Routing**: Automatic tier selection based on user actions
+- **User-Generated Content**: Submission and approval workflow with storage optimization
+- **Search Functionality**: Full-text search across newsletters with tier-aware results
+
+### 4. **Cost Optimization Strategy (TENTATIVE)**
+
+- **Storage Architecture**: Dual-tier system separating fast delivery from cheap storage
+- **Provider Selection**: Backblaze B2 (primary) or Cloudflare R2 (secondary) for archives
+- **Cost Savings**: 70-90% reduction in storage costs while maintaining performance
+- **Quality Management**: Web-optimized vs. high-quality versions with user choice
 
 ### 4. **User Workflow Features**
 
@@ -40,18 +50,24 @@ I've successfully integrated Firebase into your CLCA Courier project with a comp
 - `src/config/firebase.config.ts` - Firebase app initialization
 - `src/boot/firebase.ts` - Quasar boot file for Firebase
 
-### Services
+### Services (Enhanced with Multi-Tier Storage)
 
 - `src/services/firebase-auth.service.ts` - Authentication management
-- `src/services/firebase-firestore.service.ts` - Database operations
-- `src/services/firebase-storage.service.ts` - File storage management
+- `src/services/firebase-firestore.service.ts` - Database operations with storage metadata
+- `src/services/firebase-storage.service.ts` - File storage management (Firebase tier)
+- `src/services/firebase-newsletter.service.ts` - Newsletter operations with multi-tier support
+- `src/services/multi-tier-storage.service.ts` - **[PLANNED]** External storage integration (B2/R2)
 
 ### Composables
 
 - `src/composables/useFirebase.ts` - Vue 3 composables for Firebase integration
+- `src/composables/useFirebaseNewsletterArchive.ts` - Newsletter archive with storage optimization
 
-### Pages & Components
+### Pages & Components (Newsletter Archive System)
 
+- `src/pages/FirebaseNewsletterArchivePage.vue` - Main archive with multi-tier support
+- `src/pages/FirebaseNewsletterDetailsPage.vue` - Newsletter details with storage options
+- `src/components/FirebaseNewsletterCard.vue` - Newsletter cards with tier-aware actions
 - `src/pages/FirebaseDemoPage.vue` - Demo page showing all Firebase features
 - Updated routes in `src/router/routes.ts`
 

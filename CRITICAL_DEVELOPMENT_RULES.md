@@ -26,9 +26,11 @@
   - ❌ **WRONG**: Arrays of PDF filenames like `['2024.01-newsletter.pdf', '2024.02-newsletter.pdf']`
   - ❌ **WRONG**: JSON files with issue lists or newsletter data
   - ❌ **WRONG**: Hardcoded file lists in services
-  - ✅ **CORRECT**: Dynamic discovery using pattern matching + HTTP validation
-  - ✅ **CORRECT**: File system scanning and API calls
-- **IMPACT**: All content must be discovered from actual files that exist
+  - ✅ **CORRECT**: Firebase-first data discovery with dynamic content loading
+  - ✅ **CORRECT**: Multi-tier storage with API-driven content management
+  - ✅ **CORRECT**: Real-time Firestore subscriptions for content updates
+- **IMPACT**: All content must be discovered from Firebase services or API endpoints
+- **UPDATED**: September 5, 2025 - Enhanced for Firebase-first multi-tier storage architecture
 
 ### 3. THEME INTERFERENCE 🚫
 
@@ -70,14 +72,52 @@
 
 ---
 
+## 💰 MULTI-TIER STORAGE STRATEGY (TENTATIVE) 💰
+
+### 7. COST-OPTIMIZED PDF STORAGE 💰
+
+- **RULE**: IMPLEMENT MULTI-TIER STORAGE FOR COST EFFICIENCY
+- **WHY**: Separate fast delivery from cheap storage to optimize costs while maintaining performance
+- **ARCHITECTURE**:
+  - **Tier 1 (Firebase Storage)**: Web-optimized PDFs, thumbnails - fast CDN delivery
+  - **Tier 2 (External Storage)**: High-quality PDFs via Backblaze B2/Cloudflare R2 - cheap archive
+  - **Smart Routing**: Automatic tier selection based on user action (view vs. download)
+- **EXAMPLES**:
+  - ✅ **CORRECT**: Web version for viewing (compressed, fast loading)
+  - ✅ **CORRECT**: Archive version for downloading (full quality, cost-effective storage)
+  - ✅ **CORRECT**: Firebase thumbnails for instant preview
+  - ❌ **WRONG**: Single storage tier for all use cases
+  - ❌ **WRONG**: High-quality files for web viewing (slow + expensive)
+- **BENEFITS**: 70-90% cost reduction with maintained user experience
+- **STATUS**: Implementation pending - architecture planned for Phase 1
+
+### 8. STORAGE PROVIDER SELECTION 📦
+
+- **RULE**: PRIORITIZE COST-EFFECTIVE EXTERNAL STORAGE FOR ARCHIVES
+- **RECOMMENDATIONS**:
+  - **Primary**: Backblaze B2 ($0.005/GB/month + $0.01/GB download)
+  - **Secondary**: Cloudflare R2 (FREE egress, $0.015/GB/month storage)
+  - **Alternative**: DigitalOcean Spaces (fixed $5/month for predictable costs)
+- **INTEGRATION**: S3-compatible APIs for seamless Firebase integration
+- **DECISION**: User preference will determine final provider selection
+
+---
+
 ## ✅ MANDATORY PRACTICES ✅
 
 ### DYNAMIC EVERYTHING
 
-- All PDF discovery must use pattern matching + HTTP validation
-- Newsletter loading from actual files in `/public/issues/` directory
-- Content generation from real PDFs, not fake data
-- No hardcoded lists anywhere in the codebase
+- All PDF discovery must use Firebase services with real-time subscriptions
+- Newsletter loading from Firebase Firestore metadata + Storage URLs
+- Content generation from actual Firebase-hosted PDFs and metadata
+- Multi-tier storage routing based on user actions and file optimization
+
+### FIREBASE-FIRST ARCHITECTURE
+
+- All data operations through Firebase services (Firestore, Storage, Functions)
+- Real-time subscriptions for content updates and metadata changes
+- API-agnostic service layer for clean separation of concerns
+- Multi-tier storage integration maintaining Firebase ecosystem benefits
 
 ### VERIFICATION FIRST
 

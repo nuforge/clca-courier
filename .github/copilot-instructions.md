@@ -23,19 +23,21 @@
 - **Backend**: Firebase (Authentication, Firestore, Storage, Functions)
 - **State Management**: Pinia stores (`src/stores/`)
 - **PDF Handling**: PDFTron WebViewer + PDF.js for dual viewer support
+- **Storage Strategy**: Multi-tier architecture (Firebase + External providers)
 
 ### Key Components
 
 - **`MainLayout.vue`**: Base layout with global PDF viewer and search
 - **`GlobalPdfViewer.vue`**: Application-wide PDF viewer dialog component
-- **`newsletter-service.ts`**: PDF management with Firebase Storage integration
-- **`AdvancedIssueArchivePage.vue`**: Main archive with manifest-based discovery
+- **`firebase-newsletter.service.ts`**: PDF management with multi-tier storage integration
+- **`FirebaseNewsletterArchivePage.vue`**: Main archive with Firebase-first architecture
 
 ### Critical Services
 
-- **Firebase Services**: Authentication, Firestore database, Storage, Functions
-- **Newsletter Service**: Firebase Storage-based PDF management with metadata extraction
-- **PDF Metadata Service**: Automatic PDF analysis and thumbnails
+- **Firebase Services**: Authentication, Firestore database, Storage (Tier 1), Functions
+- **Multi-Tier Storage**: Cost-optimized storage with Firebase (fast) + External (cheap) tiers
+- **Newsletter Service**: Firebase-first PDF management with storage optimization
+- **PDF Optimization**: Web-optimized vs. high-quality versions for cost efficiency
 
 ## 🔧 Development Workflows
 
@@ -63,24 +65,49 @@ node scripts/generate-pdf-manifest.js
 
 ## 📝 Code Patterns & Conventions
 
-### PDF Discovery Pattern
+### Firebase-First PDF Management Pattern
 
 ```typescript
-// ✅ CORRECT: Manifest-based discovery
-const manifest = await fetch('/data/pdf-manifest.json').then((r) => r.json());
-const pdfs = manifest.files.map((file) => ({
-  filename: file.filename,
-  url: file.path,
-}));
+// ✅ CORRECT: Firebase-based newsletter discovery with multi-tier storage
+const newsletterService = new FirebaseNewsletterService();
+await newsletterService.initialize();
 
-// ❌ WRONG: Hardcoded arrays
+// Access web-optimized version for viewing
+const webVersion = newsletter.storage.webVersion.downloadUrl;
+
+// Access high-quality version for downloading
+const hqVersion = newsletter.storage.highQualityVersion.downloadUrl;
+
+// ❌ WRONG: Hardcoded arrays or manifest-based discovery
 const pdfs = ['2024.01-newsletter.pdf', '2024.02-newsletter.pdf'];
+```
+
+### Multi-Tier Storage Pattern (TENTATIVE)
+
+```typescript
+// ✅ CORRECT: Cost-optimized storage strategy
+interface NewsletterStorage {
+  webVersion: {
+    // Firebase Storage (fast delivery)
+    downloadUrl: string; // CDN-delivered URL
+    optimized: boolean; // Web-optimized flag
+  };
+  highQualityVersion: {
+    // External storage (cost-effective)
+    provider: 'b2' | 'r2'; // Backblaze B2 or Cloudflare R2
+    downloadUrl: string; // Direct download URL
+    archival: boolean; // Archive quality flag
+  };
+}
+
+// ❌ WRONG: Single-tier expensive storage
+const singleTierUrl = firebaseStorage.getDownloadUrl(highQualityPdf);
 ```
 
 ### Router Configuration
 
 - **History mode only**: Configured in `quasar.config.ts` as `vueRouterMode: 'history'`
-- **Route patterns**: `/archive/:id(\\d+)` for parameterized routes
+- **Route patterns**: `/archive/:id` for Firebase document IDs, `/archive/:id(\\d+)` for legacy routes
 - **Lazy loading**: All routes use dynamic imports for code splitting
 
 ## 🎯 Key Integration Points

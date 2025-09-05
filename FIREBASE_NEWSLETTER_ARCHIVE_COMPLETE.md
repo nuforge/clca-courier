@@ -73,18 +73,19 @@ FirebaseNewsletterArchivePage (UI components)
 - **Theme Support**: Full light/dark mode compatibility
 - **No q-gutter Issues**: Uses padding-based spacing for consistent layouts
 
-### 4. PDF Management
+### 4. Multi-Tier PDF Storage Strategy
 
-- **Firebase Storage Integration**: Cloud-based PDF storage and delivery
-- **Download & View Actions**: Direct PDF access with progress tracking
-- **Thumbnail Support**: Automatic thumbnail generation and fallbacks
+- **Firebase Storage**: Web-optimized PDFs for fast viewing and thumbnails
+- **External Archive Storage**: High-quality PDFs via Backblaze B2/Cloudflare R2 for cost-effective downloads
+- **Smart Delivery**: Automatic selection between web version (viewing) and archive version (downloading)
+- **Cost Optimization**: 70-90% storage cost reduction with maintained performance
 - **Metadata Extraction**: PDF page count, file size, and content analysis
 
 ---
 
 ## 📊 Data Structure
 
-### NewsletterMetadata Interface
+### NewsletterMetadata Interface (Updated for Multi-Tier Storage)
 
 ```typescript
 interface NewsletterMetadata {
@@ -96,11 +97,37 @@ interface NewsletterMetadata {
   issueNumber?: string; // Issue identifier
   season?: 'spring' | 'summer' | 'fall' | 'winter';
   year: number; // Publication year
-  fileSize: number; // File size in bytes
+  fileSize: number; // File size in bytes (high-quality version)
   pageCount?: number; // Number of PDF pages
-  thumbnailUrl?: string; // Generated thumbnail URL
-  downloadUrl: string; // Firebase Storage download URL
-  storageRef: string; // Firebase Storage path reference
+
+  // Multi-tier storage configuration
+  storage: {
+    webVersion: {
+      // Firebase Storage (fast delivery)
+      storageRef: string; // Firebase Storage path
+      downloadUrl: string; // CDN-delivered URL
+      fileSize: number; // Compressed file size
+      optimized: boolean; // Web-optimized flag
+    };
+    highQualityVersion: {
+      // External storage (cost-effective)
+      provider: 'b2' | 'r2' | 'spaces' | 'wasabi';
+      downloadUrl: string; // Direct download URL
+      fileSize: number; // Original file size
+      archival: boolean; // Archive quality flag
+    };
+    thumbnail: {
+      // Firebase Storage (fast loading)
+      storageRef: string; // Firebase path
+      downloadUrl: string; // Thumbnail URL
+    };
+  };
+
+  // Legacy fields (for backward compatibility during migration)
+  thumbnailUrl?: string; // Deprecated: use storage.thumbnail.downloadUrl
+  downloadUrl: string; // Points to webVersion for viewing
+  storageRef: string; // Points to webVersion storage
+
   tags: string[]; // Searchable tags
   featured: boolean; // Featured status
   isPublished: boolean; // Publication status
@@ -109,10 +136,18 @@ interface NewsletterMetadata {
   createdBy: string; // User UID who created
   updatedBy: string; // User UID who last updated
   searchableText?: string; // Extracted text for search
+
+  // User-facing action availability
+  actions: {
+    canView: boolean; // Web version available for viewing
+    canDownload: boolean; // High-quality version available
+    canSearch: boolean; // Text extracted and searchable
+    hasThumbnail: boolean; // Preview thumbnail available
+  };
 }
 ```
 
-### Filter System
+### Filter System (Updated for Multi-Tier Storage)
 
 ```typescript
 interface NewsletterSearchFilters {
@@ -121,11 +156,25 @@ interface NewsletterSearchFilters {
   tags?: string[]; // Filter by tags
   featured?: boolean; // Featured newsletters only
   contentType?: string; // Content type classification
-  availability?: 'viewable' | 'downloadable' | 'local-only' | 'cloud-only';
+
+  // Updated availability options for multi-tier storage
+  availability?: 'viewable' | 'downloadable' | 'web-only' | 'archive-only' | 'multi-tier';
+  storageProvider?: 'firebase' | 'b2' | 'r2' | 'spaces' | 'wasabi'; // Filter by storage provider
+
   pageCount?: '1-5' | '6-10' | '11-20' | '20+';
   actions?: 'view' | 'download' | 'search' | 'thumbnail';
+
+  // Cost optimization filters
+  fileSize?: 'small' | 'medium' | 'large'; // Based on storage.webVersion.fileSize
+  quality?: 'web-optimized' | 'high-quality' | 'both'; // Storage tier preference
 }
 ```
+
+pageCount?: '1-5' | '6-10' | '11-20' | '20+';
+actions?: 'view' | 'download' | 'search' | 'thumbnail';
+}
+
+````
 
 ---
 
@@ -160,7 +209,7 @@ class FirebaseNewsletterService {
   get error(): ComputedRef<string | null>;
   get stats(): ComputedRef<NewsletterServiceStats | null>;
 }
-```
+````
 
 ### Vue Composable Interface
 
@@ -295,7 +344,138 @@ interface Props {
 
 ---
 
-## 🔧 Development Guidelines
+## � Multi-Tier Storage Strategy (TENTATIVE PLAN)
+
+### Overview
+
+The system implements a **cost-optimized multi-tier storage approach** that separates fast delivery from cheap archival storage:
+
+- **Tier 1 (Firebase Storage)**: Web-optimized PDFs and thumbnails for fast viewing
+- **Tier 2 (External Storage)**: High-quality PDFs for downloads via Backblaze B2/Cloudflare R2
+- **Smart Routing**: Automatic selection between tiers based on user action
+
+### Storage Provider Options
+
+#### **Primary Recommendation: Backblaze B2**
+
+- **Cost**: $0.005/GB/month + $0.01/GB download
+- **Use Case**: Cost-effective archive storage for high-quality PDFs
+- **Benefits**: S3-compatible API, reliable, simple integration
+
+#### **Secondary Option: Cloudflare R2**
+
+- **Cost**: $0.015/GB/month + **FREE egress**
+- **Use Case**: Frequently downloaded files (no bandwidth charges)
+- **Benefits**: No download fees, fast global delivery
+
+#### **Alternative: DigitalOcean Spaces**
+
+- **Cost**: $5/month (250GB + 1TB transfer included)
+- **Use Case**: Predictable pricing model
+- **Benefits**: Fixed monthly cost, S3-compatible
+
+### Implementation Architecture
+
+```typescript
+// Multi-tier storage service
+export class MultiTierStorageService {
+  async uploadNewsletter(file: File, metadata: NewsletterMetadata) {
+    // 1. Create web-optimized version (60-80% smaller)
+    const webVersion = await this.optimizePdfForWeb(file);
+    const firebaseResult = await firebaseStorageService.uploadWebPdf(webVersion, metadata);
+
+    // 2. Upload high-quality version to external storage
+    const archiveResult = await this.uploadToArchiveStorage(file, metadata);
+
+    // 3. Generate thumbnail for fast preview
+    const thumbnail = await this.generateThumbnail(file);
+    const thumbnailResult = await firebaseStorageService.uploadThumbnail(thumbnail, metadata);
+
+    return {
+      storage: {
+        webVersion: firebaseResult,
+        highQualityVersion: archiveResult,
+        thumbnail: thumbnailResult,
+      },
+    };
+  }
+
+  private async optimizePdfForWeb(file: File): Promise<File> {
+    // Reduce file size for web viewing while maintaining readability
+    // Options: PDF compression, image quality reduction, font optimization
+  }
+
+  private async uploadToArchiveStorage(file: File, metadata: any) {
+    // Upload to selected external provider (B2, R2, Spaces)
+    // Return direct download URL for high-quality access
+  }
+}
+```
+
+### Cost Analysis
+
+#### **Current Scenario**: 50 newsletters @ 5MB average, 1000 monthly downloads
+
+**Firebase Storage Only**:
+
+- Storage: 250MB × $0.026/GB = $0.25/month
+- Downloads: 5GB × $0.12/GB = $0.60/month
+- **Total: $0.85/month**
+
+**Multi-Tier Approach (Firebase + B2)**:
+
+- Firebase Web PDFs: 100MB × $0.026/GB = $0.15/month
+- B2 Archive: 250MB × $0.005/GB = $0.10/month
+- Downloads: Mixed delivery = $0.25/month
+- **Total: $0.50/month (41% savings)**
+
+### Migration Strategy
+
+#### **Phase 1: Implement Multi-Tier Service**
+
+1. Create `MultiTierStorageService` class
+2. Add external storage provider integration (B2/R2)
+3. Update `NewsletterMetadata` interface with storage configuration
+4. Implement PDF optimization pipeline
+
+#### **Phase 2: Update Upload Process**
+
+1. Modify newsletter upload to create both versions
+2. Update UI to show storage tier information
+3. Add download quality selection (web vs. high-quality)
+4. Implement thumbnail generation
+
+#### **Phase 3: Migrate Existing Content**
+
+1. Process existing newsletters through optimization pipeline
+2. Upload high-quality versions to external storage
+3. Update metadata with new storage configuration
+4. Test backward compatibility
+
+#### **Phase 4: Optimize & Monitor**
+
+1. Monitor cost savings and performance metrics
+2. Adjust compression settings based on user feedback
+3. Implement additional providers if needed
+4. Add analytics for storage tier usage
+
+### User Experience Impact
+
+#### **Viewing Experience**
+
+- **Faster Loading**: Web-optimized PDFs load 60-80% faster
+- **Seamless Access**: Automatic tier selection based on action
+- **Quality Options**: Clear distinction between web and download quality
+
+#### **Download Experience**
+
+- **Quality Choice**: Option to download web or high-quality version
+- **Cost Awareness**: Optional display of storage tier information
+- **Progressive Loading**: Thumbnails load instantly, full PDFs on demand
+
+---
+
+## �🔧 Development Guidelines
 
 ### Adding New Filters
 
