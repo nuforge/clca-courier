@@ -23,7 +23,7 @@ import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
 import { logger } from '../utils/logger';
 
-// Newsletter metadata interface
+// Newsletter metadata interface (Firebase Storage with future flexibility)
 export interface NewsletterMetadata {
   id: string;
   filename: string;
@@ -35,9 +35,36 @@ export interface NewsletterMetadata {
   year: number;
   fileSize: number;
   pageCount?: number;
-  thumbnailUrl?: string;
-  downloadUrl: string;
-  storageRef: string; // Firebase Storage reference
+
+  // Current Firebase Storage implementation
+  downloadUrl: string; // Firebase Storage download URL
+  storageRef: string; // Firebase Storage path reference
+  thumbnailUrl?: string; // Optional thumbnail URL
+
+  // Future-ready storage configuration (optional)
+  storage?: {
+    primary: {
+      // Current: Firebase Storage
+      provider: 'firebase'; // Provider identifier
+      downloadUrl: string; // CDN-delivered URL
+      storageRef: string; // Storage path reference
+      fileSize: number; // File size
+    };
+    thumbnail?: {
+      // Optional thumbnail storage
+      provider: 'firebase'; // Provider identifier
+      downloadUrl: string; // Thumbnail URL
+      storageRef: string; // Thumbnail path
+    };
+    // Reserved for future multi-tier implementation
+    archive?: {
+      provider: 'b2' | 'r2' | 'spaces' | 'wasabi';
+      downloadUrl: string;
+      storageRef: string;
+      fileSize: number;
+    };
+  };
+
   tags: string[];
   featured: boolean;
   isPublished: boolean;
@@ -46,6 +73,14 @@ export interface NewsletterMetadata {
   createdBy: string; // User UID
   updatedBy: string; // User UID
   searchableText?: string; // Extracted PDF text for search
+
+  // Action availability (future-ready)
+  actions: {
+    canView: boolean; // PDF available for viewing
+    canDownload: boolean; // PDF available for download
+    canSearch: boolean; // Text extracted and searchable
+    hasThumbnail: boolean; // Preview thumbnail available
+  };
 }
 
 // User-generated content interface

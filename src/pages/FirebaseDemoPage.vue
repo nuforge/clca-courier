@@ -8,48 +8,22 @@
             <div class="text-h6 q-mb-md">🔐 Firebase Authentication</div>
 
             <div v-if="!auth.isAuthenticated.value" class="q-gutter-sm">
-              <q-btn
-                @click="signInWithGoogle"
-                color="primary"
-                icon="mdi-google"
-                label="Sign in with Google (Popup)"
-                :loading="auth.isLoading.value"
-                class="full-width"
-              />
+              <q-btn @click="signInWithGoogle" color="primary" icon="mdi-google" label="Sign in with Google (Popup)"
+                :loading="auth.isLoading.value" class="full-width" />
 
               <q-separator class="q-my-sm" />
               <div class="text-caption text-grey-6 q-mb-sm">If popup fails, try these alternatives:</div>
 
-              <q-btn
-                @click="signInWithGoogleRedirect"
-                color="secondary"
-                icon="mdi-google"
-                label="Sign in with Google (Redirect)"
-                :loading="auth.isLoading.value"
-                class="full-width"
-                outline
-              />
+              <q-btn @click="signInWithGoogleRedirect" color="secondary" icon="mdi-google"
+                label="Sign in with Google (Redirect)" :loading="auth.isLoading.value" class="full-width" outline />
 
-              <q-btn
-                @click="testPopupBlocking"
-                color="orange"
-                icon="mdi-alert-circle"
-                label="Test Popup Blocking"
-                size="sm"
-                class="full-width"
-                flat
-              />
+              <q-btn @click="testPopupBlocking" color="orange" icon="mdi-alert-circle" label="Test Popup Blocking"
+                size="sm" class="full-width" flat />
 
               <q-separator class="q-my-sm" />
 
-              <q-btn
-                @click="signInWithProvider('facebook')"
-                color="blue-8"
-                icon="mdi-facebook"
-                label="Sign in with Facebook"
-                :loading="auth.isLoading.value"
-                class="full-width"
-              />
+              <q-btn @click="signInWithProvider('facebook')" color="blue-8" icon="mdi-facebook"
+                label="Sign in with Facebook" :loading="auth.isLoading.value" class="full-width" />
             </div>
 
             <div v-else class="q-gutter-sm">
@@ -68,23 +42,10 @@
                 </q-item>
               </q-card>
 
-              <q-btn
-                @click="copyUID"
-                color="amber"
-                icon="mdi-content-copy"
-                label="Copy UID for Admin Setup"
-                size="sm"
-                class="full-width"
-                flat
-              />
+              <q-btn @click="copyUID" color="amber" icon="mdi-content-copy" label="Copy UID for Admin Setup" size="sm"
+                class="full-width" flat />
 
-              <q-btn
-                @click="signOut"
-                color="negative"
-                icon="mdi-logout"
-                label="Sign Out"
-                class="full-width"
-              />
+              <q-btn @click="signOut" color="negative" icon="mdi-logout" label="Sign Out" class="full-width" />
             </div>
 
             <q-banner v-if="auth.error.value" class="bg-negative text-white q-mt-md">
@@ -96,12 +57,8 @@
         <!-- Auth Troubleshooter -->
         <FirebaseAuthTroubleshooter v-if="showTroubleshooter" class="q-mt-md" />
 
-        <q-btn
-          @click="showTroubleshooter = !showTroubleshooter"
-          flat
-          :label="showTroubleshooter ? 'Hide Troubleshooter' : 'Show Auth Troubleshooter'"
-          class="q-mt-sm"
-        />
+        <q-btn @click="showTroubleshooter = !showTroubleshooter" flat
+          :label="showTroubleshooter ? 'Hide Troubleshooter' : 'Show Auth Troubleshooter'" class="q-mt-sm" />
       </div>
 
       <!-- File Upload Section -->
@@ -110,49 +67,23 @@
           <q-card-section>
             <div class="text-h6 q-mb-md">📁 Firebase Storage</div>
 
-            <q-file
-              v-model="selectedFile"
-              accept=".pdf"
-              label="Select PDF file"
-              filled
-              class="q-mb-md"
-            >
+            <q-file v-model="selectedFile" accept=".pdf" label="Select PDF file" filled class="q-mb-md">
               <template v-slot:prepend>
                 <q-icon name="mdi-file-pdf-box" />
               </template>
             </q-file>
 
-            <q-input
-              v-model="uploadMetadata.title"
-              label="Newsletter Title"
-              filled
-              class="q-mb-md"
-            />
+            <q-input v-model="uploadMetadata.title" label="Newsletter Title" filled class="q-mb-md" />
 
-            <q-input
-              v-model="uploadMetadata.publicationDate"
-              label="Publication Date"
-              type="date"
-              filled
-              class="q-mb-md"
-            />
+            <q-input v-model="uploadMetadata.publicationDate" label="Publication Date" type="date" filled
+              class="q-mb-md" />
 
-            <q-btn
-              @click="uploadPdf"
-              color="primary"
-              icon="mdi-upload"
-              label="Upload PDF"
+            <q-btn @click="uploadPdf" color="primary" icon="mdi-upload" label="Upload PDF"
               :disabled="!selectedFile || !auth.isAuthenticated.value || !uploadMetadata.title"
-              :loading="storage.isUploading.value"
-              class="full-width"
-            />
+              :loading="storage.isUploading.value" class="full-width" />
 
-            <q-linear-progress
-              v-if="storage.uploadProgress.value"
-              :value="storage.uploadProgress.value.percentage / 100"
-              color="primary"
-              class="q-mt-md"
-            />
+            <q-linear-progress v-if="storage.uploadProgress.value"
+              :value="storage.uploadProgress.value.percentage / 100" color="primary" class="q-mt-md" />
 
             <q-banner v-if="storage.error.value" class="bg-negative text-white q-mt-md">
               {{ storage.error.value }}
@@ -167,22 +98,12 @@
           <q-card-section>
             <div class="text-h6 q-mb-md">📰 Newsletter Database</div>
 
-            <q-btn
-              @click="loadNewsletters"
-              color="primary"
-              icon="mdi-refresh"
-              label="Load Newsletters"
-              :loading="newsletters.isLoading.value"
-              class="q-mb-md"
-            />
+            <q-btn @click="loadNewsletters" color="primary" icon="mdi-refresh" label="Load Newsletters"
+              :loading="newsletters.isLoading.value" class="q-mb-md" />
 
             <q-list v-if="newsletters.newsletters.value.length > 0" bordered separator>
-              <q-item
-                v-for="newsletter in newsletters.newsletters.value"
-                :key="newsletter.id"
-                clickable
-                @click="openNewsletter(newsletter)"
-              >
+              <q-item v-for="newsletter in newsletters.newsletters.value" :key="newsletter.id" clickable
+                @click="openNewsletter(newsletter)">
                 <q-item-section avatar>
                   <q-icon name="mdi-file-pdf-box" color="red" />
                 </q-item-section>
@@ -193,11 +114,8 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-chip
-                    :color="newsletter.isPublished ? 'green' : 'orange'"
-                    text-color="white"
-                    :label="newsletter.isPublished ? 'Published' : 'Draft'"
-                  />
+                  <q-chip :color="newsletter.isPublished ? 'green' : 'orange'" text-color="white"
+                    :label="newsletter.isPublished ? 'Published' : 'Draft'" />
                 </q-item-section>
               </q-item>
             </q-list>
@@ -219,48 +137,19 @@
           <q-card-section>
             <div class="text-h6 q-mb-md">✍️ Submit Content</div>
 
-            <q-select
-              v-model="contentSubmission.type"
-              :options="contentTypes"
-              label="Content Type"
-              emit-value
-              map-options
-              filled
-              class="q-mb-md"
-            />
+            <q-select v-model="contentSubmission.type" :options="contentTypes" label="Content Type" emit-value
+              map-options filled class="q-mb-md" />
 
-            <q-input
-              v-model="contentSubmission.title"
-              label="Title"
-              filled
-              class="q-mb-md"
-            />
+            <q-input v-model="contentSubmission.title" label="Title" filled class="q-mb-md" />
 
-            <q-input
-              v-model="contentSubmission.content"
-              label="Content"
-              type="textarea"
-              rows="4"
-              filled
-              class="q-mb-md"
-            />
+            <q-input v-model="contentSubmission.content" label="Content" type="textarea" rows="4" filled
+              class="q-mb-md" />
 
-            <q-input
-              v-model="contentSubmission.tags"
-              label="Tags (comma-separated)"
-              filled
-              class="q-mb-md"
-            />
+            <q-input v-model="contentSubmission.tags" label="Tags (comma-separated)" filled class="q-mb-md" />
 
-            <q-btn
-              @click="submitContent"
-              color="primary"
-              icon="mdi-send"
-              label="Submit for Review"
-              :disabled="!contentSubmission.title || !contentSubmission.content"
-              :loading="userContent.isLoading.value"
-              class="full-width"
-            />
+            <q-btn @click="submitContent" color="primary" icon="mdi-send" label="Submit for Review"
+              :disabled="!contentSubmission.title || !contentSubmission.content" :loading="userContent.isLoading.value"
+              class="full-width" />
 
             <q-banner v-if="userContent.error.value" class="bg-negative text-white q-mt-md">
               {{ userContent.error.value }}
@@ -440,6 +329,12 @@ const uploadPdf = async () => {
       updatedAt: new Date().toISOString(),
       createdBy: auth.currentUser.value?.uid || '',
       updatedBy: auth.currentUser.value?.uid || '',
+      actions: {
+        canView: true,
+        canDownload: true,
+        canSearch: false,
+        hasThumbnail: false
+      }
     });
 
     $q.notify({

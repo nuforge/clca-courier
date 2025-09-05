@@ -383,6 +383,12 @@ class FirebaseNewsletterService {
         updatedAt: new Date().toISOString(),
         createdBy: '', // Will be set by service
         updatedBy: '', // Will be set by service
+        actions: {
+          canView: true,
+          canDownload: true,
+          canSearch: false,
+          hasThumbnail: false,
+        },
       };
 
       // Add optional fields only if they exist

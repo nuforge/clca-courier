@@ -1,7 +1,9 @@
 import type { NavigationItem } from '../types/navigation';
+import { computed } from 'vue';
+import { firebaseAuthService } from '../services/firebase-auth.service';
 
 export const useNavigation = () => {
-  const navigationItems: NavigationItem[] = [
+  const baseNavigationItems: NavigationItem[] = [
     {
       title: 'News & Updates',
       icon: 'mdi-newspaper',
@@ -38,6 +40,25 @@ export const useNavigation = () => {
       link: '/about',
     },
   ];
+
+  const adminNavigationItem: NavigationItem = {
+    title: 'Admin Dashboard',
+    icon: 'mdi-shield-crown',
+    link: '/admin',
+  };
+
+  // Computed navigation items that include admin if user is authenticated
+  const navigationItems = computed(() => {
+    const items = [...baseNavigationItems];
+
+    // Add admin item if user is authenticated (for now, simple check)
+    // In production, you'd check for actual admin role/permissions
+    if (firebaseAuthService.getCurrentUser()) {
+      items.push(adminNavigationItem);
+    }
+
+    return items;
+  });
 
   return {
     navigationItems,
