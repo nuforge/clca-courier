@@ -23,21 +23,20 @@
 - **Backend**: Firebase (Authentication, Firestore, Storage, Functions)
 - **State Management**: Pinia stores (`src/stores/`)
 - **PDF Handling**: PDFTron WebViewer + PDF.js for dual viewer support
-- **Storage Strategy**: Multi-tier architecture (Firebase + External providers)
+- **Storage Strategy**: Firebase Storage (simple, future-ready architecture)
 
 ### Key Components
 
 - **`MainLayout.vue`**: Base layout with global PDF viewer and search
 - **`GlobalPdfViewer.vue`**: Application-wide PDF viewer dialog component
-- **`firebase-newsletter.service.ts`**: PDF management with multi-tier storage integration
+- **`firebase-newsletter.service.ts`**: PDF management with Firebase Storage integration
 - **`FirebaseNewsletterArchivePage.vue`**: Main archive with Firebase-first architecture
 
 ### Critical Services
 
-- **Firebase Services**: Authentication, Firestore database, Storage (Tier 1), Functions
-- **Multi-Tier Storage**: Cost-optimized storage with Firebase (fast) + External (cheap) tiers
-- **Newsletter Service**: Firebase-first PDF management with storage optimization
-- **PDF Optimization**: Web-optimized vs. high-quality versions for cost efficiency
+- **Firebase Services**: Authentication, Firestore database, Storage, Functions
+- **Newsletter Service**: Firebase Storage-based PDF management with flexible architecture
+- **PDF Management**: Simple Firebase Storage with future multi-tier capability
 
 ## 🔧 Development Workflows
 
@@ -68,27 +67,48 @@ node scripts/generate-pdf-manifest.js
 ### Firebase-First PDF Management Pattern
 
 ```typescript
-// ✅ CORRECT: Firebase-based newsletter discovery with multi-tier storage
+// ✅ CORRECT: Firebase-based newsletter storage with future flexibility
 const newsletterService = new FirebaseNewsletterService();
 await newsletterService.initialize();
 
-// Access web-optimized version for viewing
-const webVersion = newsletter.storage.webVersion.downloadUrl;
+// Simple Firebase Storage access
+const downloadUrl = newsletter.downloadUrl;
 
-// Access high-quality version for downloading
-const hqVersion = newsletter.storage.highQualityVersion.downloadUrl;
+// Future-ready optional storage configuration
+const storage = newsletter.storage?.primary || {
+  provider: 'firebase',
+  downloadUrl: newsletter.downloadUrl,
+};
 
 // ❌ WRONG: Hardcoded arrays or manifest-based discovery
 const pdfs = ['2024.01-newsletter.pdf', '2024.02-newsletter.pdf'];
 ```
 
-### Multi-Tier Storage Pattern (TENTATIVE)
+### Future-Ready Storage Pattern
 
 ```typescript
-// ✅ CORRECT: Cost-optimized storage strategy
+// ✅ CORRECT: Simple Firebase Storage with future flexibility
 interface NewsletterStorage {
-  webVersion: {
-    // Firebase Storage (fast delivery)
+  downloadUrl: string;          // Current: Firebase Storage URL
+  storageRef: string;           // Current: Firebase Storage path
+
+  // Optional future-ready configuration
+  storage?: {
+    primary: {
+      provider: 'firebase';     // Current: Firebase only
+      downloadUrl: string;      // Firebase CDN URL
+      storageRef: string;       // Firebase path
+    };
+    // Reserved for future multi-tier when needed
+    archive?: {
+      provider: 'b2' | 'r2';    // Future: External storage
+      downloadUrl: string;      // Future: Archive URL
+    };
+  };
+}
+
+// ❌ WRONG: Premature multi-tier complexity
+const complexStorage = new MultiTierStorageService(); // Not needed yet
     downloadUrl: string; // CDN-delivered URL
     optimized: boolean; // Web-optimized flag
   };

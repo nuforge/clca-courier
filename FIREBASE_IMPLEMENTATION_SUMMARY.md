@@ -19,24 +19,20 @@ I've successfully integrated Firebase into your CLCA Courier project with a comp
 - **Role-based Access**: Reader, Contributor, Editor, Admin
 - **Session Management**: Automatic state persistence
 
-### 3. **Content Management (Enhanced with Multi-Tier Storage)**
+### 3. **Content Management (Firebase Storage Strategy)**
 
-- **Newsletter Metadata**: Full metadata storage in Firestore with storage tier configuration
-- **Multi-Tier PDF Storage**:
-  - **Firebase Storage**: Web-optimized PDFs and thumbnails for fast delivery
-  - **External Storage**: High-quality PDFs via Backblaze B2/Cloudflare R2 for cost-effective downloads
-- **Smart Storage Routing**: Automatic tier selection based on user actions
-- **User-Generated Content**: Submission and approval workflow with storage optimization
-- **Search Functionality**: Full-text search across newsletters with tier-aware results
+- **Newsletter Metadata**: Full metadata storage in Firestore with flexible storage configuration
+- **Firebase Storage**: Primary storage for all PDFs with CDN delivery and security rules
+- **Future-Ready Architecture**: Service layer designed to support additional storage providers when needed
+- **User-Generated Content**: Submission and approval workflow with Firebase integration
+- **Search Functionality**: Full-text search across newsletters with Firebase backend
 
-### 4. **Cost Optimization Strategy (TENTATIVE)**
+### 4. **Storage Strategy (Simplified Approach)**
 
-- **Storage Architecture**: Dual-tier system separating fast delivery from cheap storage
-- **Provider Selection**: Backblaze B2 (primary) or Cloudflare R2 (secondary) for archives
-- **Cost Savings**: 70-90% reduction in storage costs while maintaining performance
-- **Quality Management**: Web-optimized vs. high-quality versions with user choice
-
-### 4. **User Workflow Features**
+- **Current Implementation**: Firebase Storage for all PDF storage needs
+- **Cost Effective**: Firebase costs (~$0.85/month) reasonable for current scale
+- **Future Flexibility**: Architecture supports adding external providers when scale justifies complexity
+- **Developer Experience**: Stay within Firebase ecosystem for faster development and easier maintenance### 4. **User Workflow Features**
 
 - **Content Submission**: Articles, announcements, events, classifieds, photos
 - **Approval Queue**: Editorial review and approval system
@@ -50,24 +46,23 @@ I've successfully integrated Firebase into your CLCA Courier project with a comp
 - `src/config/firebase.config.ts` - Firebase app initialization
 - `src/boot/firebase.ts` - Quasar boot file for Firebase
 
-### Services (Enhanced with Multi-Tier Storage)
+### Services (Firebase Storage Focus)
 
 - `src/services/firebase-auth.service.ts` - Authentication management
 - `src/services/firebase-firestore.service.ts` - Database operations with storage metadata
-- `src/services/firebase-storage.service.ts` - File storage management (Firebase tier)
-- `src/services/firebase-newsletter.service.ts` - Newsletter operations with multi-tier support
-- `src/services/multi-tier-storage.service.ts` - **[PLANNED]** External storage integration (B2/R2)
+- `src/services/firebase-storage.service.ts` - File storage management (Firebase primary)
+- `src/services/firebase-newsletter.service.ts` - Newsletter operations with Firebase Storage
 
 ### Composables
 
 - `src/composables/useFirebase.ts` - Vue 3 composables for Firebase integration
 - `src/composables/useFirebaseNewsletterArchive.ts` - Newsletter archive with storage optimization
 
-### Pages & Components (Newsletter Archive System)
+### Pages & Components (Firebase Newsletter Archive)
 
-- `src/pages/FirebaseNewsletterArchivePage.vue` - Main archive with multi-tier support
-- `src/pages/FirebaseNewsletterDetailsPage.vue` - Newsletter details with storage options
-- `src/components/FirebaseNewsletterCard.vue` - Newsletter cards with tier-aware actions
+- `src/pages/FirebaseNewsletterArchivePage.vue` - Main archive with Firebase Storage integration
+- `src/pages/FirebaseNewsletterDetailsPage.vue` - Newsletter details with Firebase storage
+- `src/components/FirebaseNewsletterCard.vue` - Newsletter cards with Firebase-based actions
 - `src/pages/FirebaseDemoPage.vue` - Demo page showing all Firebase features
 - Updated routes in `src/router/routes.ts`
 

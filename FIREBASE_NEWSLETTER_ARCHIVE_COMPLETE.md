@@ -73,19 +73,19 @@ FirebaseNewsletterArchivePage (UI components)
 - **Theme Support**: Full light/dark mode compatibility
 - **No q-gutter Issues**: Uses padding-based spacing for consistent layouts
 
-### 4. Multi-Tier PDF Storage Strategy
+### 4. Firebase Storage with Future Flexibility
 
-- **Firebase Storage**: Web-optimized PDFs for fast viewing and thumbnails
-- **External Archive Storage**: High-quality PDFs via Backblaze B2/Cloudflare R2 for cost-effective downloads
-- **Smart Delivery**: Automatic selection between web version (viewing) and archive version (downloading)
-- **Cost Optimization**: 70-90% storage cost reduction with maintained performance
+- **Firebase Storage**: Primary storage for all PDFs with CDN delivery and security rules
+- **Flexible Architecture**: Service layer designed to support future multi-tier storage options
+- **Optimization Ready**: Interface prepared for web-optimized vs. high-quality versions
+- **Cost Effective**: Firebase Storage free tier and reasonable costs for current scale
 - **Metadata Extraction**: PDF page count, file size, and content analysis
 
 ---
 
 ## 📊 Data Structure
 
-### NewsletterMetadata Interface (Updated for Multi-Tier Storage)
+### NewsletterMetadata Interface (Firebase Storage with Future Flexibility)
 
 ```typescript
 interface NewsletterMetadata {
@@ -97,36 +97,37 @@ interface NewsletterMetadata {
   issueNumber?: string; // Issue identifier
   season?: 'spring' | 'summer' | 'fall' | 'winter';
   year: number; // Publication year
-  fileSize: number; // File size in bytes (high-quality version)
+  fileSize: number; // File size in bytes
   pageCount?: number; // Number of PDF pages
 
-  // Multi-tier storage configuration
-  storage: {
-    webVersion: {
-      // Firebase Storage (fast delivery)
-      storageRef: string; // Firebase Storage path
+  // Current Firebase Storage implementation
+  downloadUrl: string; // Firebase Storage download URL
+  storageRef: string; // Firebase Storage path reference
+  thumbnailUrl?: string; // Optional thumbnail URL
+
+  // Future-ready storage configuration (prepared for multi-tier)
+  storage?: {
+    primary: {
+      // Current: Firebase Storage
+      provider: 'firebase'; // Provider identifier
       downloadUrl: string; // CDN-delivered URL
-      fileSize: number; // Compressed file size
-      optimized: boolean; // Web-optimized flag
+      storageRef: string; // Storage path reference
+      fileSize: number; // File size
     };
-    highQualityVersion: {
-      // External storage (cost-effective)
-      provider: 'b2' | 'r2' | 'spaces' | 'wasabi';
-      downloadUrl: string; // Direct download URL
-      fileSize: number; // Original file size
-      archival: boolean; // Archive quality flag
-    };
-    thumbnail: {
-      // Firebase Storage (fast loading)
-      storageRef: string; // Firebase path
+    thumbnail?: {
+      // Optional thumbnail storage
+      provider: 'firebase'; // Provider identifier
       downloadUrl: string; // Thumbnail URL
+      storageRef: string; // Thumbnail path
+    };
+    // Reserved for future multi-tier implementation
+    archive?: {
+      provider: 'b2' | 'r2' | 'spaces' | 'wasabi';
+      downloadUrl: string;
+      storageRef: string;
+      fileSize: number;
     };
   };
-
-  // Legacy fields (for backward compatibility during migration)
-  thumbnailUrl?: string; // Deprecated: use storage.thumbnail.downloadUrl
-  downloadUrl: string; // Points to webVersion for viewing
-  storageRef: string; // Points to webVersion storage
 
   tags: string[]; // Searchable tags
   featured: boolean; // Featured status
@@ -137,17 +138,17 @@ interface NewsletterMetadata {
   updatedBy: string; // User UID who last updated
   searchableText?: string; // Extracted text for search
 
-  // User-facing action availability
+  // Action availability (future-ready)
   actions: {
-    canView: boolean; // Web version available for viewing
-    canDownload: boolean; // High-quality version available
+    canView: boolean; // PDF available for viewing
+    canDownload: boolean; // PDF available for download
     canSearch: boolean; // Text extracted and searchable
     hasThumbnail: boolean; // Preview thumbnail available
   };
 }
 ```
 
-### Filter System (Updated for Multi-Tier Storage)
+### Filter System (Firebase Storage with Future Flexibility)
 
 ```typescript
 interface NewsletterSearchFilters {
@@ -157,9 +158,9 @@ interface NewsletterSearchFilters {
   featured?: boolean; // Featured newsletters only
   contentType?: string; // Content type classification
 
-  // Updated availability options for multi-tier storage
-  availability?: 'viewable' | 'downloadable' | 'web-only' | 'archive-only' | 'multi-tier';
-  storageProvider?: 'firebase' | 'b2' | 'r2' | 'spaces' | 'wasabi'; // Filter by storage provider
+  // Current availability options (Firebase-focused)
+  availability?: 'viewable' | 'downloadable' | 'firebase-only';
+  storageProvider?: 'firebase'; // Current: Firebase only, future: multiple providers
 
   pageCount?: '1-5' | '6-10' | '11-20' | '20+';
   actions?: 'view' | 'download' | 'search' | 'thumbnail';
