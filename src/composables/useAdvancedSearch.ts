@@ -1,5 +1,5 @@
 import { ref, computed, readonly } from 'vue';
-import type { IssueWithGoogleDrive } from '../types/google-drive-content';
+import type { PdfDocument } from './usePdfViewer';
 import { pdfMetadataService } from '../services/pdf-metadata-service';
 
 export interface SearchFilters {
@@ -16,7 +16,7 @@ export interface SearchFilters {
 }
 
 export interface SearchResult {
-  // Core issue properties - from IssueWithGoogleDrive
+  // Core issue properties - from PdfDocument
   id: number;
   title: string;
   date: string;
@@ -51,7 +51,7 @@ export interface SearchResult {
   };
 
   // Keep the original issue for backward compatibility
-  issue: IssueWithGoogleDrive;
+  issue: PdfDocument;
 }
 
 export interface SearchStats {
@@ -147,10 +147,10 @@ export function useAdvancedSearch() {
   });
 
   /**
-   * Create a SearchResult from an IssueWithGoogleDrive
+   * Create a SearchResult from an PdfDocument
    */
   function createSearchResult(
-    issue: IssueWithGoogleDrive,
+    issue: PdfDocument,
     score: number,
     matchType: 'title' | 'filename' | 'metadata' | 'content',
     options: {
@@ -165,8 +165,8 @@ export function useAdvancedSearch() {
       date: issue.date,
       pages: issue.pages,
       filename: issue.filename,
-      status: issue.status,
-      syncStatus: issue.syncStatus,
+      status: (issue.status as 'google-drive' | 'local' | 'hybrid') || 'local',
+      syncStatus: (issue.syncStatus as 'error' | 'synced' | 'syncing' | 'outdated') || 'synced',
 
       // Optional properties
       ...(issue.url && { url: issue.url }),
@@ -194,11 +194,7 @@ export function useAdvancedSearch() {
   /**
    * Calculate relevance score for search result
    */
-  function calculateRelevanceScore(
-    issue: IssueWithGoogleDrive,
-    query: string,
-    matchType: string,
-  ): number {
+  function calculateRelevanceScore(issue: PdfDocument, query: string, matchType: string): number {
     let score = 0;
     const queryLower = query.toLowerCase();
 
@@ -266,7 +262,7 @@ export function useAdvancedSearch() {
    * LIGHTWEIGHT: Search only in metadata, filenames, and cached info
    * No PDF processing - instant results
    */
-  function performLightweightSearch(issues: IssueWithGoogleDrive[], query: string): SearchResult[] {
+  function performLightweightSearch(issues: PdfDocument[], query: string): SearchResult[] {
     if (!query || query.length < 2) return [];
 
     const queryLower = query.toLowerCase();
@@ -298,7 +294,7 @@ export function useAdvancedSearch() {
       }
 
       // Search in tags (medium priority)
-      if (issue.tags?.some((tag) => tag.toLowerCase().includes(queryLower))) {
+      if (issue.tags?.some((tag: string) => tag.toLowerCase().includes(queryLower))) {
         score += 40;
         matchedTerms.push(query);
       }
@@ -356,10 +352,7 @@ export function useAdvancedSearch() {
   /**
    * MAIN SEARCH FUNCTION: Fast by default, with optional cached content search
    */
-  async function performSearch(
-    issues: IssueWithGoogleDrive[],
-    searchQuery?: string,
-  ): Promise<void> {
+  async function performSearch(issues: PdfDocument[], searchQuery?: string): Promise<void> {
     const query = searchQuery || filters.value.query.trim();
 
     if (!query || query.length < 2) {
@@ -444,7 +437,7 @@ export function useAdvancedSearch() {
   /**
    * Get search suggestions based on current query
    */
-  function getSearchSuggestions(issues: IssueWithGoogleDrive[], query: string): string[] {
+  function getSearchSuggestions(issues: PdfDocument[], query: string): string[] {
     if (query.length < 2) return [];
 
     const suggestions = new Set<string>();

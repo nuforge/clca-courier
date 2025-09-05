@@ -156,11 +156,11 @@ import { ref, computed, watch } from 'vue'
 import { useSiteStore } from '../stores/site-store-simple'
 import { useAdvancedSearch, type SearchResult } from '../composables/useAdvancedSearch'
 import EnhancedSearchResultCard from './EnhancedSearchResultCard.vue'
-import type { IssueWithGoogleDrive } from '../types/google-drive-content'
+import type { PdfDocument } from '../composables/usePdfViewer'
 
 // Props
 interface Props {
-  issues: IssueWithGoogleDrive[]
+  issues: PdfDocument[]
   autoSearch?: boolean // Whether to search automatically on input change
   debounceMs?: number   // Debounce delay for auto-search
 }

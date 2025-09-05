@@ -24,17 +24,10 @@ const routes: RouteRecordRaw[] = [
       { path: '/map', component: () => import('pages/MapRefactoredPage.vue') }, // Use refactored version as main map
       { path: '/map-refactored', component: () => import('pages/MapRefactoredPage.vue') },
       // Demo and test routes - commented out for production cleanup but preserved for development
-      // { path: '/demo/google-drive', component: () => import('pages/GoogleDriveDemoPage.vue') },
-      // { path: '/test/pdf-metadata', component: () => import('pages/PDFTestPage.vue') },
-      // { path: '/test/pdf-diagnostics', component: () => import('pages/PdfDiagnosticsPage.vue') },
       { path: '/test/lightweight', component: () => import('pages/LightweightTestPage.vue') },
       {
         path: '/admin/pdf-extraction',
         component: () => import('pages/PdfTextExtractionToolPage.vue'),
-      },
-      {
-        path: '/google-drive-content',
-        component: () => import('pages/GoogleDriveContentDashboard.vue'),
       },
       {
         path: '/firebase-demo',

@@ -2,53 +2,38 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { ClassifiedAd, NewsItem, Event, CommunityStats } from '../types';
 import type { PdfDocument } from '../composables/usePdfViewer';
-import type { IssueWithGoogleDrive } from '../types/google-drive-content';
 import { dataService } from '../services/data-service';
 import { useUserSettings } from '../composables/useUserSettings';
-import { useGoogleDrivePdfs } from '../composables/useGoogleDrivePdfs';
 import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
 
 export const useSiteStore = defineStore('site', () => {
   // Initialize user settings
   const userSettings = useUserSettings();
 
-  // Initialize Google Drive PDF management
-  const googleDrivePdfs = useGoogleDrivePdfs();
-
   // Site state
   const isMenuOpen = ref(false);
   const isLoading = ref(true);
-  const useGoogleDrive = ref(false); // FORCED FALSE - USE ONLY LOCAL FILES
 
-  // Data loaded from real PDF files (not JSON)
+  // Data state
+  const archivedIssues = ref<PdfDocument[]>([]);
   const newsItems = ref<NewsItem[]>([]);
   const classifieds = ref<ClassifiedAd[]>([]);
   const events = ref<Event[]>([]);
-  const archivedIssues = ref<PdfDocument[]>([]);
-  const communityStats = ref<CommunityStats>({
+  const stats = ref<CommunityStats>({
     households: 0,
     lakes: 0,
     yearsPublished: 0,
     issuesPerYear: 0,
   });
 
-  // Computed values that can switch between local and Google Drive data
-  const hybridArchivedIssues = computed(() => {
-    if (useGoogleDrive.value && googleDrivePdfs.state.value.issues.length > 0) {
-      // Convert Google Drive issues to PdfDocument format for compatibility
-      return googleDrivePdfs.archivedIssues.value.map(
-        (issue: IssueWithGoogleDrive): PdfDocument => ({
-          id: issue.id,
-          title: issue.title,
-          date: issue.date,
-          pages: issue.pages,
-          url: issue.googleDriveUrl || issue.localUrl || issue.url || '',
-          filename: issue.filename,
-        }),
-      );
-    }
-    return archivedIssues.value;
-  });
+  // Computed values
+  const archivedIssuesComputed = computed(() => archivedIssues.value);
+
+  // Add isDarkMode computed from userSettings
+  const isDarkMode = computed(() => userSettings.isDarkMode.value);
+
+  // Add communityStats computed alias for backward compatibility
+  const communityStats = computed(() => stats.value);
 
   const featuredNews = computed(() => newsItems.value.filter((item) => item.featured).slice(0, 3));
 
@@ -68,9 +53,9 @@ export const useSiteStore = defineStore('site', () => {
       .slice(0, 5),
   );
 
-  // Get the latest issue (most recent) - now hybrid
+  // Get the latest issue (most recent)
   const latestIssue = computed(() => {
-    const issues = hybridArchivedIssues.value;
+    const issues = archivedIssuesComputed.value;
     if (issues.length === 0) return null;
     return issues[0]; // Assuming they're sorted by date, newest first
   });
@@ -84,129 +69,134 @@ export const useSiteStore = defineStore('site', () => {
     isMenuOpen.value = !isMenuOpen.value;
   }
 
-  function setDarkMode(value: boolean) {
-    const theme = value ? 'dark' : 'light';
-    void userSettings.setTheme(theme);
+  function closeMenu() {
+    isMenuOpen.value = false;
   }
 
-  // Data loading functions (simulating API calls)
-  async function loadAllData() {
+  async function loadInitialData() {
+    isLoading.value = true;
     try {
-      isLoading.value = true;
-
-      // Load all data in parallel - Load real PDFs using hardcoded list
-      const [news, classified, event, stats] = await Promise.all([
-        dataService.getNewsItems(),
-        dataService.getClassifieds(),
-        dataService.getEvents(),
-        dataService.getCommunityStats(),
+      await Promise.all([
+        loadArchivedIssues(),
+        loadNewsItems(),
+        loadClassifieds(),
+        loadEvents(),
+        loadStats(),
       ]);
-
-      newsItems.value = news;
-      classifieds.value = classified;
-      events.value = event;
-      communityStats.value = stats;
-
-      // Load PDFs using newsletter service
-      await loadArchivedIssues();
-
-      // Google Drive is disabled - using only local PDF files
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading initial data:', error);
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function loadNewsItems() {
-    try {
-      newsItems.value = await dataService.getNewsItems();
-    } catch (error) {
-      console.error('Error loading news items:', error);
-    }
-  }
-
-  async function loadClassifieds() {
-    try {
-      classifieds.value = await dataService.getClassifieds();
-    } catch (error) {
-      console.error('Error loading classifieds:', error);
-    }
-  }
-
-  async function loadEvents() {
-    try {
-      events.value = await dataService.getEvents();
-    } catch (error) {
-      console.error('Error loading events:', error);
-    }
-  }
-
   async function loadArchivedIssues() {
     try {
-      // Load real PDF files using lightweight newsletter service - NO HARDCODED LISTS
       const newsletters = await lightweightNewsletterService.getNewsletters();
-
-      // Convert newsletter metadata to PdfDocument format
-      archivedIssues.value = newsletters.map((newsletter) => ({
-        id: newsletter.id,
-        title: newsletter.title,
-        date: newsletter.date,
-        pages: newsletter.pages || 0,
-        url: newsletter.url,
-        filename: newsletter.filename,
-      }));
+      archivedIssues.value = newsletters;
     } catch (error) {
       console.error('Error loading archived issues:', error);
       archivedIssues.value = [];
     }
   }
 
-  // Initialize data on store creation
-  void loadAllData();
+  async function loadNewsItems() {
+    try {
+      const data = await dataService.getNewsItems();
+      newsItems.value = data;
+    } catch (error) {
+      console.error('Error loading news items:', error);
+      newsItems.value = [];
+    }
+  }
 
+  async function loadClassifieds() {
+    try {
+      const data = await dataService.getClassifieds();
+      classifieds.value = data;
+    } catch (error) {
+      console.error('Error loading classifieds:', error);
+      classifieds.value = [];
+    }
+  }
+
+  async function loadEvents() {
+    try {
+      const data = await dataService.getEvents();
+      events.value = data;
+    } catch (error) {
+      console.error('Error loading events:', error);
+      events.value = [];
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const data = await dataService.getCommunityStats();
+      stats.value = data;
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      stats.value = {
+        households: 0,
+        lakes: 0,
+        yearsPublished: 0,
+        issuesPerYear: 0,
+      };
+    }
+  }
+
+  // Refresh functions
+  async function refreshArchivedIssues() {
+    await loadArchivedIssues();
+  }
+
+  async function refreshNewsItems() {
+    await loadNewsItems();
+  }
+
+  async function refreshClassifieds() {
+    await loadClassifieds();
+  }
+
+  async function refreshEvents() {
+    await loadEvents();
+  }
+
+  async function refreshAll() {
+    await loadInitialData();
+  }
+
+  // Return reactive state and actions
   return {
     // State
-    isDarkMode: userSettings.isDarkMode,
     isMenuOpen,
     isLoading,
-    useGoogleDrive,
+    archivedIssues: archivedIssuesComputed,
     newsItems,
     classifieds,
     events,
-    communityStats,
-    archivedIssues: hybridArchivedIssues, // Use hybrid computed property
-
-    // User Settings
-    userSettings: userSettings.userSettings,
-    currentTheme: userSettings.currentTheme,
-    notificationSettings: userSettings.notificationSettings,
-    displaySettings: userSettings.displaySettings,
-    pdfSettings: userSettings.pdfSettings,
+    stats,
 
     // Computed
     featuredNews,
     recentClassifieds,
     upcomingEvents,
     latestIssue,
+    isDarkMode,
+    communityStats,
 
     // Actions
     toggleDarkMode,
     toggleMenu,
-    setDarkMode,
-    loadAllData,
-    loadNewsItems,
-    loadClassifieds,
-    loadEvents,
-    loadArchivedIssues, // Load real PDF files
+    closeMenu,
+    loadInitialData,
+    refreshArchivedIssues,
+    refreshNewsItems,
+    refreshClassifieds,
+    refreshEvents,
+    refreshAll,
 
-    // Settings actions
-    updateUserSettings: userSettings.updateSettings,
-    resetUserSettings: userSettings.resetSettings,
-    exportUserSettings: userSettings.exportSettings,
-    importUserSettings: userSettings.importSettings,
-
-    // Google Drive integration (disabled)
-    googleDrivePdfs: computed(() => googleDrivePdfs),
+    // User settings
+    userSettings,
   };
 });

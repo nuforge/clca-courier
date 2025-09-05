@@ -13,28 +13,29 @@
 - **✅ Dynamic Content Discovery**: Generate content from actual files using manifest system (`public/data/pdf-manifest.json`)
 - **✅ Path Verification**: Check existence before referencing any files or directories
 - **✅ Manifest-Based PDF Discovery**: Use `scripts/generate-pdf-manifest.js` for build-time PDF enumeration
+- **✅ Firebase-First Development**: Use Firebase services for all data, authentication, and storage operations
 
 ## 🏗️ Architecture Overview
 
 ### Framework Stack
 
 - **Frontend**: Vue 3 + Quasar Framework (Vite-based)
+- **Backend**: Firebase (Authentication, Firestore, Storage, Functions)
 - **State Management**: Pinia stores (`src/stores/`)
 - **PDF Handling**: PDFTron WebViewer + PDF.js for dual viewer support
-- **Google Drive**: OAuth2 integration for external PDF storage
 
 ### Key Components
 
 - **`MainLayout.vue`**: Base layout with global PDF viewer and search
 - **`GlobalPdfViewer.vue`**: Application-wide PDF viewer dialog component
-- **`newsletter-service.ts`**: Hybrid local/Google Drive PDF management
+- **`newsletter-service.ts`**: PDF management with Firebase Storage integration
 - **`AdvancedIssueArchivePage.vue`**: Main archive with manifest-based discovery
 
 ### Critical Services
 
-- **Newsletter Service**: Hybrid hosting (local + Google Drive) with metadata extraction
+- **Firebase Services**: Authentication, Firestore database, Storage, Functions
+- **Newsletter Service**: Firebase Storage-based PDF management with metadata extraction
 - **PDF Metadata Service**: Automatic PDF analysis and thumbnails
-- **Google Drive Service**: OAuth integration with CORS limitation awareness
 
 ## 🔧 Development Workflows
 
@@ -82,12 +83,6 @@ const pdfs = ['2024.01-newsletter.pdf', '2024.02-newsletter.pdf'];
 - **Route patterns**: `/archive/:id(\\d+)` for parameterized routes
 - **Lazy loading**: All routes use dynamic imports for code splitting
 
-### Google Drive CORS Limitation
-
-- **Cannot directly access Google Drive URLs** from client-side JavaScript
-- **Use server-side proxy** or **download to local storage** for PDF processing
-- **Authentication**: OAuth2 flow implemented in `google-drive-service.ts`
-
 ## 🎯 Key Integration Points
 
 ### PDF Viewer Integration
@@ -96,11 +91,11 @@ const pdfs = ['2024.01-newsletter.pdf', '2024.02-newsletter.pdf'];
 - **Fallback**: PDF.js for basic viewing
 - **Global access**: Via `GlobalPdfViewer` component in main layout
 
-### Google Drive API
+### Firebase Integration
 
-- **Folder IDs**: Configured via environment variables (`VITE_GOOGLE_DRIVE_*`)
-- **Authentication**: Client-side OAuth with proper scope management
-- **File discovery**: Real-time folder scanning, not hardcoded lists
+- **Authentication**: Multi-provider OAuth with role-based access control
+- **Storage**: PDF and media file management with organized folder structure
+- **Database**: Real-time newsletter metadata and user content management
 
 ### Build-Time Content Generation
 
@@ -112,10 +107,10 @@ const pdfs = ['2024.01-newsletter.pdf', '2024.02-newsletter.pdf'];
 
 ### Adding New PDF Features
 
-1. Verify PDF exists in `public/issues/` or Google Drive
+1. Verify PDF exists in `public/issues/` or Firebase Storage
 2. Update manifest generation if needed
 3. Use `newsletter-service.ts` for PDF operations
-4. Test with both local and Drive PDFs
+4. Test with both local and Firebase Storage PDFs
 
 ### Creating New Pages
 
@@ -123,15 +118,15 @@ const pdfs = ['2024.01-newsletter.pdf', '2024.02-newsletter.pdf'];
 2. Register route in `src/router/routes.ts` with lazy loading
 3. Use `MainLayout.vue` wrapper for consistent navigation
 
-### Working with Google Drive
+### Working with Firebase
 
-1. Check CORS limitations in `GOOGLE_DRIVE_INTEGRATION.md`
-2. Use server-side proxy for direct PDF access
-3. Authenticate via `google-drive-service.ts` patterns
+1. Check Firebase configuration in `firebase.config.ts`
+2. Use Firebase services for authentication, storage, and database operations
+3. Follow security rules patterns for data access control
 
 ## 📚 Essential Documentation
 
 - `CRITICAL_DEVELOPMENT_RULES.md`: User-enforced development constraints
-- `GOOGLE_DRIVE_INTEGRATION.md`: CORS limitations and solutions
+- `FIREBASE_IMPLEMENTATION_SUMMARY.md`: Firebase integration overview
 - `DEVELOPMENT_MEMORY.md`: Progress tracking and failed attempts
 - `PDF_VIEWER_DOCS.md`: PDF integration patterns and troubleshooting

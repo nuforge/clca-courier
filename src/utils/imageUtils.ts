@@ -1,84 +1,14 @@
 // Utility functions for working with external images and URLs
-// TEMPORARILY DISABLED Google Drive functionality
-
-export interface GoogleDriveInfo {
-  fileId: string;
-  directUrl: string;
-  thumbnailUrl: string;
-  previewUrl: string;
-}
-
-/**
- * Extract file ID from various Google Drive URL formats
- * @deprecated Use GoogleDriveBrowserService.extractFileId instead
- */
-export function extractGoogleDriveFileId(url: string): string | null {
-  console.warn('Google Drive functionality temporarily disabled');
-
-  // Basic file ID extraction without service dependency
-  const patterns = [
-    /\/file\/d\/([a-zA-Z0-9-_]+)/,
-    /id=([a-zA-Z0-9-_]+)/,
-    /\/folders\/([a-zA-Z0-9-_]+)/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
-/**
- * Convert Google Drive share URL to various formats
- */
-export function parseGoogleDriveUrl(url: string): GoogleDriveInfo | null {
-  const fileId = extractGoogleDriveFileId(url);
-
-  if (!fileId) {
-    return null;
-  }
-
-  return {
-    fileId,
-    directUrl: `https://drive.google.com/uc?export=view&id=${fileId}`,
-    thumbnailUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`,
-    previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
-  };
-}
-
-/**
- * Get direct download URL for Google Drive file
- */
-export function getGoogleDriveDirectUrl(url: string): string {
-  const info = parseGoogleDriveUrl(url);
-  return info?.directUrl || url;
-}
-
-/**
- * Get thumbnail URL for Google Drive file
- */
-export function getGoogleDriveThumbnailUrl(url: string, size = 400): string {
-  const info = parseGoogleDriveUrl(url);
-  return info ? `https://drive.google.com/thumbnail?id=${info.fileId}&sz=w${size}` : url;
-}
-
-/**
- * Check if URL is a Google Drive URL
- * @deprecated Use GoogleDriveBrowserService.isGoogleDriveUrl instead
- */
-export function isGoogleDriveUrl(url: string): boolean {
-  console.warn('Google Drive functionality temporarily disabled');
-  return url.includes('drive.google.com') || url.includes('docs.google.com');
-}
+// Firebase Storage and generic image handling
 
 /**
  * Validate image URL format
  */
 export function isValidImageUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
   try {
     new URL(url);
     return true;
@@ -88,148 +18,173 @@ export function isValidImageUrl(url: string): boolean {
 }
 
 /**
- * Get file extension from URL
+ * Check if URL points to an image file based on extension
  */
-export function getFileExtensionFromUrl(url: string): string | null {
+export function isImageFile(url: string): boolean {
+  const imageExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
+  return imageExtensions.test(url);
+}
+
+/**
+ * Extract filename from URL
+ */
+export function extractFilenameFromUrl(url: string): string {
   try {
-    const pathname = new URL(url).pathname;
-    const match = pathname.match(/\.([a-zA-Z0-9]+)$/);
-    return match && match[1] ? match[1].toLowerCase() : null;
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    return pathname.split('/').pop() || 'unknown';
   } catch {
-    return null;
+    return 'unknown';
   }
 }
 
 /**
- * Check if URL points to an image based on extension
+ * Check if URL is a Firebase Storage URL
  */
-export function isImageUrl(url: string): boolean {
-  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
-  const extension = getFileExtensionFromUrl(url);
-  return extension ? imageExtensions.includes(extension) : false;
+export function isFirebaseStorageUrl(url: string): boolean {
+  return url.includes('firebasestorage.googleapis.com') || url.includes('storage.firebase.com');
 }
 
 /**
- * Generate a placeholder data URL for images
+ * Generate thumbnail URL for Firebase Storage image
  */
-export function generatePlaceholderImage(
-  width = 400,
-  height = 300,
-  text = 'Loading...',
-  backgroundColor = '#f0f0f0',
-  textColor = '#999',
-): string {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
+export function getFirebaseImageThumbnail(url: string): string {
+  if (!isFirebaseStorageUrl(url)) {
+    return url;
+  }
 
-  canvas.width = width;
-  canvas.height = height;
-
-  // Background
-  ctx.fillStyle = backgroundColor;
-  ctx.fillRect(0, 0, width, height);
-
-  // Text
-  ctx.fillStyle = textColor;
-  ctx.font = `${Math.min(width, height) / 10}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, width / 2, height / 2);
-
-  return canvas.toDataURL();
+  // Firebase Storage supports resize transformations
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set('alt', 'media');
+    // Add custom resize parameter if supported by your Firebase setup
+    // This may require Firebase Extensions or custom Cloud Functions
+    return urlObj.toString();
+  } catch {
+    return url;
+  }
 }
 
 /**
- * Common image hosting patterns and their direct URL converters
+ * Check if URL is likely a cloud storage URL
+ */
+export function isCloudStorageUrl(url: string): boolean {
+  return (
+    isFirebaseStorageUrl(url) ||
+    url.includes('storage.googleapis.com') ||
+    url.includes('s3.amazonaws.com') ||
+    url.includes('blob.core.windows.net')
+  );
+}
+
+/**
+ * Image hosting converter functions
  */
 export const imageHostingConverters = {
-  googleDrive: getGoogleDriveDirectUrl,
-
-  // Enhanced Google Drive converter that uses the new service
-  googleDriveEnhanced: (url: string): string => {
-    const fileId = extractGoogleDriveFileId(url);
-    if (fileId) {
-      // Return public direct URL
-      return `https://drive.google.com/uc?export=view&id=${fileId}`;
+  firebase: (url: string): string => {
+    if (isFirebaseStorageUrl(url)) {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('alt', 'media');
+      return urlObj.toString();
     }
     return url;
   },
 
-  // Dropbox
-  dropbox: (url: string): string => {
-    if (url.includes('dropbox.com') && url.includes('?dl=0')) {
-      return url.replace('?dl=0', '?raw=1');
-    }
-    return url;
-  },
-
-  // OneDrive
-  oneDrive: (url: string): string => {
-    if (url.includes('1drv.ms') || url.includes('onedrive.live.com')) {
-      // OneDrive direct links require specific formatting
-      if (url.includes('?') && !url.includes('&download=1')) {
-        return url + '&download=1';
-      }
-    }
-    return url;
-  },
+  direct: (url: string): string => url, // Pass through for direct URLs
 };
 
 /**
- * Convert various cloud storage URLs to direct URLs
+ * Main image URL optimization function
  */
-export function convertToDirectUrl(url: string): string {
-  if (isGoogleDriveUrl(url)) {
-    return imageHostingConverters.googleDriveEnhanced(url);
+export function optimizeImageUrl(url: string): string {
+  if (!isValidImageUrl(url)) {
+    return url;
   }
 
-  if (url.includes('dropbox.com')) {
-    return imageHostingConverters.dropbox(url);
+  // Apply Firebase Storage optimization
+  if (isFirebaseStorageUrl(url)) {
+    return imageHostingConverters.firebase(url);
   }
 
-  if (url.includes('1drv.ms') || url.includes('onedrive.live.com')) {
-    return imageHostingConverters.oneDrive(url);
-  }
-
+  // Return as-is for other URLs
   return url;
 }
 
 /**
- * Format file size in human readable format
+ * Create a loading placeholder image URL
  */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+export function createPlaceholderImageUrl(width = 400, height = 300, text = 'Loading...'): string {
+  return `data:image/svg+xml,${encodeURIComponent(`
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="#f0f0f0"/>
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="16" fill="#888">
+        ${text}
+      </text>
+    </svg>
+  `)}`;
 }
 
 /**
- * Calculate image dimensions while maintaining aspect ratio
+ * Check if image URL is accessible (basic check)
  */
-export function calculateAspectRatioDimensions(
-  originalWidth: number,
-  originalHeight: number,
-  maxWidth: number,
-  maxHeight: number,
-): { width: number; height: number } {
-  const aspectRatio = originalWidth / originalHeight;
-
-  let width = originalWidth;
-  let height = originalHeight;
-
-  if (width > maxWidth) {
-    width = maxWidth;
-    height = width / aspectRatio;
+export async function checkImageAccessibility(url: string): Promise<boolean> {
+  if (!isValidImageUrl(url)) {
+    return false;
   }
 
-  if (height > maxHeight) {
-    height = maxHeight;
-    width = height * aspectRatio;
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
   }
+}
 
-  return { width: Math.round(width), height: Math.round(height) };
+/**
+ * Get image dimensions from URL (if possible)
+ */
+export function getImageDimensions(url: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * Convert image to data URL (for small images)
+ */
+export function imageToDataUrl(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        const dataUrl = canvas.toDataURL();
+        resolve(dataUrl);
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Canvas conversion failed'));
+      }
+    };
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    img.src = url;
+  });
 }

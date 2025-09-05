@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { isGoogleDriveUrl } from '../utils/googleDriveUtils';
+import { isCloudStorageUrl } from '../utils/imageUtils';
 
 interface PdfMetadata {
   pageCount: number;
@@ -27,16 +27,16 @@ export function usePdfMetadata() {
       return metadataCache.value[url];
     }
 
-    // IMMEDIATE BAILOUT: Google Drive URLs cannot be processed with PDF.js due to CORS
-    if (isGoogleDriveUrl(url)) {
+    // IMMEDIATE BAILOUT: Cloud Storage URLs may have CORS restrictions
+    if (isCloudStorageUrl(url)) {
       console.log(
-        'Skipping PDF metadata extraction for Google Drive URL - CORS restrictions make this impossible',
+        'Skipping PDF metadata extraction for cloud storage URL - potential CORS restrictions',
       );
 
       // Return fallback metadata immediately without any network requests
       const fallbackMetadata: PdfMetadata = {
         pageCount: 1, // Default fallback - actual page count unknown due to CORS
-        title: 'Google Drive PDF', // Generic title
+        title: 'Cloud Storage PDF', // Generic title
       };
 
       // Cache the fallback to avoid repeated checks

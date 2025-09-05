@@ -278,7 +278,7 @@ import { useHybridNewsletters } from '../composables/useHybridNewsletters'
 import { useAdvancedSearch } from '../composables/useAdvancedSearch'
 import AdvancedNewsletterCard from '../components/AdvancedNewsletterCard.vue'
 import type { LightweightNewsletter } from '../services/lightweight-newsletter-service'
-import type { IssueWithGoogleDrive } from '../types/google-drive-content'
+import type { PdfDocument } from '../composables/usePdfViewer'
 
 const siteStore = useSiteStore()
 const hybridNewsletters = useHybridNewsletters()
@@ -381,24 +381,21 @@ const hasLocalSource = (issue: LightweightNewsletter) => issue.url && issue.url.
 const hasDriveSource = (issue: LightweightNewsletter) => issue.url && issue.url.includes('drive.google.com')
 
 // Convert newsletter metadata to format expected by advanced search
-const convertNewslettersToIssues = (newsletters: LightweightNewsletter[]): IssueWithGoogleDrive[] => {
+const convertNewslettersToIssues = (newsletters: LightweightNewsletter[]): PdfDocument[] => {
   return newsletters.map((newsletter, index) => {
-    const issue: IssueWithGoogleDrive = {
+    const issue: PdfDocument = {
       id: index + 1,
       title: newsletter.title,
       date: newsletter.date,
       pages: newsletter.pages || 0,
       filename: newsletter.filename,
+      url: newsletter.url || '', // Ensure url is always present
       status: hasLocalSource(newsletter) && hasDriveSource(newsletter) ? 'hybrid' :
         hasLocalSource(newsletter) ? 'local' : 'google-drive',
       syncStatus: 'synced',
     }
 
     // Add optional fields only if they exist
-    const url = newsletter.url
-    if (url) {
-      issue.url = url
-    }
     if (newsletter.topics) {
       issue.description = newsletter.topics.join(', ')
     }
@@ -624,3 +621,4 @@ onMounted(() => {
   min-height: 200px;
 }
 </style>
+

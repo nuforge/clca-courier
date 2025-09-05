@@ -11,7 +11,6 @@ export * from './core/user.types';
 export * from './core/api.types';
 
 // Service types
-export * from './services/google-drive.types';
 export * from './services/pdf.types';
 
 // Component types
@@ -22,16 +21,6 @@ export * from './components/ui.types';
 // Legacy exports for backward compatibility
 // These re-export existing types to maintain compatibility during transition
 export type { NavigationItem } from './navigation';
-export type {
-  GoogleDriveContentConfig,
-  GoogleDriveFile as LegacyGoogleDriveFile,
-  ContentPreview,
-  SearchResult,
-  GoogleDocsContent,
-  GoogleSheetsData,
-  IssueWithGoogleDrive,
-  ContentSyncStatus,
-} from './google-drive-content';
 
 // Consolidated interface aliases for migration
 export type {

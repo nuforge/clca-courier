@@ -7,47 +7,47 @@
         Publication Browser
       </h1>
       <p class="text-h6 text-grey-7">
-        Browse your PDF publications from Google Drive
+        Browse your PDF publications
       </p>
     </div>
 
     <!-- Load Button -->
-    <q-card v-if="!state.isInitialized" class="q-mb-lg" flat bordered>
+    <q-card v-if="!isInitialized" class="q-mb-lg" flat bordered>
       <q-card-section class="row items-center">
         <q-icon name="folder_open" color="primary" size="lg" class="q-mr-md" />
         <div class="col">
-          <div class="text-h6">Load PDFs from Google Drive</div>
-          <div class="text-body2 text-grey-7 q-mb-sm">Direct access to public folder - NO AUTH REQUIRED!</div>
+          <div class="text-h6">Load PDFs</div>
+          <div class="text-body2 text-grey-7 q-mb-sm">Browse available PDF publications</div>
         </div>
-        <q-btn color="primary" icon="download" label="Load PDFs" @click="loadPdfs" :loading="state.isLoading"
+        <q-btn color="primary" icon="download" label="Load PDFs" @click="loadPdfs" :loading="isLoading"
           unelevated />
       </q-card-section>
     </q-card>
 
     <!-- Success Status -->
-    <q-card v-if="state.isInitialized && !state.error" class="q-mb-lg bg-green-1" flat bordered>
+    <q-card v-if="isInitialized && !error" class="q-mb-lg bg-green-1" flat bordered>
       <q-card-section class="row items-center">
         <q-icon name="check_circle" color="positive" size="lg" class="q-mr-md" />
         <div class="col">
           <div class="text-h6">✅ PDFs Loaded Successfully</div>
-          <div class="text-body2 text-grey-7">Found {{ archivedIssues.length }} PDF files</div>
+          <div class="text-body2 text-grey-7">Found {{ pdfs.length }} PDF files</div>
         </div>
         <q-btn flat color="primary" icon="refresh" label="Reload" @click="loadPdfs" size="sm" />
       </q-card-section>
     </q-card>
 
     <!-- Error Status -->
-    <q-card v-if="state.error" class="q-mb-lg bg-red-1" flat bordered>
+    <q-card v-if="error" class="q-mb-lg bg-red-1" flat bordered>
       <q-card-section>
         <div class="text-h6 text-red-8">Error</div>
-        <div class="text-body2">{{ state.error }}</div>
+        <div class="text-body2">{{ error }}</div>
         <q-btn flat label="Retry" @click="loadPdfs" class="q-mt-sm" />
       </q-card-section>
     </q-card>
 
     <!-- PDF Grid -->
-    <div v-if="archivedIssues.length > 0" class="row q-gutter-md">
-      <q-card v-for="issue in archivedIssues" :key="issue.id" class="col-12 col-md-6 col-lg-4 cursor-pointer" flat
+    <div v-if="pdfs.length > 0" class="row q-gutter-md">
+      <q-card v-for="issue in pdfs" :key="issue.id" class="col-12 col-md-6 col-lg-4 cursor-pointer" flat
         bordered @click="openPdf(issue)">
         <q-card-section>
           <div class="text-h6">{{ issue.title }}</div>
@@ -84,16 +84,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { usePublicGoogleDrive } from '../composables/usePublicGoogleDrive'
-import type { IssueWithGoogleDrive } from '../types/google-drive-content'
+import { ref, computed, onMounted } from 'vue'
+import { useSiteStore } from '../stores/site-store-simple'
+import type { PdfDocument } from '../composables/usePdfViewer'
 
-// Working no-auth composable
-const { state, archivedIssues, initialize } = usePublicGoogleDrive()
+// Use the site store for data
+const siteStore = useSiteStore()
 
 // Local state
 const pdfDialogOpen = ref(false)
-const selectedIssue = ref<IssueWithGoogleDrive | null>(null)
+const selectedIssue = ref<PdfDocument | null>(null)
+const isLoading = ref(false)
+const isInitialized = ref(false)
+const error = ref<string | null>(null)
+const pdfs = ref<PdfDocument[]>([])
 
 // Computed
 const formatDate = (dateString: string): string => {
@@ -101,22 +105,35 @@ const formatDate = (dateString: string): string => {
 }
 
 const pdfViewerSrc = computed(() => {
-  if (!selectedIssue.value) return ''
-  return selectedIssue.value.googleDriveUrl || selectedIssue.value.url || ''
+  return selectedIssue.value?.url || ''
+})
+
+// Lifecycle
+onMounted(() => {
+  loadPdfs()
 })
 
 // Methods
-const loadPdfs = async () => {
+const loadPdfs = () => {
   try {
-    console.log('🚀 Loading PDFs with working no-auth approach...')
-    await initialize()
-    console.log('✅ SUCCESS!')
-  } catch (error) {
-    console.error('❌ Failed:', error)
+    isLoading.value = true
+    error.value = null
+    console.log('🚀 Loading PDFs from site store...')
+
+    // Use the archived issues from the site store directly
+    pdfs.value = siteStore.archivedIssues || []
+
+    isInitialized.value = true
+    console.log('✅ SUCCESS! Loaded', pdfs.value.length, 'PDFs')
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load PDFs'
+    console.error('❌ Failed:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 
-const openPdf = (issue: IssueWithGoogleDrive) => {
+const openPdf = (issue: PdfDocument) => {
   selectedIssue.value = issue
   pdfDialogOpen.value = true
 }

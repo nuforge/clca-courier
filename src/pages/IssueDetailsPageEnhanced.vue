@@ -1,133 +1,84 @@
-<!-- Enhanced issue details page with Google Drive support -->
+<!-- Enhanced issue details page with local/Firebase support -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSiteStore } from '../stores/site-store-simple'
-import { useDynamicGoogleDriveIssues } from '../composables/useDynamicGoogleDriveIssues'
 import { usePdfViewer } from '../composables/usePdfViewer'
-import GoogleDriveIssueCard from '../components/GoogleDriveIssueCard.vue'
-import type { IssueWithGoogleDrive } from '../types/google-drive-content'
+import type { PdfDocument } from '../composables/usePdfViewer'
 
 const route = useRoute()
 const router = useRouter()
 const siteStore = useSiteStore()
-const dynamicIssues = useDynamicGoogleDriveIssues()
 const { openDocument } = usePdfViewer()
 
-const issueId = computed(() => Number(route.params.id))
-const issue = ref<IssueWithGoogleDrive | null>(null)
-const metadata = ref<unknown>(null)
-const loadingMetadata = ref(false)
+// State
+const issue = ref<PdfDocument | null>(null)
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
-// Navigation helpers
+// Get issue ID from route
+const issueId = computed(() => parseInt(route.params.id as string))
+
+// Computed properties
 const nextIssue = computed(() => {
   if (!issue.value) return null
-  const currentIndex = dynamicIssues.issues.value.findIndex(i => i.id === issue.value!.id)
-  return currentIndex < dynamicIssues.issues.value.length - 1 ? dynamicIssues.issues.value[currentIndex + 1] : null
+  const issues = siteStore.archivedIssues
+  const currentIndex = issues.findIndex((i: PdfDocument) => i.id === issue.value!.id)
+  return currentIndex < issues.length - 1 ? issues[currentIndex + 1] : null
 })
 
 const previousIssue = computed(() => {
   if (!issue.value) return null
-  const currentIndex = dynamicIssues.issues.value.findIndex(i => i.id === issue.value!.id)
-  return currentIndex > 0 ? dynamicIssues.issues.value[currentIndex - 1] : null
+  const issues = siteStore.archivedIssues
+  const currentIndex = issues.findIndex((i: PdfDocument) => i.id === issue.value!.id)
+  return currentIndex > 0 ? issues[currentIndex - 1] : null
 })
 
 const relatedIssues = computed(() => {
   if (!issue.value) return []
-  return dynamicIssues.issues.value
-    .filter(i => i.id !== issue.value!.id)
+  return siteStore.archivedIssues
+    .filter((i: PdfDocument) => i.id !== issue.value!.id)
     .slice(0, 3)
 })
 
-// Computed property for card theme classes
-const cardClasses = computed(() => {
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
+// Navigation helpers
+const canNavigateNext = computed(() => nextIssue.value !== null)
+const canNavigatePrevious = computed(() => previousIssue.value !== null)
 
-const greyTextClass = computed(() =>
-  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
-)
-
-
-onMounted(async () => {
-  // Initialize dynamic issues if not already loaded
-  if (dynamicIssues.issues.value.length === 0) {
-    await dynamicIssues.loadIssues()
-  }
-  loadIssueDetails()
-})
-
-// Watch for route parameter changes to handle navigation between issues
-watch(
-  () => route.params.id,
-  (newId) => {
-    if (newId) {
-      loadIssueDetails()
-    }
-  }
-)
-
-function loadIssueDetails() {
-  // Find the issue in dynamic issues
-  const foundIssue = dynamicIssues.issues.value.find(i => i.id === issueId.value)
-
-  if (foundIssue) {
-    issue.value = foundIssue
-    loadMetadata()
-  } else {
-    // Issue not found, redirect back to archive
-    void router.push('/archive')
-  }
-}
-
-function loadMetadata() {
-  if (!issue.value) return
-
+// Methods
+const loadIssueData = () => {
   try {
-    loadingMetadata.value = true
-    // For dynamic issues, we already have the metadata from the API
-    metadata.value = {
-      filename: issue.value.filename,
-      fileSize: issue.value.fileSize,
-      lastModified: issue.value.date,
-      pages: issue.value.pages
+    isLoading.value = true
+    error.value = null
+
+    // Find the issue in the archived issues
+    const foundIssue = siteStore.archivedIssues.find((i: PdfDocument) => i.id === issueId.value)
+
+    if (foundIssue) {
+      issue.value = foundIssue
+    } else {
+      error.value = 'Issue not found'
     }
-  } catch (error) {
-    console.error('Failed to load metadata:', error)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load issue'
   } finally {
-    loadingMetadata.value = false
+    isLoading.value = false
   }
 }
 
-function openPdf() {
-  if (!issue.value) return
-
-  // Convert to PdfDocument format for compatibility
-  const pdfDocument = {
-    id: issue.value.id,
-    title: issue.value.title,
-    date: issue.value.date,
-    pages: issue.value.pages,
-    url: issue.value.googleDriveUrl || issue.value.localUrl || issue.value.url || '',
-    filename: issue.value.filename
+const openPdf = () => {
+  if (issue.value) {
+    openDocument(issue.value)
   }
-
-  openDocument(pdfDocument)
 }
 
-function navigateToIssue(targetIssue: IssueWithGoogleDrive) {
-  void router.push(`/archive/${targetIssue.id}`)
+function navigateToIssue(targetIssue: PdfDocument) {
+  void router.push(`/issues/${targetIssue.id}`)
 }
 
 const formatDate = (dateString: string): string => {
   try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -137,214 +88,196 @@ const formatDate = (dateString: string): string => {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+// Lifecycle
+onMounted(() => {
+  void loadIssueData()
+})
+
+// Watch for route changes
+watch(() => route.params.id, () => {
+  void loadIssueData()
+}, { immediate: false }) // Changed to false since onMounted will call it initially
 </script>
 
 <template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <div class="row justify-center">
-        <div class="col-12 col-lg-10">
-          <!-- Navigation breadcrumb -->
-          <q-breadcrumbs class="q-mb-md">
-            <q-breadcrumbs-el icon="mdi-home" to="/" />
-            <q-breadcrumbs-el label="Archive" to="/archive" />
-            <q-breadcrumbs-el :label="issue?.title || 'Issue Details'" />
-          </q-breadcrumbs>
+  <q-page class="q-pa-md">
+    <div class="row justify-center">
+      <div class="col-12 col-md-10 col-lg-8">
+        <!-- Loading State -->
+        <q-card v-if="isLoading" flat class="text-center q-pa-xl">
+          <q-spinner-dots color="primary" size="3em" />
+          <div class="text-h6 q-mt-md text-grey-6">Loading issue details...</div>
+        </q-card>
 
-          <!-- Issue not found -->
-          <q-card v-if="!dynamicIssues.loading.value && !issue" flat :class="cardClasses" class="text-center q-pa-xl">
-            <q-icon name="mdi-alert-circle" size="4em" color="warning" />
-            <div class="text-h6 q-mt-md">Issue not found</div>
-            <div :class="greyTextClass" class="q-mt-sm">
-              The requested issue could not be found.
+        <!-- Error State -->
+        <q-card v-else-if="error" flat class="text-center q-pa-xl bg-red-1">
+          <q-icon name="error" color="red" size="3em" />
+          <div class="text-h6 q-mt-md text-red-8">{{ error }}</div>
+          <q-btn
+            flat
+            color="primary"
+            label="Back to Archive"
+            @click="router.push('/archive')"
+            class="q-mt-md"
+          />
+        </q-card>
+
+        <!-- Issue Details -->
+        <q-card v-else-if="issue" flat class="q-mb-lg">
+          <q-card-section>
+            <!-- Header -->
+            <div class="row items-center q-mb-lg">
+              <div class="col">
+                <h1 class="text-h4 q-my-none">{{ issue.title || issue.filename }}</h1>
+                <div class="text-subtitle1 text-grey-6 q-mt-sm">
+                  <q-icon name="event" class="q-mr-xs" />
+                  {{ formatDate(issue.date) }}
+                </div>
+              </div>
+              <div class="col-auto">
+                <q-btn
+                  color="primary"
+                  icon="picture_as_pdf"
+                  label="Open PDF"
+                  @click="openPdf"
+                  unelevated
+                  class="q-ml-md"
+                />
+              </div>
             </div>
-            <q-btn color="primary" to="/archive" class="q-mt-md">
-              Back to Archive
-            </q-btn>
-          </q-card>
 
-          <!-- Loading state -->
-          <q-card v-else-if="dynamicIssues.loading.value" flat :class="cardClasses" class="text-center q-pa-xl">
-            <q-spinner-dots size="4em" color="primary" />
-            <div class="text-h6 q-mt-md">Loading issue...</div>
-          </q-card>
+            <!-- Navigation -->
+            <div class="row q-gutter-sm q-mb-lg">
+              <q-btn
+                v-if="canNavigatePrevious"
+                flat
+                color="primary"
+                icon="chevron_left"
+                label="Previous"
+                @click="navigateToIssue(previousIssue!)"
+              />
+              <q-space />
+              <q-btn
+                flat
+                color="primary"
+                label="Back to Archive"
+                icon="arrow_back"
+                @click="router.push('/archive')"
+              />
+              <q-space />
+              <q-btn
+                v-if="canNavigateNext"
+                flat
+                color="primary"
+                icon-right="chevron_right"
+                label="Next"
+                @click="navigateToIssue(nextIssue!)"
+              />
+            </div>
 
-          <!-- Issue details -->
-          <div v-else-if="issue" class="row q-col-gutter-lg">
-            <!-- Main content -->
-            <div class="col-12 col-md-8">
-              <q-card flat :class="cardClasses" class="q-mb-lg">
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <!-- Thumbnail -->
-                    <div class="col-12 col-sm-4">
-                      <div class="thumbnail-large" style="aspect-ratio: 210/297; max-width: 300px;">
-                        <!-- Always show PDF placeholder since Google Drive thumbnails are CORS-blocked -->
-                        <div class="flex flex-col items-center justify-center h-full bg-grey-2 rounded">
-                          <q-icon name="mdi-file-pdf-box" size="64px" color="grey-6" />
-                          <div class="text-caption mt-2 text-center px-2" :class="greyTextClass">
-                            {{ issue.filename }}
-                          </div>
-                        </div>
-                      </div>
+            <!-- Issue Information -->
+            <div class="row q-gutter-md">
+              <div class="col-12 col-md-6">
+                <q-list bordered separator>
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon name="description" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Filename</q-item-label>
+                      <q-item-label caption>{{ issue.filename }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
 
-                      <!-- Action buttons -->
-                      <div class="q-mt-md">
-                        <q-btn color="primary" icon="mdi-open-in-new" label="Open PDF" class="full-width"
-                          @click="openPdf" />
-                      </div>
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon name="event" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Date</q-item-label>
+                      <q-item-label caption>{{ formatDate(issue.date) }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item v-if="issue.pages">
+                    <q-item-section avatar>
+                      <q-icon name="pages" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Pages</q-item-label>
+                      <q-item-label caption>{{ issue.pages }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-card flat bordered class="bg-grey-1">
+                  <q-card-section>
+                    <div class="text-h6 q-mb-md">Quick Actions</div>
+                    <div class="q-gutter-sm">
+                      <q-btn
+                        color="primary"
+                        icon="picture_as_pdf"
+                        label="View PDF"
+                        @click="openPdf"
+                        outline
+                        block
+                      />
+                      <q-btn
+                        color="secondary"
+                        icon="download"
+                        label="Download"
+                        :href="issue.url"
+                        target="_blank"
+                        outline
+                        block
+                      />
                     </div>
-
-                    <!-- Issue information -->
-                    <div class="col-12 col-sm-8">
-                      <div class="text-h4 q-mb-md">{{ issue.title }}</div>
-
-                      <div class="row q-col-gutter-md q-mb-lg">
-                        <div class="col-6">
-                          <q-chip icon="mdi-calendar" color="primary" text-color="white">
-                            {{ formatDate(issue.date) }}
-                          </q-chip>
-                        </div>
-                        <div class="col-6">
-                          <q-chip icon="mdi-file-document" color="secondary" text-color="white">
-                            {{ issue.pages }} pages
-                          </q-chip>
-                        </div>
-                      </div>
-
-                      <!-- Status and sync info -->
-                      <div class="q-mb-lg">
-                        <div class="text-subtitle1 q-mb-sm">Status & Sync</div>
-                        <div class="row q-col-gutter-sm">
-                          <div class="col-auto">
-                            <q-badge :color="issue.syncStatus === 'synced' ? 'positive' : 'warning'"
-                              :icon="issue.syncStatus === 'synced' ? 'mdi-cloud-check' : 'mdi-cloud-sync'">
-                              {{ issue.syncStatus }}
-                            </q-badge>
-                          </div>
-                          <div class="col-auto">
-                            <q-badge color="info" icon="mdi-google-drive">
-                              Google Drive
-                            </q-badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Metadata -->
-                      <div v-if="metadata" class="q-mb-lg">
-                        <div class="text-subtitle1 q-mb-sm">File Information</div>
-                        <q-list separator class="rounded-borders">
-                          <q-item>
-                            <q-item-section avatar>
-                              <q-icon name="mdi-file" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Filename</q-item-label>
-                              <q-item-label caption>{{ issue.filename }}</q-item-label>
-                            </q-item-section>
-                          </q-item>
-
-                          <q-item v-if="metadata && (metadata as any).fileSize">
-                            <q-item-section avatar>
-                              <q-icon name="mdi-harddisk" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>File Size</q-item-label>
-                              <q-item-label caption>{{ (metadata as any).fileSize
-                                }}</q-item-label>
-                            </q-item-section>
-                          </q-item>
-
-                          <q-item v-if="issue.lastModified">
-                            <q-item-section avatar>
-                              <q-icon name="mdi-clock" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Last Modified</q-item-label>
-                              <q-item-label caption>{{ formatDate(issue.lastModified)
-                                }}</q-item-label>
-                            </q-item-section>
-                          </q-item>
-
-                          <q-item v-if="issue.googleDriveFileId">
-                            <q-item-section avatar>
-                              <q-icon name="mdi-google-drive" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Google Drive ID</q-item-label>
-                              <q-item-label caption>{{ issue.googleDriveFileId
-                                }}</q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </div>
-
-                      <!-- Loading metadata -->
-                      <div v-if="loadingMetadata" class="text-center q-py-md">
-                        <q-spinner-dots />
-                        <div class="text-caption q-mt-sm">Loading file information...</div>
-                      </div>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
+                  </q-card-section>
+                </q-card>
+              </div>
             </div>
+          </q-card-section>
+        </q-card>
 
-            <!-- Sidebar -->
-            <div class="col-12 col-md-4">
-              <!-- Navigation -->
-              <q-card flat :class="cardClasses" class="q-mb-lg">
-                <q-card-section>
-                  <div class="text-h6 q-mb-md">Navigation</div>
-
-                  <q-btn v-if="previousIssue" outline color="primary" icon="mdi-chevron-left"
-                    :label="previousIssue.title" class="full-width q-mb-sm text-left"
-                    @click="navigateToIssue(previousIssue)" />
-
-                  <q-btn v-if="nextIssue" outline color="primary" icon-right="mdi-chevron-right"
-                    :label="nextIssue.title" class="full-width q-mb-sm text-left" @click="navigateToIssue(nextIssue)" />
-
-                  <q-btn color="secondary" icon="mdi-archive" label="Back to Archive" class="full-width"
-                    to="/archive" />
-                </q-card-section>
-              </q-card>
-
-              <!-- Related issues -->
-              <q-card v-if="relatedIssues.length > 0" flat :class="cardClasses">
-                <q-card-section>
-                  <div class="text-h6 q-mb-md">Related Issues</div>
-
-                  <div class="q-gutter-md">
-                    <GoogleDriveIssueCard v-for="relatedIssue in relatedIssues" :key="relatedIssue.id"
-                      :issue="relatedIssue" :thumbnail="relatedIssue.thumbnailUrl"
-                      :is-loading="dynamicIssues.loading.value" :show-metadata="false"
-                      @regenerate-thumbnail="() => { }" />
-                  </div>
-                </q-card-section>
-              </q-card>
+        <!-- Related Issues -->
+        <q-card v-if="relatedIssues.length > 0" flat>
+          <q-card-section>
+            <div class="text-h6 q-mb-md">Related Issues</div>
+            <div class="row q-gutter-md">
+              <div
+                v-for="relatedIssue in relatedIssues"
+                :key="relatedIssue.id"
+                class="col-12 col-md-4"
+              >
+                <q-card
+                  flat
+                  bordered
+                  class="cursor-pointer transition-all"
+                  @click="navigateToIssue(relatedIssue)"
+                >
+                  <q-card-section>
+                    <div class="text-subtitle1">{{ relatedIssue.title || relatedIssue.filename }}</div>
+                    <div class="text-caption text-grey-6">{{ formatDate(relatedIssue.date) }}</div>
+                  </q-card-section>
+                </q-card>
+              </div>
             </div>
-          </div>
-        </div>
+          </q-card-section>
+        </q-card>
       </div>
     </div>
   </q-page>
 </template>
 
 <style scoped>
-.thumbnail-large {
-  max-width: 100%;
+.transition-all {
+  transition: all 0.3s ease;
 }
 
-/* Dark mode adjustments */
-.q-dark .thumbnail-large img {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+.transition-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 </style>

@@ -118,8 +118,6 @@ class FirebaseAuthService {
         const googleProvider = new GoogleAuthProvider();
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
-        // Add Drive scopes for existing Google Drive integration compatibility
-        googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
         return googleProvider;
       }
 

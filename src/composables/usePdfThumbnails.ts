@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
 import WebViewer, { type WebViewerInstance } from '@pdftron/webviewer';
 import * as pdfjsLib from 'pdfjs-dist';
-import type { IssueWithGoogleDrive } from '../types/google-drive-content';
+import type { PdfDocument } from './usePdfViewer';
 
 // Note: PDF.js worker will be configured at runtime to avoid Vite build issues
 
@@ -58,9 +58,7 @@ export function usePdfThumbnails() {
   };
 
   // Google Drive thumbnail methods
-  const generateGoogleDriveThumbnail = async (
-    issue: IssueWithGoogleDrive,
-  ): Promise<string | null> => {
+  const generateGoogleDriveThumbnail = async (issue: PdfDocument): Promise<string | null> => {
     if (!issue.googleDriveFileId) {
       return null;
     }
@@ -163,7 +161,7 @@ export function usePdfThumbnails() {
   };
 
   // Enhanced main thumbnail generation function with Google Drive support
-  const generateThumbnailWithGoogleDrive = async (issue: IssueWithGoogleDrive): Promise<string> => {
+  const generateThumbnailWithGoogleDrive = async (issue: PdfDocument): Promise<string> => {
     try {
       // First, try Google Drive thumbnail generation
       if (issue.googleDriveFileId && issue.status === 'google-drive') {
@@ -175,7 +173,7 @@ export function usePdfThumbnails() {
 
       // Fallback to local file if available
       if (issue.localUrl || issue.url) {
-        const localUrl = issue.localUrl || issue.url!;
+        const localUrl = issue.localUrl || issue.url;
         const localThumbnail = await getThumbnail(localUrl);
         if (localThumbnail) {
           return localThumbnail;

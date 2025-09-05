@@ -7,6 +7,20 @@ export interface PdfDocument {
   pages: number;
   url: string;
   filename: string;
+
+  // Optional extended properties for compatibility
+  status?: string;
+  syncStatus?: string;
+  description?: string;
+  fileSize?: string;
+  thumbnailUrl?: string;
+  tags?: string[];
+  googleDriveFileId?: string;
+  category?: string;
+  localUrl?: string;
+  googleDriveUrl?: string;
+  cacheThumbnailUrl?: string;
+  etag?: string;
 }
 
 // Create global reactive state (singleton pattern)
