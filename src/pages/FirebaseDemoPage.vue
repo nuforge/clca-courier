@@ -12,10 +12,36 @@
                 @click="signInWithGoogle"
                 color="primary"
                 icon="mdi-google"
-                label="Sign in with Google"
+                label="Sign in with Google (Popup)"
                 :loading="auth.isLoading.value"
                 class="full-width"
               />
+
+              <q-separator class="q-my-sm" />
+              <div class="text-caption text-grey-6 q-mb-sm">If popup fails, try these alternatives:</div>
+
+              <q-btn
+                @click="signInWithGoogleRedirect"
+                color="secondary"
+                icon="mdi-google"
+                label="Sign in with Google (Redirect)"
+                :loading="auth.isLoading.value"
+                class="full-width"
+                outline
+              />
+
+              <q-btn
+                @click="testPopupBlocking"
+                color="orange"
+                icon="mdi-alert-circle"
+                label="Test Popup Blocking"
+                size="sm"
+                class="full-width"
+                flat
+              />
+
+              <q-separator class="q-my-sm" />
+
               <q-btn
                 @click="signInWithProvider('facebook')"
                 color="blue-8"
@@ -37,9 +63,20 @@
                   <q-item-section>
                     <q-item-label>{{ auth.currentUser.value?.displayName }}</q-item-label>
                     <q-item-label caption>{{ auth.currentUser.value?.email }}</q-item-label>
+                    <q-item-label caption class="text-orange">UID: {{ auth.currentUser.value?.uid }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-card>
+
+              <q-btn
+                @click="copyUID"
+                color="amber"
+                icon="mdi-content-copy"
+                label="Copy UID for Admin Setup"
+                size="sm"
+                class="full-width"
+                flat
+              />
 
               <q-btn
                 @click="signOut"
@@ -55,6 +92,16 @@
             </q-banner>
           </q-card-section>
         </q-card>
+
+        <!-- Auth Troubleshooter -->
+        <FirebaseAuthTroubleshooter v-if="showTroubleshooter" class="q-mt-md" />
+
+        <q-btn
+          @click="showTroubleshooter = !showTroubleshooter"
+          flat
+          :label="showTroubleshooter ? 'Hide Troubleshooter' : 'Show Auth Troubleshooter'"
+          class="q-mt-sm"
+        />
       </div>
 
       <!-- File Upload Section -->
@@ -229,12 +276,16 @@
 import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useFirebase } from '../composables/useFirebase';
+import FirebaseAuthTroubleshooter from '../components/FirebaseAuthTroubleshooter.vue';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 
 const $q = useQuasar();
 
 // Initialize Firebase composables
 const { auth, newsletters, storage, userContent } = useFirebase();
+
+// UI state
+const showTroubleshooter = ref(false);
 
 // Reactive data
 const selectedFile = ref<File | null>(null);
@@ -269,11 +320,63 @@ const signInWithGoogle = async () => {
       type: 'positive',
       message: 'Successfully signed in with Google!',
     });
-  } catch {
+  } catch (error) {
+    console.error('Popup sign in failed:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to sign in with Google',
+      message: 'Failed to sign in with Google popup. Try the redirect method below.',
     });
+  }
+};
+
+const signInWithGoogleRedirect = async () => {
+  try {
+    console.log('Attempting redirect sign in...');
+    await auth.signInWithRedirect('google');
+    // Note: Page will redirect, so success message will be shown after redirect
+  } catch (error) {
+    console.error('Redirect sign in failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to sign in with Google redirect',
+    });
+  }
+};
+
+const testPopupBlocking = () => {
+  const popup = window.open('about:blank', '_blank', 'width=500,height=500');
+  if (!popup) {
+    $q.notify({
+      type: 'negative',
+      message: 'Popup BLOCKED by browser! This will prevent authentication.',
+    });
+    return false;
+  } else {
+    popup.close();
+    $q.notify({
+      type: 'positive',
+      message: 'Popup test passed - browser allows popups',
+    });
+    return true;
+  }
+};
+
+const copyUID = async () => {
+  const uid = auth.currentUser.value?.uid;
+  if (uid) {
+    try {
+      await navigator.clipboard.writeText(uid);
+      $q.notify({
+        type: 'positive',
+        message: `UID copied to clipboard: ${uid}`,
+      });
+    } catch (error) {
+      console.error('Failed to copy UID:', error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to copy UID to clipboard',
+      });
+    }
   }
 };
 

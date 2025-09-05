@@ -3,7 +3,7 @@
  * Vue 3 composable for Firebase services integration
  */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   firebaseAuthService,
   type AuthState,
@@ -59,6 +59,16 @@ export function useFirebaseAuth() {
     }
   };
 
+  const signInWithRedirect = async (provider: SupportedProvider) => {
+    try {
+      await firebaseAuthService.signInWithRedirect(provider);
+      logger.info(`Redirecting for ${provider} sign in...`);
+    } catch (error) {
+      logger.error('Redirect sign in failed:', error);
+      throw error;
+    }
+  };
+
   const signOut = async () => {
     try {
       await firebaseAuthService.signOut();
@@ -87,6 +97,7 @@ export function useFirebaseAuth() {
 
     // Methods
     signIn,
+    signInWithRedirect,
     signOut,
     hasPermission,
     isEditor,
@@ -295,15 +306,30 @@ export function useFirebaseUserContent() {
   const pendingContent = ref<UserContent[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const { isAuthenticated } = useFirebaseAuth();
 
   let unsubscribe: (() => void) | null = null;
 
-  // Subscribe to pending content updates
-  onMounted(() => {
-    unsubscribe = firestoreService.subscribeToPendingContent((data) => {
-      pendingContent.value = data;
-    });
-  });
+  // Subscribe to pending content updates only when authenticated
+  watch(
+    isAuthenticated,
+    (authenticated: boolean) => {
+      if (authenticated) {
+        // Set up subscription when user logs in
+        logger.info('User authenticated - setting up pending content subscription');
+        unsubscribe = firestoreService.subscribeToPendingContent((data) => {
+          pendingContent.value = data;
+        });
+      } else {
+        // Clean up subscription when user logs out
+        logger.info('User not authenticated - cleaning up pending content subscription');
+        unsubscribe?.();
+        unsubscribe = null;
+        pendingContent.value = []; // Clear content when not authenticated
+      }
+    },
+    { immediate: true },
+  );
 
   onUnmounted(() => {
     unsubscribe?.();

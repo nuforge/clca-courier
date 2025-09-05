@@ -65,14 +65,10 @@ export default defineConfig((ctx) => {
       // viteVuePluginOptions: {},
 
       extendViteConf(viteConf) {
-        // Add compression support for WebViewer files
+        // Configure server for development
         if (viteConf.server) {
           viteConf.server.middlewareMode = false;
-          viteConf.server.headers = {
-            ...viteConf.server.headers,
-            'Cross-Origin-Embedder-Policy': 'require-corp',
-            'Cross-Origin-Opener-Policy': 'same-origin',
-          };
+          // NO HEADERS IN DEVELOPMENT - Firebase needs unrestricted access
         }
       },
 
@@ -112,10 +108,12 @@ export default defineConfig((ctx) => {
     devServer: {
       // https: true,
       open: false, // opens browser window automatically
-      headers: {
-        'Cross-Origin-Embedder-Policy': 'require-corp',
-        'Cross-Origin-Opener-Policy': 'same-origin',
-      },
+      // CORS headers removed for development to allow Firebase Auth popups
+      // These may be needed for production PDF viewer features
+      // headers: {
+      //   'Cross-Origin-Embedder-Policy': 'require-corp',
+      //   'Cross-Origin-Opener-Policy': 'same-origin',
+      // },
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

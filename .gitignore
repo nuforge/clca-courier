@@ -256,6 +256,9 @@ temp/
 .firebase/
 firebase-debug.log
 firestore-debug.log
+# Firebase service account keys (NEVER commit these!)
+*firebase-adminsdk*.json
+service-account-key*.json
 
 # Sentry Config File
 .sentryclirc
@@ -280,4 +283,10 @@ cypress/downloads/
 coverage/
 .jest-cache/
 .env
+# Test and debug files
 test-lot-search.html
+thumbnail-generator.html
+firebase-debug.js
+*debug*.html
+*test*.html
+clca-courier-27aed-firebase-adminsdk-fbsvc-b216a13b21.json

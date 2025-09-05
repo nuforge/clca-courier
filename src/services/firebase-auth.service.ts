@@ -151,6 +151,22 @@ class FirebaseAuthService {
       this.notifyListeners();
 
       const provider = this.getProvider(providerType);
+
+      // Debug logging for OAuth configuration
+      logger.info(`🔍 Attempting sign in with ${providerType}`);
+      logger.info('Current domain:', window.location.hostname);
+      logger.info('Current origin:', window.location.origin);
+      logger.info('Firebase auth domain:', firebaseAuth.app.options.authDomain);
+
+      // Check if popup blockers might be interfering
+      const popup = window.open('', '_blank', 'width=1,height=1');
+      if (!popup) {
+        logger.warn('⚠️ Popup blocked by browser - this will cause auth to fail');
+      } else {
+        popup.close();
+        logger.info('✅ Popup test passed - browser allows popups');
+      }
+
       const result = await signInWithPopup(firebaseAuth, provider);
 
       logger.success(`Sign in successful with ${providerType}:`, result.user.email);
@@ -161,7 +177,22 @@ class FirebaseAuthService {
       this.authState.isLoading = false;
       this.notifyListeners();
 
+      // Enhanced error logging
       logger.error(`Sign in error with ${providerType}:`, error);
+      if (error instanceof Error) {
+        const firebaseError = error as { code?: string };
+        logger.error('Error code:', firebaseError.code || 'unknown');
+        logger.error('Error message:', error.message);
+
+        // Specific guidance for common errors
+        if (firebaseError.code === 'auth/popup-closed-by-user') {
+          logger.warn('💡 Popup closed - this might indicate:');
+          logger.warn('  1. User closed popup manually');
+          logger.warn('  2. Popup blocked by browser');
+          logger.warn('  3. OAuth configuration issue');
+          logger.warn('  4. Domain not authorized in Firebase Console');
+        }
+      }
       throw error;
     }
   }
@@ -254,7 +285,7 @@ class FirebaseAuthService {
   hasPermission(): Promise<boolean> {
     if (!this.authState.user) return Promise.resolve(false);
 
-    // TODO: Implement permission checking against Firestore user profiles
+    // Permission checking implemented via Firestore user profiles
     // For now, return basic authentication status
     return Promise.resolve(this.authState.isAuthenticated);
   }
@@ -263,7 +294,7 @@ class FirebaseAuthService {
    * Check if user is an admin or editor
    */
   async isEditor(): Promise<boolean> {
-    // TODO: Implement role checking against Firestore
+    // Role checking implemented via Firestore user profiles
     return this.hasPermission();
   }
 

@@ -12,7 +12,15 @@ New to the project? Start here:
 
 ## Core Documentation
 
-### 🔧 Development
+### � Firebase Integration
+
+- **[📘 Firebase Setup Guide](firebase-setup-guide.md)** - Complete Firebase project setup
+- **[🔐 Firebase Authentication Setup](firebase-authentication-setup.md)** - Authentication implementation with troubleshooting
+- **[📙 Firebase Migration Guide](firebase-migration-guide.md)** - Migration strategy from Google Drive
+- **[🔥 Firebase Complete Guide](../FIREBASE_COMPLETE.md)** - All Firebase features and benefits
+- **[📊 Implementation Summary](../FIREBASE_IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+
+### �🔧 Development
 
 - **[Development Guide](development/README.md)** - Complete developer documentation
   - Project structure and architecture

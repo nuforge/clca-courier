@@ -31,6 +31,17 @@ const firebaseConfig: FirebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
+// Debug configuration in development
+if (import.meta.env.DEV) {
+  console.log('🔧 Firebase config (development mode):', {
+    hasApiKey: !!firebaseConfig.apiKey,
+    authDomain: firebaseConfig.authDomain,
+    projectId: firebaseConfig.projectId,
+    storageBucket: firebaseConfig.storageBucket,
+    hasAppId: !!firebaseConfig.appId,
+  });
+}
+
 // Validate required configuration
 const requiredFields = [
   'apiKey',
@@ -50,13 +61,35 @@ if (missingFields.length > 0) {
 }
 
 // Initialize Firebase
-export const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
+let firebaseApp: FirebaseApp;
+let firebaseAuth: Auth;
+let firestore: Firestore;
+let firebaseStorage: FirebaseStorage;
+let firebaseFunctions: Functions;
 
-// Initialize Firebase services
-export const firebaseAuth: Auth = getAuth(firebaseApp);
-export const firestore: Firestore = getFirestore(firebaseApp);
-export const firebaseStorage: FirebaseStorage = getStorage(firebaseApp);
-export const firebaseFunctions: Functions = getFunctions(firebaseApp);
+try {
+  console.log('🔥 Initializing Firebase with config:', {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+    storageBucket: firebaseConfig.storageBucket,
+  });
+
+  firebaseApp = initializeApp(firebaseConfig);
+
+  // Initialize Firebase services with error handling
+  firebaseAuth = getAuth(firebaseApp);
+  firestore = getFirestore(firebaseApp);
+  firebaseStorage = getStorage(firebaseApp);
+  firebaseFunctions = getFunctions(firebaseApp);
+
+  console.log('✅ Firebase services initialized successfully');
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  throw error;
+}
+
+// Export initialized services
+export { firebaseApp, firebaseAuth, firestore, firebaseStorage, firebaseFunctions };
 
 // Export configuration for debugging
 export { firebaseConfig };

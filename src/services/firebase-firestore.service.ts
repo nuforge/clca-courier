@@ -191,22 +191,47 @@ class FirebaseFirestoreService {
 
   async getAllNewsletterMetadata(): Promise<NewsletterMetadata[]> {
     try {
+      logger.info('Attempting to fetch newsletter metadata...');
+
+      // Include isPublished filter in the query to match security rules
       const q = query(
         collection(firestore, this.COLLECTIONS.NEWSLETTERS),
-        where('isPublished', '==', true),
-        orderBy('publicationDate', 'desc'),
+        where('isPublished', '==', true), // This must match the security rule condition
+        limit(100),
       );
 
+      logger.info('Executing Firestore query with isPublished filter...');
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(
-        (doc) =>
-          ({
+
+      logger.info(`Retrieved ${querySnapshot.docs.length} published documents from Firestore`);
+
+      const results = querySnapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          logger.debug(`Document ${doc.id}:`, { isPublished: data.isPublished, title: data.title });
+          return {
             id: doc.id,
-            ...doc.data(),
-          }) as NewsletterMetadata,
-      );
+            ...data,
+          } as NewsletterMetadata;
+        })
+        // Sort by publication date (no need to filter isPublished since query already does it)
+        .sort(
+          (a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime(),
+        );
+
+      logger.success(`Successfully processed ${results.length} published newsletters`);
+      return results;
     } catch (error) {
       logger.error('Error getting all newsletter metadata:', error);
+
+      // Check if this is a permission error and provide helpful context
+      if (error instanceof Error && error.message.includes('permission')) {
+        logger.error('Permission denied - this might indicate:');
+        logger.error('1. Firestore rules are not allowing public read access');
+        logger.error('2. The documents do not have isPublished=true');
+        logger.error('3. Firebase configuration is incorrect');
+      }
+
       throw error;
     }
   }
@@ -350,53 +375,125 @@ class FirebaseFirestoreService {
 
   // Real-time subscriptions
   subscribeToNewsletters(callback: (newsletters: NewsletterMetadata[]) => void): Unsubscribe {
-    const q = query(
-      collection(firestore, this.COLLECTIONS.NEWSLETTERS),
-      where('isPublished', '==', true),
-      orderBy('publicationDate', 'desc'),
-      limit(50),
-    );
+    try {
+      logger.info('Setting up newsletter subscription...');
 
-    return onSnapshot(q, (querySnapshot) => {
-      const newsletters = querySnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as NewsletterMetadata,
+      // Include isPublished filter in the query to match security rules
+      const q = query(
+        collection(firestore, this.COLLECTIONS.NEWSLETTERS),
+        where('isPublished', '==', true), // This must match the security rule condition
+        limit(50),
       );
-      callback(newsletters);
-    });
+
+      return onSnapshot(
+        q,
+        (querySnapshot) => {
+          logger.info(`Newsletter subscription received ${querySnapshot.docs.length} documents`);
+
+          const newsletters = querySnapshot.docs
+            .map((doc) => {
+              const data = doc.data();
+              logger.debug(`Subscription document ${doc.id}:`, {
+                isPublished: data.isPublished,
+                title: data.title,
+              });
+              return {
+                id: doc.id,
+                ...data,
+              } as NewsletterMetadata;
+            })
+            // Client-side filtering and sorting until indexes are created
+            .filter((newsletter) => {
+              const isPublished = newsletter.isPublished === true;
+              if (!isPublished) {
+                logger.debug(
+                  `Subscription filtering out unpublished newsletter: ${newsletter.title || newsletter.id}`,
+                );
+              }
+              return isPublished;
+            })
+            .sort(
+              (a, b) =>
+                new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime(),
+            );
+
+          logger.success(
+            `Newsletter subscription processed ${newsletters.length} published newsletters`,
+          );
+          callback(newsletters);
+        },
+        (error) => {
+          logger.error('Newsletter subscription error:', error);
+
+          // Check if this is a permission error and provide helpful context
+          if (error.message.includes('permission')) {
+            logger.error('Subscription permission denied - this might indicate:');
+            logger.error('1. Firestore rules are not allowing public read access');
+            logger.error('2. The documents do not have isPublished=true');
+            logger.error('3. Firebase configuration is incorrect');
+          }
+
+          // Call callback with empty array to prevent app crash
+          callback([]);
+        },
+      );
+    } catch (error) {
+      logger.error('Error setting up newsletter subscription:', error);
+      // Return a no-op unsubscribe function
+      return () => {};
+    }
   }
 
   subscribeToPendingContent(callback: (content: UserContent[]) => void): Unsubscribe {
-    const q = query(
-      collection(firestore, this.COLLECTIONS.USER_CONTENT),
-      where('status', '==', 'pending'),
-      orderBy('submissionDate', 'asc'),
-    );
+    try {
+      logger.info('Setting up pending content subscription...');
 
-    return onSnapshot(q, (querySnapshot) => {
-      const content = querySnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as UserContent,
+      // Simplified query - consider adding compound index for complex filtering
+      const q = query(collection(firestore, this.COLLECTIONS.USER_CONTENT), limit(50));
+
+      return onSnapshot(
+        q,
+        (querySnapshot) => {
+          const content = querySnapshot.docs
+            .map(
+              (doc) =>
+                ({
+                  id: doc.id,
+                  ...doc.data(),
+                }) as UserContent,
+            )
+            // Client-side filtering and sorting until indexes are created
+            .filter((item) => item.status === 'pending')
+            .sort(
+              (a, b) => new Date(a.submissionDate).getTime() - new Date(b.submissionDate).getTime(),
+            );
+
+          logger.success(`Pending content subscription processed ${content.length} items`);
+          callback(content);
+        },
+        (error) => {
+          logger.error('Pending content subscription error:', error);
+          if (error.message.includes('permission')) {
+            logger.debug('Permission denied for pending content - user may not be editor');
+          }
+          // Call callback with empty array to prevent app crash
+          callback([]);
+        },
       );
-      callback(content);
-    });
+    } catch (error) {
+      logger.error('Error setting up pending content subscription:', error);
+      callback([]);
+      return () => {};
+    }
   }
 
   // Search operations
   async searchNewsletters(searchTerm: string): Promise<NewsletterMetadata[]> {
     try {
-      // For now, we'll do a simple title search
-      // In production, you might want to use Algolia or implement full-text search
+      // Simplified search - consider adding compound index for better performance
       const q = query(
         collection(firestore, this.COLLECTIONS.NEWSLETTERS),
-        where('isPublished', '==', true),
-        orderBy('publicationDate', 'desc'),
+        limit(100), // Get more documents for client-side filtering
       );
 
       const querySnapshot = await getDocs(q);
@@ -409,13 +506,15 @@ class FirebaseFirestoreService {
       );
 
       // Client-side filtering - consider moving to Cloud Functions for better performance
-      return newsletters.filter(
-        (newsletter) =>
-          newsletter.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          newsletter.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          newsletter.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          newsletter.searchableText?.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
+      return newsletters
+        .filter((newsletter) => newsletter.isPublished) // Filter published first
+        .filter(
+          (newsletter) =>
+            newsletter.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            newsletter.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            newsletter.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            newsletter.searchableText?.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
     } catch (error) {
       logger.error('Error searching newsletters:', error);
       throw error;

@@ -13,6 +13,8 @@
     "dev": "quasar dev",
     "build": "quasar build",
     "build:prod": "cross-env NODE_OPTIONS=\"--max-old-space-size=16384\" quasar build",
+    "deploy": "quasar build && firebase deploy",
+    "deploy:hosting": "quasar build && firebase deploy --only hosting",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
@@ -42,6 +44,7 @@
     "@vue/eslint-config-typescript": "^14.4.0",
     "autoprefixer": "^10.4.2",
     "cross-env": "^10.0.0",
+    "dotenv": "^17.2.2",
     "eslint": "^9.14.0",
     "eslint-plugin-vue": "^9.30.0",
     "firebase-tools": "^14.15.2",
