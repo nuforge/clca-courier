@@ -11,6 +11,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/archive', component: () => import('pages/AdvancedIssueArchivePage.vue') },
       { path: '/archive/:id(\\d+)', component: () => import('pages/IssueDetailsPageEnhanced.vue') },
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
+      { path: '/contribute/submit', component: () => import('pages/SubmitContentPage.vue') },
       { path: '/contribute/article', component: () => import('pages/ArticleSubmissionPage.vue') },
       { path: '/contribute/photo', component: () => import('pages/PhotoSubmissionPage.vue') },
       { path: '/contribute/event', component: () => import('pages/EventAnnouncementPage.vue') },

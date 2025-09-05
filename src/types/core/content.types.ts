@@ -167,6 +167,7 @@ export interface BaseContentItem {
   id: string;
   type: ContentType;
   title: string;
+  authorId: string; // For Firestore security rules
   author: ContentAuthor;
   content: string; // Rich text/HTML content
   status: ReviewStatus;

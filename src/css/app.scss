@@ -23,3 +23,57 @@ a {
       0 2px 6px rgba(0, 0, 0, 0.08);
   }
 }
+
+// ===================================
+// RESPONSIVE COLUMN FIXES
+// ===================================
+// Fix for widescreen column overflow issues
+// Use these classes to replace problematic col-12 col-md-6 patterns
+
+// Proper responsive 2-column layout for forms and content
+.col-fix-2 {
+  width: 100%;
+  flex: 0 0 100%;
+
+  @media (min-width: 600px) {
+    width: 50%;
+    flex: 0 0 50%;
+  }
+
+  @media (min-width: 1024px) {
+    width: 50%;
+    flex: 0 0 50%;
+  }
+}
+
+// Proper responsive 3-column layout for cards/buttons
+.col-fix-3 {
+  width: 100%;
+  flex: 0 0 100%;
+
+  @media (min-width: 600px) {
+    width: 50%;
+    flex: 0 0 50%;
+  }
+
+  @media (min-width: 1024px) {
+    width: 33.333%;
+    flex: 0 0 33.333%;
+  }
+}
+
+// Proper responsive 4-column layout for small items
+.col-fix-4 {
+  width: 100%;
+  flex: 0 0 100%;
+
+  @media (min-width: 600px) {
+    width: 50%;
+    flex: 0 0 50%;
+  }
+
+  @media (min-width: 1024px) {
+    width: 25%;
+    flex: 0 0 25%;
+  }
+}

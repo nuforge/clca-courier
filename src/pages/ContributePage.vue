@@ -8,7 +8,6 @@ const siteStore = useSiteStore()
 
 // Computed property for card theme classes
 const cardClasses = computed(() => {
-  // Use specific classes that ensure proper theming for all child components
   if (siteStore.isDarkMode) {
     return 'bg-dark text-white q-dark';
   } else {
@@ -16,20 +15,25 @@ const cardClasses = computed(() => {
   }
 });
 
+// Navigation functions - all go to unified submission page with content type pre-selected
 function submitArticle() {
-  void router.push('/contribute/article')
+  void router.push({ path: '/contribute/submit', query: { type: 'article' } })
 }
 
 function submitPhotos() {
-  void router.push('/contribute/photo')
+  void router.push({ path: '/contribute/submit', query: { type: 'photo' } })
 }
 
 function postEvent() {
-  void router.push('/contribute/event')
+  void router.push({ path: '/contribute/submit', query: { type: 'event' } })
 }
 
 function shareIdeas() {
-  void router.push('/contribute/ideas')
+  void router.push({ path: '/contribute/submit', query: { type: 'suggestion' } })
+}
+
+function quickPhotoUpload() {
+  void router.push({ path: '/contribute/submit', query: { type: 'photo', mode: 'quick' } })
 }
 </script>
 
@@ -38,101 +42,95 @@ function shareIdeas() {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
-          <q-card flat :class="cardClasses" class="q-mb-md">
+          <!-- Header Section -->
+          <q-card flat :class="cardClasses" class="q-mb-lg">
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-pencil" class="q-mr-sm" />
-                Contribute
+                Contribute to The Courier
               </div>
               <p class="text-body1">
-                We welcome contributions from community members! Share your stories, announcements,
-                photos, and ideas to make The Courier a true reflection of our community.
+                Share your stories, photos, events, and ideas with our community.
+                Choose from our streamlined submission options below.
               </p>
             </q-card-section>
           </q-card>
 
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-6">
-              <q-card :class="cardClasses">
-                <q-card-section>
+          <!-- Quick Actions Section -->
+          <q-card :class="cardClasses" class="q-mb-lg">
+            <q-card-section>
+              <div class="text-h6 q-mb-md">
+                <q-icon name="mdi-flash" class="q-mr-sm" />
+                Quick Actions
+              </div>
+              <div class="row">
+                <div class="col-12 col-sm-4 q-pa-sm">
+                  <q-btn color="secondary" icon="mdi-camera-plus" label="Quick Photo Upload" @click="quickPhotoUpload"
+                    class="full-width" size="md" />
+                </div>
+                <div class="col-12 col-sm-4 q-pa-sm">
+                  <q-btn color="accent" icon="mdi-calendar-plus" label="Post Event" @click="postEvent"
+                    class="full-width" size="md" />
+                </div>
+                <div class="col-12 col-sm-4 q-pa-sm">
+                  <q-btn color="positive" icon="mdi-lightbulb" label="Share Idea" @click="shareIdeas" class="full-width"
+                    size="md" />
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <!-- Main Contribution Types -->
+          <div class="row">
+            <div class="col-12 col-md-6 q-pa-md">
+              <q-card :class="cardClasses" class="full-height">
+                <q-card-section class="column full-height">
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
-                    Article Submissions
+                    Articles & Stories
                   </div>
-                  <p class="text-body2 q-mb-md">
-                    Share your stories, experiences, or community insights. We accept articles on
-                    various topics
-                    including community events, local history, and resident spotlights.
+                  <p class="text-body2 q-mb-md flex-grow-1">
+                    Share detailed stories, community insights, resident spotlights, or local history.
+                    Perfect for longer-form content that tells a story or provides valuable information.
                   </p>
-                  <q-btn color="primary" icon="mdi-file-document-edit" label="Submit Article" @click="submitArticle"
+                  <q-btn color="primary" icon="mdi-file-document-edit" label="Write Article" @click="submitArticle"
                     class="full-width" />
                 </q-card-section>
               </q-card>
             </div>
 
-            <div class="col-12 col-md-6">
-              <q-card :class="cardClasses">
-                <q-card-section>
+            <div class="col-12 col-md-6 q-pa-md">
+              <q-card :class="cardClasses" class="full-height">
+                <q-card-section class="column full-height">
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-camera" class="q-mr-sm" />
-                    Photo Submissions
+                    Photo Collections
                   </div>
-                  <p class="text-body2 q-mb-md">
-                    Share your beautiful photos of the lakes, community events, wildlife, or
-                    seasonal
-                    scenes. High-quality images are preferred.
+                  <p class="text-body2 q-mb-md flex-grow-1">
+                    Submit curated photo collections with detailed descriptions, captions, and context.
+                    Great for event coverage, seasonal highlights, or thematic galleries.
                   </p>
-                  <q-btn color="secondary" icon="mdi-image-plus" label="Submit Photos" @click="submitPhotos"
-                    class="full-width" />
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-card :class="cardClasses">
-                <q-card-section>
-                  <div class="text-h6 q-mb-md">
-                    <q-icon name="mdi-calendar" class="q-mr-sm" />
-                    Event Announcements
-                  </div>
-                  <p class="text-body2 q-mb-md">
-                    Promote your community events, meetings, or activities. Help keep everyone
-                    informed about what's happening in our neighborhood.
-                  </p>
-                  <q-btn color="accent" icon="mdi-calendar-plus" label="Post Event" @click="postEvent"
-                    class="full-width" />
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-card :class="cardClasses">
-                <q-card-section>
-                  <div class="text-h6 q-mb-md">
-                    <q-icon name="mdi-lightbulb" class="q-mr-sm" />
-                    Ideas & Suggestions
-                  </div>
-                  <p class="text-body2 q-mb-md">
-                    Have ideas for improving The Courier or our community? We'd love to hear
-                    your suggestions and feedback.
-                  </p>
-                  <q-btn color="positive" icon="mdi-message-text" label="Share Ideas" @click="shareIdeas"
+                  <q-btn color="secondary" icon="mdi-image-multiple" label="Submit Collection" @click="submitPhotos"
                     class="full-width" />
                 </q-card-section>
               </q-card>
             </div>
           </div>
 
+          <!-- Guidelines Section -->
           <q-card :class="cardClasses" class="q-mt-lg">
             <q-card-section>
-              <div class="text-h6 q-mb-md">Submission Guidelines</div>
+              <div class="text-h6 q-mb-md">
+                <q-icon name="mdi-information" class="q-mr-sm" />
+                Submission Guidelines
+              </div>
               <q-list>
                 <q-item>
                   <q-item-section side>
                     <q-icon name="mdi-check-circle" color="positive" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Articles should be between 200-800 words</q-item-label>
+                    <q-item-label>Articles: 200-800 words preferred</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item>
@@ -140,8 +138,7 @@ function shareIdeas() {
                     <q-icon name="mdi-check-circle" color="positive" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Photos should be high resolution (300 DPI
-                      preferred)</q-item-label>
+                    <q-item-label>Photos: High resolution (300 DPI+)</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item>
@@ -149,7 +146,7 @@ function shareIdeas() {
                     <q-icon name="mdi-check-circle" color="positive" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Include your name and contact information</q-item-label>
+                    <q-item-label>Community-appropriate content</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item>
@@ -157,8 +154,7 @@ function shareIdeas() {
                     <q-icon name="mdi-check-circle" color="positive" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Content should be community-appropriate and
-                      relevant</q-item-label>
+                    <q-item-label>All submissions reviewed before publishing</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -169,3 +165,13 @@ function shareIdeas() {
     </div>
   </q-page>
 </template>
+
+<style scoped>
+.full-height {
+  height: 100%;
+}
+
+.flex-grow-1 {
+  flex-grow: 1;
+}
+</style>

@@ -3,12 +3,29 @@
     <div class="container q-pa-md">
       <!-- Page Header -->
       <div class="page-header q-mb-xl">
-        <h3 class="page-title q-mt-none q-mb-md">Submit Content</h3>
+        <h3 class="page-title q-mt-none q-mb-md">
+          {{ pageTitle }}
+        </h3>
         <p class="page-description text-grey-7">
-          Share your stories, events, projects, and announcements with the CLCA community.
-          All submissions are reviewed by our editorial team before publication.
+          {{ pageDescription }}
         </p>
+
+        <!-- Breadcrumb Navigation -->
+        <q-breadcrumbs class="q-mt-md">
+          <q-breadcrumbs-el label="Home" to="/" />
+          <q-breadcrumbs-el label="Contribute" to="/contribute" />
+          <q-breadcrumbs-el :label="contentTypeLabel" />
+        </q-breadcrumbs>
       </div>
+
+      <!-- Quick Mode Banner (for quick photo upload) -->
+      <q-banner v-if="isQuickMode" class="bg-info text-white q-mb-lg" rounded>
+        <template v-slot:avatar>
+          <q-icon name="mdi-flash" />
+        </template>
+        <div class="text-subtitle1">Quick Upload Mode</div>
+        <div class="text-caption">Streamlined submission for quick photo sharing</div>
+      </q-banner>
 
       <!-- Success State -->
       <div v-if="submissionSuccess" class="success-state text-center q-pa-xl">
@@ -19,26 +36,23 @@
           provide feedback within 3-5 business days.
         </p>
         <div class="row justify-center q-gutter-md">
-          <q-btn
-            color="primary"
-            label="Submit Another"
-            @click="resetForm"
-          />
-          <q-btn
-            color="grey-7"
-            outline
-            label="View My Submissions"
-            :to="{ name: 'user-content' }"
-          />
+          <q-btn color="primary" label="Submit Another" @click="resetForm" />
+          <q-btn color="grey-7" outline label="Back to Contribute" to="/contribute" />
         </div>
       </div>
 
       <!-- Submission Form -->
       <div v-else class="submission-form">
-        <ContentSubmissionForm
-          @submitted="onSubmissionSuccess"
-          @cancelled="onFormCancel"
-        />
+        <ContentSubmissionForm @submitted="onSubmissionSuccess" @cancelled="onFormCancel"
+          v-bind="initialContentType ? { initialType: initialContentType } : {}" :quick-mode="isQuickMode" />
+      </div>
+
+      <!-- Debug Panel (development only) -->
+      <div v-if="showDebugPanel" class="debug-section q-mt-xl">
+        <q-separator class="q-mb-lg" />
+        <q-expansion-item icon="bug_report" label="Debug Panel (Development)">
+          <FirebaseDebugPanel />
+        </q-expansion-item>
       </div>
 
       <!-- Help Section -->
@@ -56,13 +70,7 @@
                   <p class="text-caption text-grey-7">
                     Learn about our content standards and best practices for submissions.
                   </p>
-                  <q-btn
-                    color="primary"
-                    outline
-                    size="sm"
-                    label="View Guidelines"
-                    @click="showGuidelines = true"
-                  />
+                  <q-btn color="primary" outline size="sm" label="View Guidelines" @click="showGuidelines = true" />
                 </div>
               </q-card-section>
             </q-card>
@@ -77,13 +85,7 @@
                   <p class="text-caption text-grey-7">
                     Best practices for hosting images externally to keep costs low.
                   </p>
-                  <q-btn
-                    color="primary"
-                    outline
-                    size="sm"
-                    label="Image Guide"
-                    @click="showImageGuide = true"
-                  />
+                  <q-btn color="primary" outline size="sm" label="Image Guide" @click="showImageGuide = true" />
                 </div>
               </q-card-section>
             </q-card>
@@ -98,13 +100,8 @@
                   <p class="text-caption text-grey-7">
                     Contact our editorial team if you need assistance with your submission.
                   </p>
-                  <q-btn
-                    color="primary"
-                    outline
-                    size="sm"
-                    label="Contact Us"
-                    href="mailto:editor@conashaughlakes.com"
-                  />
+                  <q-btn color="primary" outline size="sm" label="Contact Us"
+                    href="mailto:editor@conashaughlakes.com" />
                 </div>
               </q-card-section>
             </q-card>
@@ -136,7 +133,8 @@
               <ol>
                 <li><strong>Submit:</strong> Fill out the form with your content</li>
                 <li><strong>Review:</strong> Editorial team reviews for quality and appropriateness</li>
-                <li><strong>Feedback:</strong> Receive feedback or approval within 3-5 business days</li>
+                <li><strong>Feedback:</strong> Receive feedback or approval within 3-5 business days
+                </li>
                 <li><strong>Revise:</strong> Make any requested changes if needed</li>
                 <li><strong>Publish:</strong> Approved content is included in the next newsletter</li>
               </ol>
@@ -167,7 +165,8 @@
           <q-card-section>
             <div class="image-guide-content">
               <p class="text-subtitle2 text-primary q-mb-md">
-                We recommend external image hosting to keep the newsletter cost-effective while maintaining high quality.
+                We recommend external image hosting to keep the newsletter cost-effective while
+                maintaining high quality.
               </p>
 
               <h6>Recommended Services</h6>
@@ -214,17 +213,77 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import ContentSubmissionForm from '../components/contribution/ContentSubmissionForm.vue';
+import FirebaseDebugPanel from '../components/contribution/FirebaseDebugPanel.vue';
+import type { ContentType } from '../types/core/content.types';
 
 const router = useRouter();
+const route = useRoute();
 
 // Reactive state
 const submissionSuccess = ref(false);
 const showGuidelines = ref(false);
 const showImageGuide = ref(false);
 const submittedContentId = ref<string | null>(null);
+
+// URL parameters
+const initialContentType = computed<ContentType | undefined>(() => {
+  const type = route.query.type as string;
+  // Map URL parameter values to actual ContentType values
+  switch (type) {
+    case 'article': return 'article';
+    case 'photo': return 'photo_story';
+    case 'event': return 'event';
+    case 'suggestion': return 'announcement'; // Map suggestions to announcements
+    default: return undefined;
+  }
+});
+
+const isQuickMode = computed(() => route.query.mode === 'quick');
+
+const showDebugPanel = computed(() => {
+  // Show debug panel in development or when explicitly requested
+  return process.env.NODE_ENV === 'development' || route.query.debug === 'true';
+});
+
+// Page content based on content type
+const contentTypeLabel = computed(() => {
+  const urlType = route.query.type as string;
+  switch (urlType) {
+    case 'article': return 'Submit Article';
+    case 'photo': return isQuickMode.value ? 'Quick Photo Upload' : 'Submit Photos';
+    case 'event': return 'Post Event';
+    case 'suggestion': return 'Share Ideas';
+    default: return 'Submit Content';
+  }
+});
+
+const pageTitle = computed(() => {
+  if (isQuickMode.value) {
+    return 'Quick Photo Upload';
+  }
+  return contentTypeLabel.value;
+});
+
+const pageDescription = computed(() => {
+  const urlType = route.query.type as string;
+  switch (urlType) {
+    case 'article':
+      return 'Share your stories, experiences, or community insights with detailed articles and rich content.';
+    case 'photo':
+      return isQuickMode.value
+        ? 'Quickly upload and share photos with the community.'
+        : 'Submit curated photo collections with detailed descriptions and context.';
+    case 'event':
+      return 'Promote community events, meetings, or activities to keep everyone informed.';
+    case 'suggestion':
+      return 'Share your ideas for improving The Courier or our community.';
+    default:
+      return 'Share your stories, events, projects, and announcements with the CLCA community. All submissions are reviewed by our editorial team before publication.';
+  }
+});
 
 // Event handlers
 function onSubmissionSuccess(contentId: string) {
@@ -236,7 +295,7 @@ function onSubmissionSuccess(contentId: string) {
 }
 
 function onFormCancel() {
-  void router.push({ name: 'home' });
+  void router.push('/contribute');
 }
 
 function resetForm() {
@@ -246,6 +305,15 @@ function resetForm() {
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// Lifecycle
+onMounted(() => {
+  // Any initialization needed based on URL parameters
+  console.log('SubmitContentPage mounted with:', {
+    contentType: initialContentType.value,
+    quickMode: isQuickMode.value
+  });
+});
 </script>
 
 <style scoped>

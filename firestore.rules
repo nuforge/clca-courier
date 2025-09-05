@@ -101,5 +101,18 @@ service cloud.firestore {
       // Only editors can read/write approval queue
       allow read, write: if isEditor();
     }
+
+    // Content categories collection
+    match /contentCategories/{categoryId} {
+      // Anyone authenticated can read categories
+      allow read: if isAuthenticated();
+      
+      // Authenticated users can create new categories
+      allow create: if isAuthenticated() && 
+                       request.auth.uid == request.resource.data.createdBy;
+      
+      // Only editors can update/delete categories
+      allow update, delete: if isEditor();
+    }
   }
 }

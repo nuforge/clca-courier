@@ -1,24 +1,11 @@
 <template>
-  <q-form
-    @submit="onSubmit"
-    @reset="onReset"
-    class="q-gutter-md"
-  >
+  <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
     <!-- Content Type Selection -->
     <div class="row q-gutter-md">
       <div class="col-12">
-        <q-select
-          v-model="formData.type"
-          :options="contentTypeOptions"
-          option-value="value"
-          option-label="label"
-          label="Content Type"
-          emit-value
-          map-options
-          outlined
-          :rules="[val => !!val || 'Please select a content type']"
-          @update:model-value="onTypeChange"
-        >
+        <q-select v-model="formData.type" :options="contentTypeOptions" option-value="value" option-label="label"
+          label="Content Type" emit-value map-options outlined :rules="[val => !!val || 'Please select a content type']"
+          @update:model-value="onTypeChange">
           <template v-slot:option="scope">
             <q-item v-bind="scope.itemProps">
               <q-item-section avatar>
@@ -37,45 +24,21 @@
     <!-- Basic Information -->
     <div class="row q-gutter-md">
       <div class="col-12 col-md-8">
-        <q-input
-          v-model="formData.title"
-          label="Title"
-          outlined
-          :rules="[val => !!val || 'Title is required']"
-          :placeholder="getTitlePlaceholder()"
-        />
+        <q-input v-model="formData.title" label="Title" outlined :rules="[val => !!val || 'Title is required']"
+          :placeholder="getTitlePlaceholder()" />
       </div>
       <div class="col-12 col-md-4">
-        <q-select
-          v-model="formData.priority"
-          :options="priorityOptions"
-          option-value="value"
-          option-label="label"
-          label="Priority"
-          emit-value
-          map-options
-          outlined
-        />
+        <q-select v-model="formData.priority" :options="priorityOptions" option-value="value" option-label="label"
+          label="Priority" emit-value map-options outlined />
       </div>
     </div>
 
     <!-- Category Selection -->
     <div class="row q-gutter-md">
-      <div class="col-12 col-md-6">
-        <q-select
-          v-model="formData.category"
-          :options="allCategories"
-          label="Category"
-          outlined
-          use-input
-          fill-input
-          hide-selected
-          input-debounce="300"
-          new-value-mode="add-unique"
-          :rules="[val => !!val || 'Category is required']"
-          @filter="filterCategories"
-          @new-value="addNewCategory"
-        >
+      <div class="col-12 col-md-6 col-lg-6">
+        <q-select v-model="formData.category" :options="allCategories" label="Category" outlined use-input fill-input
+          hide-selected input-debounce="300" new-value-mode="add-unique"
+          :rules="[val => !!val || 'Category is required']" @filter="filterCategories" @new-value="addNewCategory">
           <template v-slot:prepend>
             <q-icon name="label" />
           </template>
@@ -84,13 +47,9 @@
           </template>
         </q-select>
       </div>
-      <div class="col-12 col-md-6" v-if="showTargetIssue">
-        <q-input
-          v-model="formData.targetIssue"
-          label="Target Newsletter Issue (Optional)"
-          outlined
-          placeholder="e.g., 2025 Summer Issue"
-        />
+      <div class="col-12 col-md-6 col-lg-6" v-if="showTargetIssue">
+        <q-input v-model="formData.targetIssue" label="Target Newsletter Issue (Optional)" outlined
+          placeholder="e.g., 2025 Summer Issue" />
       </div>
     </div>
 
@@ -99,11 +58,7 @@
       <q-separator class="q-mb-md" />
       <h6 class="q-mt-none q-mb-md">{{ getMetadataTitle() }}</h6>
 
-      <component
-        :is="getMetadataComponent()"
-        v-model="formData.metadata"
-        :content-type="formData.type"
-      />
+      <component :is="getMetadataComponent()" v-model="formData.metadata" :content-type="formData.type" />
     </div>
 
     <!-- Rich Text Content -->
@@ -111,11 +66,7 @@
       <q-separator class="q-mb-md" />
       <h6 class="q-mt-none q-mb-md">Content</h6>
 
-      <RichTextEditor
-        v-model="formData.content"
-        :placeholder="getContentPlaceholder()"
-        min-height="300px"
-      />
+      <RichTextEditor v-model="formData.content" :placeholder="getContentPlaceholder()" min-height="300px" />
     </div>
 
     <!-- External Media Attachments -->
@@ -126,45 +77,26 @@
         We recommend hosting images on Google Photos or Google Drive to keep costs low and maintain quality.
       </p>
 
-      <ExternalImageUpload
-        v-model="formData.attachments"
-        :max-attachments="10"
-      />
+      <ExternalImageUpload v-model="formData.attachments" :max-attachments="10" />
     </div>
 
     <!-- Form Actions -->
     <div class="row q-gutter-md q-mt-lg">
       <div class="col-12 col-sm-auto">
-        <q-btn
-          type="submit"
-          color="primary"
-          :loading="submitting"
-          :disable="!isFormValid"
-        >
+        <q-btn type="submit" color="primary" :loading="submitting" :disable="!isFormValid">
           <q-icon name="send" class="q-mr-sm" />
           Submit for Review
         </q-btn>
       </div>
       <div class="col-12 col-sm-auto">
-        <q-btn
-          type="button"
-          color="grey-7"
-          outline
-          @click="saveDraft"
-          :loading="savingDraft"
-          :disable="!formData.title"
-        >
+        <q-btn type="button" color="grey-7" outline @click="saveDraft" :loading="savingDraft"
+          :disable="!formData.title">
           <q-icon name="save" class="q-mr-sm" />
           Save Draft
         </q-btn>
       </div>
       <div class="col-12 col-sm-auto">
-        <q-btn
-          type="reset"
-          color="grey-7"
-          flat
-          :disable="submitting || savingDraft"
-        >
+        <q-btn type="reset" color="grey-7" flat :disable="submitting || savingDraft">
           Reset
         </q-btn>
       </div>
@@ -173,22 +105,13 @@
     <!-- Preview Button -->
     <div class="row q-mt-md">
       <div class="col-12">
-        <q-btn
-          color="info"
-          outline
-          icon="preview"
-          label="Preview"
-          @click="showPreview = true"
-          :disable="!formData.title || !formData.content"
-        />
+        <q-btn color="info" outline icon="preview" label="Preview" @click="showPreview = true"
+          :disable="!formData.title || !formData.content" />
       </div>
     </div>
 
     <!-- Preview Dialog -->
-    <ContentPreview
-      v-model="showPreview"
-      :content="previewContent"
-    />
+    <ContentPreview v-model="showPreview" :content="previewContent" />
   </q-form>
 </template>
 
@@ -216,10 +139,13 @@ import AnnouncementMetadataFields from './metadata/AnnouncementMetadataFields.vu
 interface Props {
   editMode?: boolean;
   existingContent?: BaseContentItem;
+  initialType?: ContentType;
+  quickMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   editMode: false,
+  quickMode: false,
 });
 
 const emit = defineEmits<{
@@ -317,6 +243,7 @@ const previewContent = computed((): BaseContentItem => ({
   id: 'preview',
   type: formData.value.type,
   title: formData.value.title,
+  authorId: 'current-user', // Add authorId for consistency
   author: {
     uid: 'current-user',
     displayName: 'You',
@@ -384,7 +311,19 @@ function loadExistingContent() {
 }
 
 function initializeNewContent() {
+  // Set initial type from props if provided
+  if (props.initialType) {
+    formData.value.type = props.initialType;
+  }
+
+  // Set up metadata template for the content type
   formData.value.metadata = contentSubmissionService.createMetadataTemplate(formData.value.type);
+
+  // For quick mode, set appropriate defaults
+  if (props.quickMode) {
+    formData.value.priority = 'low'; // Quick uploads are typically low priority
+    formData.value.category = 'Photos'; // Default category for photos
+  }
 }
 
 function onTypeChange(newType: ContentType) {
@@ -493,21 +432,63 @@ async function onSubmit() {
   if (!isFormValid.value) return;
 
   submitting.value = true;
+  console.log('🚀 Starting content submission...');
+  console.log('📝 Form data:', JSON.stringify(formData.value, null, 2));
+
   try {
+    console.log('📡 Calling contentSubmissionService.submitContent...');
     const contentId = await contentSubmissionService.submitContent(formData.value);
+    console.log('✅ Content submitted successfully! ID:', contentId);
 
     $q.notify({
       type: 'positive',
-      message: 'Content submitted successfully! It will be reviewed by our editorial team.',
-      timeout: 3000,
+      message: `Content submitted successfully! ID: ${contentId}. Check Firebase Console > Firestore > userContent collection.`,
+      timeout: 5000,
+      actions: [
+        {
+          label: 'Copy ID',
+          color: 'white',
+          handler: () => {
+            void navigator.clipboard.writeText(contentId);
+            $q.notify({
+              type: 'info',
+              message: 'Content ID copied to clipboard',
+              timeout: 1000,
+            });
+          },
+        },
+      ],
     });
 
     emit('submitted', contentId);
     onReset();
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error('❌ Submission failed:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as { code?: string })?.code,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     $q.notify({
       type: 'negative',
       message: error instanceof Error ? error.message : 'Failed to submit content',
+      timeout: 5000,
+      actions: [
+        {
+          label: 'Details',
+          color: 'white',
+          handler: () => {
+            console.log('Full error object:', error);
+            $q.notify({
+              type: 'info',
+              message: `Error: ${(error as { code?: string })?.code || 'Unknown'} - Check browser console for details`,
+              timeout: 3000,
+            });
+          },
+        },
+      ],
     });
   } finally {
     submitting.value = false;

@@ -69,16 +69,26 @@ class ContentSubmissionService {
    * Submit new content for review
    */
   async submitContent(submissionData: ContentSubmissionData): Promise<string> {
+    console.log('🔧 ContentSubmissionService.submitContent called');
+    console.log('📊 Submission data:', submissionData);
+
     try {
       const user = firebaseAuthService.getCurrentUser();
+      console.log(
+        '👤 Current user:',
+        user ? { uid: user.uid, email: user.email } : 'Not authenticated',
+      );
+
       if (!user) {
         throw new Error('User must be authenticated to submit content');
       }
 
+      console.log('🏗️ Building content item...');
       const now = Date.now();
       const contentItem: Omit<BaseContentItem, 'id'> = {
         type: submissionData.type,
         title: submissionData.title,
+        authorId: user.uid, // Add authorId for security rules
         author: {
           uid: user.uid,
           displayName: user.displayName || 'Anonymous',
@@ -107,12 +117,18 @@ class ContentSubmissionService {
         updatedAt: now,
       };
 
+      console.log('📦 Final content item to submit:', contentItem);
+      console.log('🗂️ Target collection:', this.COLLECTION_NAME);
+      console.log('🔥 Firestore instance:', firestore);
+
       const docRef = await addDoc(collection(firestore, this.COLLECTION_NAME), {
         ...contentItem,
         submittedAt: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      console.log('✅ Document created with ID:', docRef.id);
 
       // Add category to user-defined categories if it's new
       await this.addUserCategory(submissionData.category);
@@ -121,8 +137,10 @@ class ContentSubmissionService {
         contentId: docRef.id,
         type: submissionData.type,
       });
+      console.log('🎉 Submission completed successfully!');
       return docRef.id;
     } catch (error) {
+      console.error('💥 Submission error in service:', error);
       logger.error('Failed to submit content', error);
       throw new Error('Failed to submit content. Please try again.');
     }
@@ -419,11 +437,23 @@ class ContentSubmissionService {
    */
   async getUserDefinedCategories(): Promise<string[]> {
     try {
+      // Check if user is authenticated first
+      const user = firebaseAuthService.getCurrentUser();
+      if (!user) {
+        console.warn('User not authenticated, returning empty categories list');
+        return [];
+      }
+
       const q = query(collection(firestore, this.CATEGORIES_COLLECTION));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => doc.data().name).filter(Boolean);
     } catch (error) {
-      logger.error('Failed to get user-defined categories', error);
+      // More specific error handling
+      if (error instanceof Error && error.message.includes('permissions')) {
+        console.warn('Insufficient permissions for user categories, using predefined only');
+      } else {
+        logger.error('Failed to get user-defined categories', error);
+      }
       return [];
     }
   }
