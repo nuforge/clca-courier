@@ -273,6 +273,10 @@
                                         <q-btn flat label="Clear All Filters" icon="clear_all" color="negative"
                                             size="sm" @click="clearAllFilters" :disable="!hasActiveFilters" />
 
+                                        <!-- DEBUG: Temporary button to debug newsletter loading -->
+                                        <q-btn flat label="Debug All Data" icon="bug_report" color="warning"
+                                            size="sm" @click="debugLoadAllNewsletters" class="q-ml-sm" />
+
                                         <q-space />
 
                                         <!-- Active Filter Chips -->
@@ -695,6 +699,35 @@ onMounted(() => {
 
 const retryLoad = () => {
     void loadNewsletters();
+};
+
+// DEBUG: Method to load all newsletters regardless of publication status
+const debugLoadAllNewsletters = async () => {
+    try {
+        // Import the service instance to access debug method
+        const { firebaseNewsletterService } = await import('../services/firebase-newsletter.service');
+
+        console.log('🔍 DEBUG: Loading all newsletters from Firebase...');
+        const allNewsletters = await firebaseNewsletterService.debugLoadAllNewsletters();
+
+        console.log(`🔍 DEBUG: Retrieved ${allNewsletters.length} total newsletters`);
+        console.log('🔍 DEBUG: Full data:', allNewsletters);
+
+        // Show an alert with the results
+        const published = allNewsletters.filter((n: NewsletterMetadata) => n.isPublished === true);
+        const unpublished = allNewsletters.filter((n: NewsletterMetadata) => n.isPublished !== true);
+
+        alert(`Debug Results:
+Total newsletters in Firebase: ${allNewsletters.length}
+Published (isPublished=true): ${published.length}
+Unpublished or missing isPublished: ${unpublished.length}
+
+Check browser console for detailed data.`);
+
+    } catch (error) {
+        console.error('🔍 DEBUG: Error loading all newsletters:', error);
+        alert(`Debug Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 };
 
 // Watch for sort changes

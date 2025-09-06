@@ -271,6 +271,76 @@ class FirebaseFirestoreService {
     }
   }
 
+  // DEBUG: Get all newsletters regardless of published status
+  async debugGetAllNewsletters(): Promise<
+    Array<NewsletterMetadata & { debugInfo: Record<string, unknown> }>
+  > {
+    try {
+      logger.info('DEBUG: Fetching ALL newsletters (regardless of publication status)...');
+
+      // Get ALL documents without filtering by isPublished
+      const q = query(collection(firestore, this.COLLECTIONS.NEWSLETTERS), limit(100));
+
+      logger.info('DEBUG: Executing Firestore query without isPublished filter...');
+      const querySnapshot = await getDocs(q);
+
+      logger.info(`DEBUG: Retrieved ${querySnapshot.docs.length} total documents from Firestore`);
+
+      const results = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        logger.info(`DEBUG Document ${doc.id}:`, {
+          isPublished: data.isPublished,
+          title: data.title,
+          year: data.year,
+          hasDownloadUrl: !!data.downloadUrl,
+          hasStorageRef: !!data.storageRef,
+          hasActions: !!data.actions,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+        });
+
+        return {
+          id: doc.id,
+          ...data,
+          debugInfo: {
+            originalData: data as Record<string, unknown>,
+            fieldCounts: Object.keys(data).length,
+            hasRequiredFields: {
+              title: !!data.title,
+              publicationDate: !!data.publicationDate,
+              year: !!data.year,
+              downloadUrl: !!data.downloadUrl,
+              isPublished: data.isPublished === true,
+            },
+          },
+        } as unknown as NewsletterMetadata & { debugInfo: Record<string, unknown> };
+      });
+
+      // Group by published status for analysis
+      const published = results.filter((r) => r.isPublished === true);
+      const unpublished = results.filter((r) => r.isPublished !== true);
+
+      logger.info(`DEBUG: Publication status analysis:`);
+      logger.info(`  - Published (isPublished=true): ${published.length}`);
+      logger.info(`  - Unpublished or missing field: ${unpublished.length}`);
+
+      // Show sample unpublished records
+      if (unpublished.length > 0) {
+        logger.info(`DEBUG: First few unpublished records:`);
+        unpublished.slice(0, 3).forEach((record, index) => {
+          logger.info(
+            `  ${index + 1}. ID: ${record.id}, Title: ${record.title}, isPublished: ${record.isPublished}`,
+          );
+        });
+      }
+
+      return results;
+    } catch (error) {
+      logger.error('DEBUG: Error getting all newsletters:', error);
+      throw error;
+    }
+  }
+
   // User content operations
   async submitUserContent(
     content: Omit<UserContent, 'id' | 'submissionDate' | 'status'>,

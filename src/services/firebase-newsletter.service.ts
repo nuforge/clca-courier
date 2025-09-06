@@ -147,6 +147,55 @@ class FirebaseNewsletterService {
   }
 
   /**
+   * DEBUG: Load all newsletters regardless of publication status
+   * Use this to investigate why newsletters aren't showing up
+   */
+  async debugLoadAllNewsletters(): Promise<
+    Array<NewsletterMetadata & { debugInfo: Record<string, unknown> }>
+  > {
+    try {
+      this._loading.value = true;
+      this._error.value = null;
+
+      logger.info('DEBUG: Loading ALL newsletters (including unpublished)...');
+      const allNewsletters = await firestoreService.debugGetAllNewsletters();
+
+      logger.info(`DEBUG: Found ${allNewsletters.length} total newsletters in Firebase`);
+
+      // Analyze the data structure
+      const published = allNewsletters.filter((n) => n.isPublished === true);
+      const unpublished = allNewsletters.filter((n) => n.isPublished !== true);
+      const missingIsPublished = allNewsletters.filter((n) => n.isPublished === undefined);
+
+      logger.info('DEBUG: Newsletter publication status breakdown:');
+      logger.info(`  - Published (isPublished=true): ${published.length}`);
+      logger.info(
+        `  - Unpublished (isPublished=false): ${unpublished.filter((n) => n.isPublished === false).length}`,
+      );
+      logger.info(`  - Missing isPublished field: ${missingIsPublished.length}`);
+
+      // Show examples of data structure issues
+      if (missingIsPublished.length > 0) {
+        logger.warn('DEBUG: Found newsletters missing isPublished field. Examples:');
+        missingIsPublished.slice(0, 3).forEach((newsletter, index) => {
+          logger.warn(
+            `  ${index + 1}. ID: ${newsletter.id}, Title: ${newsletter.title || 'No title'}`,
+          );
+        });
+      }
+
+      return allNewsletters;
+    } catch (error) {
+      this._error.value =
+        error instanceof Error ? error.message : 'Failed to debug load newsletters';
+      logger.error('DEBUG: Error loading all newsletters:', error);
+      throw error;
+    } finally {
+      this._loading.value = false;
+    }
+  }
+
+  /**
    * Search newsletters with enhanced features and accessibility
    */
   async searchNewsletters(
