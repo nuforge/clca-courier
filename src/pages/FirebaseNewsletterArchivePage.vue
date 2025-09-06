@@ -101,11 +101,11 @@
                   <!-- Quick Filter Buttons -->
                   <div class="row q-gutter-xs q-mb-md">
                     <q-btn outline dense color="primary" size="sm" @click="applyQuickFilter('featured')"
-                      :label="'Featured (' + (quickFilters?.featured?.length || 0) + ')'"
-                      :aria-label="'Show only featured newsletters, ' + (quickFilters?.featured?.length || 0) + ' available'" />
+                      :label="'Featured (' + (quickFilterOptions?.featured?.length || 0) + ')'"
+                      :aria-label="'Show only featured newsletters, ' + (quickFilterOptions?.featured?.length || 0) + ' available'" />
                     <q-btn outline dense color="secondary" size="sm" @click="applyQuickFilter('currentYear')"
-                      :label="'This Year (' + (quickFilters?.currentYear?.length || 0) + ')'"
-                      :aria-label="'Show current year newsletters, ' + (quickFilters?.currentYear?.length || 0) + ' available'" />
+                      :label="'This Year (' + (quickFilterOptions?.currentYear?.length || 0) + ')'"
+                      :aria-label="'Show current year newsletters, ' + (quickFilterOptions?.currentYear?.length || 0) + ' available'" />
                     <q-btn outline dense color="accent" size="sm" @click="applyQuickFilter('recentlyAdded')"
                       label="Recent" aria-label="Show recently added newsletters" />
                   </div>
@@ -405,18 +405,9 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import FirebaseNewsletterCard from '../components/FirebaseNewsletterCard.vue';
-import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 
 // Local interfaces for enhanced features
-interface QuickFilterOptions {
-  currentYear: NewsletterMetadata[];
-  lastYear: NewsletterMetadata[];
-  featured: NewsletterMetadata[];
-  withDescriptions: NewsletterMetadata[];
-  recentlyAdded: NewsletterMetadata[];
-}
-
 interface AccessibilityReport {
   totalIssues: number;
   issues: string[];
@@ -440,11 +431,11 @@ const {
   hasResults,
   hasActiveFilters,
   yearFilterOptions,
+  quickFilterOptions,
   loadNewsletters,
   debouncedSearch,
   updateFilters,
   clearFilters,
-  getQuickFilterOptions,
   getSearchSuggestions,
   validateAccessibility
 } = useFirebaseNewsletterArchive();
@@ -457,7 +448,6 @@ const sortBy = ref<'relevance' | 'date-desc' | 'date-asc' | 'title-asc' | 'title
 
 // Enhanced state for search and accessibility
 const searchSuggestions = ref<string[]>([]);
-const quickFilters = ref<QuickFilterOptions | null>(null);
 const accessibilityReport = ref<AccessibilityReport | null>(null);
 
 // Enhanced filters with accessibility options
@@ -568,7 +558,7 @@ const applySuggestion = (suggestion: string) => {
 };
 
 const applyQuickFilter = (filterType: string) => {
-  if (!quickFilters.value) return;
+  if (!quickFilterOptions.value) return;
 
   clearAllFilters();
 
@@ -596,9 +586,8 @@ watch(searchInput, (newValue) => {
   }
 });
 
-// Load quick filters and accessibility report on mount
+// Load accessibility report on mount (quickFilters is now reactive)
 onMounted(() => {
-  quickFilters.value = getQuickFilterOptions();
   accessibilityReport.value = validateAccessibility();
 });
 

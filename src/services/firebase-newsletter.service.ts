@@ -600,14 +600,26 @@ class FirebaseNewsletterService {
         throw new Error('Newsletter not found');
       }
 
-      // Delete from Firebase Storage
+      // Delete from Firebase Storage if storage reference exists
       if (newsletter.storageRef) {
-        await firebaseStorageService.deleteFile(newsletter.storageRef);
+        try {
+          await firebaseStorageService.deleteFile(newsletter.storageRef);
+          logger.success('Newsletter PDF deleted from Firebase Storage:', newsletter.storageRef);
+        } catch (storageError) {
+          logger.warn('Could not delete PDF from storage (may not exist):', storageError);
+        }
       }
 
       // Delete from Firestore
-      // Note: This would need to be implemented in firestoreService
-      logger.info('Newsletter deletion would be completed here');
+      await firestoreService.deleteNewsletterMetadata(id);
+
+      // Remove from local cache
+      const index = this._newsletters.value.findIndex((n) => n.id === id);
+      if (index > -1) {
+        this._newsletters.value.splice(index, 1);
+      }
+
+      logger.success('Newsletter deleted successfully:', id);
     } catch (error) {
       logger.error('Error deleting newsletter:', error);
       throw error;

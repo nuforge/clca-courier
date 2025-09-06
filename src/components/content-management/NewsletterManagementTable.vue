@@ -6,7 +6,7 @@
   <div class="newsletter-management-container">
     <!-- Contextual Action Bar (appears when items are selected) -->
     <q-slide-transition>
-      <div v-if="selectedNewsletters.length > 0" class="contextual-action-bar bg-primary text-white">
+      <div v-if="selectedNewsletters.length > 0" class="contextual-action-bar bg-grey-9 text-white">
         <div class="row items-center q-pa-md">
           <!-- Selection Info -->
           <div class="col-auto">
@@ -63,6 +63,10 @@
               <q-btn flat dense icon="mdi-cloud-upload" @click="$emit('sync-selected')"
                 :loading="processingStates.isSyncing" color="positive" text-color="white">
                 <q-tooltip>Sync to Firebase</q-tooltip>
+              </q-btn>
+
+              <q-btn flat dense icon="mdi-delete" @click="$emit('bulk-delete')" color="negative" text-color="white">
+                <q-tooltip>Delete Selected</q-tooltip>
               </q-btn>
 
               <q-separator vertical inset color="white" />
@@ -232,6 +236,11 @@
               :loading="syncingIndividual[props.row.id]" size="sm">
               <q-tooltip>Sync to Firebase</q-tooltip>
             </q-btn>
+
+            <q-btn flat dense icon="mdi-delete" color="negative" @click.stop="$emit('delete-newsletter', props.row)"
+              size="sm">
+              <q-tooltip>Delete Newsletter</q-tooltip>
+            </q-btn>
           </div>
         </q-td>
       </template>
@@ -277,6 +286,8 @@ const emit = defineEmits<{
   'generate-thumbnail': [newsletter: ContentManagementNewsletter];
   'sync-single': [newsletter: ContentManagementNewsletter];
   'show-extracted-content': [newsletter: ContentManagementNewsletter];
+  'delete-newsletter': [newsletter: ContentManagementNewsletter];
+  'bulk-delete': [];
 }>();
 
 // Local reactive state

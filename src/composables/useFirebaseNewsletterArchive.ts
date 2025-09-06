@@ -70,8 +70,50 @@ export function useFirebaseNewsletterArchive() {
   const currentFilters = ref<ArchiveFilters>({});
   const searchQuery = ref('');
 
-  // Stats
-  const stats = ref<ArchiveStats | null>(null);
+  // Stats (computed to be reactive)
+  const stats = computed<ArchiveStats | null>(() => {
+    if (newsletters.value.length === 0) return null;
+
+    try {
+      const allYears = [...new Set(newsletters.value.map((n) => n.year))].sort((a, b) => b - a);
+      const allTags = [...new Set(newsletters.value.flatMap((n) => n.tags || []))].sort();
+
+      // Get available years and tags
+      const availableYears = allYears;
+      const availableTags = allTags;
+
+      // Calculate accessibility stats
+      const withDescriptions = newsletters.value.filter((n) => !!n.description).length;
+      const withThumbnails = newsletters.value.filter((n) => !!n.thumbnailUrl).length;
+      const withSearchableText = newsletters.value.filter((n) => !!n.searchableText).length;
+      const totalPages = newsletters.value.reduce((sum, n) => sum + (n.pageCount || 0), 0);
+      const averagePageCount =
+        newsletters.value.length > 0 ? Math.round(totalPages / newsletters.value.length) : 0;
+
+      return {
+        totalNewsletters: newsletters.value.length,
+        publishedThisYear: newsletters.value.filter((n) => n.year === new Date().getFullYear())
+          .length,
+        availableYears,
+        availableTags,
+        sourceCounts: {
+          firebase: newsletters.value.length,
+          local: 0,
+          drive: 0,
+          hybrid: 0,
+        },
+        accessibility: {
+          withDescriptions,
+          withThumbnails,
+          withSearchableText,
+          averagePageCount,
+        },
+      };
+    } catch (err) {
+      logger.error('Error generating stats:', err);
+      return null;
+    }
+  });
 
   // Computed properties
   const hasResults = computed(() => filteredNewsletters.value.length > 0);
@@ -164,12 +206,17 @@ export function useFirebaseNewsletterArchive() {
       // Initialize the Firebase service
       await firebaseNewsletterService.initialize();
 
-      // Set up reactive connections
-      newsletters.value = firebaseNewsletterService.newsletters.value;
-      filteredNewsletters.value = newsletters.value;
-
-      // Generate stats
-      generateStats();
+      // Create reactive connection to the service's newsletters
+      // Watch for changes from the Firebase service's real-time subscription
+      watch(
+        () => firebaseNewsletterService.newsletters.value,
+        (newNewsletters) => {
+          newsletters.value = [...newNewsletters]; // Create new array to trigger reactivity
+          void applyFilters(); // Reapply filters
+          // Stats will be automatically recalculated due to computed property
+        },
+        { immediate: true },
+      );
 
       initialized.value = true;
       logger.success('Firebase Newsletter Archive initialized successfully');
@@ -192,7 +239,7 @@ export function useFirebaseNewsletterArchive() {
 
       // Apply current filters
       await applyFilters();
-      generateStats();
+      // Stats will be automatically recalculated due to computed property
 
       logger.success(`Loaded ${loadedNewsletters.length} newsletters`);
     } catch (err) {
@@ -284,9 +331,9 @@ export function useFirebaseNewsletterArchive() {
   };
 
   /**
-   * Get quick filter options for better UX
+   * Get quick filter options for better UX (reactive computed)
    */
-  const getQuickFilterOptions = () => {
+  const quickFilterOptions = computed(() => {
     const currentYear = new Date().getFullYear();
     return {
       currentYear: newsletters.value.filter((n) => n.year === currentYear),
@@ -297,7 +344,12 @@ export function useFirebaseNewsletterArchive() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 10),
     };
-  };
+  });
+
+  /**
+   * Get quick filter options for better UX (legacy function for compatibility)
+   */
+  const getQuickFilterOptions = () => quickFilterOptions.value;
 
   /**
    * Get search suggestions based on current newsletters
@@ -367,44 +419,6 @@ export function useFirebaseNewsletterArchive() {
     };
   };
 
-  const generateStats = () => {
-    try {
-      const availableYears = firebaseNewsletterService.getAvailableYears();
-      const availableTags = firebaseNewsletterService.getAvailableTags();
-      const serviceStats = firebaseNewsletterService.stats.value;
-
-      // Calculate accessibility stats
-      const withDescriptions = newsletters.value.filter((n) => !!n.description).length;
-      const withThumbnails = newsletters.value.filter((n) => !!n.thumbnailUrl).length;
-      const withSearchableText = newsletters.value.filter((n) => !!n.searchableText).length;
-      const totalPages = newsletters.value.reduce((sum, n) => sum + (n.pageCount || 0), 0);
-      const averagePageCount =
-        newsletters.value.length > 0 ? Math.round(totalPages / newsletters.value.length) : 0;
-
-      stats.value = {
-        totalNewsletters: newsletters.value.length,
-        publishedThisYear: newsletters.value.filter((n) => n.year === new Date().getFullYear())
-          .length,
-        availableYears,
-        availableTags,
-        sourceCounts: serviceStats?.sourceCounts || {
-          firebase: newsletters.value.length,
-          local: 0,
-          drive: 0,
-          hybrid: 0,
-        },
-        accessibility: {
-          withDescriptions,
-          withThumbnails,
-          withSearchableText,
-          averagePageCount,
-        },
-      };
-    } catch (err) {
-      logger.error('Error generating stats:', err);
-    }
-  };
-
   // Debounced search
   let searchTimeout: NodeJS.Timeout;
   const debouncedSearch = (query: string, delay = 300) => {
@@ -420,7 +434,7 @@ export function useFirebaseNewsletterArchive() {
     (newNewsletters) => {
       newsletters.value = newNewsletters;
       void applyFilters();
-      generateStats();
+      // Stats will be automatically recalculated due to computed property
     },
     { deep: true },
   );
@@ -458,6 +472,7 @@ export function useFirebaseNewsletterArchive() {
     availableYears,
     availableTags,
     yearFilterOptions,
+    quickFilterOptions,
 
     // Methods
     initialize,
@@ -472,6 +487,5 @@ export function useFirebaseNewsletterArchive() {
     getQuickFilterOptions,
     getSearchSuggestions,
     validateAccessibility,
-    generateStats,
   };
 }

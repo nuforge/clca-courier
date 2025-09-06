@@ -8,6 +8,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   collection,
   query,
   where,
@@ -220,6 +221,23 @@ class FirebaseFirestoreService {
       logger.success('Newsletter metadata updated:', id);
     } catch (error) {
       logger.error('Error updating newsletter metadata:', error);
+      throw error;
+    }
+  }
+
+  async deleteNewsletterMetadata(id: string): Promise<void> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to delete newsletter metadata');
+      }
+
+      const docRef = doc(firestore, this.COLLECTIONS.NEWSLETTERS, id);
+      await deleteDoc(docRef);
+
+      logger.success('Newsletter metadata deleted:', id);
+    } catch (error) {
+      logger.error('Error deleting newsletter metadata:', error);
       throw error;
     }
   }

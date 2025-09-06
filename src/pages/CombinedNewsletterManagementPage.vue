@@ -104,15 +104,17 @@
           <!-- Gmail-inspired Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="filteredNewsletters"
             v-model:selected-newsletters="selectedNewsletters" v-model:pagination="pagination"
-            :processing-states="processingStates" :extracting-text="extractingText" :generating-thumb="generatingThumb"
-            :syncing-individual="syncingIndividual" :publishing-states="publishingStates"
-            :featured-states="featuredStates" @extract-selected-text="handleExtractSelectedText"
+            :processing-states="processingStates" :extracting-text="extractingText"
+            :generating-thumb="thumbnailIndividualStates" :syncing-individual="syncingIndividual"
+            :publishing-states="publishingStates" :featured-states="featuredStates"
+            @extract-selected-text="handleExtractSelectedText"
             @generate-selected-thumbnails="generateSelectedThumbnails" @sync-selected="handleSyncSelected"
             @bulk-toggle-featured="handleBulkToggleFeatured" @bulk-toggle-published="handleBulkTogglePublished"
             @toggle-featured="toggleNewsletterFeatured" @toggle-published="toggleNewsletterPublished"
             @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
             @generate-thumbnail="generateThumbnail" @sync-single="syncSingleNewsletter"
-            @show-extracted-content="showExtractedContent" />
+            @show-extracted-content="showExtractedContent" @delete-newsletter="deleteNewsletter"
+            @bulk-delete="handleBulkDelete" />
           <!-- Edit Dialog -->
           <q-dialog v-model="editDialog.showDialog" persistent>
             <q-card style="min-width: 600px; max-width: 800px;">
@@ -252,6 +254,7 @@ import { logger } from '../utils/logger';
 import { useContentManagement } from '../composables/useContentManagement';
 import { useContentExtraction } from '../composables/useContentExtraction';
 import { useFirebase } from '../composables/useFirebase';
+import { useThumbnailManagement } from '../composables/useThumbnailManagement';
 import { localMetadataStorageService, type ExtractedMetadata } from '../services/local-metadata-storage.service';
 import { tagGenerationService, type TagGenerationResult } from '../services/tag-generation.service';
 import type { Newsletter } from '../types/core/newsletter.types';
@@ -266,7 +269,7 @@ const $q = useQuasar();
 const {
   newsletters,
   localStorageStats,
-  processingStates,
+  processingStates: baseProcessingStates,
   filters,
   textExtractionDialog,
   editDialog,
@@ -277,10 +280,26 @@ const {
   totalFileSize,
   loadNewsletters,
   refreshLocalStorageStats
-} = useContentManagement(); const {
+} = useContentManagement();
+
+const {
   syncLocalMetadataToFirebase,
   clearLocalMetadata,
 } = useContentExtraction();
+
+// Thumbnail management
+const {
+  generateSingleThumbnail,
+  generateBatchThumbnails,
+  isGenerating: isGeneratingThumbnails,
+  individualStates: thumbnailIndividualStates
+} = useThumbnailManagement();
+
+// Enhanced processing states that include thumbnail generation
+const processingStates = computed(() => ({
+  ...baseProcessingStates.value,
+  isGeneratingThumbs: isGeneratingThumbnails.value
+}));
 // Firebase authentication
 const { auth } = useFirebase();
 // Auth helper methods
@@ -302,10 +321,35 @@ const signInWithGoogle = async () => {
 };
 // Additional reactive data
 const extractingText = ref<Record<string, boolean>>({});
-const generatingThumb = ref<Record<string, boolean>>({});
 const syncingIndividual = ref<Record<string, boolean>>({});
 const publishingStates = ref<Record<string, boolean>>({});
 const featuredStates = ref<Record<string, boolean>>({});
+
+// Helper function to update newsletter thumbnail reactively
+const updateNewsletterThumbnail = (newsletterId: string, thumbnailUrl: string): void => {
+  console.log('🔄 [DEBUG] Attempting to update thumbnail for newsletter ID:', newsletterId);
+  console.log('🔄 [DEBUG] Thumbnail URL length:', thumbnailUrl.length);
+  console.log('🔄 [DEBUG] Total newsletters in array:', newsletters.value.length);
+
+  const newsletterIndex = newsletters.value.findIndex(n => n.id === newsletterId);
+  console.log('🔄 [DEBUG] Found newsletter at index:', newsletterIndex);
+
+  if (newsletterIndex !== -1) {
+    const newsletter = newsletters.value[newsletterIndex];
+    if (newsletter) {
+      console.log('🔄 [DEBUG] Before update - old thumbnail URL:', newsletter.thumbnailUrl);
+      // Vue 3 reactivity: update the thumbnail URL
+      newsletter.thumbnailUrl = thumbnailUrl;
+      console.log('🔄 [DEBUG] After update - new thumbnail URL:', newsletter.thumbnailUrl?.substring(0, 50) + '...');
+      console.log('🔄 [DEBUG] Reactively updated thumbnail for:', newsletter.title);
+    } else {
+      console.error('🔄 [DEBUG] Newsletter at index is null/undefined');
+    }
+  } else {
+    console.error('🔄 [DEBUG] Newsletter not found with ID:', newsletterId);
+    console.log('🔄 [DEBUG] Available newsletter IDs:', newsletters.value.map(n => n.id));
+  }
+};
 const selectedNewsletters = ref<ContentManagementNewsletter[]>([]);
 const showBulkActionsMenu = ref(false);
 // Form options and data
@@ -490,36 +534,13 @@ async function handleExtractSelectedText(): Promise<void> {
   await extractSelectedMetadata(); // Reuse the same logic
 }
 async function generateSelectedThumbnails(): Promise<void> {
-  if (selectedNewsletters.value.length === 0) {
-    $q.notify({
-      type: 'warning',
-      message: 'No newsletters selected',
-      position: 'top'
-    });
-    return;
-  }
-  processingStates.value.isGeneratingThumbs = true;
-  try {
-    let processed = 0;
-    for (const newsletter of selectedNewsletters.value) {
-      generatingThumb.value[newsletter.id] = true;
-      // Simulate thumbnail generation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      generatingThumb.value[newsletter.id] = false;
-      processed++;
+  await generateBatchThumbnails(
+    selectedNewsletters.value,
+    // Callback: immediately update the UI for each newsletter as thumbnails are generated
+    (newsletter: ContentManagementNewsletter, thumbnailUrl: string) => {
+      updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
     }
-    $q.notify({
-      type: 'positive',
-      message: `Thumbnails generated for ${processed} newsletters`,
-      position: 'top'
-    });
-  } finally {
-    processingStates.value.isGeneratingThumbs = false;
-    // Clear individual loading states
-    selectedNewsletters.value.forEach(n => {
-      generatingThumb.value[n.id] = false;
-    });
-  }
+  );
 }
 async function handleSyncSelected(): Promise<void> {
   if (selectedNewsletters.value.length === 0) {
@@ -639,6 +660,139 @@ async function toggleNewsletterFeatured(newsletter: ContentManagementNewsletter)
     featuredStates.value[newsletter.id] = false;
   }
 }
+
+// Delete individual newsletter
+async function deleteNewsletter(newsletter: ContentManagementNewsletter): Promise<void> {
+  // Show confirmation dialog
+  const confirmDelete = await new Promise<boolean>((resolve) => {
+    $q.dialog({
+      title: 'Delete Newsletter',
+      message: `Are you sure you want to delete "${newsletter.title}"? This will permanently delete both the record and PDF file if they exist.`,
+      persistent: true,
+      color: 'negative',
+      ok: {
+        label: 'Delete',
+        color: 'negative',
+        flat: true
+      },
+      cancel: {
+        label: 'Cancel',
+        color: 'primary',
+        flat: true
+      }
+    }).onOk(() => resolve(true))
+      .onCancel(() => resolve(false));
+  });
+
+  if (!confirmDelete) return;
+
+  try {
+    // Use the comprehensive newsletter service delete method
+    await firebaseNewsletterService.deleteNewsletter(newsletter.id);
+
+    // Remove from local arrays (newsletter service handles its own cache)
+    const index = newsletters.value.findIndex(n => n.id === newsletter.id);
+    if (index > -1) {
+      newsletters.value.splice(index, 1);
+    }
+
+    // Remove from selected if it was selected
+    const selectedIndex = selectedNewsletters.value.findIndex(n => n.id === newsletter.id);
+    if (selectedIndex > -1) {
+      selectedNewsletters.value.splice(selectedIndex, 1);
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: `Newsletter "${newsletter.title}" has been deleted`,
+      position: 'top'
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting newsletter:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to delete newsletter',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  }
+}
+
+// Bulk delete selected newsletters
+async function handleBulkDelete(): Promise<void> {
+  if (selectedNewsletters.value.length === 0) return;
+
+  // Show confirmation dialog
+  const confirmDelete = await new Promise<boolean>((resolve) => {
+    $q.dialog({
+      title: 'Delete Multiple Newsletters',
+      message: `Are you sure you want to delete ${selectedNewsletters.value.length} newsletters? This will permanently delete both the records and PDF files if they exist.`,
+      persistent: true,
+      color: 'negative',
+      ok: {
+        label: `Delete ${selectedNewsletters.value.length} Items`,
+        color: 'negative',
+        flat: true
+      },
+      cancel: {
+        label: 'Cancel',
+        color: 'primary',
+        flat: true
+      }
+    }).onOk(() => resolve(true))
+      .onCancel(() => resolve(false));
+  });
+
+  if (!confirmDelete) return;
+
+  const toDelete = [...selectedNewsletters.value]; // Copy the array
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const newsletter of toDelete) {
+    try {
+      // Use the comprehensive newsletter service delete method
+      await firebaseNewsletterService.deleteNewsletter(newsletter.id);
+
+      // Remove from local arrays (newsletter service handles its own cache)
+      const index = newsletters.value.findIndex(n => n.id === newsletter.id);
+      if (index > -1) {
+        newsletters.value.splice(index, 1);
+      }
+
+      successCount++;
+    } catch (error) {
+      console.error(`❌ Error deleting newsletter ${newsletter.title}:`, error);
+      errorCount++;
+    }
+  }
+
+  // Clear selection
+  selectedNewsletters.value = [];
+
+  // Show result notification
+  if (successCount > 0 && errorCount === 0) {
+    $q.notify({
+      type: 'positive',
+      message: `Successfully deleted ${successCount} newsletters`,
+      position: 'top'
+    });
+  } else if (successCount > 0 && errorCount > 0) {
+    $q.notify({
+      type: 'warning',
+      message: `Deleted ${successCount} newsletters, ${errorCount} failed`,
+      position: 'top'
+    });
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: `Failed to delete ${errorCount} newsletters`,
+      position: 'top'
+    });
+  }
+}
+
 // Utility functions
 function clearSelection(): void {
   selectedNewsletters.value = [];
@@ -825,17 +979,28 @@ async function extractText(newsletter: ContentManagementNewsletter): Promise<voi
     processingStates.value.isProcessingText = false;
   }
 }
-function generateThumbnail(newsletter: ContentManagementNewsletter): void {
-  generatingThumb.value[newsletter.id] = true;
-  // Simulate thumbnail generation
-  setTimeout(() => {
-    generatingThumb.value[newsletter.id] = false;
-    $q.notify({
-      type: 'positive',
-      message: `Thumbnail generated for ${newsletter.title}`,
-      position: 'top'
-    });
-  }, 2000);
+async function generateThumbnail(newsletter: ContentManagementNewsletter): Promise<void> {
+  console.log('🖼️ [DEBUG] Starting thumbnail generation for:', newsletter.title);
+  console.log('🖼️ [DEBUG] Newsletter ID:', newsletter.id);
+  console.log('🖼️ [DEBUG] Newsletter download URL:', newsletter.downloadUrl);
+
+  // Check if thumbnail already exists to determine if we should force regeneration
+  const hasExistingThumbnail = !!newsletter.thumbnailUrl;
+  console.log('🖼️ [DEBUG] Has existing thumbnail:', hasExistingThumbnail);
+
+  await generateSingleThumbnail(
+    newsletter,
+    // Callback: immediately update the UI when thumbnail is generated
+    (thumbnailUrl: string) => {
+      console.log('🖼️ [DEBUG] Thumbnail generated successfully:', thumbnailUrl.substring(0, 50) + '...');
+      console.log('🖼️ [DEBUG] Updating newsletter ID:', newsletter.id);
+      updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+    },
+    // Force regeneration if thumbnail already exists
+    hasExistingThumbnail
+  );
+
+  console.log('🖼️ [DEBUG] Generate thumbnail function completed');
 }
 function showExtractedContent(newsletter: ContentManagementNewsletter): void {
   if (newsletter.keywordCounts) {

@@ -289,9 +289,19 @@ export function usePdfThumbnails() {
         console.log('📝 PDF.js worker configured:', workerPath);
       }
 
+      // Ensure we have a full URL for PDF.js
+      let fullUrl = url;
+      if (!url.startsWith('http') && !url.startsWith('blob:')) {
+        // Convert relative path to full URL
+        const isProduction = import.meta.env.PROD;
+        const basePath = isProduction ? '/clca-courier' : '';
+        fullUrl = new URL(`${basePath}/${url}`, window.location.origin).href;
+        console.log('🔗 Converted relative URL to full URL:', fullUrl);
+      }
+
       // Load the PDF document using PDF.js
       const loadingTask = pdfjsLib.getDocument({
-        url: url,
+        url: fullUrl,
         // Add CORS settings for better compatibility
         withCredentials: false,
       });
@@ -372,7 +382,7 @@ export function usePdfThumbnails() {
 
       WebViewer(
         {
-          path: '/webviewer',
+          path: '/webviewer/lib',
           initialDoc: url,
           enableRedaction: false,
           enableMeasurement: false,
@@ -532,20 +542,8 @@ export function usePdfThumbnails() {
       console.warn('❌ Tier 1 ERROR: PDF.js thumbnail generation failed:', error);
     }
 
-    // Tier 2: Try WebViewer as fallback (higher quality but demo license limitations)
-    console.log('🎯 Tier 2: Attempting WebViewer thumbnail (fallback for quality)...');
-    try {
-      const webViewerThumbnail = await generateActualThumbnail(url);
-      if (webViewerThumbnail) {
-        console.log('✅ Tier 2 SUCCESS: WebViewer thumbnail generated');
-        localStorage.setItem(`pdf-thumb-${url}`, webViewerThumbnail);
-        thumbnailCache.value[url] = webViewerThumbnail;
-        return webViewerThumbnail;
-      }
-      console.log('⚠️ Tier 2 FAILED: WebViewer could not generate thumbnail');
-    } catch (error) {
-      console.warn('❌ Tier 2 ERROR: WebViewer thumbnail generation failed:', error);
-    }
+    // Tier 2: Skip WebViewer for now (not properly installed) and go directly to fallback
+    console.log('🎯 Tier 2: Skipping WebViewer (not installed), going to fallback...');
 
     // Tier 3: Generate styled fallback placeholder (always works)
     console.log('🎯 Tier 3: Generating styled fallback placeholder...');
