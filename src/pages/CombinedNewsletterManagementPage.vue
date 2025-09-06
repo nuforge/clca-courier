@@ -132,6 +132,23 @@
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <div class="row no-wrap q-gutter-xs">
+                  <!-- Admin Toggle Actions -->
+                  <q-btn dense flat :icon="props.row.isPublished === true ? 'visibility' : 'visibility_off'"
+                    :color="props.row.isPublished === true ? 'positive' : 'orange'"
+                    @click="toggleNewsletterPublished(props.row)" size="sm" :loading="publishingStates[props.row.id]">
+                    <q-tooltip>{{ props.row.isPublished === true ? 'Unpublish' : 'Publish' }} Newsletter</q-tooltip>
+                  </q-btn>
+
+                  <q-btn dense flat :icon="props.row.featured === true ? 'star' : 'star_border'"
+                    :color="props.row.featured === true ? 'accent' : 'grey'"
+                    @click="toggleNewsletterFeatured(props.row)" size="sm" :loading="featuredStates[props.row.id]">
+                    <q-tooltip>{{ props.row.featured === true ? 'Remove from Featured' : 'Add to Featured'
+                      }}</q-tooltip>
+                  </q-btn>
+
+                  <q-separator vertical inset />
+
+                  <!-- Existing Actions -->
                   <q-btn dense flat icon="mdi-eye" color="primary" @click="openPdf(props.row)" size="sm">
                     <q-tooltip>View PDF</q-tooltip>
                   </q-btn>
@@ -286,6 +303,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { doc, updateDoc, setDoc, getDoc, type UpdateData } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
+import { firestoreService, type NewsletterMetadata } from '../services/firebase-firestore.service';
+import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
+import { logger } from '../utils/logger';
 // Import composables
 import { useContentManagement } from '../composables/useContentManagement';
 import { useContentExtraction } from '../composables/useContentExtraction';
@@ -342,6 +362,8 @@ const signInWithGoogle = async () => {
 const extractingText = ref<Record<string, boolean>>({});
 const generatingThumb = ref<Record<string, boolean>>({});
 const syncingIndividual = ref<Record<string, boolean>>({});
+const publishingStates = ref<Record<string, boolean>>({});
+const featuredStates = ref<Record<string, boolean>>({});
 const selectedNewsletters = ref<ContentManagementNewsletter[]>([]);
 // Form options and data
 const seasonOptions = [
@@ -481,7 +503,7 @@ const columns = [
     label: 'Actions',
     field: 'actions',
     align: 'center' as const,
-    style: 'width: 200px;',
+    style: 'width: 300px;', // Increased width to accommodate toggle buttons
   }
 ];
 // Computed properties for filters
@@ -679,6 +701,76 @@ async function syncSingleNewsletter(newsletter: ContentManagementNewsletter): Pr
     });
   } finally {
     syncingIndividual.value[newsletter.id] = false;
+  }
+}
+
+// Toggle newsletter published status
+async function toggleNewsletterPublished(newsletter: ContentManagementNewsletter): Promise<void> {
+  publishingStates.value[newsletter.id] = true;
+  try {
+    // Explicitly handle undefined/falsy values as false for better boolean logic
+    const currentStatus = newsletter.isPublished === true;
+    const newStatus = !currentStatus;
+
+    console.log(`Toggling publication status: ${currentStatus} -> ${newStatus} for newsletter ${newsletter.id}`);
+
+    await firestoreService.updateNewsletterMetadata(newsletter.id, {
+      isPublished: newStatus
+    });
+
+    // Update the local newsletter object
+    newsletter.isPublished = newStatus;
+
+    $q.notify({
+      type: 'positive',
+      message: `Newsletter ${newStatus ? 'published' : 'unpublished'} successfully`,
+      position: 'top'
+    });
+
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update publication status',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    publishingStates.value[newsletter.id] = false;
+  }
+}
+
+// Toggle newsletter featured status
+async function toggleNewsletterFeatured(newsletter: ContentManagementNewsletter): Promise<void> {
+  featuredStates.value[newsletter.id] = true;
+  try {
+    // Explicitly handle undefined/falsy values as false for better boolean logic
+    const currentStatus = newsletter.featured === true;
+    const newStatus = !currentStatus;
+
+    console.log(`Toggling featured status: ${currentStatus} -> ${newStatus} for newsletter ${newsletter.id}`);
+
+    await firestoreService.updateNewsletterMetadata(newsletter.id, {
+      featured: newStatus
+    });
+
+    // Update the local newsletter object
+    newsletter.featured = newStatus;
+
+    $q.notify({
+      type: 'positive',
+      message: `Newsletter ${newStatus ? 'added to featured' : 'removed from featured'}`,
+      position: 'top'
+    });
+
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update featured status',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    featuredStates.value[newsletter.id] = false;
   }
 }
 // Utility functions
@@ -1043,7 +1135,62 @@ async function saveMetadata(): Promise<void> {
   }
 }// Initialize
 onMounted(async () => {
-  await loadNewsletters();
+  // For admin panel, load ALL newsletters from Firebase (including unpublished)
+  try {
+    processingStates.value.isLoading = true;
+
+    logger.info('Admin: Initializing Firebase service for admin management...');
+
+    // Initialize Firebase service
+    await firebaseNewsletterService.initialize();
+
+    // Load all newsletters including unpublished ones for admin management
+    const allNewsletters = await firebaseNewsletterService.loadAllNewslettersForAdmin();
+
+    logger.info(`Admin: Loaded ${allNewsletters.length} newsletters for management`);
+
+    // Convert Firebase newsletters to content management format
+    newsletters.value = allNewsletters.map((newsletter: NewsletterMetadata) => ({
+      id: newsletter.id,
+      filename: newsletter.filename,
+      title: newsletter.title,
+      year: newsletter.year,
+      season: newsletter.season || 'unknown',
+      pdfUrl: newsletter.downloadUrl,
+      downloadUrl: newsletter.downloadUrl,
+      hasText: !!newsletter.searchableText,
+      hasThumbnail: !!newsletter.thumbnailUrl,
+      fileSize: newsletter.fileSize || 0,
+      localMetadata: null,
+      syncedToFirebase: true, // These are already in Firebase
+      actions: newsletter.actions ? [newsletter.actions.canView ? 'view' : '', newsletter.actions.canDownload ? 'download' : ''].filter(Boolean) : [],
+      tags: newsletter.tags || [],
+      createdAt: newsletter.createdAt,
+      updatedAt: newsletter.updatedAt,
+      createdBy: newsletter.createdBy,
+      updatedBy: newsletter.updatedBy,
+      thumbnailUrl: newsletter.thumbnailUrl,
+      searchableText: newsletter.searchableText,
+      // Keep Firebase-specific fields for admin toggles
+      isPublished: newsletter.isPublished,
+      featured: newsletter.featured
+    } as ContentManagementNewsletter));
+
+    logger.success(`Admin: Newsletter management loaded with ${newsletters.value.length} items`);
+
+  } catch (error) {
+    logger.error('Admin: Failed to load newsletters for management:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load newsletters for admin management'
+    });
+
+    // Fallback to original load method
+    await loadNewsletters();
+  } finally {
+    processingStates.value.isLoading = false;
+  }
+
   // Load any extracted metadata from local storage
   await refreshNewslettersWithLocalMetadata();
 });

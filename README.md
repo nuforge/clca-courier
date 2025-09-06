@@ -1,41 +1,17 @@
 # The Courier @ Conashaugh Lakes 🚀
 
-A modern Vue 3 + Quasar application for managing and distributing the CLCA community newsletter with **Firebase backend integration**.
+A modern Vue 3 + Quasar application for managing and distributing the CLCA community newsletter with Firebase backend integration.
 
-## 🌟 Key Features
-
-### Core Functionality
+## 🌟 Features
 
 - 📰 **Newsletter Archive & Search** - Complete digital archive with advanced search
 - 📁 **Dual PDF Viewer** - PDFTron WebViewer & PDF.js integration
 - 🗺️ **Interactive Community Map** - Google Maps with lot visualization
 - 📧 **Content Submission System** - User-friendly submission workflow
-- 🔍 **Advanced Search & Filtering** - Find content across all newsletters
-- 📱 **Responsive Design** - Optimized for all devices
-
-### 🔥 Firebase Integration (NEW!)
-
-- 🔐 **Multi-Provider Authentication** - Google, Facebook, Twitter, GitHub OAuth
-- 📊 **Real-time Database** - Firestore for newsletters, user content, profiles
-- 📁 **Cloud Storage** - Firebase Storage for PDFs and user uploads
-- 👥 **User Management** - Role-based access (Reader, Contributor, Editor, Admin)
-- ✍️ **Content Workflow** - Submission → Review → Approval → Publication
-- 🔔 **Real-time Updates** - Live notifications and collaborative features
-
-## 🚨 CRITICAL DEVELOPMENT RULES
-
-### NEVER DO THESE (USER ENFORCED)
-
-- ❌ **Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`)
-- ❌ **Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data
-- ❌ **Assuming Paths**: Always verify file/directory existence before implementation
-
-### MANDATORY PRACTICES
-
-- ✅ **Dynamic Content Discovery**: Generate content from actual files using manifest system
-- ✅ **Path Verification**: Check existence before referencing any files or directories
-- ✅ **History Mode Only**: Application runs in history mode routing
-- ✅ **Firebase Integration**: Use Firebase services for data and authentication
+- **Multi-Provider Authentication** - Google, Facebook, Twitter, GitHub OAuth
+- 📊 **Real-time Database** - Firestore for newsletters and user content
+- 👥 **Role-based Access** - Reader, Contributor, Editor, Admin permissions
+- � **Responsive Design** - Optimized for all devices
 
 ## ⚡ Quick Start
 

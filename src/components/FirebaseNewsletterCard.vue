@@ -1,20 +1,12 @@
 <template>
-    <q-card
-        flat
-        bordered
-        :class="cardClasses"
-        class="newsletter-card cursor-pointer transition-all"
-        @click="openNewsletter"
-        :style="cardStyle"
-        :tabindex="0"
-        @keydown.enter="openNewsletter"
-        @keydown.space.prevent="openNewsletter"
-        role="article"
-        :aria-label="'Newsletter: ' + newsletter.title + ', published ' + formattedDate + (newsletter.description ? ', ' + newsletter.description : '')"
-    >
+    <q-card flat bordered :class="cardClasses" class="newsletter-card cursor-pointer transition-all"
+        @click="openNewsletter" :style="cardStyle" :tabindex="0" @keydown.enter="openNewsletter"
+        @keydown.space.prevent="openNewsletter" role="article"
+        :aria-label="'Newsletter: ' + newsletter.title + ', published ' + formattedDate + (newsletter.description ? ', ' + newsletter.description : '')">
 
         <!-- Thumbnail Section -->
-        <div class="thumbnail-container" role="img" :aria-label="newsletter.thumbnailUrl ? 'Newsletter thumbnail' : 'PDF document icon'">
+        <div class="thumbnail-container" role="img"
+            :aria-label="newsletter.thumbnailUrl ? 'Newsletter thumbnail' : 'PDF document icon'">
             <q-img v-if="newsletter.thumbnailUrl" :src="newsletter.thumbnailUrl"
                 :alt="'Thumbnail preview for ' + newsletter.title" class="thumbnail-image" loading="lazy"
                 @error="onThumbnailError">
@@ -33,35 +25,29 @@
 
             <!-- Featured Badge -->
             <q-badge v-if="newsletter.featured" color="accent" floating rounded class="featured-badge"
-                aria-label="Featured newsletter">
+                aria-label="Featured newsletter" style="top: 8px; right: 8px;">
                 <q-icon name="star" size="12px" class="q-mr-xs" />
                 Featured
             </q-badge>
 
-            <!-- Publication Status -->
-            <q-badge v-if="!newsletter.isPublished" color="orange" floating class="status-badge"
-                aria-label="Draft status">
-                Draft
+            <!-- Publication Status Badge -->
+            <q-badge :color="newsletter.isPublished === true ? 'positive' : 'orange'" floating
+                :class="newsletter.featured === true ? 'status-badge-with-featured' : 'status-badge'"
+                :aria-label="newsletter.isPublished === true ? 'Published newsletter' : 'Draft newsletter'"
+                :style="newsletter.featured === true ? 'top: 40px; right: 8px;' : 'top: 8px; right: 8px;'">
+                <q-icon :name="newsletter.isPublished === true ? 'visibility' : 'visibility_off'" size="12px"
+                    class="q-mr-xs" />
+                {{ newsletter.isPublished === true ? 'Published' : 'Draft' }}
             </q-badge>
 
             <!-- Accessibility indicators -->
             <div class="accessibility-indicators absolute-top-right q-pa-xs">
-                <q-icon
-                    v-if="newsletter.description"
-                    name="description"
-                    size="16px"
-                    class="text-positive q-mr-xs"
-                    aria-label="Has description for screen readers"
-                >
+                <q-icon v-if="newsletter.description" name="description" size="16px" class="text-positive q-mr-xs"
+                    aria-label="Has description for screen readers">
                     <q-tooltip>Has description</q-tooltip>
                 </q-icon>
-                <q-icon
-                    v-if="newsletter.searchableText"
-                    name="search"
-                    size="16px"
-                    class="text-info"
-                    aria-label="Text content is searchable"
-                >
+                <q-icon v-if="newsletter.searchableText" name="search" size="16px" class="text-info"
+                    aria-label="Text content is searchable">
                     <q-tooltip>Searchable content</q-tooltip>
                 </q-icon>
             </div>
@@ -105,7 +91,8 @@
                     {{ tag }}
                 </q-chip>
                 <q-chip v-if="newsletter.tags.length > maxVisibleTags" size="sm" color="grey" text-color="white" dense
-                    class="q-mr-xs q-mb-xs" :aria-label="'And ' + (newsletter.tags.length - maxVisibleTags) + ' more tags'">
+                    class="q-mr-xs q-mb-xs"
+                    :aria-label="'And ' + (newsletter.tags.length - maxVisibleTags) + ' more tags'">
                     +{{ newsletter.tags.length - maxVisibleTags }}
                 </q-chip>
             </div>
@@ -128,32 +115,39 @@
 
                 <!-- Actions -->
                 <div class="col-auto" role="group" aria-label="Newsletter actions">
-                    <q-btn
-                        flat
-                        dense
-                        round
-                        size="sm"
-                        color="primary"
-                        icon="visibility"
-                        @click.stop="viewNewsletter"
-                        :aria-label="'View newsletter: ' + newsletter.title"
-                        :tabindex="0"
-                    >
+                    <!-- Admin Toggle Actions (only shown when showAdminControls is true) -->
+                    <template v-if="showAdminControls">
+                        <q-btn flat dense round size="sm"
+                            :color="newsletter.isPublished === true ? 'positive' : 'orange'"
+                            :icon="newsletter.isPublished === true ? 'visibility' : 'visibility_off'"
+                            @click.stop="togglePublishedStatus"
+                            :aria-label="(newsletter.isPublished === true ? 'Unpublish' : 'Publish') + ' newsletter: ' + newsletter.title"
+                            :tabindex="0" :loading="publishLoading">
+                            <q-tooltip>{{ newsletter.isPublished === true ? 'Unpublish' : 'Publish' }}
+                                Newsletter</q-tooltip>
+                        </q-btn>
+
+                        <q-btn flat dense round size="sm" :color="newsletter.featured === true ? 'accent' : 'grey'"
+                            :icon="newsletter.featured === true ? 'star' : 'star_border'"
+                            @click.stop="toggleFeaturedStatus"
+                            :aria-label="(newsletter.featured === true ? 'Remove from featured' : 'Add to featured') + ' newsletter: ' + newsletter.title"
+                            :tabindex="0" :loading="featuredLoading">
+                            <q-tooltip>{{ newsletter.featured ? 'Remove from Featured' : 'Add to Featured'
+                            }}</q-tooltip>
+                        </q-btn>
+
+                        <q-separator vertical inset class="q-mx-xs" />
+                    </template>
+
+                    <!-- View/Download Actions -->
+                    <q-btn flat dense round size="sm" color="primary" icon="open_in_new" @click.stop="viewNewsletter"
+                        :aria-label="'View newsletter: ' + newsletter.title" :tabindex="0">
                         <q-tooltip>View PDF</q-tooltip>
                     </q-btn>
 
-                    <q-btn
-                        v-if="newsletter.downloadUrl"
-                        flat
-                        dense
-                        round
-                        size="sm"
-                        color="secondary"
-                        icon="download"
-                        @click.stop="downloadNewsletter"
-                        :aria-label="'Download newsletter: ' + newsletter.title"
-                        :tabindex="0"
-                    >
+                    <q-btn v-if="newsletter.downloadUrl" flat dense round size="sm" color="secondary" icon="download"
+                        @click.stop="downloadNewsletter" :aria-label="'Download newsletter: ' + newsletter.title"
+                        :tabindex="0">
                         <q-tooltip>Download PDF</q-tooltip>
                     </q-btn>
                 </div>
@@ -169,12 +163,13 @@
 import { computed, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSiteStore } from '../stores/site-store-simple';
-import { type NewsletterMetadata } from '../services/firebase-firestore.service';
+import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 
 // Props
 interface Props {
     newsletter: NewsletterMetadata;
+    showAdminControls?: boolean; // Optional prop to show admin toggle buttons
 }
 
 const props = defineProps<Props>();
@@ -186,6 +181,8 @@ const siteStore = useSiteStore();
 // State
 const loading = ref(false);
 const thumbnailError = ref(false);
+const publishLoading = ref(false);
+const featuredLoading = ref(false);
 
 // Constants
 const maxVisibleTags = 2;
@@ -207,7 +204,14 @@ const cardStyle = computed(() => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const
-})); const fallbackClasses = computed(() => ({
+}));
+
+// Controls when admin toggle buttons are shown
+const showAdminControls = computed(() => {
+    return props.showAdminControls ?? false;
+});
+
+const fallbackClasses = computed(() => ({
     'flex': true,
     'flex-center': true,
     'column': true,
@@ -331,6 +335,83 @@ const openNewsletter = () => {
 const onThumbnailError = () => {
     thumbnailError.value = true;
     logger.warn('Thumbnail failed to load for:', props.newsletter.title);
+};
+
+// Admin toggle methods
+const togglePublishedStatus = async () => {
+    try {
+        publishLoading.value = true;
+
+        // Explicitly handle undefined/falsy values as false for better boolean logic
+        const currentStatus = props.newsletter.isPublished === true;
+        const newStatus = !currentStatus;
+
+        logger.info(`Toggling publication status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
+
+        await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
+            isPublished: newStatus
+        });
+
+        // Update the newsletter object directly to provide immediate feedback
+        const mutableNewsletter = props.newsletter as NewsletterMetadata & { isPublished: boolean };
+        mutableNewsletter.isPublished = newStatus;
+
+        $q.notify({
+            type: 'positive',
+            message: `Newsletter ${newStatus ? 'published' : 'unpublished'} successfully`,
+            position: 'top'
+        });
+
+        logger.info(`Newsletter ${props.newsletter.id} ${newStatus ? 'published' : 'unpublished'}`);
+
+    } catch (error) {
+        logger.error('Error toggling publish status:', error);
+        $q.notify({
+            type: 'negative',
+            message: 'Failed to update publication status',
+            position: 'top'
+        });
+    } finally {
+        publishLoading.value = false;
+    }
+};
+
+const toggleFeaturedStatus = async () => {
+    try {
+        featuredLoading.value = true;
+
+        // Explicitly handle undefined/falsy values as false for better boolean logic
+        const currentStatus = props.newsletter.featured === true;
+        const newStatus = !currentStatus;
+
+        logger.info(`Toggling featured status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
+
+        await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
+            featured: newStatus
+        });
+
+        // Update the newsletter object directly to provide immediate feedback
+        const mutableNewsletter = props.newsletter as NewsletterMetadata & { featured: boolean };
+        mutableNewsletter.featured = newStatus;
+
+        $q.notify({
+            type: 'positive',
+            message: `Newsletter ${newStatus ? 'added to featured' : 'removed from featured'}`,
+            position: 'top'
+        });
+
+        logger.info(`Newsletter ${props.newsletter.id} featured status: ${newStatus}`);
+
+    } catch (error) {
+        logger.error('Error toggling featured status:', error);
+        $q.notify({
+            type: 'negative',
+            message: 'Failed to update featured status',
+            position: 'top'
+        });
+    } finally {
+        featuredLoading.value = false;
+    }
 };
 </script>
 

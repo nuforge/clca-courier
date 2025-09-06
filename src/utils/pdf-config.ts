@@ -35,7 +35,6 @@ export const PDF_CONFIG = {
   initializeWorker: () => {
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = getWorkerPath();
-      console.log('[PDF Config] PDF.js worker initialized:', getWorkerPath());
     }
   },
 
