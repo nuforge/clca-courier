@@ -1,8 +1,39 @@
 import type { NavigationItem } from '../types/navigation';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { firebaseAuthService } from '../services/firebase-auth.service';
+import { firestoreService } from '../services/firebase-firestore.service';
 
 export const useNavigation = () => {
+  const isAuthenticatedUser = ref(false);
+  const hasAdminProfile = ref(false);
+
+  // Check authentication and admin status
+  const checkAuthAndAdminStatus = async () => {
+    const user = firebaseAuthService.getCurrentUser();
+    isAuthenticatedUser.value = !!user;
+
+    if (user) {
+      try {
+        const profile = await firestoreService.getUserProfile(user.uid);
+        hasAdminProfile.value = !!(profile && profile.role === 'admin');
+      } catch {
+        hasAdminProfile.value = false;
+      }
+    } else {
+      hasAdminProfile.value = false;
+    }
+  };
+
+  // Listen to auth state changes
+  onMounted(() => {
+    void checkAuthAndAdminStatus();
+
+    // Set up auth state listener
+    firebaseAuthService.onAuthStateChange(() => {
+      void checkAuthAndAdminStatus();
+    });
+  });
+
   const baseNavigationItems: NavigationItem[] = [
     {
       title: 'News & Updates',
@@ -41,20 +72,27 @@ export const useNavigation = () => {
     },
   ];
 
-  const adminNavigationItem: NavigationItem = {
-    title: 'Admin Dashboard',
-    icon: 'mdi-shield-crown',
-    link: '/admin',
-  };
-
   // Computed navigation items that include admin if user is authenticated
   const navigationItems = computed(() => {
     const items = [...baseNavigationItems];
 
-    // Add admin item if user is authenticated (for now, simple check)
-    // In production, you'd check for actual admin role/permissions
-    if (firebaseAuthService.getCurrentUser()) {
-      items.push(adminNavigationItem);
+    // Add admin item if user is authenticated
+    if (isAuthenticatedUser.value) {
+      if (hasAdminProfile.value) {
+        // User has admin profile - show admin dashboard
+        items.push({
+          title: 'Admin Dashboard',
+          icon: 'mdi-shield-crown',
+          link: '/admin',
+        });
+      } else {
+        // User is authenticated but no admin profile - show setup
+        items.push({
+          title: 'Admin Setup',
+          icon: 'mdi-shield-plus',
+          link: '/admin/setup',
+        });
+      }
     }
 
     return items;
@@ -62,5 +100,6 @@ export const useNavigation = () => {
 
   return {
     navigationItems,
+    refreshNavigation: checkAuthAndAdminStatus,
   };
 };

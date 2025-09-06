@@ -31,12 +31,12 @@
                   </p>
 
                   <div class="q-gutter-sm">
-                    <q-btn flat color="primary" label="Firebase Demo" icon="mdi-firebase" to="/admin/firebase-demo"
-                      class="full-width" />
+                    <q-btn flat color="primary" label="Content Management" icon="mdi-database-edit"
+                      to="/admin/content-management" class="full-width" />
                     <q-btn flat color="secondary" label="Newsletter Archive" icon="mdi-archive" to="/archive"
                       class="full-width" />
-                    <q-btn flat color="accent" label="PDF Text Extraction" icon="mdi-file-document-outline"
-                      to="/admin/pdf-extraction" class="full-width" />
+                    <q-btn flat color="accent" label="Firebase Demo" icon="mdi-firebase" to="/admin/firebase-demo"
+                      class="full-width" />
                   </div>
                 </q-card-section>
               </q-card>
@@ -79,10 +79,10 @@
                   </p>
 
                   <div class="q-gutter-sm">
-                    <q-btn flat color="primary" label="Lightweight Test" icon="mdi-test-tube" to="/admin/test"
-                      class="full-width" />
+                    <q-btn flat color="primary" label="Content Management" icon="mdi-database-edit"
+                      to="/admin/content-management" class="full-width" />
                     <q-btn flat color="secondary" label="Interactive Map" icon="mdi-map" to="/map" class="full-width" />
-                    <q-btn flat color="warning" label="Legacy Archive" icon="mdi-archive-outline" to="/archive/legacy"
+                    <q-btn flat color="accent" label="Lightweight Test" icon="mdi-test-tube" to="/admin/test"
                       class="full-width" />
                   </div>
                 </q-card-section>

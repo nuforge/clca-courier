@@ -35,16 +35,13 @@ const routes: RouteRecordRaw[] = [
 
       // Admin routes
       { path: '/admin', component: () => import('pages/AdminDashboardPage.vue') },
+      { path: '/admin/setup', component: () => import('pages/AdminSetupPage.vue') },
       { path: '/admin/firebase-demo', component: () => import('pages/FirebaseDemoPage.vue') },
       {
-        path: '/admin/pdf-extraction',
-        component: () => import('pages/PdfTextExtractionToolPage.vue'),
+        path: '/admin/content-management',
+        component: () => import('pages/CombinedNewsletterManagementPage.vue'),
       },
       { path: '/admin/test', component: () => import('pages/LightweightTestPage.vue') },
-
-      // Legacy routes (keep for backwards compatibility)
-      { path: '/archive/legacy', component: () => import('pages/AdvancedIssueArchivePage.vue') },
-      { path: '/archive/:id(\\d+)', component: () => import('pages/IssueDetailsPageEnhanced.vue') },
     ],
   },
 
