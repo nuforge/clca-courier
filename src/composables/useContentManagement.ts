@@ -121,6 +121,7 @@ export function useContentManagement() {
 
     try {
       console.log('🔧 Loading newsletters from local PDF manifest...');
+      console.trace('📍 loadNewsletters() called from:'); // Add stack trace to see what's calling this
 
       const loadedNewsletters = await lightweightNewsletterService.getNewsletters();
       await refreshLocalStorageStats();

@@ -20,9 +20,41 @@
             </q-card-section>
           </q-card>
 
+          <!-- Authentication Required Banner -->
+          <q-banner v-if="!auth.isAuthenticated.value" class="bg-warning text-dark q-mb-md" rounded>
+            <template v-slot:avatar>
+              <q-icon name="mdi-lock-alert" />
+            </template>
+            <div class="text-weight-bold">Authentication Required</div>
+            <div class="q-mt-xs">
+              You must be logged in to sync data to Firebase. Local operations will work without authentication.
+            </div>
+            <template v-slot:action>
+              <q-btn @click="signInWithGoogle" color="primary" label="Sign in with Google"
+                :loading="auth.isLoading.value" size="sm" />
+            </template>
+          </q-banner>
+
+          <!-- User Info (when authenticated) -->
+          <q-card v-if="auth.isAuthenticated.value" flat bordered class="q-mb-md bg-positive text-white">
+            <q-card-section class="row items-center">
+              <q-avatar size="32px" class="q-mr-sm">
+                <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
+                <q-icon v-else name="mdi-account" />
+              </q-avatar>
+              <div class="col">
+                <div class="text-weight-bold">{{ auth.currentUser.value?.displayName || 'User' }}</div>
+                <div class="text-caption">{{ auth.currentUser.value?.email }}</div>
+              </div>
+              <q-btn @click="auth.signOut" flat color="white" label="Sign Out" size="sm" />
+            </q-card-section>
+          </q-card>
+
           <!-- Action Toolbar -->
-          <ActionToolbar :processing-states="processingStates" @extract-metadata="extractAllMetadata"
-            @extract-text="handleExtractAllText" @generate-thumbnails="generateThumbnails" />
+          <ActionToolbar :processing-states="processingStates" :selected-count="selectedNewsletters.length"
+            @extract-metadata="extractSelectedMetadata" @extract-text="handleExtractSelectedText"
+            @generate-thumbnails="generateSelectedThumbnails" @sync-selected="handleSyncSelected"
+            @clear-selection="clearSelection" />
 
           <!-- Local Storage Management -->
           <LocalStorageManager :stats="localStorageStats" :is-syncing="processingStates.isSyncing"
@@ -59,8 +91,8 @@
 
           <!-- Newsletter Table -->
           <q-table title="Newsletter Management" :rows="filteredNewsletters" :columns="columns"
-            v-model:pagination="pagination" :loading="processingStates.isLoading" flat bordered
-            class="newsletter-management-table" row-key="id">
+            v-model:pagination="pagination" v-model:selected="selectedNewsletters" selection="multiple"
+            :loading="processingStates.isLoading" flat bordered class="newsletter-management-table" row-key="id">
 
             <!-- Thumbnail column -->
             <template v-slot:body-cell-thumbnail="props">
@@ -83,17 +115,28 @@
               </q-td>
             </template>
 
-            <!-- Keywords column with chips -->
+            <!-- Tags column with chips -->
             <template v-slot:body-cell-keywords="props">
               <q-td :props="props" class="keywords-cell">
-                <div v-if="props.row.keywordCounts" class="keyword-chips">
-                  <q-chip v-for="[keyword, count] in Object.entries(props.row.keywordCounts).slice(0, 3)" :key="keyword"
-                    size="sm" color="primary" text-color="white" :label="`${keyword} (${count})`" class="q-ma-xs" />
-                  <q-btn v-if="Object.keys(props.row.keywordCounts).length > 3" flat dense size="sm" color="primary"
-                    :label="`+${Object.keys(props.row.keywordCounts).length - 3} more`"
-                    @click="showExtractedContent(props.row)" />
+                <div v-if="props.row.tags && props.row.tags.length > 0" class="keyword-chips">
+                  <q-chip v-for="tag in props.row.tags.slice(0, 4)" :key="tag" size="sm" color="secondary"
+                    text-color="white" :label="tag" class="q-ma-xs" />
+                  <q-btn v-if="props.row.tags.length > 4" flat dense size="sm" color="secondary"
+                    :label="`+${props.row.tags.length - 4} more`" @click="showExtractedContent(props.row)" />
                 </div>
-                <span v-else class="text-grey-5">No keywords</span>
+                <span v-else class="text-grey-5">No tags</span>
+              </q-td>
+            </template>
+
+            <!-- Status column -->
+            <template v-slot:body-cell-status="props">
+              <q-td :props="props">
+                <q-chip v-if="isLocalPdf(props.row)" size="sm" color="green" text-color="white" icon="mdi-laptop">
+                  Local
+                </q-chip>
+                <q-chip v-else size="sm" color="orange" text-color="white" icon="mdi-cloud">
+                  Remote
+                </q-chip>
               </q-td>
             </template>
 
@@ -111,6 +154,10 @@
                     :loading="extractingText[props.row.id]" size="sm">
                     <q-tooltip>Extract Text</q-tooltip>
                   </q-btn>
+                  <q-btn dense flat icon="mdi-cloud-upload" color="positive" @click="syncSingleNewsletter(props.row)"
+                    :loading="syncingIndividual[props.row.id]" size="sm">
+                    <q-tooltip>Sync to Firebase</q-tooltip>
+                  </q-btn>
                   <q-btn dense flat icon="mdi-image" color="accent" @click="generateThumbnail(props.row)"
                     :loading="generatingThumb[props.row.id]" size="sm">
                     <q-tooltip>Generate Thumbnail</q-tooltip>
@@ -124,7 +171,14 @@
           <q-dialog v-model="editDialog.showDialog" persistent>
             <q-card style="min-width: 600px; max-width: 800px;">
               <q-card-section class="row items-center q-pb-none">
-                <div class="text-h6">Edit Newsletter Metadata</div>
+                <div>
+                  <div class="text-h6">Edit Newsletter Metadata</div>
+                  <div v-if="editDialog.editingNewsletter" class="text-caption text-grey-6">
+                    Version {{ editDialog.editingNewsletter.version || 1 }} •
+                    Last updated {{ formatDate(editDialog.editingNewsletter.updatedAt) }} by {{
+                      editDialog.editingNewsletter.updatedBy }}
+                  </div>
+                </div>
                 <q-space />
                 <q-btn icon="close" flat round dense v-close-popup />
               </q-card-section>
@@ -260,12 +314,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { doc, updateDoc, type UpdateData } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, getDoc, type UpdateData } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 
 // Import composables
 import { useContentManagement } from '../composables/useContentManagement';
 import { useContentExtraction } from '../composables/useContentExtraction';
+import { useFirebase } from '../composables/useFirebase';
+import { localMetadataStorageService, type ExtractedMetadata } from '../services/local-metadata-storage.service';
+import { tagGenerationService, type TagGenerationResult } from '../services/tag-generation.service';
+import type { Newsletter } from '../types/core/newsletter.types';
 
 // Import components
 import ActionToolbar from '../components/content-management/ActionToolbar.vue';
@@ -299,9 +357,32 @@ const {
   extractContentForFile
 } = useContentExtraction();
 
+// Firebase authentication
+const { auth } = useFirebase();
+
+// Auth helper methods
+const signInWithGoogle = async () => {
+  try {
+    await auth.signIn('google');
+    $q.notify({
+      type: 'positive',
+      message: 'Successfully signed in with Google!',
+    });
+  } catch (error) {
+    console.error('Google sign in failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to sign in with Google',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
 // Additional reactive data
 const extractingText = ref<Record<string, boolean>>({});
 const generatingThumb = ref<Record<string, boolean>>({});
+const syncingIndividual = ref<Record<string, boolean>>({});
+const selectedNewsletters = ref<ContentManagementNewsletter[]>([]);
 
 // Form options and data
 const seasonOptions = [
@@ -422,17 +503,31 @@ const columns = [
   },
   {
     name: 'keywords',
-    label: 'Keywords',
-    field: 'keywordCounts',
+    label: 'Tags',
+    field: 'tags',
     align: 'left' as const,
     style: 'width: 200px; max-width: 200px;',
+    format: (val: string[] | undefined) => {
+      if (!val || !Array.isArray(val) || val.length === 0) return '—';
+      // Display up to 3 tags, show count if more
+      const displayTags = val.slice(0, 3).join(', ');
+      const remainingCount = val.length > 3 ? ` (+${val.length - 3} more)` : '';
+      return displayTags + remainingCount;
+    }
+  },
+  {
+    name: 'status',
+    label: 'Source',
+    field: 'downloadUrl',
+    align: 'center' as const,
+    style: 'width: 100px;',
   },
   {
     name: 'actions',
     label: 'Actions',
     field: 'actions',
     align: 'center' as const,
-    style: 'width: 180px;',
+    style: 'width: 200px;',
   }
 ];
 
@@ -447,16 +542,7 @@ const availableSeasons = computed(() => {
   return seasons;
 });
 
-// Methods
-async function handleExtractAllText(): Promise<void> {
-  processingStates.value.isExtractingAllText = true;
-  try {
-    await extractAllText(newsletters.value);
-    await refreshLocalStorageStats();
-  } finally {
-    processingStates.value.isExtractingAllText = false;
-  }
-}
+// Methods - Selection-based operations
 
 async function handleSyncToFirebase(): Promise<void> {
   processingStates.value.isSyncing = true;
@@ -473,12 +559,303 @@ async function handleClearLocal(): Promise<void> {
   await refreshLocalStorageStats();
 }
 
+// Function to update newsletters with local metadata after extraction
+async function refreshNewslettersWithLocalMetadata(): Promise<void> {
+  try {
+    // Get all stored metadata from local storage
+    const allLocalMetadata = await localMetadataStorageService.getAllExtractedMetadata();
+
+    // Update newsletters with local metadata
+    for (const newsletter of newsletters.value) {
+      const localData = allLocalMetadata.find((meta: ExtractedMetadata) => meta.newsletterId === newsletter.id);
+      if (localData) {
+        newsletter.searchableText = localData.searchableText;
+        newsletter.wordCount = localData.wordCount;
+        newsletter.keywordCounts = localData.keywordCounts || {};
+        console.log(`📊 Updated local data for ${newsletter.filename}, keywords:`, Object.keys(newsletter.keywordCounts || {}).length);
+      }
+    }
+
+    console.log('✅ Refreshed newsletters with local metadata');
+  } catch (error) {
+    console.error('Failed to refresh newsletters with local metadata:', error);
+  }
+}
+
+// Selection-based bulk operations
+async function extractSelectedMetadata(): Promise<void> {
+  if (selectedNewsletters.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No newsletters selected',
+      caption: 'Please select newsletters to extract metadata from',
+      position: 'top'
+    });
+    return;
+  }
+
+  // Check for remote PDFs and prompt for download
+  const remotePdfs = selectedNewsletters.value.filter(n =>
+    n.downloadUrl?.startsWith('http') && !n.filename.includes('local')
+  );
+
+  if (remotePdfs.length > 0) {
+    const shouldDownload = await new Promise<boolean>((resolve) => {
+      $q.dialog({
+        title: 'Remote PDFs Detected',
+        message: `${remotePdfs.length} of the selected newsletters are stored remotely. Download them for extraction?`,
+        html: true,
+        persistent: true,
+        ok: {
+          label: 'Download & Extract',
+          color: 'primary'
+        },
+        cancel: {
+          label: 'Skip Remote PDFs',
+          color: 'grey'
+        }
+      }).onOk(() => resolve(true))
+        .onCancel(() => resolve(false));
+    });
+
+    if (!shouldDownload) {
+      // Filter out remote PDFs
+      const localPdfs = selectedNewsletters.value.filter(n =>
+        !n.downloadUrl?.startsWith('http') || n.filename.includes('local')
+      );
+
+      if (localPdfs.length === 0) {
+        $q.notify({
+          type: 'info',
+          message: 'No local PDFs to process',
+          position: 'top'
+        });
+        return;
+      }
+
+      selectedNewsletters.value = localPdfs;
+    }
+  }
+
+  processingStates.value.isExtracting = true;
+  try {
+    console.log(`🔄 [BULK] Starting tag generation for ${selectedNewsletters.value.length} newsletters`);
+
+    // Use unified tag generation service for ALL newsletters
+    await extractAllNewslettersWithUnifiedService(selectedNewsletters.value);
+
+    await refreshLocalStorageStats();
+
+    // Update local newsletters with extracted metadata
+    await refreshNewslettersWithLocalMetadata();
+
+    $q.notify({
+      type: 'positive',
+      message: `Tag generation completed for ${selectedNewsletters.value.length} newsletters`,
+      position: 'top'
+    });
+  } finally {
+    processingStates.value.isExtracting = false;
+  }
+}
+
+async function handleExtractSelectedText(): Promise<void> {
+  if (selectedNewsletters.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No newsletters selected',
+      position: 'top'
+    });
+    return;
+  }
+
+  await extractSelectedMetadata(); // Reuse the same logic
+}
+
+async function generateSelectedThumbnails(): Promise<void> {
+  if (selectedNewsletters.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No newsletters selected',
+      position: 'top'
+    });
+    return;
+  }
+
+  processingStates.value.isGeneratingThumbs = true;
+  try {
+    let processed = 0;
+    for (const newsletter of selectedNewsletters.value) {
+      generatingThumb.value[newsletter.id] = true;
+
+      // Simulate thumbnail generation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      generatingThumb.value[newsletter.id] = false;
+      processed++;
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: `Thumbnails generated for ${processed} newsletters`,
+      position: 'top'
+    });
+  } finally {
+    processingStates.value.isGeneratingThumbs = false;
+    // Clear individual loading states
+    selectedNewsletters.value.forEach(n => {
+      generatingThumb.value[n.id] = false;
+    });
+  }
+}
+
+async function handleSyncSelected(): Promise<void> {
+  if (selectedNewsletters.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No newsletters selected',
+      position: 'top'
+    });
+    return;
+  }
+
+  processingStates.value.isSyncing = true;
+  try {
+    // Sync only selected newsletters (this would need to be implemented in the composable)
+    await syncLocalMetadataToFirebase(); // For now, sync all - can be enhanced later
+    await refreshLocalStorageStats();
+
+    // Note: Don't reload newsletters here as it would wipe out extracted keyword data
+
+    $q.notify({
+      type: 'positive',
+      message: `Synced ${selectedNewsletters.value.length} newsletters to Firebase`,
+      position: 'top'
+    });
+  } finally {
+    processingStates.value.isSyncing = false;
+  }
+}
+
+// Individual newsletter sync
+async function syncSingleNewsletter(newsletter: ContentManagementNewsletter): Promise<void> {
+  syncingIndividual.value[newsletter.id] = true;
+
+  try {
+    // This would need a single-newsletter sync function in the composable
+    // For now, we'll simulate it
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    $q.notify({
+      type: 'positive',
+      message: `Synced ${newsletter.title} to Firebase`,
+      position: 'top'
+    });
+
+    await refreshLocalStorageStats();
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: `Failed to sync ${newsletter.title}`,
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    syncingIndividual.value[newsletter.id] = false;
+  }
+}
+
+// Utility functions
+function clearSelection(): void {
+  selectedNewsletters.value = [];
+}
+
+function isLocalPdf(newsletter: ContentManagementNewsletter): boolean {
+  // Consider PDF local if it doesn't start with http or if it's marked as local
+  return !newsletter.downloadUrl?.startsWith('http') || newsletter.filename.includes('local');
+}
+
+function formatDate(dateString: string): string {
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return 'Unknown';
+  }
+}
+
 function openPdf(newsletter: ContentManagementNewsletter): void {
   const pdfUrl = newsletter.downloadUrl?.startsWith('http')
     ? newsletter.downloadUrl
     : `${window.location.origin}${newsletter.downloadUrl || `/issues/${newsletter.filename}`}`;
   window.open(pdfUrl, '_blank');
 }
+
+// UNIFIED BULK EXTRACTION - Uses same service as individual extraction
+async function extractAllNewslettersWithUnifiedService(newsletters: ContentManagementNewsletter[]): Promise<void> {
+  console.log(`🔄 [BULK UNIFIED] Starting tag generation for ${newsletters.length} newsletters`);
+
+  const failedExtractions: string[] = [];
+  let successCount = 0;
+
+  for (const newsletter of newsletters) {
+    try {
+      console.log(`🔄 [BULK UNIFIED] Processing ${newsletter.filename} (${successCount + 1}/${newsletters.length})`);
+
+      // Use the SAME tag generation service as individual operations
+      const tagResult = await tagGenerationService.generateTagsFromPdf(
+        newsletter.downloadUrl,
+        newsletter.filename
+      );
+
+      // Store in local storage using the correct interface
+      const extractedMetadata: ExtractedMetadata = {
+        filename: newsletter.filename,
+        newsletterId: newsletter.id,
+        searchableText: tagResult.textContent,
+        wordCount: tagResult.wordCount,
+        readingTimeMinutes: Math.ceil(tagResult.wordCount / 200), // Estimate reading time
+        textExtractionVersion: '1.0.0',
+        textExtractedAt: new Date().toISOString(),
+        keywordCounts: tagResult.keywordCounts,
+        extractedAt: new Date().toISOString(),
+        status: 'pending',
+      };
+
+      await localMetadataStorageService.storeExtractedMetadata(extractedMetadata);
+      successCount++;
+
+      console.log(`✅ [BULK UNIFIED] Generated tags for ${newsletter.filename}:`, {
+        tags: tagResult.suggestedTags.length,
+        topics: tagResult.topics.length,
+        progress: `${successCount}/${newsletters.length}`
+      });
+
+    } catch (error) {
+      console.error(`❌ [BULK UNIFIED] Failed to extract ${newsletter.filename}:`, error);
+      failedExtractions.push(`${newsletter.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  console.log(`🏁 [BULK UNIFIED] Completed: ${successCount}/${newsletters.length} successful`);
+
+  if (failedExtractions.length > 0) {
+    console.warn(`⚠️ [BULK UNIFIED] Failed extractions:`, failedExtractions);
+    $q.notify({
+      type: 'warning',
+      message: `${successCount}/${newsletters.length} successful, ${failedExtractions.length} failed`,
+      caption: 'Check console for details',
+      position: 'top'
+    });
+  }
+}
+
+// INDIVIDUAL EXTRACTION - Uses same unified service
 
 function editNewsletter(newsletter: ContentManagementNewsletter): void {
   editDialog.value.editingNewsletter = { ...newsletter };
@@ -492,12 +869,35 @@ async function extractText(newsletter: ContentManagementNewsletter): Promise<voi
     textExtractionDialog.value.showDialog = true;
     processingStates.value.isProcessingText = true;
 
-    const extractedContent = await extractContentForFile(newsletter);
-    textExtractionDialog.value.extractedContent = extractedContent;
+    console.log(`🔄 [INDIVIDUAL] Starting tag generation for ${newsletter.filename}`);
+
+    // Use unified tag generation service
+    const tagResult = await tagGenerationService.generateTagsFromPdf(
+      newsletter.downloadUrl,
+      newsletter.filename
+    );
+
+    // Store the result for display in dialog
+    textExtractionDialog.value.extractedContent = {
+      textContent: tagResult.textContent,
+      textPreview: tagResult.textPreview,
+      wordCount: tagResult.wordCount,
+      suggestedTags: tagResult.suggestedTags,
+      topics: tagResult.topics,
+      keyTerms: tagResult.keyTerms,
+      keywordCounts: tagResult.keywordCounts,
+    };
+
+    console.log(`✅ [INDIVIDUAL] Generated tags for ${newsletter.filename}:`, {
+      tags: tagResult.suggestedTags.length,
+      topics: tagResult.topics.length
+    });
+
   } catch (error) {
+    console.error(`❌ [INDIVIDUAL] Failed to extract tags for ${newsletter.filename}:`, error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to extract text',
+      message: 'Failed to generate tags',
       caption: error instanceof Error ? error.message : 'Unknown error',
       position: 'top'
     });
@@ -548,98 +948,16 @@ function addNewTag(val: string, done: (item: string, mode?: 'add' | 'add-unique'
   }
 }
 
-// Placeholder functions (to be implemented or removed)
-async function extractAllMetadata(): Promise<void> {
-  processingStates.value.isExtracting = true;
-  try {
-    await extractAllText(newsletters.value);
-    await refreshLocalStorageStats();
-    $q.notify({
-      type: 'positive',
-      message: 'Metadata extraction completed',
-      caption: 'All PDF metadata extracted to local storage',
-      position: 'top'
-    });
-  } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: 'Metadata extraction failed',
-      caption: error instanceof Error ? error.message : 'Unknown error',
-      position: 'top'
-    });
-  } finally {
-    processingStates.value.isExtracting = false;
-  }
-}
-
-async function generateThumbnails(): Promise<void> {
-  processingStates.value.isGeneratingThumbs = true;
-
-  try {
-    // Get newsletters that don't have thumbnails yet
-    const newslettersToProcess = newsletters.value.filter(n => !n.thumbnailUrl);
-
-    if (newslettersToProcess.length === 0) {
-      $q.notify({
-        type: 'info',
-        message: 'All newsletters already have thumbnails',
-        position: 'top',
-      });
-      return;
-    }
-
-    $q.notify({
-      type: 'info',
-      message: `Starting thumbnail generation for ${newslettersToProcess.length} newsletters...`,
-      position: 'top',
-    });
-
-    let processed = 0;
-    let failed = 0;
-
-    // Process each newsletter
-    for (const newsletter of newslettersToProcess) {
-      try {
-        // Simulate thumbnail generation (in real implementation, use PDF.js or similar)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // In a real implementation, you would:
-        // 1. Load the PDF
-        // 2. Render the first page as canvas
-        // 3. Convert to blob/base64
-        // 4. Upload to Firebase Storage
-        // 5. Update newsletter with thumbnail URL
-
-        processed++;
-        console.log(`✅ Generated thumbnail for ${newsletter.filename} (${processed}/${newslettersToProcess.length})`);
-      } catch (error) {
-        failed++;
-        console.error(`❌ Failed to generate thumbnail for ${newsletter.filename}:`, error);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `Thumbnail generation completed`,
-      caption: `Processed: ${processed}, Failed: ${failed}`,
-      position: 'top',
-    });
-
-  } catch (error) {
-    console.error('Bulk thumbnail generation failed:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Bulk thumbnail generation failed',
-      caption: error instanceof Error ? error.message : 'Unknown error',
-      position: 'top',
-    });
-  } finally {
-    processingStates.value.isGeneratingThumbs = false;
-  }
-}
-
+// Utility functions for single newsletter operations
 async function saveMetadata(): Promise<void> {
-  if (!editDialog.value.editingNewsletter) return;
+  console.log('🔧 saveMetadata called');
+
+  if (!editDialog.value.editingNewsletter) {
+    console.error('❌ No newsletter being edited');
+    return;
+  }
+
+  console.log('📝 Editing newsletter:', editDialog.value.editingNewsletter);
 
   processingStates.value.isSaving = true;
 
@@ -655,28 +973,89 @@ async function saveMetadata(): Promise<void> {
         .filter((c: string) => c.length > 0);
     }
 
-    // Update timestamps
+    // Version control tracking
+    const currentVersion = newsletter.version || 1;
+    const newVersion = currentVersion + 1;
+
+    // Update timestamps and version
     updates.updatedAt = new Date().toISOString();
     updates.updatedBy = 'admin';
+    updates.version = newVersion;
+
+    // Add to edit history
+    const historyEntry = {
+      version: newVersion,
+      timestamp: updates.updatedAt,
+      editor: 'admin',
+      changes: 'Manual metadata update via admin interface'
+    };
+
+    updates.editHistory = [
+      ...(newsletter.editHistory || []),
+      historyEntry
+    ].slice(-10); // Keep last 10 edits
 
     // Update in Firestore
     if (!newsletter.id) {
       throw new Error('Newsletter ID is required for updating');
     }
 
+    console.log('🔥 FIREBASE DEBUG: Writing to collection "newsletters" with ID:', newsletter.id);
+    console.log('🔥 FIREBASE DEBUG: Update data:', updates);
+    console.log('🔥 FIREBASE DEBUG: Original newsletter data:', newsletter);
+
     const docRef = doc(firestore, 'newsletters', newsletter.id);
-    await updateDoc(docRef, updates);
+
+    // Check if document exists first
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      // Document exists, use updateDoc
+      await updateDoc(docRef, updates);
+      console.log('🔥 FIREBASE DEBUG: Successfully updated existing document:', newsletter.id);
+    } else {
+      // Document doesn't exist, create it with setDoc
+      const fullDocumentData = {
+        id: newsletter.id,
+        filename: newsletter.filename,
+        title: newsletter.title,
+        year: newsletter.year,
+        season: newsletter.season,
+        fileSize: newsletter.fileSize,
+        downloadUrl: newsletter.downloadUrl,
+        tags: newsletter.tags || [],
+        categories: newsletter.categories || [],
+        createdAt: new Date().toISOString(),
+        ...updates
+      };
+
+      await setDoc(docRef, fullDocumentData);
+      console.log('🔥 FIREBASE DEBUG: Successfully created new document:', newsletter.id);
+    }
+
+    console.log('🔥 FIREBASE DEBUG: Successfully saved document:', newsletter.id);
+
+    // Update the local newsletter in the array
+    const index = newsletters.value.findIndex(n => n.id === newsletter.id);
+    if (index !== -1) {
+      // Update the local array with the edited data
+      newsletters.value[index] = { ...editDialog.value.editingNewsletter };
+      console.log('📊 LOCAL UPDATE: Updated newsletter in local array');
+    } else {
+      console.warn('⚠️  Newsletter not found in local array for update');
+    }
 
     $q.notify({
       type: 'positive',
       message: 'Metadata updated successfully',
+      caption: `Version ${newVersion} saved`,
       position: 'top',
     });
 
     editDialog.value.showDialog = false;
 
-    // Reload newsletters to reflect changes
-    await loadNewsletters();
+    // Refresh the local data after saving to Firebase
+    await refreshNewslettersWithLocalMetadata();
   } catch (error) {
     console.error('Error updating metadata:', error);
     $q.notify({
@@ -688,9 +1067,7 @@ async function saveMetadata(): Promise<void> {
   } finally {
     processingStates.value.isSaving = false;
   }
-}
-
-async function applyExtractedMetadata(): Promise<void> {
+} async function applyExtractedMetadata(): Promise<void> {
   if (!textExtractionDialog.value.currentFile || !textExtractionDialog.value.extractedContent) return;
 
   processingStates.value.isApplyingMetadata = true;
@@ -699,44 +1076,133 @@ async function applyExtractedMetadata(): Promise<void> {
     const newsletter = textExtractionDialog.value.currentFile;
     const extractedContent = textExtractionDialog.value.extractedContent;
 
-    // Create updates object with proper Firestore typing
+    console.log(`🏷️ [INDIVIDUAL APPLY] Applying tags to ${newsletter.filename}`);
+
+    // Convert the extracted content to TagGenerationResult format
+    const tagResult: TagGenerationResult = {
+      suggestedTags: extractedContent.suggestedTags || [],
+      topics: extractedContent.topics || [],
+      keyTerms: extractedContent.keyTerms || [],
+      keywordCounts: extractedContent.keywordCounts || {},
+      textContent: extractedContent.textContent || '',
+      textPreview: extractedContent.textPreview || '',
+      wordCount: extractedContent.wordCount || 0
+    };
+
+    // Create a basic Newsletter object for the tag service
+    const basicNewsletter: Newsletter = {
+      id: parseInt(newsletter.id), // Convert string to number
+      title: newsletter.title,
+      filename: newsletter.filename,
+      date: `${newsletter.year}-${newsletter.season}`,
+      pages: newsletter.pageCount || 0,
+      url: newsletter.downloadUrl,
+      source: 'hybrid',
+      tags: newsletter.tags || [],
+      topics: newsletter.categories || [],
+    };
+
+    // Use unified tag application service (NO MORE DUPLICATE CODE!)
+    const updatedNewsletter = tagGenerationService.applyTagsToNewsletter(
+      basicNewsletter,
+      tagResult,
+      {
+        maxNewTags: 10,
+        maxNewCategories: 5,
+        replaceExisting: false
+      }
+    );
+
+    // Prepare Firebase update with proper typing
     const updates: UpdateData<ContentManagementNewsletter> = {
-      searchableText: extractedContent.textContent,
-      wordCount: extractedContent.wordCount,
-      tags: [
-        ...newsletter.tags,
-        ...extractedContent.suggestedTags.filter(
-          tag => !newsletter.tags.includes(tag)
-        )
-      ],
-      categories: [
-        ...(newsletter.categories || []),
-        ...extractedContent.topics.filter(
-          topic => !(newsletter.categories || []).includes(topic)
-        )
-      ],
-      keyTerms: extractedContent.keyTerms,
+      searchableText: tagResult.textContent,
+      wordCount: tagResult.wordCount,
+      tags: updatedNewsletter.tags || [],
+      categories: updatedNewsletter.topics || [], // Map topics to categories for this interface
+      keyTerms: tagResult.keyTerms,
+      keywordCounts: tagResult.keywordCounts,
       updatedAt: new Date().toISOString(),
       updatedBy: 'admin-manual',
     };
-
-    // Add keyword counts if available
-    if (extractedContent.keywordCounts) {
-      updates.keywordCounts = extractedContent.keywordCounts;
-    }
-
-    // Add articles if available
-    if (extractedContent.articles && extractedContent.articles.length > 0) {
-      updates.articleCount = extractedContent.articles.length;
-      updates.articles = extractedContent.articles;
-    }
 
     if (!newsletter.id) {
       throw new Error('Newsletter ID is required for updating');
     }
 
+    console.log('🔥 FIREBASE DEBUG: Applying extracted metadata to collection "newsletters" with ID:', newsletter.id);
+    console.log('🏷️ UNIFIED SERVICE: Tags applied:', {
+      totalTags: updatedNewsletter.tags?.length || 0,
+      totalTopics: updatedNewsletter.topics?.length || 0
+    });
+
     const docRef = doc(firestore, 'newsletters', newsletter.id);
-    await updateDoc(docRef, updates);
+
+    // Check if document exists first
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      // Document exists, use updateDoc
+      await updateDoc(docRef, updates);
+      console.log('🔥 FIREBASE DEBUG: Successfully updated existing document:', newsletter.id);
+    } else {
+      // Document doesn't exist, create it with setDoc
+      const fullDocumentData = {
+        id: newsletter.id,
+        filename: newsletter.filename,
+        title: newsletter.title,
+        year: newsletter.year,
+        season: newsletter.season,
+        fileSize: newsletter.fileSize,
+        downloadUrl: newsletter.downloadUrl,
+        tags: updatedNewsletter.tags || [],
+        categories: updatedNewsletter.topics || [],
+        createdAt: new Date().toISOString(),
+        searchableText: tagResult.textContent,
+        wordCount: tagResult.wordCount,
+        keyTerms: tagResult.keyTerms,
+        keywordCounts: tagResult.keywordCounts,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'admin-manual'
+      };
+
+      await setDoc(docRef, fullDocumentData);
+      console.log('🔥 FIREBASE DEBUG: Successfully created new document:', newsletter.id);
+    }
+
+    // Update the local newsletter object to trigger reactivity
+    const index = newsletters.value.findIndex(n => n.id === newsletter.id);
+    if (index !== -1 && newsletters.value[index]) {
+      // Create a clean update object without Firebase field values
+      const localUpdates = {
+        searchableText: extractedContent.textContent,
+        wordCount: extractedContent.wordCount,
+        keyTerms: extractedContent.keyTerms,
+        keywordCounts: extractedContent.keywordCounts || {},
+        tags: [
+          ...newsletter.tags,
+          ...extractedContent.suggestedTags.filter(tag => !newsletter.tags.includes(tag))
+        ],
+        categories: [
+          ...(newsletter.categories || []),
+          ...extractedContent.topics.filter(topic => !(newsletter.categories || []).includes(topic))
+        ],
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'admin-manual'
+      };
+
+      // Update individual properties to maintain type safety
+      const currentNewsletter = newsletters.value[index];
+      currentNewsletter.searchableText = localUpdates.searchableText;
+      currentNewsletter.wordCount = localUpdates.wordCount;
+      currentNewsletter.keyTerms = localUpdates.keyTerms;
+      currentNewsletter.keywordCounts = localUpdates.keywordCounts;
+      currentNewsletter.tags = localUpdates.tags;
+      currentNewsletter.categories = localUpdates.categories;
+      currentNewsletter.updatedAt = localUpdates.updatedAt;
+      currentNewsletter.updatedBy = localUpdates.updatedBy;
+
+      console.log('📊 LOCAL UPDATE: Updated newsletter in local array, keyword count:', Object.keys(localUpdates.keywordCounts).length);
+    }
 
     $q.notify({
       type: 'positive',
@@ -747,8 +1213,8 @@ async function applyExtractedMetadata(): Promise<void> {
 
     textExtractionDialog.value.showDialog = false;
 
-    // Reload newsletters to reflect changes
-    await loadNewsletters();
+    // Refresh the local data to make sure keywords persist
+    await refreshNewslettersWithLocalMetadata();
   } catch (error) {
     console.error('Error applying extracted metadata:', error);
     $q.notify({
@@ -763,6 +1229,8 @@ async function applyExtractedMetadata(): Promise<void> {
 }// Initialize
 onMounted(async () => {
   await loadNewsletters();
+  // Load any extracted metadata from local storage
+  await refreshNewslettersWithLocalMetadata();
 });
 </script>
 

@@ -44,6 +44,20 @@ export interface ContentManagementNewsletter {
   articles?: NewsletterArticle[];
   textExtractionVersion?: string;
   textExtractedAt?: string;
+
+  // Simple version control
+  version?: number;
+  editHistory?: EditHistoryEntry[];
+}
+
+/**
+ * Simple edit history entry
+ */
+export interface EditHistoryEntry {
+  version: number;
+  timestamp: string;
+  editor: string;
+  changes: string; // Simple description of what changed
 }
 
 /**

@@ -5,7 +5,8 @@
 
 // Import Vue and services
 import { useQuasar } from 'quasar';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firestore } from '../config/firebase.config';
 import {
   localMetadataStorageService,
@@ -172,6 +173,59 @@ export function useContentExtraction() {
     'com',
     'org',
     'net',
+    // Numeric characters and values
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11',
+    '12',
+    '13',
+    '14',
+    '15',
+    '16',
+    '17',
+    '18',
+    '19',
+    '20',
+    '30',
+    '40',
+    '50',
+    '60',
+    '70',
+    '80',
+    '90',
+    '100',
+    '2023',
+    '2024',
+    '2025',
+    '2026',
+    '2027',
+    '2028',
+    '2029',
+    '2030',
+    'first',
+    'second',
+    'third',
+    'fourth',
+    'fifth',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
   ]);
 
   function extractKeywordsWithCounts(fullText: string): {
@@ -182,7 +236,7 @@ export function useContentExtraction() {
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter((word) => word.length > 2 && !stopWords.has(word));
+      .filter((word) => word.length > 2 && !stopWords.has(word) && !/^\d+$/.test(word)); // Filter out pure numbers
 
     // Count word frequencies
     const wordCounts: Record<string, number> = {};
@@ -190,10 +244,10 @@ export function useContentExtraction() {
       wordCounts[word] = (wordCounts[word] || 0) + 1;
     });
 
-    // Sort by frequency and take top 10
+    // Sort by frequency and take top 20
     const sortedWords = Object.entries(wordCounts)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 10);
+      .slice(0, 20);
 
     const topKeywords = sortedWords.map(([word]) => word);
     const keywordCounts = Object.fromEntries(sortedWords);
@@ -298,6 +352,18 @@ export function useContentExtraction() {
   async function syncLocalMetadataToFirebase(
     onProgress?: (current: number, total: number) => void,
   ): Promise<void> {
+    console.log('🔥 FIREBASE DEBUG - Starting sync to Firebase');
+    console.log('🔥 FIREBASE DEBUG - Firebase app:', firestore.app.name);
+    console.log('🔥 FIREBASE DEBUG - Firebase project ID:', firestore.app.options.projectId);
+
+    // Check authentication status
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    console.log(
+      '🔥 FIREBASE DEBUG - Current user:',
+      currentUser ? `${currentUser.displayName} (${currentUser.email})` : 'Not authenticated',
+    );
+
     const pendingMetadata = await localMetadataStorageService.getPendingMetadata();
 
     if (pendingMetadata.length === 0) {
@@ -308,6 +374,8 @@ export function useContentExtraction() {
       });
       return;
     }
+
+    console.log('🔥 FIREBASE DEBUG - Found', pendingMetadata.length, 'items to sync');
 
     let synced = 0;
     let failed = 0;
@@ -327,8 +395,57 @@ export function useContentExtraction() {
           updatedBy: 'admin-local-sync',
         };
 
+        console.log('🔥 FIREBASE DEBUG - Writing to collection "newsletters"');
+        console.log('🔥 FIREBASE DEBUG - Document ID:', metadata.newsletterId);
+        console.log('🔥 FIREBASE DEBUG - Update data:', updates);
+        console.log('🔥 FIREBASE DEBUG - Full document path: newsletters/' + metadata.newsletterId);
+
         const docRef = doc(firestore, 'newsletters', metadata.newsletterId);
-        await updateDoc(docRef, updates);
+
+        // Check if document exists first
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          // Document exists, use updateDoc
+          await updateDoc(docRef, updates);
+          console.log(
+            '🔥 FIREBASE DEBUG - Successfully updated existing document:',
+            metadata.newsletterId,
+          );
+        } else {
+          // Document doesn't exist, create it with setDoc
+          const fullDocumentData = {
+            id: metadata.newsletterId,
+            filename: metadata.filename,
+            title: metadata.filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+            year:
+              parseInt(metadata.filename.split('.')[0] || new Date().getFullYear().toString()) ||
+              new Date().getFullYear(),
+            season: metadata.filename.includes('summer')
+              ? 'summer'
+              : metadata.filename.includes('winter')
+                ? 'winter'
+                : metadata.filename.includes('spring')
+                  ? 'spring'
+                  : metadata.filename.includes('fall')
+                    ? 'fall'
+                    : 'summer',
+            fileSize: 0, // Will be updated later
+            downloadUrl: `issues/${metadata.filename}`,
+            tags: [],
+            categories: [],
+            createdAt: new Date().toISOString(),
+            ...updates,
+          };
+
+          await setDoc(docRef, fullDocumentData);
+          console.log(
+            '🔥 FIREBASE DEBUG - Successfully created new document:',
+            metadata.newsletterId,
+          );
+        }
+
+        console.log('🔥 FIREBASE DEBUG - Write completed successfully for:', metadata.newsletterId);
 
         await localMetadataStorageService.markAsSynced(metadata.newsletterId);
         synced++;
