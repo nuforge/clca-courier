@@ -27,8 +27,6 @@ export class TagGenerationService {
    * Generate tags from PDF file - single source of truth for tag generation
    */
   async generateTagsFromPdf(pdfUrl: string, filename: string): Promise<TagGenerationResult> {
-    console.log(`🏷️ [TagGenerationService] Generating tags for: ${filename}`);
-
     try {
       // Use advanced PDF extraction service
       const extractionResult = await advancedPdfTextExtractionService.extractAdvancedPdfData(
@@ -64,17 +62,6 @@ export class TagGenerationService {
         wordCount: extractionResult.totalWords,
       };
 
-      console.log(`🏷️ [TagGenerationService] Generated for ${filename}:`, {
-        suggestedTags: result.suggestedTags.length,
-        topics: result.topics.length,
-        keyTerms: result.keyTerms.length,
-        rawSearchableTerms: extractionResult.searchableTerms?.slice(0, 10) || [],
-        analyzedKeywords: keywordAnalysis.keywords.slice(0, 10),
-        filteredSuggestedTags: result.suggestedTags.slice(0, 10),
-        rawTopics: extractionResult.topics?.slice(0, 5) || [],
-        filteredTopics: result.topics.slice(0, 5),
-      });
-
       return result;
     } catch (error) {
       console.error(`❌ [TagGenerationService] Failed to generate tags for ${filename}:`, error);
@@ -96,8 +83,6 @@ export class TagGenerationService {
     } = {},
   ): Newsletter {
     const { maxNewTags = 10, maxNewCategories = 5, replaceExisting = false } = options;
-
-    console.log(`🏷️ [TagGenerationService] Applying tags to: ${newsletter.filename}`);
 
     // Ensure existing arrays exist
     const existingTags = newsletter.tags || [];
@@ -134,13 +119,6 @@ export class TagGenerationService {
       // Mark as processed
       isProcessed: true,
     };
-
-    console.log(`🏷️ [TagGenerationService] Applied to ${newsletter.filename}:`, {
-      totalTags: updatedNewsletter.tags?.length || 0,
-      totalTopics: updatedNewsletter.topics?.length || 0,
-      newTagsAdded: newTags.length,
-      newTopicsAdded: newTopics.length,
-    });
 
     return updatedNewsletter;
   }
@@ -428,12 +406,6 @@ export class TagGenerationService {
 
     const topKeywords = sortedWords.map(([word]) => word);
     const keywordCounts = Object.fromEntries(sortedWords);
-
-    console.log(`🔍 [TagGenerationService] Keyword analysis completed:`, {
-      totalWords: words.length,
-      uniqueKeywords: topKeywords.length,
-      topKeywords: topKeywords.slice(0, 5),
-    });
 
     return { keywords: topKeywords, keywordCounts };
   }

@@ -18,7 +18,7 @@
 
 ### 2. **Dark Theme Compatibility** ✅
 
-- **User Request:** "stop setting background colors. You keep fucking up with the dark theme"
+- **User Request:** Ensure dark theme compatibility by removing hardcoded background colors
 - **Problem:** Hardcoded `background-color: #f5f5f5` in text content display
 - **Solution:** Removed all hardcoded background colors from page text expansion items
 - **Result:** Text content now properly adapts to user's chosen light/dark theme

@@ -12,7 +12,7 @@
 ### 1. HASH MODE ROUTING 🚫
 
 - **RULE**: NEVER USE HASH MODE
-- **WHY**: User explicitly stated "NEVER USE HASH MODE" and "WE ARE IN HISTORY MODE"
+- **WHY**: Application must use history mode routing exclusively
 - **EXAMPLES**:
   - ✅ **CORRECT**: `http://localhost:9000/archive`
   - ❌ **WRONG**: `http://localhost:9000/#/archive`
@@ -20,8 +20,8 @@
 
 ### 2. HARDCODED/STATIC DATA 🚫
 
-- **RULE**: NO MORE STATIC TEST DATA. EVER!!!
-- **WHY**: User repeatedly emphasized "NO HARDCODED LISTS!!! NEVER! NEVER!" and "DYNAMICALLY PULL THE FUCKING DATA!"
+- **RULE**: NO STATIC TEST DATA
+- **WHY**: All content must be dynamically discovered from data sources
 - **EXAMPLES**:
   - ❌ **WRONG**: Arrays of PDF filenames like `['2024.01-newsletter.pdf', '2024.02-newsletter.pdf']`
   - ❌ **WRONG**: JSON files with issue lists or newsletter data
@@ -35,7 +35,7 @@
 ### 3. THEME INTERFERENCE 🚫
 
 - **RULE**: NEVER HARDCODE BACKGROUND COLORS OR THEME-SPECIFIC STYLES
-- **WHY**: User enforced "stop setting background colors. You keep fucking up with the dark theme"
+- **WHY**: Hardcoded colors interfere with dark theme functionality
 - **EXAMPLES**:
   - ❌ **WRONG**: `background-color: #f5f5f5` or any hardcoded colors
   - ❌ **WRONG**: `style="background: white"` or similar theme assumptions
@@ -49,7 +49,7 @@
 ### 4. RESPONSIVE LAYOUT GUTTER VIOLATIONS 🚫
 
 - **RULE**: NEVER USE `q-gutter-*` CLASSES WITH PRECISE COLUMN LAYOUTS
-- **WHY**: User experienced consistent column overflow: "4 columns will have 3 cols on one row and the fourth on the next"
+- **WHY**: Gutter classes cause column overflow on widescreen monitors
 - **ROOT CAUSE**: `q-gutter` classes add margin that breaks 12-column grid math on widescreen monitors
 - **EXAMPLES**:
   - ❌ **WRONG**: `<div class="row q-gutter-md"><div class="col-12 col-md-6">`
@@ -62,7 +62,7 @@
 ### 5. PATH ASSUMPTIONS 🚫
 
 - **RULE**: ALWAYS VERIFY BEFORE IMPLEMENTING
-- **WHY**: User was frustrated: "SHOULDN'T YOU UFKCING CHECK OR KNOW ALL PATHING! ARE YOU JUST GUESSING!?"
+- **WHY**: Path assumptions cause implementation failures and require rework
 - **EXAMPLES**:
   - ❌ **WRONG**: Assuming `/webviewer` directory exists without checking
   - ❌ **WRONG**: Referencing file paths without verification
@@ -116,6 +116,14 @@
 - Flexible service layer architecture for future storage provider options
 - Simple, maintainable codebase focused on current needs
 
+### TAG GENERATION SYSTEM
+
+- **UNIFIED SERVICE ONLY**: All tag operations MUST use TagGenerationService
+- **NO DUPLICATE CODE PATHS**: Bulk and individual operations use same methods
+- **AGGRESSIVE FILTERING**: Remove all numeric values, fragments, time formats
+- **FREQUENCY-BASED SORTING**: Tags ordered by keyword frequency, not alphabetically
+- **TYPE SAFETY**: Proper TypeScript interfaces prevent data type mixing
+
 ### FUTURE-READY DESIGN
 
 - Service interfaces that abstract storage implementation details
@@ -138,13 +146,13 @@
 
 ---
 
-## 🔥 USER FRUSTRATION TRIGGERS 🔥
+## ⚠️ COMMON DEVELOPMENT PITFALLS ⚠️
 
-**These behaviors caused significant user frustration and must be avoided:**
+**These behaviors must be avoided for consistent development:**
 
 1. **Making assumptions about file paths without checking**
-2. **Using hardcoded lists when dynamic discovery was demanded**
-3. **Using hash mode URLs when history mode was specified**
+2. **Using hardcoded lists when dynamic discovery is required**
+3. **Using hash mode URLs when history mode is specified**
 4. **Repeating the same mistakes after being corrected**
 5. **Not learning from previous corrections in the same session**
 
@@ -163,4 +171,4 @@ Before implementing any feature:
 
 ---
 
-**REMEMBER**: These rules are absolute and take priority over all other considerations. Violating them causes significant user frustration and project delays.
+**REMEMBER**: These rules are absolute and take priority over all other considerations. Following them ensures consistent, maintainable development.
