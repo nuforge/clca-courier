@@ -9,6 +9,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   collection,
   query,
   where,
@@ -19,6 +20,7 @@ import {
   onSnapshot,
   serverTimestamp,
   type Unsubscribe,
+  type FieldValue,
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
@@ -34,8 +36,13 @@ export interface NewsletterMetadata {
   issueNumber?: string;
   season?: 'spring' | 'summer' | 'fall' | 'winter';
   year: number;
+  month?: number; // 1-12 for monthly newsletters
   fileSize: number;
   pageCount?: number;
+
+  // Enhanced date fields for better sorting and display
+  displayDate?: string; // Human-readable date (e.g., "August 2025", "Winter 2023")
+  sortValue?: number; // Numeric value for sorting (YYYYMM format)
 
   // Current Firebase Storage implementation
   downloadUrl: string; // Firebase Storage download URL
@@ -712,6 +719,9 @@ class FirebaseFirestoreService {
     }
   }
 }
+
+// Export Firebase utilities
+export { deleteField, type FieldValue };
 
 // Export singleton instance
 export const firestoreService = new FirebaseFirestoreService();

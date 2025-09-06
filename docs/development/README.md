@@ -298,6 +298,60 @@ gzip on;
 gzip_types text/plain text/css application/javascript application/json;
 ```
 
+## Enhanced Admin Features
+
+### Newsletter Management Interface
+
+The admin interface has been significantly enhanced with new capabilities:
+
+**Sync Status Detection**
+
+- Real-time comparison between local enhanced metadata and Firebase data
+- Visual status indicators: synced (green), local (blue), firebase (orange), unknown (gray)
+- Deep comparison of all changeable metadata fields including dates, content, and settings
+
+**Data Source Visualization**
+
+- Color-coded icons showing data origin:
+  - 🟠 Draft: Basic data without enhancements
+  - 🔵 Saved: Enhanced local data with processing
+  - 🔵 Remote: Data synchronized with Firebase
+- Tooltips providing detailed source information
+
+**Enhanced Date Management**
+
+- Support for both monthly (`YYYY.MM`) and seasonal (`YYYY.season`) newsletter formats
+- Human-readable display dates ("August 2025", "Winter 2023")
+- Proper chronological sorting with YYYYMM numeric values
+- Month-specific filtering (January through December)
+
+**Batch Operations**
+
+- One-click date enhancement for all newsletters
+- Automatic creation of Firebase records for local PDF files
+- Bulk processing with detailed progress reporting
+
+### Technical Implementation
+
+**Key Services**
+
+- `useContentManagement.ts`: Enhanced composable with sync status detection
+- `date-management.service.ts`: Centralized date parsing and enhancement
+- `firebase-newsletter.service.ts`: Firebase operations with date enhancement
+- `firebase-firestore.service.ts`: Extended with `deleteField()` support
+
+**TypeScript Enhancements**
+
+- Strict typing for all newsletter metadata fields
+- Enhanced interfaces for sync status and data source tracking
+- Proper optional field handling for month/season data
+
+**Admin Interface Components**
+
+- `NewsletterManagementTable.vue`: Enhanced table with sync status and data source columns
+- `CombinedNewsletterManagementPage.vue`: Comprehensive admin interface with batch operations
+- Enhanced filtering with month-specific dropdown options
+
 ## Troubleshooting
 
 ### Common Development Issues

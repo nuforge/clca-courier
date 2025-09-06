@@ -17,6 +17,8 @@
 - **✅ Path Verification**: Check existence before referencing files/directories
 - **✅ Theme Awareness**: Use Quasar's theme-aware color classes only
 - **✅ Responsive Layouts**: Use padding-based spacing instead of margin-based gutters
+- **✅ STRICT TYPESCRIPT**: NEVER use `any` types - use proper TypeScript types like `Record<string, unknown>`, `string | undefined`, etc.
+- **✅ Sync Status Logic**: Always compare actual newsletter data for sync detection, not empty IndexedDB metadata
 
 ## 🏗️ Architecture
 
@@ -81,12 +83,27 @@ scripts/                 # Build and utility scripts
 
 ### Services
 
-- **firebase-newsletter.service.ts**: Newsletter management with Firebase
-- **firebase-firestore.service.ts**: Direct Firestore operations
+- **firebase-newsletter.service.ts**: Newsletter management with Firebase + date enhancement
+- **firebase-firestore.service.ts**: Direct Firestore operations + deleteField support
 - **firebase-auth.service.ts**: Authentication handling
 - **firebase-storage.service.ts**: File upload and storage
+- **date-management.service.ts**: Centralized date parsing and enhancement logic
 
-### Components
+### Composables
+
+- **useContentManagement.ts**: Enhanced newsletter management with sync status detection
+- **useContentExtraction.ts**: PDF text extraction and metadata processing
+- **useFirebase.ts**: Firebase integration utilities
+- **useThumbnailManagement.ts**: Thumbnail generation and management
+
+### Admin Components
+
+- **CombinedNewsletterManagementPage.vue**: Comprehensive admin interface with batch operations
+- **NewsletterManagementTable.vue**: Enhanced table with sync status and data source visualization
+- **LocalStorageManager.vue**: Storage statistics and cleanup tools
+- **StatisticsCards.vue**: Newsletter collection statistics display
+
+### Core Components
 
 - **MainLayout.vue**: Base layout with global PDF viewer
 - **GlobalPdfViewer.vue**: Application-wide PDF viewer dialog
@@ -98,6 +115,102 @@ scripts/                 # Build and utility scripts
 - **newsletter-archive.store.ts**: Newsletter state management
 - **auth.store.ts**: Authentication state
 - **ui.store.ts**: UI state (theme, modals)
+
+## 🔧 Enhanced Admin Features
+
+### Sync Status Detection
+
+The admin interface implements real-time sync status detection between local enhanced metadata and Firebase data:
+
+```typescript
+// ✅ CORRECT: Compare actual newsletter data
+function getNewsletterSyncStatus(newsletter: ContentManagementNewsletter): SyncStatus {
+  const firebaseMeta = firebaseMetadataMap.value.get(newsletter.filename);
+  const hasFirebaseData = !!firebaseMeta;
+  const hasEnhancedData = !!(newsletter.displayDate || newsletter.month || newsletter.wordCount);
+
+  if (!hasEnhancedData && !hasFirebaseData) return 'unknown';
+  if (!hasEnhancedData && hasFirebaseData) return 'firebase';
+  if (hasEnhancedData && !hasFirebaseData) return 'local';
+
+  // Compare key enhanced fields for actual sync status
+  if (hasFirebaseData && hasEnhancedData && firebaseMeta) {
+    const fieldsMatch =
+      newsletter.displayDate === firebaseMeta.displayDate &&
+      newsletter.month === firebaseMeta.month &&
+      newsletter.season === firebaseMeta.season &&
+      newsletter.wordCount === firebaseMeta.wordCount;
+
+    return fieldsMatch ? 'synced' : 'local';
+  }
+
+  return 'unknown';
+}
+
+// ❌ WRONG: Comparing empty IndexedDB metadata with actual data
+const syncStatus = getSyncStatus(emptyIndexedDBMeta, actualFirebaseData);
+```
+
+### Date Management Patterns
+
+Enhanced date parsing supports both monthly and seasonal newsletter formats:
+
+```typescript
+// ✅ CORRECT: Enhanced date parsing with proper typing
+interface ParsedNewsletterDate {
+  year: number;
+  month?: number; // 1-12 for monthly newsletters
+  season?: 'spring' | 'summer' | 'fall' | 'winter'; // For seasonal newsletters
+  displayDate: string; // Human-readable format
+  sortValue: number; // YYYYMM numeric for sorting
+}
+
+// Monthly newsletter: "2024.08-conashaugh-courier.pdf" → "August 2024"
+// Seasonal newsletter: "2024.summer-conashaugh-courier.pdf" → "Summer 2024"
+
+// ❌ WRONG: Hardcoded date formats or assumptions
+const hardcodedDate = 'Summer 2024'; // No dynamic parsing
+```
+
+### TypeScript Patterns
+
+Strict TypeScript enforcement with proper type safety:
+
+```typescript
+// ✅ CORRECT: Proper TypeScript typing
+function processMetadata(data: Record<string, unknown>): NewsletterMetadata {
+  return {
+    displayDate: typeof data.displayDate === 'string' ? data.displayDate : undefined,
+    month: typeof data.month === 'number' ? data.month : undefined,
+    wordCount: typeof data.wordCount === 'number' ? data.wordCount : 0,
+  };
+}
+
+// ❌ FORBIDDEN: Using 'any' types
+function processMetadata(data: any): any {
+  return data.whatever; // Breaks type safety
+}
+```
+
+### Firebase Integration Patterns
+
+Enhanced Firebase operations with proper error handling:
+
+```typescript
+// ✅ CORRECT: Enhanced Firebase operations with deleteField
+import { deleteField } from './firebase-firestore.service';
+
+const updateFields: Record<string, unknown> = {};
+if (enhancedData.month !== undefined) {
+  updateFields.month = enhancedData.month;
+  updateFields.season = deleteField(); // Clear conflicting field
+}
+
+await firestoreService.updateNewsletterMetadata(id, updateFields);
+
+// ❌ WRONG: Not handling field conflicts or using proper types
+await firestoreService.updateNewsletterMetadata(id, data as any);
+```
 
 ## 📝 Code Patterns
 

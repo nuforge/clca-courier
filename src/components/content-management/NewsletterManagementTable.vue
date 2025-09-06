@@ -7,7 +7,18 @@
     <!-- Contextual Action Bar (appears when items are selected) -->
     <q-slide-transition>
       <div v-if="selectedNewsletters.length > 0" class="contextual-action-bar bg-grey-9 text-white">
-        <div class="row items-center q-pa-md">
+        <div class="row items-c    name: 'date',
+    label: 'Date',
+    field: (row: ContentManagementNewsletter) => row.displayDate || 'Unknown',
+    align: 'center' as const,
+    sortable: true,
+    style: 'width: 120px;',
+    sort: (a: ContentManagementNewsletter, b: ContentManagementNewsletter) => {
+      // Use sortValue for proper chronological sorting (YYYYMM format)
+      const aValue = a.sortValue || 0;
+      const bValue = b.sortValue || 0;
+      return bValue - aValue; // Newest first
+    },d">
           <!-- Selection Info -->
           <div class="col-auto">
             <q-checkbox v-model="isAllSelected" :indeterminate="isIndeterminate" @update:model-value="handleSelectAll"
@@ -120,6 +131,43 @@
         </q-td>
       </template>
 
+      <!-- Sync Status column -->
+      <template v-slot:body-cell-syncStatus="props">
+        <q-td :props="props" @mouseenter="hoveredRow = props.row.id" @mouseleave="hoveredRow = null">
+          <div class="text-center">
+            <q-icon v-if="props.row.syncStatus === 'synced'" name="mdi-check-circle" color="positive" size="sm">
+              <q-tooltip>Synced with Firebase</q-tooltip>
+            </q-icon>
+            <q-icon v-else-if="props.row.syncStatus === 'local'" name="mdi-alert-circle" color="warning" size="sm">
+              <q-tooltip>Local changes not synced</q-tooltip>
+            </q-icon>
+            <q-icon v-else-if="props.row.syncStatus === 'firebase'" name="mdi-cloud" color="info" size="sm">
+              <q-tooltip>Firebase only (no local data)</q-tooltip>
+            </q-icon>
+            <q-icon v-else name="mdi-help-circle" color="grey" size="sm">
+              <q-tooltip>Unknown sync status</q-tooltip>
+            </q-icon>
+          </div>
+        </q-td>
+      </template>
+
+      <!-- Data Source column -->
+      <template v-slot:body-cell-dataSource="props">
+        <q-td :props="props" @mouseenter="hoveredRow = props.row.id" @mouseleave="hoveredRow = null">
+          <div class="text-center">
+            <q-icon :name="`mdi-${props.row.dataSource?.icon || 'help'}`" :color="props.row.dataSource?.color || 'grey'"
+              size="sm">
+              <q-tooltip>
+                {{ props.row.dataSource?.source === 'draft' ? 'Draft (no metadata)' :
+                  props.row.dataSource?.source === 'saved' ? 'Saved locally' :
+                    props.row.dataSource?.source === 'remote' ? 'Remote (Firebase)' :
+                      'Unknown source' }}
+              </q-tooltip>
+            </q-icon>
+          </div>
+        </q-td>
+      </template>
+
       <!-- Thumbnail column -->
       <template v-slot:body-cell-thumbnail="props">
         <q-td :props="props" @mouseenter="hoveredRow = props.row.id" @mouseleave="hoveredRow = null">
@@ -137,10 +185,14 @@
         </q-td>
       </template>
 
-      <!-- Season column -->
-      <template v-slot:body-cell-season="props">
+      <!-- Date column (simplified to use displayDate) -->
+      <template v-slot:body-cell-date="props">
         <q-td :props="props" @mouseenter="hoveredRow = props.row.id" @mouseleave="hoveredRow = null">
-          {{ props.row.season }}
+          <div class="text-center">
+            <div class="text-weight-medium">
+              {{ props.row.displayDate || 'Unknown' }}
+            </div>
+          </div>
         </q-td>
       </template>
 
@@ -385,6 +437,22 @@ const columns = [
     style: 'width: 120px; min-width: 120px; max-width: 120px;',
   },
   {
+    name: 'syncStatus',
+    label: 'Sync',
+    field: 'syncStatus',
+    align: 'center' as const,
+    style: 'width: 60px;',
+    sortable: true,
+  },
+  {
+    name: 'dataSource',
+    label: 'Source',
+    field: 'dataSource',
+    align: 'center' as const,
+    style: 'width: 70px;',
+    sortable: false,
+  },
+  {
     name: 'thumbnail',
     label: '',
     field: 'thumbnailUrl',
@@ -408,12 +476,18 @@ const columns = [
     style: 'width: 80px;',
   },
   {
-    name: 'season',
-    label: 'Season',
-    field: 'season',
+    name: 'date',
+    label: 'Date',
+    field: (row: ContentManagementNewsletter) => row.month ? `${row.month}/${row.year}` : `${row.season}/${row.year}`,
     align: 'center' as const,
     sortable: true,
-    style: 'width: 100px;',
+    style: 'width: 120px;',
+    sort: (a: ContentManagementNewsletter, b: ContentManagementNewsletter) => {
+      // Custom sorting: prioritize months, then seasons, then year
+      const aValue = a.month ? (a.year * 100 + a.month) : (a.year * 100 + (a.season === 'spring' ? 3 : a.season === 'summer' ? 6 : a.season === 'fall' ? 9 : 12));
+      const bValue = b.month ? (b.year * 100 + b.month) : (b.year * 100 + (b.season === 'spring' ? 3 : b.season === 'summer' ? 6 : b.season === 'fall' ? 9 : 12));
+      return bValue - aValue; // Newest first
+    }
   },
   {
     name: 'pageCount',

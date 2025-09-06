@@ -1,6 +1,22 @@
 /**
- * Content Management Composable
- * Handles newsletter content management operations
+ * Content Mana// Quick hash function for comparing data
+function simpleHash(obj: Record<string, unknown>): string {
+  if (!obj) return '';
+  const str = JSON.stringify(obj, Object.keys(obj).sort());
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString();
+}
+
+// Determine sync status between local and Firebase data
+function getSyncStatus(
+  localMeta: Record<string, unknown> | undefined,
+  firebaseMeta: Record<string, unknown> | undefined,
+): 'synced' | 'local' | 'firebase' | 'unknown' { * Handles newsletter content management operations
  */
 
 import { ref, computed, type Ref } from 'vue';
@@ -17,12 +33,88 @@ import type {
   EditDialogState,
 } from '../types';
 
+// Quick hash function for comparing data
+function simpleHash(obj: Record<string, unknown>): string {
+  if (!obj) return '';
+  const str = JSON.stringify(obj, Object.keys(obj).sort());
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString();
+}
+
+// Determine sync status between local and Firebase data
+function getSyncStatus(
+  localMeta: Record<string, unknown> | undefined,
+  firebaseMeta: Record<string, unknown> | undefined,
+): 'synced' | 'local' | 'firebase' | 'unknown' {
+  const hasLocal = !!localMeta;
+  const hasFirebase = !!firebaseMeta;
+
+  if (!hasLocal && !hasFirebase) return 'unknown';
+  if (!hasLocal && hasFirebase) return 'firebase';
+  if (hasLocal && !hasFirebase) return 'local';
+
+  // Both exist - compare ALL changeable metadata fields
+  const localData = localMeta as Record<string, unknown>;
+  const firebaseData = firebaseMeta as Record<string, unknown>;
+
+  // Include ALL metadata that could be enhanced/changed
+  const createComparisonHash = (data: Record<string, unknown>) => {
+    return simpleHash({
+      // Date-related metadata (the main focus)
+      displayDate: data?.displayDate,
+      month: data?.month,
+      season: data?.season,
+      year: data?.year,
+
+      // Text extraction metadata
+      wordCount: data?.wordCount,
+      readingTimeMinutes: data?.readingTimeMinutes,
+      searchableText:
+        typeof data?.searchableText === 'string' ? data.searchableText.substring(0, 100) : '',
+
+      // Content metadata
+      title: data?.title,
+      description: data?.description,
+      summary: data?.summary,
+      pageCount: data?.pageCount,
+      articleCount: data?.articleCount,
+
+      // Tags and categorization
+      tags: Array.isArray(data?.tags) ? data.tags.join(',') : '',
+      categories: Array.isArray(data?.categories) ? data.categories.join(',') : '',
+      keyTerms: Array.isArray(data?.keyTerms) ? data.keyTerms.join(',') : '',
+
+      // Version info
+      version: data?.version,
+      textExtractionVersion: data?.textExtractionVersion,
+
+      // Status flags
+      featured: data?.featured,
+      isPublished: data?.isPublished,
+    });
+  };
+
+  const localHash = createComparisonHash(localData);
+  const firebaseHash = createComparisonHash(firebaseData);
+
+  return localHash === firebaseHash ? 'synced' : 'local';
+}
+
 export function useContentManagement() {
   const $q = useQuasar();
 
   // State
   const newsletters = ref<ContentManagementNewsletter[]>([]);
   const localStorageStats = ref<LocalStorageStats>({ total: 0, pending: 0, synced: 0, errors: 0 });
+
+  // Metadata maps for sync status checking
+  const localMetadataMap = ref(new Map<string, Record<string, unknown>>());
+  const firebaseMetadataMap = ref(new Map<string, Record<string, unknown>>());
 
   // Processing states
   const processingStates = ref<ProcessingStates>({
@@ -43,6 +135,7 @@ export function useContentManagement() {
     searchText: '',
     filterYear: null,
     filterSeason: null,
+    filterMonth: null,
   });
 
   // Dialog states
@@ -59,9 +152,75 @@ export function useContentManagement() {
     editingNewsletter: null,
   });
 
+  // Helper function to get data source information
+  function getDataSource(newsletter: ContentManagementNewsletter): {
+    source: 'draft' | 'saved' | 'remote';
+    color: string;
+    icon: string;
+  } {
+    // Check if the newsletter has enhanced metadata (means it was processed)
+    const hasEnhancedData = !!(
+      newsletter.displayDate ||
+      newsletter.month ||
+      newsletter.wordCount ||
+      newsletter.searchableText
+    );
+
+    // Check if it exists in Firebase
+    const firebaseMeta = firebaseMetadataMap.value.get(newsletter.filename);
+    const hasFirebaseData = !!firebaseMeta;
+
+    if (!hasEnhancedData && !hasFirebaseData) {
+      return { source: 'draft', color: 'orange', icon: 'draft' };
+    }
+
+    if (hasEnhancedData && !hasFirebaseData) {
+      return { source: 'saved', color: 'text-primary', icon: 'save' };
+    }
+
+    if (hasFirebaseData) {
+      return { source: 'remote', color: 'blue', icon: 'cloud_done' };
+    }
+
+    return { source: 'saved', color: 'text-primary', icon: 'save' };
+  }
+
+  // Helper function to get sync status based on actual newsletter data
+  function getNewsletterSyncStatus(
+    newsletter: ContentManagementNewsletter,
+  ): 'synced' | 'local' | 'firebase' | 'unknown' {
+    const firebaseMeta = firebaseMetadataMap.value.get(newsletter.filename);
+    const hasFirebaseData = !!firebaseMeta;
+    const hasEnhancedData = !!(newsletter.displayDate || newsletter.month || newsletter.wordCount);
+
+    if (!hasEnhancedData && !hasFirebaseData) return 'unknown';
+    if (!hasEnhancedData && hasFirebaseData) return 'firebase';
+    if (hasEnhancedData && !hasFirebaseData) return 'local';
+
+    // Both exist - compare key fields
+    if (hasFirebaseData && hasEnhancedData && firebaseMeta) {
+      // Compare key enhanced fields
+      const fieldsMatch =
+        newsletter.displayDate === firebaseMeta.displayDate &&
+        newsletter.month === firebaseMeta.month &&
+        newsletter.season === firebaseMeta.season &&
+        newsletter.wordCount === firebaseMeta.wordCount;
+
+      return fieldsMatch ? 'synced' : 'local';
+    }
+
+    return 'unknown';
+  }
+
   // Computed
   const filteredNewsletters = computed(() => {
-    let filtered = newsletters.value;
+    let filtered = newsletters.value.map((newsletter) => {
+      return {
+        ...newsletter,
+        syncStatus: getNewsletterSyncStatus(newsletter),
+        dataSource: getDataSource(newsletter),
+      };
+    });
 
     if (filters.value.searchText) {
       const search = filters.value.searchText.toLowerCase();
@@ -79,6 +238,10 @@ export function useContentManagement() {
 
     if (filters.value.filterSeason) {
       filtered = filtered.filter((n) => n.season === filters.value.filterSeason);
+    }
+
+    if (filters.value.filterMonth && typeof filters.value.filterMonth === 'number') {
+      filtered = filtered.filter((n) => n.month === filters.value.filterMonth);
     }
 
     return filtered;
@@ -128,42 +291,83 @@ export function useContentManagement() {
 
       // 2. Load local extracted metadata
       const localMetadata = await localMetadataStorageService.getAllExtractedMetadata();
-      const localMetadataMap = new Map(localMetadata.map((meta) => [meta.newsletterId, meta]));
+      const localMetadataMapById = new Map(localMetadata.map((meta) => [meta.newsletterId, meta]));
 
       // 3. Try to load Firebase metadata (if authenticated)
-      let firebaseMetadataMap = new Map();
+      let firebaseMetadataMapById = new Map();
+      let firebaseNewsletters: Array<unknown> = [];
       try {
         const { firestoreService } = await import('../services/firebase-firestore.service');
-        const firebaseNewsletters = await firestoreService.getAllNewslettersForAdmin();
-        firebaseMetadataMap = new Map(firebaseNewsletters.map((fb) => [fb.id, fb]));
-        console.log(`📄 Loaded ${firebaseNewsletters.length} newsletters from Firebase`);
+        const fbNewsletters = await firestoreService.getAllNewslettersForAdmin();
+        firebaseNewsletters = fbNewsletters as Array<unknown>;
+        firebaseMetadataMapById = new Map(fbNewsletters.map((fb) => [fb.id, fb]));
+        console.log(`📄 Loaded ${fbNewsletters.length} newsletters from Firebase`);
       } catch {
         console.log('ℹ️ Firebase data not available (likely not authenticated)');
       }
 
+      // 4. Create metadata maps by filename for sync status checking
+      const localMetadataMapByFilename = new Map<string, Record<string, unknown>>();
+      const firebaseMetadataMapByFilename = new Map<string, Record<string, unknown>>();
+
+      // Populate metadata maps by filename for sync status checks
+      localMetadata.forEach((meta) => {
+        const newsletter = baseNewsletters.find((n) => String(n.id) === meta.newsletterId);
+        if (newsletter) {
+          localMetadataMapByFilename.set(
+            newsletter.filename,
+            meta as unknown as Record<string, unknown>,
+          );
+        }
+      });
+
+      firebaseNewsletters.forEach((meta: unknown) => {
+        const fbMeta = meta as Record<string, unknown>;
+        const newsletter = baseNewsletters.find((n) => String(n.id) === fbMeta.id);
+        if (newsletter) {
+          firebaseMetadataMapByFilename.set(newsletter.filename, fbMeta);
+        }
+      });
+
+      // Update the reactive metadata maps
+      localMetadataMap.value = localMetadataMapByFilename;
+      firebaseMetadataMap.value = firebaseMetadataMapByFilename;
+
       await refreshLocalStorageStats();
 
-      // 4. Merge all data sources
+      // 5. Merge all data sources
       newsletters.value = baseNewsletters.map((newsletter) => {
-        const localMeta = localMetadataMap.get(String(newsletter.id));
-        const firebaseMeta = firebaseMetadataMap.get(String(newsletter.id));
+        const localMeta = localMetadataMapById.get(String(newsletter.id));
+        const firebaseMeta = firebaseMetadataMapById.get(String(newsletter.id));
 
-        return {
+        const mergedNewsletter = {
           id: String(newsletter.id),
           filename: newsletter.filename,
           title: newsletter.title,
           description: firebaseMeta?.description || undefined,
           summary: firebaseMeta?.summary || undefined,
-          year: parseInt((newsletter.date || '2024').split('.')[0] || '2024') || 2024,
-          season: newsletter.date?.includes('summer')
-            ? 'summer'
-            : newsletter.date?.includes('winter')
-              ? 'winter'
-              : newsletter.date?.includes('spring')
-                ? 'spring'
-                : newsletter.date?.includes('fall')
-                  ? 'fall'
-                  : 'general',
+          year:
+            firebaseMeta?.year ||
+            parseInt((newsletter.date || '2024').split('.')[0] || '2024') ||
+            2024,
+          season:
+            firebaseMeta?.season ||
+            (newsletter.date?.includes('summer')
+              ? 'summer'
+              : newsletter.date?.includes('winter')
+                ? 'winter'
+                : newsletter.date?.includes('spring')
+                  ? 'spring'
+                  : newsletter.date?.includes('fall')
+                    ? 'fall'
+                    : 'general'),
+          month: firebaseMeta?.month,
+          displayDate: firebaseMeta?.displayDate,
+          sortValue: firebaseMeta?.sortValue,
+          syncStatus: getSyncStatus(
+            localMeta as Record<string, unknown> | undefined,
+            firebaseMeta as Record<string, unknown> | undefined,
+          ),
           volume: firebaseMeta?.volume,
           issue: firebaseMeta?.issue,
           fileSize: firebaseMeta?.fileSize || 0,
@@ -192,6 +396,8 @@ export function useContentManagement() {
           // Version control
           version: firebaseMeta?.version || 1,
         } as ContentManagementNewsletter;
+
+        return mergedNewsletter;
       });
 
       console.log(

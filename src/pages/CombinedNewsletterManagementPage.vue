@@ -68,13 +68,17 @@
                     </template>
                   </q-input>
                 </div>
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                   <q-select v-model="filters.filterYear" :options="availableYears" label="Filter by Year" outlined dense
                     clearable />
                 </div>
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                   <q-select v-model="filters.filterSeason" :options="availableSeasons" label="Filter by Season" outlined
                     dense clearable />
+                </div>
+                <div class="col-12 col-md-2">
+                  <q-select v-model="filters.filterMonth" :options="availableMonths" option-label="label"
+                    option-value="value" label="Filter by Month" outlined dense clearable emit-value map-options />
                 </div>
                 <div class="col-12 col-md-2">
                   <q-btn v-if="selectedNewsletters.length === 0" color="primary" icon="mdi-refresh" label="Bulk Actions"
@@ -93,6 +97,10 @@
                       :loading="processingStates.isExtractingAllText" />
                     <q-btn color="accent" icon="mdi-image-multiple" label="Generate All Thumbnails"
                       @click="generateAllThumbnails" :loading="processingStates.isGeneratingThumbs" />
+                    <q-btn color="warning" icon="mdi-calendar-clock" label="Enhance Dates"
+                      @click="enhanceAllNewsletterDates" :loading="processingStates.isEnhancingDates" />
+                    <q-btn color="orange" icon="mdi-database-plus" label="Create Missing Records"
+                      @click="createMissingDatabaseRecords" :loading="processingStates.isCreatingRecords" />
                     <q-btn color="positive" icon="mdi-cloud-upload" label="Sync All to Firebase"
                       @click="handleSyncToFirebase" :loading="processingStates.isSyncing" />
                   </div>
@@ -296,9 +304,14 @@ const {
 } = useThumbnailManagement();
 
 // Enhanced processing states that include thumbnail generation
+const isEnhancingDates = ref(false);
+const isCreatingRecords = ref(false);
+
 const processingStates = computed(() => ({
   ...baseProcessingStates.value,
-  isGeneratingThumbs: isGeneratingThumbnails.value
+  isGeneratingThumbs: isGeneratingThumbnails.value,
+  isEnhancingDates: isEnhancingDates.value,
+  isCreatingRecords: isCreatingRecords.value
 }));
 // Firebase authentication
 const { auth } = useFirebase();
@@ -424,6 +437,24 @@ const availableYears = computed(() => {
 const availableSeasons = computed(() => {
   const seasons = [...new Set(newsletters.value.map(n => n.season))].sort();
   return seasons;
+});
+
+const availableMonths = computed(() => {
+  const months = [...new Set(newsletters.value
+    .filter(n => n.month) // Only include newsletters that have a month
+    .map(n => n.month!)
+  )].sort((a, b) => a - b);
+
+  // Convert month numbers to display format
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  return months.map(monthNum => ({
+    label: monthNames[monthNum - 1],
+    value: monthNum
+  }));
 });
 // Methods - Selection-based operations
 async function handleSyncToFirebase(): Promise<void> {
@@ -811,6 +842,126 @@ async function generateAllThumbnails(): Promise<void> {
   selectedNewsletters.value = [...newsletters.value];
   await generateSelectedThumbnails();
   clearSelection();
+}
+
+async function enhanceAllNewsletterDates(): Promise<void> {
+  // Enhance all newsletters with improved date information
+  try {
+    isEnhancingDates.value = true;
+
+    $q.notify({
+      type: 'info',
+      message: 'Starting date enhancement for all newsletters...',
+      position: 'top'
+    });
+
+    const result = await firebaseNewsletterService.batchEnhanceNewslettersWithDateInfo();
+
+    $q.notify({
+      type: 'positive',
+      message: `Date enhancement complete! Updated ${result.updated}/${result.processed} newsletters`,
+      caption: `${result.errors} errors encountered`,
+      position: 'top'
+    });
+
+    // Refresh the newsletters list
+    await loadNewsletters();
+
+  } catch (error) {
+    console.error('❌ Error enhancing newsletter dates:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to enhance newsletter dates',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    isEnhancingDates.value = false;
+  }
+}
+
+async function createMissingDatabaseRecords(): Promise<void> {
+  // Create Firebase database records for local PDF files that don't have records
+  try {
+    isCreatingRecords.value = true;
+
+    $q.notify({
+      type: 'info',
+      message: 'Checking for local files without database records...',
+      position: 'top'
+    });
+
+    // Get list of all local PDF files from manifest
+    const manifestResponse = await fetch('/data/pdf-manifest.json');
+    if (!manifestResponse.ok) {
+      throw new Error('Failed to load PDF manifest');
+    }
+    const manifest = await manifestResponse.json() as { files: Array<{ filename: string; path: string }> };
+    const localFiles = manifest.files.map((file) => file.filename);
+
+    // Get list of all Firebase newsletters
+    const firebaseNewsletters = await firestoreService.getAllNewslettersForAdmin();
+    const firebaseFilenames = new Set(firebaseNewsletters.map(n => n.filename));
+
+    // Find files that exist locally but not in Firebase
+    const missingFiles = localFiles.filter((filename: string) => !firebaseFilenames.has(filename));
+
+    if (missingFiles.length === 0) {
+      $q.notify({
+        type: 'positive',
+        message: 'All local files already have database records!',
+        position: 'top'
+      });
+      return;
+    }
+
+    $q.notify({
+      type: 'info',
+      message: `Creating database records for ${missingFiles.length} missing files...`,
+      position: 'top'
+    });
+
+    // Create database records for missing files
+    let created = 0;
+    let errors = 0;
+    const results: string[] = [];
+
+    for (const filename of missingFiles) {
+      try {
+        await firebaseNewsletterService.createRecordForLocalFile(filename);
+        created++;
+        results.push(`✅ Created record for: ${filename}`);
+      } catch (error) {
+        errors++;
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        results.push(`❌ Failed: ${filename} - ${errorMsg}`);
+      }
+    }
+
+    $q.notify({
+      type: created > 0 ? 'positive' : 'warning',
+      message: `Database record creation complete! Created ${created}/${missingFiles.length} records`,
+      caption: `${errors} errors encountered`,
+      position: 'top'
+    });
+
+    // Show detailed results in console
+    console.log('Database record creation results:', results);
+
+    // Refresh the newsletters list
+    await loadNewsletters();
+
+  } catch (error) {
+    console.error('❌ Error creating missing database records:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create missing database records',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    isCreatingRecords.value = false;
+  }
 }
 
 // Bulk toggle operations

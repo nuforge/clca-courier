@@ -133,7 +133,7 @@
                             :aria-label="(newsletter.featured === true ? 'Remove from featured' : 'Add to featured') + ' newsletter: ' + newsletter.title"
                             :tabindex="0" :loading="featuredLoading">
                             <q-tooltip>{{ newsletter.featured ? 'Remove from Featured' : 'Add to Featured'
-                            }}</q-tooltip>
+                                }}</q-tooltip>
                         </q-btn>
 
                         <q-separator vertical inset class="q-mx-xs" />
@@ -221,6 +221,11 @@ const fallbackClasses = computed(() => ({
 }));
 
 const formattedDate = computed(() => {
+    // Use the enhanced displayDate if available, otherwise fall back to publicationDate formatting
+    if (props.newsletter.displayDate) {
+        return props.newsletter.displayDate;
+    }
+
     const date = new Date(props.newsletter.publicationDate);
     return isNaN(date.getTime())
         ? 'Date unknown'

@@ -14,6 +14,17 @@
 - **✅ Path Verification**: Check existence before referencing any files or directories
 - **✅ Manifest-Based PDF Discovery**: Use `scripts/generate-pdf-manifest.js` for build-time PDF enumeration
 - **✅ Firebase-First Development**: Use Firebase services for all data, authentication, and storage operations
+- **✅ STRICT TYPESCRIPT**: NEVER use `any` types - use proper TypeScript types like `Record<string, unknown>`, `string | undefined`, etc.
+
+### TYPESCRIPT ENFORCEMENT
+
+- **❌ FORBIDDEN**: `any` types in function parameters, return types, or variables
+- **✅ REQUIRED**: Proper TypeScript types for all functions and variables
+- **✅ COMMON PATTERNS**:
+  - `Record<string, unknown>` for objects
+  - `string | undefined` for optional strings
+  - `number | null` for optional numbers
+  - Interface definitions for complex objects
 
 ## 🏗️ Architecture Overview
 

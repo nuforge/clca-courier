@@ -8,10 +8,13 @@ This document outlines the comprehensive metadata management system for CLCA Cou
 
 ### From PDF Filename
 
-- **Year**: Extracted from patterns like `2024.summer-conashaugh-courier.pdf`
-- **Season**: spring, summer, fall, winter (normalized and validated)
+- **Year**: Extracted from patterns like `2024.summer-conashaugh-courier.pdf` or `2024.08-conashaugh-courier.pdf`
+- **Month**: 1-12 for monthly newsletters (e.g., `2024.08` → August 2024)
+- **Season**: spring, summer, fall, winter for seasonal newsletters (normalized and validated)
+- **Display Date**: Human-readable format ("August 2024", "Winter 2023")
+- **Sort Value**: Numeric YYYYMM format for chronological sorting
 - **Title**: Formatted from filename components
-- **Issue Number**: Generated as `YYYY-season` format
+- **Issue Number**: Generated from parsed date information
 - **Volume/Issue Numbers**: If present in filename (e.g., `vol1`, `issue2`)
 
 ### From PDF File Properties
@@ -78,17 +81,22 @@ This document outlines the comprehensive metadata management system for CLCA Cou
 ```typescript
 interface Newsletter {
   // Core identification (auto-extracted)
-  id: string; // newsletter-YYYY-season
+  id: string; // newsletter-YYYY-season or newsletter-YYYY-MM
   filename: string; // Original filename
   title: string; // Extracted/formatted title
 
   // Publication details (auto + manual)
   publicationDate: string; // ISO date (auto-estimated)
-  issueNumber: string; // YYYY-season format
-  season: string; // Normalized season name
+  issueNumber: string; // Human-readable format
+  season?: 'spring' | 'summer' | 'fall' | 'winter'; // For seasonal newsletters
+  month?: number; // 1-12 for monthly newsletters
   year: number; // Extracted year
   volume?: number; // Manual entry
   issue?: number; // Manual entry
+
+  // Enhanced date fields for better sorting and display
+  displayDate?: string; // Human-readable date (e.g., "August 2025", "Winter 2023")
+  sortValue?: number; // Numeric value for sorting (YYYYMM format)
 
   // Content description (manual)
   description: string; // Auto-generated, editable
@@ -102,7 +110,7 @@ interface Newsletter {
   contentType: string; // MIME type
 
   // Storage references (auto-generated)
-  downloadUrl: string; // Firebase Storage URL
+  downloadUrl: string; // Firebase Storage URL or local path
   storageRef: string; // Storage path
   thumbnailUrl?: string; // Generated thumbnail
 
@@ -123,6 +131,14 @@ interface Newsletter {
   updatedAt: string; // Last edit
   createdBy: string; // Who uploaded
   updatedBy: string; // Last editor
+
+  // Sync status and data source tracking
+  syncStatus?: 'synced' | 'local' | 'firebase' | 'unknown';
+  dataSource?: {
+    source: 'draft' | 'saved' | 'remote';
+    color: string;
+    icon: string;
+  };
 }
 ```
 
@@ -130,24 +146,58 @@ interface Newsletter {
 
 ### Phase 1: Initial Upload & Extraction
 
-1. **File Upload**: PDFs uploaded to Firebase Storage (`newsletters/` path)
-2. **Basic Metadata**: Filename parsing and file property extraction
-3. **Firestore Document**: Create initial document with auto-extracted data
-4. **Thumbnail Generation**: Create placeholder SVG thumbnails
+1. **File Upload**: PDFs uploaded to Firebase Storage (`newsletters/` path) or stored locally
+2. **Basic Metadata**: Filename parsing and file property extraction using enhanced date parsing
+3. **Date Enhancement**: Parse monthly (YYYY.MM) or seasonal (YYYY.season) formats
+4. **Firestore Document**: Create initial document with auto-extracted data
+5. **Thumbnail Generation**: Create placeholder SVG thumbnails
 
 ### Phase 2: Content Processing
 
 1. **Text Extraction**: PDF text content extraction for search
 2. **Topic Analysis**: Content-based categorization
 3. **Key Terms**: Frequency analysis for search optimization
-4. **Quality Thumbnails**: Optional PDF-to-image conversion
+4. **Sync Status Detection**: Compare local enhanced metadata with Firebase data
+5. **Quality Thumbnails**: Optional PDF-to-image conversion
 
 ### Phase 3: Editorial Enhancement
 
-1. **Manual Review**: Admin interface for metadata editing
+1. **Manual Review**: Admin interface for metadata editing with sync status indicators
 2. **Content Curation**: Summary writing and categorization
 3. **Feature Selection**: Homepage and priority assignment
 4. **Publication Control**: Visibility and access management
+5. **Batch Operations**: Date enhancement and database record creation
+
+## New Features in Latest Version
+
+### Enhanced Date Management
+
+- **Monthly Newsletter Support**: Automatic parsing of `YYYY.MM` format filenames
+- **Seasonal Newsletter Support**: Continued support for `YYYY.season` format
+- **Display Date Generation**: Human-readable dates like "August 2025" or "Winter 2023"
+- **Sort Value Calculation**: YYYYMM numeric format for proper chronological sorting
+- **Month Filter**: New filtering option for monthly newsletters (1-12)
+
+### Sync Status System
+
+- **Real-time Sync Detection**: Compare enhanced JSON metadata with Firebase data
+- **Visual Status Indicators**: Color-coded sync status in admin interface
+- **Data Source Visualization**: Icons showing data origin (draft/saved/remote)
+- **Comprehensive Hash Comparison**: Deep comparison of all changeable metadata fields
+
+### Admin Interface Improvements
+
+- **Monthly Filter Dropdown**: Filter newsletters by specific month (January-December)
+- **Sync Status Column**: Visual indicators of sync state (synced/local/firebase/unknown)
+- **Data Source Column**: Color-coded icons showing data source with tooltips
+- **Batch Date Enhancement**: One-click date enhancement for all newsletters
+- **Missing Record Creation**: Auto-create Firebase records for local PDFs
+
+### Backend Services
+
+- **Date Management Service**: Centralized date parsing and enhancement logic
+- **Enhanced Newsletter Service**: Firebase operations with date enhancement capabilities
+- **Firestore Extensions**: Support for `deleteField()` operations and enhanced metadata fields
 
 ## Available Scripts
 

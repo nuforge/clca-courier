@@ -5,8 +5,13 @@
  */
 
 import { ref, computed, type Ref } from 'vue';
-import { firestoreService, type NewsletterMetadata } from './firebase-firestore.service';
+import {
+  firestoreService,
+  deleteField,
+  type NewsletterMetadata,
+} from './firebase-firestore.service';
 import { firebaseStorageService, type FileUploadProgress } from './firebase-storage.service';
+import { dateManagementService } from './date-management.service';
 import { logger } from '../utils/logger';
 
 export interface NewsletterSearchFilters {
@@ -622,6 +627,217 @@ class FirebaseNewsletterService {
       logger.success('Newsletter deleted successfully:', id);
     } catch (error) {
       logger.error('Error deleting newsletter:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enhance newsletter metadata with improved date information (admin function)
+   */
+  async enhanceNewsletterWithDateInfo(newsletterId: string): Promise<void> {
+    try {
+      const newsletter = await this.getNewsletterById(newsletterId);
+      if (!newsletter) {
+        throw new Error('Newsletter not found');
+      }
+
+      // Parse the filename to get enhanced date information
+      const enhancedDate = dateManagementService.enhanceNewsletterMetadata(
+        newsletter.filename,
+        newsletter,
+      );
+
+      // Debug logging
+      console.log(`🔧 Enhancing ${newsletter.filename}:`);
+      console.log('  📝 Enhanced data:', enhancedDate);
+      console.log('  📅 Month:', enhancedDate.month);
+      console.log('  🌸 Season:', enhancedDate.season);
+
+      // Update the newsletter with enhanced date fields
+      const updateFields: Record<string, unknown> = {};
+
+      // Handle month/season data properly - clear conflicting fields
+      if (enhancedDate.month !== undefined) {
+        // This is a monthly newsletter
+        updateFields.month = enhancedDate.month;
+        updateFields.season = deleteField(); // Explicitly clear season field
+      } else if (enhancedDate.season !== undefined) {
+        // This is a seasonal newsletter
+        updateFields.season = enhancedDate.season;
+        updateFields.month = deleteField(); // Explicitly clear month field
+      }
+
+      // Set other fields
+      if (enhancedDate.displayDate !== undefined) {
+        updateFields.displayDate = enhancedDate.displayDate;
+      }
+      if (enhancedDate.sortValue !== undefined) {
+        updateFields.sortValue = enhancedDate.sortValue;
+      }
+      if (enhancedDate.issueNumber !== undefined) {
+        updateFields.issueNumber = enhancedDate.issueNumber;
+      }
+
+      console.log('  🔄 Updating Firebase with fields:', updateFields);
+
+      await firestoreService.updateNewsletterMetadata(
+        newsletterId,
+        updateFields as Partial<NewsletterMetadata>,
+      );
+
+      // Verify what was actually saved by re-reading from Firebase
+      const updatedNewsletter = await this.getNewsletterById(newsletterId);
+      console.log('  ✅ After update - Firebase data:', {
+        filename: updatedNewsletter?.filename,
+        month: updatedNewsletter?.month,
+        season: updatedNewsletter?.season,
+        displayDate: updatedNewsletter?.displayDate,
+      });
+
+      // Update local cache (only with actual values, not deleteField operations)
+      const index = this._newsletters.value.findIndex((n) => n.id === newsletterId);
+      if (index > -1) {
+        const newsletter = this._newsletters.value[index];
+        if (newsletter) {
+          // Update month/season data based on what type this newsletter is
+          if (enhancedDate.month !== undefined) {
+            // Monthly newsletter
+            newsletter.month = enhancedDate.month;
+            delete newsletter.season; // Remove season from local object
+          } else if (enhancedDate.season !== undefined) {
+            // Seasonal newsletter
+            newsletter.season = enhancedDate.season;
+            delete newsletter.month; // Remove month from local object
+          }
+
+          // Update other fields if they exist
+          if (enhancedDate.displayDate !== undefined) {
+            newsletter.displayDate = enhancedDate.displayDate;
+          }
+          if (enhancedDate.sortValue !== undefined) {
+            newsletter.sortValue = enhancedDate.sortValue;
+          }
+          if (enhancedDate.issueNumber !== undefined) {
+            newsletter.issueNumber = enhancedDate.issueNumber;
+          }
+        }
+      }
+
+      logger.success('Newsletter enhanced with date info:', newsletterId);
+    } catch (error) {
+      logger.error('Error enhancing newsletter with date info:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch enhance all newsletters with date information (admin function)
+   */
+  async batchEnhanceNewslettersWithDateInfo(): Promise<{
+    processed: number;
+    updated: number;
+    errors: number;
+    results: string[];
+  }> {
+    try {
+      const newsletters = await this.loadAllNewslettersForAdmin();
+
+      const result = {
+        processed: 0,
+        updated: 0,
+        errors: 0,
+        results: [] as string[],
+      };
+
+      for (const newsletter of newsletters) {
+        result.processed++;
+
+        try {
+          await this.enhanceNewsletterWithDateInfo(newsletter.id);
+          result.updated++;
+          result.results.push(`✅ Enhanced: ${newsletter.filename}`);
+        } catch (error) {
+          result.errors++;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          result.results.push(`❌ Failed: ${newsletter.filename} - ${errorMsg}`);
+        }
+      }
+
+      logger.info(`Batch enhancement complete: ${result.updated}/${result.processed} updated`);
+      return result;
+    } catch (error) {
+      logger.error('Error in batch enhance newsletters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create Firebase database record for existing local PDF file (admin function)
+   */
+  async createRecordForLocalFile(filename: string): Promise<string> {
+    try {
+      // Parse the filename to get date information
+      const enhancedData = dateManagementService.enhanceNewsletterMetadata(filename);
+
+      if (!enhancedData.year) {
+        throw new Error(`Could not parse date information from filename: ${filename}`);
+      }
+
+      // Create basic metadata for the local file
+      const newsletterMetadata: Omit<NewsletterMetadata, 'id'> = {
+        filename,
+        title: enhancedData.title || `Conashaugh Lakes Courier - ${enhancedData.displayDate}`,
+        description: '',
+        publicationDate: enhancedData.publicationDate || new Date().toISOString(),
+        year: enhancedData.year,
+        fileSize: 0, // Will be updated by processing
+        pageCount: 0, // Will be updated by processing
+        downloadUrl: `/issues/${filename}`, // Local path
+        storageRef: '', // Empty for local files
+        tags: [],
+        featured: false,
+        isPublished: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: 'admin',
+        updatedBy: 'admin',
+        actions: {
+          canView: true,
+          canDownload: true,
+          canSearch: false,
+          hasThumbnail: false,
+        },
+      };
+
+      // Add optional fields from parsed date
+      if (enhancedData.issueNumber) {
+        newsletterMetadata.issueNumber = enhancedData.issueNumber;
+      }
+      if (enhancedData.month) {
+        newsletterMetadata.month = enhancedData.month;
+      }
+      if (enhancedData.season) {
+        newsletterMetadata.season = enhancedData.season;
+      }
+      if (enhancedData.displayDate) {
+        newsletterMetadata.displayDate = enhancedData.displayDate;
+      }
+      if (enhancedData.sortValue) {
+        newsletterMetadata.sortValue = enhancedData.sortValue;
+      }
+
+      const newsletterId = await firestoreService.saveNewsletterMetadata(newsletterMetadata);
+
+      // Add to local cache
+      this._newsletters.value.push({
+        id: newsletterId,
+        ...newsletterMetadata,
+      });
+
+      logger.success('Created database record for local file:', filename);
+      return newsletterId;
+    } catch (error) {
+      logger.error('Error creating record for local file:', error);
       throw error;
     }
   }

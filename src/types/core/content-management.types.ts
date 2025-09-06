@@ -18,6 +18,9 @@ export interface ContentManagementNewsletter {
   summary?: string;
   year: number;
   season: string;
+  month?: number; // 1-12 for monthly newsletters
+  displayDate?: string; // Human-readable date like "August 2025"
+  sortValue?: number; // Numeric sort value like 202508
   volume?: number;
   issue?: number;
   fileSize: number; // Differs from core Newsletter (string vs number)
@@ -117,6 +120,7 @@ export interface NewsletterFilters {
   searchText: string;
   filterYear: number | null;
   filterSeason: string | null;
+  filterMonth: number | null; // 1-12 for monthly filter
 }
 
 /**

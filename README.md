@@ -11,7 +11,9 @@ A modern Vue 3 + Quasar application for managing and distributing the CLCA commu
 - **Multi-Provider Authentication** - Google, Facebook, Twitter, GitHub OAuth
 - 📊 **Real-time Database** - Firestore for newsletters and user content
 - 👥 **Role-based Access** - Reader, Contributor, Editor, Admin permissions
-- � **Responsive Design** - Optimized for all devices
+- 📱 **Responsive Design** - Optimized for all devices
+- 🔄 **Enhanced Admin Interface** - Sync status detection and data source visualization
+- 📅 **Smart Date Management** - Monthly and seasonal newsletter support with proper sorting
 
 ## ⚡ Quick Start
 
@@ -109,6 +111,36 @@ Complete documentation available in [`docs/`](./docs/):
 - **Offline Support**: Built-in persistence and sync
 - **Real-time Updates**: Efficient Firestore listeners
 - **Cost Optimization**: Intelligent caching patterns
+
+## 🔧 Enhanced Admin Interface
+
+### Sync Status Detection
+
+The admin interface provides real-time synchronization status between local enhanced metadata and Firebase data:
+
+- **Visual Indicators**: Color-coded sync status (synced/local/firebase/unknown)
+- **Data Source Tracking**: Icons showing data origin (draft/saved/remote) with tooltips
+- **Deep Comparison**: Comprehensive hash-based comparison of all changeable metadata fields
+- **Real-time Updates**: Live sync status detection as data changes
+
+### Enhanced Date Management
+
+Smart parsing and management of newsletter dates supporting both formats:
+
+- **Monthly Newsletters**: `YYYY.MM` format (e.g., `2024.08-conashaugh-courier.pdf`)
+- **Seasonal Newsletters**: `YYYY.season` format (e.g., `2024.summer-conashaugh-courier.pdf`)
+- **Human-readable Dates**: "August 2024", "Winter 2023" display format
+- **Proper Sorting**: YYYYMM numeric values for chronological ordering
+- **Month Filtering**: Dedicated filter dropdown for monthly newsletters
+
+### Batch Operations
+
+Powerful admin tools for managing newsletter collections:
+
+- **Date Enhancement**: One-click enhancement of date metadata for all newsletters
+- **Missing Record Creation**: Automatic Firebase database record creation for local PDFs
+- **Bulk Processing**: Progress tracking and detailed result reporting
+- **Validation**: Pre-processing validation and error handling
 
 ## 📁 Project Structure
 
