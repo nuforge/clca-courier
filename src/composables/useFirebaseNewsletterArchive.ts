@@ -15,8 +15,21 @@ import { logger } from '../utils/logger';
 
 export interface ArchiveFilters extends NewsletterSearchFilters {
   query?: string;
-  sortBy?: 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc' | 'pages-desc' | 'pages-asc';
+  sortBy?:
+    | 'relevance'
+    | 'date-desc'
+    | 'date-asc'
+    | 'title-asc'
+    | 'title-desc'
+    | 'pages-desc'
+    | 'pages-asc';
   groupByYear?: boolean;
+  viewMode?: 'grid' | 'list' | 'compact';
+  accessibility?: {
+    highContrast?: boolean;
+    reducedMotion?: boolean;
+    screenReaderOptimized?: boolean;
+  };
 }
 
 export interface ArchiveStats {
@@ -29,6 +42,12 @@ export interface ArchiveStats {
     local: number;
     drive: number;
     hybrid: number;
+  };
+  accessibility: {
+    withDescriptions: number;
+    withThumbnails: number;
+    withSearchableText: number;
+    averagePageCount: number;
   };
 }
 
@@ -264,11 +283,103 @@ export function useFirebaseNewsletterArchive() {
     return firebaseNewsletterService.getFeaturedNewsletters(limit);
   };
 
+  /**
+   * Get quick filter options for better UX
+   */
+  const getQuickFilterOptions = () => {
+    const currentYear = new Date().getFullYear();
+    return {
+      currentYear: newsletters.value.filter((n) => n.year === currentYear),
+      lastYear: newsletters.value.filter((n) => n.year === currentYear - 1),
+      featured: newsletters.value.filter((n) => n.featured),
+      withDescriptions: newsletters.value.filter((n) => !!n.description),
+      recentlyAdded: newsletters.value
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10),
+    };
+  };
+
+  /**
+   * Get search suggestions based on current newsletters
+   */
+  const getSearchSuggestions = (partialQuery: string): string[] => {
+    if (!partialQuery || partialQuery.length < 2) return [];
+
+    const suggestions = new Set<string>();
+    const queryLower = partialQuery.toLowerCase();
+
+    newsletters.value.forEach((newsletter) => {
+      // Title suggestions
+      if (newsletter.title.toLowerCase().includes(queryLower)) {
+        const words = newsletter.title.split(' ');
+        words.forEach((word) => {
+          if (word.toLowerCase().startsWith(queryLower)) {
+            suggestions.add(word);
+          }
+        });
+      }
+
+      // Tag suggestions
+      newsletter.tags.forEach((tag) => {
+        if (tag.toLowerCase().includes(queryLower)) {
+          suggestions.add(tag);
+        }
+      });
+
+      // Season suggestions
+      if (newsletter.season?.toLowerCase().includes(queryLower)) {
+        suggestions.add(newsletter.season);
+      }
+    });
+
+    return Array.from(suggestions).slice(0, 8);
+  };
+
+  /**
+   * Validate accessibility compliance for newsletters
+   */
+  const validateAccessibility = () => {
+    const issues: string[] = [];
+
+    newsletters.value.forEach((newsletter) => {
+      if (!newsletter.description) {
+        issues.push(`Newsletter "${newsletter.title}" missing description for screen readers`);
+      }
+      if (!newsletter.thumbnailUrl) {
+        issues.push(`Newsletter "${newsletter.title}" missing thumbnail for visual identification`);
+      }
+      if (!newsletter.searchableText) {
+        issues.push(
+          `Newsletter "${newsletter.title}" missing searchable text for content discovery`,
+        );
+      }
+    });
+
+    return {
+      totalIssues: issues.length,
+      issues: issues.slice(0, 20), // Limit to prevent overwhelming
+      complianceRate:
+        newsletters.value.length > 0
+          ? Math.round(
+              ((newsletters.value.length - issues.length / 3) / newsletters.value.length) * 100,
+            )
+          : 100,
+    };
+  };
+
   const generateStats = () => {
     try {
       const availableYears = firebaseNewsletterService.getAvailableYears();
       const availableTags = firebaseNewsletterService.getAvailableTags();
       const serviceStats = firebaseNewsletterService.stats.value;
+
+      // Calculate accessibility stats
+      const withDescriptions = newsletters.value.filter((n) => !!n.description).length;
+      const withThumbnails = newsletters.value.filter((n) => !!n.thumbnailUrl).length;
+      const withSearchableText = newsletters.value.filter((n) => !!n.searchableText).length;
+      const totalPages = newsletters.value.reduce((sum, n) => sum + (n.pageCount || 0), 0);
+      const averagePageCount =
+        newsletters.value.length > 0 ? Math.round(totalPages / newsletters.value.length) : 0;
 
       stats.value = {
         totalNewsletters: newsletters.value.length,
@@ -281,6 +392,12 @@ export function useFirebaseNewsletterArchive() {
           local: 0,
           drive: 0,
           hybrid: 0,
+        },
+        accessibility: {
+          withDescriptions,
+          withThumbnails,
+          withSearchableText,
+          averagePageCount,
         },
       };
     } catch (err) {
@@ -352,6 +469,9 @@ export function useFirebaseNewsletterArchive() {
     clearFilters,
     getNewsletterById,
     getFeaturedNewsletters,
+    getQuickFilterOptions,
+    getSearchSuggestions,
+    validateAccessibility,
     generateStats,
   };
 }

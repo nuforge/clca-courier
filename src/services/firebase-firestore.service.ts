@@ -525,10 +525,30 @@ class FirebaseFirestoreService {
   // Search operations
   async searchNewsletters(searchTerm: string): Promise<NewsletterMetadata[]> {
     try {
-      // Simplified search - consider adding compound index for better performance
+      // If no search term, return all published newsletters
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        const q = query(
+          collection(firestore, this.COLLECTIONS.NEWSLETTERS),
+          where('isPublished', '==', true),
+          orderBy('publicationDate', 'desc'),
+          limit(100),
+        );
+
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as NewsletterMetadata,
+        );
+      }
+
+      // Enhanced search with better indexing strategy
       const q = query(
         collection(firestore, this.COLLECTIONS.NEWSLETTERS),
-        limit(100), // Get more documents for client-side filtering
+        where('isPublished', '==', true),
+        limit(200), // Increased limit for comprehensive client-side search
       );
 
       const querySnapshot = await getDocs(q);
@@ -540,16 +560,66 @@ class FirebaseFirestoreService {
           }) as NewsletterMetadata,
       );
 
-      // Client-side filtering - consider moving to Cloud Functions for better performance
+      // Improved client-side search with ranking
+      const searchTermLower = searchTerm.toLowerCase().trim();
+      const searchWords = searchTermLower.split(/\s+/).filter((word) => word.length > 0);
+
       return newsletters
-        .filter((newsletter) => newsletter.isPublished) // Filter published first
-        .filter(
-          (newsletter) =>
-            newsletter.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            newsletter.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            newsletter.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            newsletter.searchableText?.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+        .map((newsletter) => {
+          let score = 0;
+          const titleLower = newsletter.title.toLowerCase();
+          const descriptionLower = newsletter.description?.toLowerCase() || '';
+          const searchableTextLower = newsletter.searchableText?.toLowerCase() || '';
+          const tagsLower = newsletter.tags.map((tag) => tag.toLowerCase());
+
+          // Scoring system for relevance
+          searchWords.forEach((word) => {
+            // Exact title match (highest score)
+            if (titleLower.includes(word)) {
+              score += titleLower === word ? 100 : 50;
+            }
+
+            // Description match
+            if (descriptionLower.includes(word)) {
+              score += 20;
+            }
+
+            // Tag exact match
+            if (tagsLower.some((tag) => tag === word)) {
+              score += 30;
+            }
+
+            // Tag partial match
+            if (tagsLower.some((tag) => tag.includes(word))) {
+              score += 15;
+            }
+
+            // Full text search (if available)
+            if (searchableTextLower.includes(word)) {
+              score += 10;
+            }
+
+            // Season match
+            if (newsletter.season?.toLowerCase().includes(word)) {
+              score += 25;
+            }
+
+            // Year match
+            if (newsletter.year.toString().includes(word)) {
+              score += 25;
+            }
+
+            // Issue number match
+            if (newsletter.issueNumber?.toLowerCase().includes(word)) {
+              score += 30;
+            }
+          });
+
+          return { newsletter, score };
+        })
+        .filter((item) => item.score > 0) // Only return items with matches
+        .sort((a, b) => b.score - a.score) // Sort by relevance score
+        .map((item) => item.newsletter);
     } catch (error) {
       logger.error('Error searching newsletters:', error);
       throw error;

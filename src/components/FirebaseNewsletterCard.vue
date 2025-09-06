@@ -1,11 +1,22 @@
 <template>
-    <q-card flat bordered :class="cardClasses" class="newsletter-card cursor-pointer transition-all"
-        @click="openNewsletter" :style="cardStyle">
+    <q-card
+        flat
+        bordered
+        :class="cardClasses"
+        class="newsletter-card cursor-pointer transition-all"
+        @click="openNewsletter"
+        :style="cardStyle"
+        :tabindex="0"
+        @keydown.enter="openNewsletter"
+        @keydown.space.prevent="openNewsletter"
+        role="article"
+        :aria-label="'Newsletter: ' + newsletter.title + ', published ' + formattedDate + (newsletter.description ? ', ' + newsletter.description : '')"
+    >
 
         <!-- Thumbnail Section -->
-        <div class="thumbnail-container">
+        <div class="thumbnail-container" role="img" :aria-label="newsletter.thumbnailUrl ? 'Newsletter thumbnail' : 'PDF document icon'">
             <q-img v-if="newsletter.thumbnailUrl" :src="newsletter.thumbnailUrl"
-                :alt="`Thumbnail for ${newsletter.title}`" class="thumbnail-image" loading="lazy"
+                :alt="'Thumbnail preview for ' + newsletter.title" class="thumbnail-image" loading="lazy"
                 @error="onThumbnailError">
                 <template v-slot:loading>
                     <div class="absolute-center">
@@ -21,28 +32,54 @@
             </div>
 
             <!-- Featured Badge -->
-            <q-badge v-if="newsletter.featured" color="accent" floating rounded class="featured-badge">
+            <q-badge v-if="newsletter.featured" color="accent" floating rounded class="featured-badge"
+                aria-label="Featured newsletter">
                 <q-icon name="star" size="12px" class="q-mr-xs" />
                 Featured
             </q-badge>
 
             <!-- Publication Status -->
-            <q-badge v-if="!newsletter.isPublished" color="orange" floating class="status-badge">
+            <q-badge v-if="!newsletter.isPublished" color="orange" floating class="status-badge"
+                aria-label="Draft status">
                 Draft
             </q-badge>
+
+            <!-- Accessibility indicators -->
+            <div class="accessibility-indicators absolute-top-right q-pa-xs">
+                <q-icon
+                    v-if="newsletter.description"
+                    name="description"
+                    size="16px"
+                    class="text-positive q-mr-xs"
+                    aria-label="Has description for screen readers"
+                >
+                    <q-tooltip>Has description</q-tooltip>
+                </q-icon>
+                <q-icon
+                    v-if="newsletter.searchableText"
+                    name="search"
+                    size="16px"
+                    class="text-info"
+                    aria-label="Text content is searchable"
+                >
+                    <q-tooltip>Searchable content</q-tooltip>
+                </q-icon>
+            </div>
         </div>
 
         <!-- Content Section -->
         <q-card-section class="newsletter-content">
             <!-- Title -->
-            <div class="text-subtitle1 text-weight-medium newsletter-title q-mb-xs">
+            <div class="text-subtitle1 text-weight-medium newsletter-title q-mb-xs" role="heading" aria-level="3">
                 {{ newsletter.title }}
             </div>
 
             <!-- Publication Info -->
             <div class="text-caption text-grey-6 q-mb-sm">
                 <q-icon name="event" size="14px" class="q-mr-xs" />
-                {{ formattedDate }}
+                <time :datetime="newsletter.publicationDate" :aria-label="'Published on ' + formattedDate">
+                    {{ formattedDate }}
+                </time>
                 <span v-if="newsletter.season" class="q-ml-sm">
                     <q-icon name="wb_sunny" size="14px" class="q-mr-xs" />
                     {{ capitalizeFirst(newsletter.season) }}
@@ -56,18 +93,19 @@
             </div>
 
             <!-- Description -->
-            <div v-if="newsletter.description" class="text-body2 newsletter-description q-mb-sm">
+            <div v-if="newsletter.description" class="text-body2 newsletter-description q-mb-sm"
+                :aria-label="'Description: ' + newsletter.description">
                 {{ truncatedDescription }}
             </div>
 
             <!-- Tags -->
-            <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mb-sm">
+            <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mb-sm" role="list" aria-label="Tags">
                 <q-chip v-for="tag in visibleTags" :key="tag" size="sm" color="primary" text-color="white" dense
-                    class="q-mr-xs q-mb-xs">
+                    class="q-mr-xs q-mb-xs" role="listitem" :aria-label="'Tag: ' + tag">
                     {{ tag }}
                 </q-chip>
                 <q-chip v-if="newsletter.tags.length > maxVisibleTags" size="sm" color="grey" text-color="white" dense
-                    class="q-mr-xs q-mb-xs">
+                    class="q-mr-xs q-mb-xs" :aria-label="'And ' + (newsletter.tags.length - maxVisibleTags) + ' more tags'">
                     +{{ newsletter.tags.length - maxVisibleTags }}
                 </q-chip>
             </div>
@@ -79,21 +117,43 @@
                 <!-- File Info -->
                 <div class="col">
                     <q-icon name="description" size="14px" class="q-mr-xs" />
-                    <span v-if="newsletter.pageCount">{{ newsletter.pageCount }} pages</span>
+                    <span v-if="newsletter.pageCount" :aria-label="newsletter.pageCount + ' pages'">
+                        {{ newsletter.pageCount }} pages
+                    </span>
                     <span v-else>PDF</span>
-                    <span v-if="formattedFileSize" class="q-ml-sm">
+                    <span v-if="formattedFileSize" class="q-ml-sm" :aria-label="'File size: ' + formattedFileSize">
                         • {{ formattedFileSize }}
                     </span>
                 </div>
 
                 <!-- Actions -->
-                <div class="col-auto">
-                    <q-btn flat dense round size="sm" color="primary" icon="visibility" @click.stop="viewNewsletter">
+                <div class="col-auto" role="group" aria-label="Newsletter actions">
+                    <q-btn
+                        flat
+                        dense
+                        round
+                        size="sm"
+                        color="primary"
+                        icon="visibility"
+                        @click.stop="viewNewsletter"
+                        :aria-label="'View newsletter: ' + newsletter.title"
+                        :tabindex="0"
+                    >
                         <q-tooltip>View PDF</q-tooltip>
                     </q-btn>
 
-                    <q-btn v-if="newsletter.downloadUrl" flat dense round size="sm" color="secondary" icon="download"
-                        @click.stop="downloadNewsletter">
+                    <q-btn
+                        v-if="newsletter.downloadUrl"
+                        flat
+                        dense
+                        round
+                        size="sm"
+                        color="secondary"
+                        icon="download"
+                        @click.stop="downloadNewsletter"
+                        :aria-label="'Download newsletter: ' + newsletter.title"
+                        :tabindex="0"
+                    >
                         <q-tooltip>Download PDF</q-tooltip>
                     </q-btn>
                 </div>
@@ -315,6 +375,16 @@ const onThumbnailError = () => {
 .status-badge {
     top: 8px;
     left: 8px;
+}
+
+.accessibility-indicators {
+    top: 40px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
+    padding: 2px;
+    display: flex;
+    gap: 2px;
 }
 
 .newsletter-content {

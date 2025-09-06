@@ -18,6 +18,28 @@ export interface NewsletterSearchFilters {
   availability?: 'viewable' | 'downloadable' | 'local-only' | 'cloud-only' | 'multi-source';
   pageCount?: string; // '1-5', '6-10', '11-20', '20+'
   actions?: 'view' | 'download' | 'search' | 'thumbnail';
+
+  // Enhanced filtering options
+  dateRange?: {
+    start?: string; // ISO date string
+    end?: string; // ISO date string
+  };
+
+  // Search-specific options
+  searchType?: 'exact' | 'fuzzy' | 'phrase';
+  sortBy?:
+    | 'relevance'
+    | 'date-desc'
+    | 'date-asc'
+    | 'title-asc'
+    | 'title-desc'
+    | 'pages-desc'
+    | 'pages-asc';
+
+  // Accessibility and content options
+  hasDescription?: boolean;
+  hasThumbnail?: boolean;
+  hasSearchableText?: boolean;
 }
 
 export interface NewsletterSearchResult {
@@ -26,7 +48,11 @@ export interface NewsletterSearchResult {
   searchStats: {
     indexedPdfs: number;
     searchTime: number;
+    searchTerms?: string[];
+    exactMatches?: number;
+    partialMatches?: number;
   };
+  suggestions?: string[]; // Search suggestions for better user experience
 }
 
 export interface NewsletterServiceStats {
@@ -121,7 +147,7 @@ class FirebaseNewsletterService {
   }
 
   /**
-   * Search newsletters with advanced filters
+   * Search newsletters with enhanced features and accessibility
    */
   async searchNewsletters(
     query: string,
@@ -130,10 +156,31 @@ class FirebaseNewsletterService {
     try {
       const startTime = Date.now();
       let results: NewsletterMetadata[] = [];
+      let exactMatches = 0;
+      let partialMatches = 0;
+      const searchTerms = query
+        .trim()
+        .split(/\s+/)
+        .filter((term) => term.length > 0);
 
       if (query.trim()) {
-        // Use Firebase text search
+        // Use Firebase text search with enhanced relevance
         results = await firestoreService.searchNewsletters(query);
+
+        // Count match types for analytics
+        results.forEach((newsletter) => {
+          const hasExactMatch = searchTerms.some(
+            (term) =>
+              newsletter.title.toLowerCase().includes(term.toLowerCase()) ||
+              newsletter.tags.some((tag) => tag.toLowerCase() === term.toLowerCase()),
+          );
+
+          if (hasExactMatch) {
+            exactMatches++;
+          } else {
+            partialMatches++;
+          }
+        });
       } else {
         // Return all newsletters if no query
         results = this._newsletters.value;
@@ -141,6 +188,9 @@ class FirebaseNewsletterService {
 
       // Apply client-side filters
       results = this.applyFilters(results, filters);
+
+      // Generate search suggestions for better UX
+      const suggestions = this.generateSearchSuggestions(query, results);
 
       const searchTime = Date.now() - startTime;
 
@@ -150,12 +200,48 @@ class FirebaseNewsletterService {
         searchStats: {
           indexedPdfs: this._newsletters.value.length,
           searchTime,
+          searchTerms,
+          exactMatches,
+          partialMatches,
         },
+        suggestions,
       };
     } catch (error) {
       logger.error('Error searching newsletters:', error);
       throw error;
     }
+  }
+
+  /**
+   * Generate search suggestions based on available content
+   */
+  private generateSearchSuggestions(query: string, results: NewsletterMetadata[]): string[] {
+    if (!query || results.length === 0) return [];
+
+    const suggestions = new Set<string>();
+    const queryLower = query.toLowerCase();
+
+    // Collect potential suggestions from tags and titles
+    this._newsletters.value.forEach((newsletter) => {
+      // Suggest similar tags
+      newsletter.tags.forEach((tag) => {
+        if (tag.toLowerCase().includes(queryLower) && tag.toLowerCase() !== queryLower) {
+          suggestions.add(tag);
+        }
+      });
+
+      // Suggest years if searching for partial year
+      if (newsletter.year.toString().includes(query)) {
+        suggestions.add(newsletter.year.toString());
+      }
+
+      // Suggest seasons
+      if (newsletter.season && newsletter.season.toLowerCase().includes(queryLower)) {
+        suggestions.add(newsletter.season);
+      }
+    });
+
+    return Array.from(suggestions).slice(0, 5); // Limit to 5 suggestions
   }
 
   /**
@@ -214,7 +300,7 @@ class FirebaseNewsletterService {
   }
 
   /**
-   * Apply client-side filters to newsletters
+   * Apply client-side filters to newsletters with enhanced filtering
    */
   private applyFilters(
     newsletters: NewsletterMetadata[],
@@ -232,14 +318,44 @@ class FirebaseNewsletterService {
       filtered = filtered.filter((n) => n.season === filters.season);
     }
 
-    // Tags filter
+    // Tags filter - improved to handle partial matches
     if (filters.tags && filters.tags.length > 0) {
-      filtered = filtered.filter((n) => filters.tags!.some((tag) => n.tags.includes(tag)));
+      filtered = filtered.filter((n) =>
+        filters.tags!.some((filterTag) =>
+          n.tags.some((newsletterTag) =>
+            newsletterTag.toLowerCase().includes(filterTag.toLowerCase()),
+          ),
+        ),
+      );
     }
 
     // Featured filter
     if (filters.featured !== undefined) {
       filtered = filtered.filter((n) => n.featured === filters.featured);
+    }
+
+    // Date range filter
+    if (filters.dateRange) {
+      const { start, end } = filters.dateRange;
+      if (start) {
+        filtered = filtered.filter((n) => new Date(n.publicationDate) >= new Date(start));
+      }
+      if (end) {
+        filtered = filtered.filter((n) => new Date(n.publicationDate) <= new Date(end));
+      }
+    }
+
+    // Content availability filters
+    if (filters.hasDescription !== undefined) {
+      filtered = filtered.filter((n) => !!n.description === filters.hasDescription);
+    }
+
+    if (filters.hasThumbnail !== undefined) {
+      filtered = filtered.filter((n) => !!n.thumbnailUrl === filters.hasThumbnail);
+    }
+
+    if (filters.hasSearchableText !== undefined) {
+      filtered = filtered.filter((n) => !!n.searchableText === filters.hasSearchableText);
     }
 
     // Page count filter
@@ -298,7 +414,45 @@ class FirebaseNewsletterService {
       });
     }
 
+    // Apply sorting based on sortBy filter
+    if (filters.sortBy && filters.sortBy !== 'relevance') {
+      filtered = this.sortNewsletters(filtered, filters.sortBy);
+    }
+
     return filtered;
+  }
+
+  /**
+   * Sort newsletters by specified criteria
+   */
+  private sortNewsletters(newsletters: NewsletterMetadata[], sortBy: string): NewsletterMetadata[] {
+    const [field, direction] = sortBy.split('-');
+
+    return newsletters.sort((a, b) => {
+      let comparison = 0;
+
+      switch (field) {
+        case 'date': {
+          const dateA = new Date(a.publicationDate);
+          const dateB = new Date(b.publicationDate);
+          comparison = dateA.getTime() - dateB.getTime();
+          break;
+        }
+        case 'title':
+          comparison = a.title.localeCompare(b.title, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
+          break;
+        case 'pages':
+          comparison = (a.pageCount || 0) - (b.pageCount || 0);
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return direction === 'desc' ? -comparison : comparison;
+    });
   }
 
   /**
