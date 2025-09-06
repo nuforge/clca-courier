@@ -4,10 +4,7 @@
  * Ensures consistent data types and processing across all extraction methods
  */
 
-import {
-  advancedPdfTextExtractionService,
-  type AdvancedPdfExtraction,
-} from './advanced-pdf-text-extraction-service';
+import { advancedPdfTextExtractionService } from './advanced-pdf-text-extraction-service';
 import type { Newsletter } from '../types/core/newsletter.types';
 
 export interface TagGenerationResult {
@@ -51,8 +48,8 @@ export class TagGenerationService {
 
       // Return properly typed and filtered results
       const result: TagGenerationResult = {
-        // Tags: Clean text words for tagging (NO NUMBERS)
-        suggestedTags: this.filterAndLimitTags(extractionResult.searchableTerms || [], 10),
+        // Tags: Use ANALYZED KEYWORDS sorted by frequency, not raw searchable terms!
+        suggestedTags: this.filterAndLimitTags(keywordAnalysis.keywords || [], 10),
 
         // Topics: Category classifications (Community Events, Lake Activities, etc.)
         topics: this.filterAndLimitTags(extractionResult.topics || [], 5),
@@ -71,6 +68,11 @@ export class TagGenerationService {
         suggestedTags: result.suggestedTags.length,
         topics: result.topics.length,
         keyTerms: result.keyTerms.length,
+        rawSearchableTerms: extractionResult.searchableTerms?.slice(0, 10) || [],
+        analyzedKeywords: keywordAnalysis.keywords.slice(0, 10),
+        filteredSuggestedTags: result.suggestedTags.slice(0, 10),
+        rawTopics: extractionResult.topics?.slice(0, 5) || [],
+        filteredTopics: result.topics.slice(0, 5),
       });
 
       return result;
@@ -144,7 +146,7 @@ export class TagGenerationService {
   }
 
   /**
-   * Filter tags to ensure only strings, no numbers, and limit count
+   * Filter tags to ensure only meaningful words, no numbers, fragments, or junk
    */
   private filterAndLimitTags(tags: string[], limit: number): string[] {
     return tags
@@ -152,11 +154,141 @@ export class TagGenerationService {
         // Ensure it's a string and not just a number
         if (typeof tag !== 'string') return false;
 
-        // Filter out purely numeric strings
-        if (/^\d+$/.test(tag.trim())) return false;
+        const trimmedTag = tag.trim();
 
-        // Filter out very short or empty strings
-        if (tag.trim().length < 2) return false;
+        // Filter out empty or very short strings
+        if (trimmedTag.length < 3) return false;
+
+        // Filter out purely numeric strings (123, 45, etc.)
+        if (/^\d+$/.test(trimmedTag)) return false;
+
+        // Filter out decimal numbers (1,007.00, 14.3, etc.)
+        if (/^\d+[,.]?\d*$/.test(trimmedTag)) return false;
+
+        // Filter out time formats (10:00, 12:00, 10:00am, a.m., p.m., etc.)
+        if (/^\d{1,2}:\d{2}(am|pm)?$/i.test(trimmedTag)) return false;
+        if (/^[ap]\.?m\.?$/i.test(trimmedTag)) return false;
+
+        // Filter out dates (12th, 13th, 14th, 1st, 2nd, etc.)
+        if (/^\d+(st|nd|rd|th)$/i.test(trimmedTag)) return false;
+
+        // Filter out ordinal words with punctuation (1st,, 2nd., etc.)
+        if (/^\d+(st|nd|rd|th)[,.;:!?]?$/i.test(trimmedTag)) return false;
+
+        // Filter out strings that are mostly numbers (>30% digits)
+        const digitCount = (trimmedTag.match(/\d/g) || []).length;
+        const totalLength = trimmedTag.length;
+        if (digitCount / totalLength > 0.3) return false;
+
+        // Filter out strings that are purely punctuation + numbers
+        if (/^[\d\s\-.,;:!?]+$/.test(trimmedTag)) return false;
+
+        // Filter out fragments with trailing punctuation
+        if (/[.,;:!?]$/.test(trimmedTag)) return false;
+
+        // Filter out single letters with punctuation
+        if (/^[a-zA-Z][.,;:!?]?$/.test(trimmedTag)) return false;
+
+        // Filter out common stop words and fragments
+        const stopWords = new Set([
+          'the',
+          'and',
+          'or',
+          'but',
+          'in',
+          'on',
+          'at',
+          'to',
+          'for',
+          'of',
+          'with',
+          'by',
+          'from',
+          'up',
+          'about',
+          'into',
+          'through',
+          'during',
+          'before',
+          'after',
+          'above',
+          'below',
+          'is',
+          'am',
+          'are',
+          'was',
+          'were',
+          'be',
+          'been',
+          'being',
+          'have',
+          'has',
+          'had',
+          'do',
+          'does',
+          'did',
+          'will',
+          'would',
+          'could',
+          'should',
+          'may',
+          'might',
+          'must',
+          'can',
+          'this',
+          'that',
+          'these',
+          'those',
+          'i',
+          'you',
+          'he',
+          'she',
+          'it',
+          'we',
+          'they',
+          'me',
+          'him',
+          'her',
+          'us',
+          'them',
+          'my',
+          'your',
+          'his',
+          'her',
+          'its',
+          'our',
+          'their',
+          'all',
+          'any',
+          'both',
+          'each',
+          'few',
+          'more',
+          'most',
+          'other',
+          'some',
+          'such',
+          'no',
+          'nor',
+          'not',
+          'only',
+          'own',
+          'same',
+          'so',
+          'than',
+          'too',
+          'very',
+          'can',
+          'will',
+          'just',
+          'should',
+          'now',
+        ]);
+
+        if (stopWords.has(trimmedTag.toLowerCase())) return false;
+
+        // Only allow words that are purely alphabetic or meaningful compound words
+        if (!/^[a-zA-Z]+(?:[-'][a-zA-Z]+)*$/.test(trimmedTag)) return false;
 
         return true;
       })

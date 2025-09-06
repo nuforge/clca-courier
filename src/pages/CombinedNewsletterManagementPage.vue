@@ -351,10 +351,8 @@ const {
   loadNewsletters,
   refreshLocalStorageStats
 } = useContentManagement(); const {
-  extractAllText,
   syncLocalMetadataToFirebase,
   clearLocalMetadata,
-  extractContentForFile
 } = useContentExtraction();
 
 // Firebase authentication
@@ -1077,6 +1075,12 @@ async function saveMetadata(): Promise<void> {
     const extractedContent = textExtractionDialog.value.extractedContent;
 
     console.log(`🏷️ [INDIVIDUAL APPLY] Applying tags to ${newsletter.filename}`);
+    console.log(`🏷️ [DEBUG] Raw extracted content:`, {
+      suggestedTags: extractedContent.suggestedTags,
+      topics: extractedContent.topics,
+      currentTags: newsletter.tags,
+      currentCategories: newsletter.categories
+    });
 
     // Convert the extracted content to TagGenerationResult format
     const tagResult: TagGenerationResult = {
@@ -1132,7 +1136,9 @@ async function saveMetadata(): Promise<void> {
     console.log('🔥 FIREBASE DEBUG: Applying extracted metadata to collection "newsletters" with ID:', newsletter.id);
     console.log('🏷️ UNIFIED SERVICE: Tags applied:', {
       totalTags: updatedNewsletter.tags?.length || 0,
-      totalTopics: updatedNewsletter.topics?.length || 0
+      totalTopics: updatedNewsletter.topics?.length || 0,
+      filteredTags: updatedNewsletter.tags,
+      filteredTopics: updatedNewsletter.topics
     });
 
     const docRef = doc(firestore, 'newsletters', newsletter.id);
@@ -1172,20 +1178,15 @@ async function saveMetadata(): Promise<void> {
     // Update the local newsletter object to trigger reactivity
     const index = newsletters.value.findIndex(n => n.id === newsletter.id);
     if (index !== -1 && newsletters.value[index]) {
-      // Create a clean update object without Firebase field values
+      // Use the FILTERED tags from the unified service, not the raw extracted content!
       const localUpdates = {
-        searchableText: extractedContent.textContent,
-        wordCount: extractedContent.wordCount,
-        keyTerms: extractedContent.keyTerms,
-        keywordCounts: extractedContent.keywordCounts || {},
-        tags: [
-          ...newsletter.tags,
-          ...extractedContent.suggestedTags.filter(tag => !newsletter.tags.includes(tag))
-        ],
-        categories: [
-          ...(newsletter.categories || []),
-          ...extractedContent.topics.filter(topic => !(newsletter.categories || []).includes(topic))
-        ],
+        searchableText: tagResult.textContent,
+        wordCount: tagResult.wordCount,
+        keyTerms: tagResult.keyTerms,
+        keywordCounts: tagResult.keywordCounts || {},
+        // ✅ USE FILTERED TAGS FROM UNIFIED SERVICE
+        tags: updatedNewsletter.tags || [],
+        categories: updatedNewsletter.topics || [],
         updatedAt: new Date().toISOString(),
         updatedBy: 'admin-manual'
       };
@@ -1201,13 +1202,19 @@ async function saveMetadata(): Promise<void> {
       currentNewsletter.updatedAt = localUpdates.updatedAt;
       currentNewsletter.updatedBy = localUpdates.updatedBy;
 
-      console.log('📊 LOCAL UPDATE: Updated newsletter in local array, keyword count:', Object.keys(localUpdates.keywordCounts).length);
+      console.log('📊 LOCAL UPDATE: Updated newsletter in local array:', {
+        keywordCount: Object.keys(localUpdates.keywordCounts).length,
+        tagsCount: localUpdates.tags.length,
+        categoriesCount: localUpdates.categories.length,
+        appliedTags: localUpdates.tags,
+        appliedCategories: localUpdates.categories
+      });
     }
 
     $q.notify({
       type: 'positive',
       message: 'Extracted metadata applied successfully',
-      caption: `Added ${extractedContent.suggestedTags.length} tags, ${extractedContent.topics.length} topics, and ${extractedContent.wordCount} words of searchable text`,
+      caption: `Added ${updatedNewsletter.tags?.length || 0} tags, ${updatedNewsletter.topics?.length || 0} topics, and ${tagResult.wordCount} words of searchable text`,
       position: 'top',
     });
 
