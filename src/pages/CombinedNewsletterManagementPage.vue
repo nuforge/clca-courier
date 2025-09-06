@@ -47,18 +47,15 @@
               <q-btn @click="auth.signOut" flat color="white" label="Sign Out" size="sm" />
             </q-card-section>
           </q-card>
-          <!-- Action Toolbar -->
-          <ActionToolbar :processing-states="processingStates" :selected-count="selectedNewsletters.length"
-            @extract-metadata="extractSelectedMetadata" @extract-text="handleExtractSelectedText"
-            @generate-thumbnails="generateSelectedThumbnails" @sync-selected="handleSyncSelected"
-            @clear-selection="clearSelection" />
+          <!-- Statistics Cards -->
+          <StatisticsCards :total-newsletters="totalNewsletters" :newsletters-with-text="newslettersWithText"
+            :newsletters-with-thumbnails="newslettersWithThumbnails" :total-file-size="totalFileSize" />
+
           <!-- Local Storage Management -->
           <LocalStorageManager :stats="localStorageStats" :is-syncing="processingStates.isSyncing"
             @sync-to-firebase="handleSyncToFirebase" @clear-local="handleClearLocal"
             @refresh-stats="refreshLocalStorageStats" />
-          <!-- Statistics Cards -->
-          <StatisticsCards :total-newsletters="totalNewsletters" :newsletters-with-text="newslettersWithText"
-            :newsletters-with-thumbnails="newslettersWithThumbnails" :total-file-size="totalFileSize" />
+
           <!-- Filters -->
           <q-card class="q-mb-lg">
             <q-card-section>
@@ -79,98 +76,43 @@
                   <q-select v-model="filters.filterSeason" :options="availableSeasons" label="Filter by Season" outlined
                     dense clearable />
                 </div>
+                <div class="col-12 col-md-2">
+                  <q-btn v-if="selectedNewsletters.length === 0" color="primary" icon="mdi-refresh" label="Bulk Actions"
+                    @click="showBulkActionsMenu = !showBulkActionsMenu" class="full-width" />
+                </div>
               </div>
+
+              <!-- Bulk Actions Menu (when no selection) -->
+              <q-slide-transition>
+                <div v-if="showBulkActionsMenu && selectedNewsletters.length === 0" class="q-mt-md">
+                  <q-separator class="q-mb-md" />
+                  <div class="row q-gutter-sm">
+                    <q-btn color="primary" icon="mdi-refresh" label="Generate All Tags" @click="extractAllMetadata"
+                      :loading="processingStates.isExtracting" />
+                    <q-btn color="secondary" icon="mdi-text-search" label="Extract All Text" @click="extractAllMetadata"
+                      :loading="processingStates.isExtractingAllText" />
+                    <q-btn color="accent" icon="mdi-image-multiple" label="Generate All Thumbnails"
+                      @click="generateAllThumbnails" :loading="processingStates.isGeneratingThumbs" />
+                    <q-btn color="positive" icon="mdi-cloud-upload" label="Sync All to Firebase"
+                      @click="handleSyncToFirebase" :loading="processingStates.isSyncing" />
+                  </div>
+                </div>
+              </q-slide-transition>
             </q-card-section>
           </q-card>
-          <!-- Newsletter Table -->
-          <q-table title="Newsletter Management" :rows="filteredNewsletters" :columns="columns"
-            v-model:pagination="pagination" v-model:selected="selectedNewsletters" selection="multiple"
-            :loading="processingStates.isLoading" flat bordered class="newsletter-management-table" row-key="id">
-            <!-- Thumbnail column -->
-            <template v-slot:body-cell-thumbnail="props">
-              <q-td :props="props">
-                <q-avatar v-if="props.row.thumbnailUrl" size="40px" class="newsletter-thumbnail">
-                  <img :src="props.row.thumbnailUrl" :alt="props.row.title" />
-                </q-avatar>
-                <q-icon v-else name="mdi-file-pdf-box" size="40px" color="grey-5" />
-              </q-td>
-            </template>
-            <!-- Title column with enhanced formatting -->
-            <template v-slot:body-cell-title="props">
-              <q-td :props="props" class="newsletter-title-cell">
-                <div class="text-weight-medium">{{ props.row.title }}</div>
-                <div class="text-caption text-grey-6">{{ props.row.filename }}</div>
-                <div v-if="props.row.description" class="text-caption text-grey-7 newsletter-description">
-                  {{ props.row.description }}
-                </div>
-              </q-td>
-            </template>
-            <!-- Tags column with chips -->
-            <template v-slot:body-cell-keywords="props">
-              <q-td :props="props" class="keywords-cell">
-                <div v-if="props.row.tags && props.row.tags.length > 0" class="keyword-chips">
-                  <q-chip v-for="tag in props.row.tags.slice(0, 4)" :key="tag" size="sm" color="secondary"
-                    text-color="white" :label="tag" class="q-ma-xs" />
-                  <q-btn v-if="props.row.tags.length > 4" flat dense size="sm" color="secondary"
-                    :label="`+${props.row.tags.length - 4} more`" @click="showExtractedContent(props.row)" />
-                </div>
-                <span v-else class="text-grey-5">No tags</span>
-              </q-td>
-            </template>
-            <!-- Status column -->
-            <template v-slot:body-cell-status="props">
-              <q-td :props="props">
-                <q-chip v-if="isLocalPdf(props.row)" size="sm" color="green" text-color="white" icon="mdi-laptop">
-                  Local
-                </q-chip>
-                <q-chip v-else size="sm" color="orange" text-color="white" icon="mdi-cloud">
-                  Remote
-                </q-chip>
-              </q-td>
-            </template>
-            <!-- Actions column -->
-            <template v-slot:body-cell-actions="props">
-              <q-td :props="props">
-                <div class="row no-wrap q-gutter-xs">
-                  <!-- Admin Toggle Actions -->
-                  <q-btn dense flat :icon="props.row.isPublished === true ? 'visibility' : 'visibility_off'"
-                    :color="props.row.isPublished === true ? 'positive' : 'orange'"
-                    @click="toggleNewsletterPublished(props.row)" size="sm" :loading="publishingStates[props.row.id]">
-                    <q-tooltip>{{ props.row.isPublished === true ? 'Unpublish' : 'Publish' }} Newsletter</q-tooltip>
-                  </q-btn>
 
-                  <q-btn dense flat :icon="props.row.featured === true ? 'star' : 'star_border'"
-                    :color="props.row.featured === true ? 'accent' : 'grey'"
-                    @click="toggleNewsletterFeatured(props.row)" size="sm" :loading="featuredStates[props.row.id]">
-                    <q-tooltip>{{ props.row.featured === true ? 'Remove from Featured' : 'Add to Featured'
-                      }}</q-tooltip>
-                  </q-btn>
-
-                  <q-separator vertical inset />
-
-                  <!-- Existing Actions -->
-                  <q-btn dense flat icon="mdi-eye" color="primary" @click="openPdf(props.row)" size="sm">
-                    <q-tooltip>View PDF</q-tooltip>
-                  </q-btn>
-                  <q-btn dense flat icon="mdi-pencil" color="warning" @click="editNewsletter(props.row)" size="sm">
-                    <q-tooltip>Edit Metadata</q-tooltip>
-                  </q-btn>
-                  <q-btn dense flat icon="mdi-text-search" color="secondary" @click="extractText(props.row)"
-                    :loading="extractingText[props.row.id]" size="sm">
-                    <q-tooltip>Extract Text</q-tooltip>
-                  </q-btn>
-                  <q-btn dense flat icon="mdi-cloud-upload" color="positive" @click="syncSingleNewsletter(props.row)"
-                    :loading="syncingIndividual[props.row.id]" size="sm">
-                    <q-tooltip>Sync to Firebase</q-tooltip>
-                  </q-btn>
-                  <q-btn dense flat icon="mdi-image" color="accent" @click="generateThumbnail(props.row)"
-                    :loading="generatingThumb[props.row.id]" size="sm">
-                    <q-tooltip>Generate Thumbnail</q-tooltip>
-                  </q-btn>
-                </div>
-              </q-td>
-            </template>
-          </q-table>
+          <!-- Gmail-inspired Newsletter Management Table -->
+          <NewsletterManagementTable :newsletters="filteredNewsletters"
+            v-model:selected-newsletters="selectedNewsletters" v-model:pagination="pagination"
+            :processing-states="processingStates" :extracting-text="extractingText" :generating-thumb="generatingThumb"
+            :syncing-individual="syncingIndividual" :publishing-states="publishingStates"
+            :featured-states="featuredStates" @extract-selected-text="handleExtractSelectedText"
+            @generate-selected-thumbnails="generateSelectedThumbnails" @sync-selected="handleSyncSelected"
+            @bulk-toggle-featured="handleBulkToggleFeatured" @bulk-toggle-published="handleBulkTogglePublished"
+            @toggle-featured="toggleNewsletterFeatured" @toggle-published="toggleNewsletterPublished"
+            @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
+            @generate-thumbnail="generateThumbnail" @sync-single="syncSingleNewsletter"
+            @show-extracted-content="showExtractedContent" />
           <!-- Edit Dialog -->
           <q-dialog v-model="editDialog.showDialog" persistent>
             <q-card style="min-width: 600px; max-width: 800px;">
@@ -314,9 +256,9 @@ import { localMetadataStorageService, type ExtractedMetadata } from '../services
 import { tagGenerationService, type TagGenerationResult } from '../services/tag-generation.service';
 import type { Newsletter } from '../types/core/newsletter.types';
 // Import components
-import ActionToolbar from '../components/content-management/ActionToolbar.vue';
 import LocalStorageManager from '../components/content-management/LocalStorageManager.vue';
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
+import NewsletterManagementTable from '../components/content-management/NewsletterManagementTable.vue';
 // Import types
 import type { ContentManagementNewsletter } from '../types';
 const $q = useQuasar();
@@ -365,6 +307,7 @@ const syncingIndividual = ref<Record<string, boolean>>({});
 const publishingStates = ref<Record<string, boolean>>({});
 const featuredStates = ref<Record<string, boolean>>({});
 const selectedNewsletters = ref<ContentManagementNewsletter[]>([]);
+const showBulkActionsMenu = ref(false);
 // Form options and data
 const seasonOptions = [
   { label: 'Spring', value: 'spring' },
@@ -428,84 +371,7 @@ const pagination = ref({
   page: 1,
   rowsPerPage: 10,
 });
-const columns = [
-  {
-    name: 'thumbnail',
-    label: '',
-    field: 'thumbnailUrl',
-    align: 'center' as const,
-    style: 'width: 60px; min-width: 60px; max-width: 60px;',
-  },
-  {
-    name: 'title',
-    label: 'Newsletter',
-    field: 'title',
-    align: 'left' as const,
-    sortable: true,
-    style: 'width: 30%; min-width: 200px;',
-  },
-  {
-    name: 'year',
-    label: 'Year',
-    field: 'year',
-    align: 'center' as const,
-    sortable: true,
-    style: 'width: 80px;',
-  },
-  {
-    name: 'season',
-    label: 'Season',
-    field: 'season',
-    align: 'center' as const,
-    sortable: true,
-    style: 'width: 100px;',
-  },
-  {
-    name: 'pageCount',
-    label: 'Pages',
-    field: 'pageCount',
-    align: 'center' as const,
-    sortable: true,
-    style: 'width: 80px;',
-  },
-  {
-    name: 'wordCount',
-    label: 'Words',
-    field: 'wordCount',
-    align: 'center' as const,
-    sortable: true,
-    style: 'width: 100px;',
-    format: (val: number) => val ? val.toLocaleString() : '—'
-  },
-  {
-    name: 'keywords',
-    label: 'Tags',
-    field: 'tags',
-    align: 'left' as const,
-    style: 'width: 200px; max-width: 200px;',
-    format: (val: string[] | undefined) => {
-      if (!val || !Array.isArray(val) || val.length === 0) return '—';
-      // Display up to 3 tags, show count if more
-      const displayTags = val.slice(0, 3).join(', ');
-      const remainingCount = val.length > 3 ? ` (+${val.length - 3} more)` : '';
-      return displayTags + remainingCount;
-    }
-  },
-  {
-    name: 'status',
-    label: 'Source',
-    field: 'downloadUrl',
-    align: 'center' as const,
-    style: 'width: 100px;',
-  },
-  {
-    name: 'actions',
-    label: 'Actions',
-    field: 'actions',
-    align: 'center' as const,
-    style: 'width: 300px;', // Increased width to accommodate toggle buttons
-  }
-];
+
 // Computed properties for filters
 const availableYears = computed(() => {
   const years = [...new Set(newsletters.value.map(n => n.year))].sort((a, b) => b - a);
@@ -777,10 +643,89 @@ async function toggleNewsletterFeatured(newsletter: ContentManagementNewsletter)
 function clearSelection(): void {
   selectedNewsletters.value = [];
 }
-function isLocalPdf(newsletter: ContentManagementNewsletter): boolean {
-  // Consider PDF local if it doesn't start with http or if it's marked as local
-  return !newsletter.downloadUrl?.startsWith('http') || newsletter.filename.includes('local');
+
+// New bulk operations for Gmail-style interface
+async function extractAllMetadata(): Promise<void> {
+  // Select all newsletters and extract metadata
+  selectedNewsletters.value = [...newsletters.value];
+  await extractSelectedMetadata();
+  clearSelection();
 }
+
+async function generateAllThumbnails(): Promise<void> {
+  // Select all newsletters and generate thumbnails
+  selectedNewsletters.value = [...newsletters.value];
+  await generateSelectedThumbnails();
+  clearSelection();
+}
+
+// Bulk toggle operations
+async function handleBulkToggleFeatured(featured: boolean): Promise<void> {
+  if (selectedNewsletters.value.length === 0) return;
+
+  const updates = selectedNewsletters.value.map(async (newsletter) => {
+    featuredStates.value[newsletter.id] = true;
+    try {
+      await firestoreService.updateNewsletterMetadata(newsletter.id, { featured });
+      newsletter.featured = featured;
+    } catch (error) {
+      console.error(`Failed to update featured status for ${newsletter.id}:`, error);
+      throw error;
+    } finally {
+      featuredStates.value[newsletter.id] = false;
+    }
+  });
+
+  try {
+    await Promise.all(updates);
+    $q.notify({
+      type: 'positive',
+      message: `${selectedNewsletters.value.length} newsletters ${featured ? 'marked as featured' : 'removed from featured'}`,
+      position: 'top'
+    });
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Some updates failed',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  }
+}
+
+async function handleBulkTogglePublished(published: boolean): Promise<void> {
+  if (selectedNewsletters.value.length === 0) return;
+
+  const updates = selectedNewsletters.value.map(async (newsletter) => {
+    publishingStates.value[newsletter.id] = true;
+    try {
+      await firestoreService.updateNewsletterMetadata(newsletter.id, { isPublished: published });
+      newsletter.isPublished = published;
+    } catch (error) {
+      console.error(`Failed to update published status for ${newsletter.id}:`, error);
+      throw error;
+    } finally {
+      publishingStates.value[newsletter.id] = false;
+    }
+  });
+
+  try {
+    await Promise.all(updates);
+    $q.notify({
+      type: 'positive',
+      message: `${selectedNewsletters.value.length} newsletters ${published ? 'published' : 'unpublished'}`,
+      position: 'top'
+    });
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Some updates failed',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  }
+}
+
 function formatDate(dateString: string): string {
   try {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -1195,40 +1140,3 @@ onMounted(async () => {
   await refreshNewslettersWithLocalMetadata();
 });
 </script>
-<style lang="scss" scoped>
-.newsletter-management-table {
-  .newsletter-thumbnail {
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .newsletter-title-cell {
-    max-width: 300px;
-  }
-
-  .newsletter-description {
-    max-width: 280px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .keywords-cell {
-    max-width: 200px;
-  }
-
-  .keyword-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-  }
-
-  .keyword-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    max-height: 120px;
-    overflow-y: auto;
-  }
-}
-</style>

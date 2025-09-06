@@ -120,45 +120,86 @@ export function useContentManagement() {
     processingStates.value.isLoading = true;
 
     try {
-      console.log('🔧 Loading newsletters from local PDF manifest...');
+      console.log('🔧 Loading newsletters from multiple sources...');
       console.trace('📍 loadNewsletters() called from:'); // Add stack trace to see what's calling this
 
-      const loadedNewsletters = await lightweightNewsletterService.getNewsletters();
+      // 1. Load basic newsletter data from manifest
+      const baseNewsletters = await lightweightNewsletterService.getNewsletters();
+
+      // 2. Load local extracted metadata
+      const localMetadata = await localMetadataStorageService.getAllExtractedMetadata();
+      const localMetadataMap = new Map(localMetadata.map((meta) => [meta.newsletterId, meta]));
+
+      // 3. Try to load Firebase metadata (if authenticated)
+      let firebaseMetadataMap = new Map();
+      try {
+        const { firestoreService } = await import('../services/firebase-firestore.service');
+        const firebaseNewsletters = await firestoreService.getAllNewslettersForAdmin();
+        firebaseMetadataMap = new Map(firebaseNewsletters.map((fb) => [fb.id, fb]));
+        console.log(`📄 Loaded ${firebaseNewsletters.length} newsletters from Firebase`);
+      } catch {
+        console.log('ℹ️ Firebase data not available (likely not authenticated)');
+      }
+
       await refreshLocalStorageStats();
 
-      // Convert to ContentManagementNewsletter format
-      newsletters.value = loadedNewsletters.map(
-        (newsletter) =>
-          ({
-            id: String(newsletter.id),
-            filename: newsletter.filename,
-            title: newsletter.title,
-            year: parseInt((newsletter.date || '2024').split('.')[0] || '2024') || 2024,
-            season: newsletter.date?.includes('summer')
-              ? 'summer'
-              : newsletter.date?.includes('winter')
-                ? 'winter'
-                : newsletter.date?.includes('spring')
-                  ? 'spring'
-                  : newsletter.date?.includes('fall')
-                    ? 'fall'
-                    : 'general',
-            fileSize: 0, // Will be populated from actual file
-            pageCount: newsletter.pages,
-            downloadUrl: newsletter.url,
-            thumbnailUrl: newsletter.thumbnailUrl || '',
-            tags: [],
-            categories: newsletter.topics || [],
-            featured: false,
-            isPublished: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            createdBy: 'system',
-            updatedBy: 'system',
-          }) as ContentManagementNewsletter,
-      );
+      // 4. Merge all data sources
+      newsletters.value = baseNewsletters.map((newsletter) => {
+        const localMeta = localMetadataMap.get(String(newsletter.id));
+        const firebaseMeta = firebaseMetadataMap.get(String(newsletter.id));
 
-      console.log(`✅ Loaded ${newsletters.value.length} newsletters from local manifest`);
+        return {
+          id: String(newsletter.id),
+          filename: newsletter.filename,
+          title: newsletter.title,
+          description: firebaseMeta?.description || undefined,
+          summary: firebaseMeta?.summary || undefined,
+          year: parseInt((newsletter.date || '2024').split('.')[0] || '2024') || 2024,
+          season: newsletter.date?.includes('summer')
+            ? 'summer'
+            : newsletter.date?.includes('winter')
+              ? 'winter'
+              : newsletter.date?.includes('spring')
+                ? 'spring'
+                : newsletter.date?.includes('fall')
+                  ? 'fall'
+                  : 'general',
+          volume: firebaseMeta?.volume,
+          issue: firebaseMeta?.issue,
+          fileSize: firebaseMeta?.fileSize || 0,
+          pageCount: firebaseMeta?.pageCount || newsletter.pages,
+          wordCount: localMeta?.wordCount || firebaseMeta?.wordCount,
+          downloadUrl: newsletter.url,
+          thumbnailUrl: newsletter.thumbnailUrl || firebaseMeta?.thumbnailUrl || '',
+          searchableText: localMeta?.searchableText || firebaseMeta?.searchableText,
+          tags: firebaseMeta?.tags || [],
+          categories: firebaseMeta?.categories || newsletter.topics || [],
+          contributors: firebaseMeta?.contributors,
+          featured: firebaseMeta?.featured || false,
+          isPublished: firebaseMeta?.isPublished ?? true,
+          createdAt: firebaseMeta?.createdAt || new Date().toISOString(),
+          updatedAt: firebaseMeta?.updatedAt || new Date().toISOString(),
+          createdBy: firebaseMeta?.createdBy || 'system',
+          updatedBy: firebaseMeta?.updatedBy || 'system',
+
+          // Extended metadata from local extraction
+          keyTerms: localMeta ? Object.keys(localMeta.keywordCounts || {}) : undefined,
+          keywordCounts: localMeta?.keywordCounts,
+          readingTimeMinutes: localMeta?.readingTimeMinutes,
+          textExtractionVersion: localMeta?.textExtractionVersion,
+          textExtractedAt: localMeta?.textExtractedAt,
+
+          // Version control
+          version: firebaseMeta?.version || 1,
+        } as ContentManagementNewsletter;
+      });
+
+      console.log(
+        `✅ Loaded ${newsletters.value.length} newsletters (merged from manifest, local metadata, and Firebase)`,
+      );
+      console.log(
+        `📊 With metadata: ${newsletters.value.filter((n) => n.wordCount).length} have word counts, ${newsletters.value.filter((n) => n.tags.length > 0).length} have tags`,
+      );
     } catch (error) {
       console.error('Failed to load newsletters:', error);
       $q.notify({
