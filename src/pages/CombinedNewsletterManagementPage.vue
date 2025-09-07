@@ -3112,6 +3112,9 @@ onMounted(async () => {
 
     logger.success(`Admin: Newsletter management loaded with ${newsletters.value.length} items`);
 
+    // CRITICAL: Also load newsletters into useContentManagement for sync functionality
+    await loadNewsletters();
+
   } catch (error) {
     logger.error('Admin: Failed to load newsletters for management:', error);
     $q.notify({

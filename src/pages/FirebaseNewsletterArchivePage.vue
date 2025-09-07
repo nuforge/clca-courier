@@ -589,6 +589,7 @@ watch(searchInput, (newValue) => {
 // Load accessibility report on mount (quickFilters is now reactive)
 onMounted(() => {
   accessibilityReport.value = validateAccessibility();
+  void loadNewsletters();
 });
 
 const retryLoad = () => {
