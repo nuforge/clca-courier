@@ -375,7 +375,9 @@ const {
   loadNewsletters,
   refreshFirebaseDataOnly,
   getDataSource,
-  formatFileSize
+  formatFileSize,
+  debugDataFlow,
+  testSyncWorkflow
 } = useContentManagement();
 
 // Thumbnail management
@@ -3119,6 +3121,13 @@ onMounted(async () => {
 
     // Fallback to original load method
     await loadNewsletters();
+
+    // 🧪 ADD DEBUG FUNCTIONS TO GLOBAL SCOPE FOR CONSOLE TESTING
+    if (typeof window !== 'undefined') {
+      (window as unknown as Record<string, unknown>).debugDataFlow = debugDataFlow;
+      (window as unknown as Record<string, unknown>).testSyncWorkflow = testSyncWorkflow;
+      console.log('🧪 Debug functions available: debugDataFlow(), testSyncWorkflow(filename)');
+    }
   } finally {
     processingStates.value.isLoading = false;
   }

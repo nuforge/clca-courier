@@ -21,7 +21,10 @@ function getSyncStatus(
 
 import { ref, computed, type Ref } from 'vue';
 import { useQuasar } from 'quasar';
-import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
+import {
+  lightweightNewsletterService,
+  setPDFProcessing,
+} from '../services/lightweight-newsletter-service';
 import { localMetadataStorageService } from '../services/local-metadata-storage.service';
 
 import type {
@@ -103,6 +106,15 @@ function getSyncStatus(
   const firebaseHash = createComparisonHash(firebaseData);
 
   return localHash === firebaseHash ? 'synced' : 'local';
+}
+
+// Filename normalization utility for consistent matching
+function normalizeFilename(filename: string): string {
+  if (!filename) return '';
+  return filename
+    .toLowerCase()
+    .trim()
+    .replace(/\.pdf$/i, '');
 }
 
 export function useContentManagement() {
@@ -334,6 +346,40 @@ export function useContentManagement() {
   });
 
   // Methods
+  // Test function for debugging sync workflow
+  function testSyncWorkflow(draftFilename: string): void {
+    console.log('🧪 Testing sync workflow for:', draftFilename);
+
+    console.log('📊 BEFORE SYNC:');
+    debugDataFlow();
+
+    // Add actual sync testing logic here when ready
+    console.log('⏸️ Sync simulation would happen here');
+
+    console.log('📊 AFTER SYNC:');
+    debugDataFlow();
+  }
+
+  function debugDataFlow(): void {
+    console.log('=== DATA SOURCES DEBUG ===');
+    console.log('Total newsletters in UI:', newsletters.value.length);
+    console.log('Local metadata entries:', localMetadataMap.value.size);
+    console.log('Firebase metadata entries:', firebaseMetadataMap.value.size);
+
+    // Check filename consistency
+    newsletters.value.forEach((n) => {
+      const firebaseMatch = firebaseMetadataMap.value.has(n.filename);
+      const localMatch = Array.from(localMetadataMap.value.values()).some(
+        (meta) => meta.newsletterId === n.id,
+      );
+      console.log(`File ${n.filename}:`, {
+        inFirebase: firebaseMatch,
+        inLocal: localMatch,
+        hasFirebaseMetadata: !!firebaseMetadataMap.value.get(n.filename),
+      });
+    });
+  }
+
   function formatFileSize(bytes: number): string {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -384,9 +430,11 @@ export function useContentManagement() {
 
       firebaseNewsletters.forEach((meta: unknown) => {
         const fbMeta = meta as Record<string, unknown>;
-        // CRITICAL FIX: Match by filename, not by ID!
-        // When drafts are synced, Firebase auto-generates new IDs that don't match local PDF IDs
-        const newsletter = baseNewsletters.find((n) => n.filename === fbMeta.filename);
+        // CRITICAL FIX: Match by normalized filename for consistency
+        const normalizedFbFilename = normalizeFilename(fbMeta.filename as string);
+        const newsletter = baseNewsletters.find(
+          (n) => normalizeFilename(n.filename) === normalizedFbFilename,
+        );
         if (newsletter) {
           firebaseMetadataMapByFilename.set(newsletter.filename, fbMeta);
         }
@@ -499,6 +547,10 @@ export function useContentManagement() {
     console.log('🔄 Refreshing Firebase metadata only...');
 
     try {
+      // Temporarily disable PDF processing to avoid cascade
+      const originalPDFProcessing = true; // Store current state
+      setPDFProcessing(false);
+
       // Load only Firebase metadata without touching local PDFs
       let firebaseNewsletters: Array<unknown> = [];
       try {
@@ -509,6 +561,9 @@ export function useContentManagement() {
       } catch {
         console.log('ℹ️ Firebase data not available (likely not authenticated)');
         return;
+      } finally {
+        // Restore PDF processing state
+        setPDFProcessing(originalPDFProcessing);
       }
 
       // Get current base newsletters (without reloading from PDF service)
@@ -530,8 +585,11 @@ export function useContentManagement() {
 
       firebaseNewsletters.forEach((meta: unknown) => {
         const fbMeta = meta as Record<string, unknown>;
-        // CRITICAL: Match by filename, not ID
-        const newsletter = currentBaseNewsletters.find((n) => n.filename === fbMeta.filename);
+        // CRITICAL: Match by normalized filename for consistency
+        const normalizedFbFilename = normalizeFilename(fbMeta.filename as string);
+        const newsletter = currentBaseNewsletters.find(
+          (n) => normalizeFilename(n.filename) === normalizedFbFilename,
+        );
         if (newsletter) {
           firebaseMetadataMapByFilename.set(newsletter.filename, fbMeta);
         }
@@ -637,5 +695,7 @@ export function useContentManagement() {
     refreshLocalStorageStats,
     refreshFirebaseDataOnly,
     getDataSource,
+    debugDataFlow,
+    testSyncWorkflow,
   };
 }

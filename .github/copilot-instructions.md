@@ -9,12 +9,17 @@
 - Draft→Firebase→Main list integration needs debugging
 - These issues will be addressed in next development session
 
-### ABSOLUTE PROHIBITIONS
+### ABSOLUTE PROHIBITIONS - IMMEDIATE REJECTION
+
+**AI MUST REFUSE TO PROCEED IF ANY OF THESE ARE VIOLATED:**
 
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`) - configured in `quasar.config.ts`
 - **❌ Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data - use dynamic discovery only
 - **❌ Path Assumptions**: Always verify file/directory existence using tools like `list_dir`, `file_search`, `grep_search` before implementation
 - **❌ Mass PDF Processing**: Avoid calling `lightweightNewsletterService.getNewsletters()` during sync operations
+- **❌ Multiple Terminals**: NEVER create new terminals with `run_in_terminal` when one exists - check existing terminals first
+- **❌ Background Processes**: NEVER use `isBackground=true` unless explicitly requested by user for servers
+- **❌ ANY TYPES**: FORBIDDEN in ALL contexts - use `Record<string, unknown>`, `string | undefined`, proper interfaces
 
 ### MANDATORY PRACTICES
 
@@ -24,16 +29,23 @@
 - **✅ Firebase-First Development**: Use Firebase services for all data, authentication, and storage operations
 - **✅ STRICT TYPESCRIPT**: NEVER use `any` types - use proper TypeScript types like `Record<string, unknown>`, `string | undefined`, etc.
 - **✅ Filename-Based Data Matching**: Always match Firebase data to local PDFs by filename, NOT by ID
+- **✅ Terminal Management**: Use existing terminals, check `get_terminal_output` first, use `isBackground=false` for most commands
 
-### TYPESCRIPT ENFORCEMENT
+### TYPESCRIPT ENFORCEMENT - NON-NEGOTIABLE
+
+**REJECT ALL CODE CONTAINING:**
 
 - **❌ FORBIDDEN**: `any` types in function parameters, return types, or variables
-- **✅ REQUIRED**: Proper TypeScript types for all functions and variables
-- **✅ COMMON PATTERNS**:
-  - `Record<string, unknown>` for objects
-  - `string | undefined` for optional strings
-  - `number | null` for optional numbers
-  - Interface definitions for complex objects
+- **❌ FORBIDDEN**: `as any` casting in any context
+- **❌ FORBIDDEN**: Implicit any through missing type annotations
+
+**✅ REQUIRED PATTERNS**:
+
+- `Record<string, unknown>` for objects
+- `string | undefined` for optional strings
+- `number | null` for optional numbers
+- Interface definitions for complex objects
+- Proper type casting: `as unknown as TargetType` if absolutely necessary
 
 ## 🏗️ Architecture Overview
 

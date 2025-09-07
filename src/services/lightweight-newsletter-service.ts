@@ -30,8 +30,16 @@ class LightweightNewsletterService {
   private cache = new Map<string, LightweightNewsletter[]>();
   private localBasePath = getPublicPath('issues/');
 
+  // Static flag to control PDF processing during sync operations
+  private static shouldProcessPDFs = true;
+
   constructor() {
     this.initializeService();
+  }
+
+  // Control PDF processing globally
+  static setPDFProcessing(enable: boolean): void {
+    LightweightNewsletterService.shouldProcessPDFs = enable;
   }
 
   private initializeService() {
@@ -63,8 +71,12 @@ class LightweightNewsletterService {
       // Step 3: Enhance with cached metadata (instant if available)
       this.enhanceWithCachedMetadata(newsletters);
 
-      // Step 4: Queue remaining PDFs for background processing
-      this.queueUnprocessedPDFs(newsletters);
+      // Step 4: Queue remaining PDFs for background processing (if enabled)
+      if (LightweightNewsletterService.shouldProcessPDFs) {
+        this.queueUnprocessedPDFs(newsletters);
+      } else {
+        logger.info('PDF processing disabled - skipping background processing');
+      }
 
       // Sort by date (newest first)
       newsletters.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -370,3 +382,8 @@ class LightweightNewsletterService {
 
 // Export singleton instance
 export const lightweightNewsletterService = new LightweightNewsletterService();
+
+// Export PDF processing control with proper binding
+export const setPDFProcessing = (enable: boolean): void => {
+  LightweightNewsletterService.setPDFProcessing(enable);
+};
