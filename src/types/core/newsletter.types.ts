@@ -3,6 +3,8 @@
  * Consolidated from newsletter-interfaces.ts and related files
  */
 
+import type { BaseContentDocument, BaseContentHistory } from './versioning.types';
+
 /**
  * Unified Newsletter Interface
  * Consolidates LightweightNewsletter and NewsletterMetadata into single consistent interface
@@ -45,6 +47,55 @@ export interface Newsletter {
   subject?: string;
   keywords?: string;
   quality?: 'web' | 'print';
+}
+
+/**
+ * Newsletter Document for versioning system
+ * Extends BaseContentDocument with newsletter-specific fields
+ */
+export interface NewsletterDocument extends BaseContentDocument {
+  // Newsletter-specific fields from existing NewsletterMetadata
+  filename: string;
+  description?: string;
+  publicationDate: string;
+  issueNumber?: string;
+  season?: 'spring' | 'summer' | 'fall' | 'winter';
+  year: number;
+  month?: number; // 1-12 for monthly newsletters
+  fileSize: number;
+  pageCount?: number;
+
+  // Enhanced date fields for better sorting and display
+  displayDate?: string; // Human-readable date (e.g., "August 2025", "Winter 2023")
+  sortValue?: number; // Numeric value for sorting (YYYYMM format)
+
+  // Firebase Storage implementation
+  downloadUrl: string; // Firebase Storage download URL
+  storageRef: string; // Firebase Storage path reference
+  thumbnailUrl?: string; // Optional thumbnail URL
+
+  // Content classification
+  tags: string[];
+  featured: boolean;
+  isPublished: boolean;
+  searchableText?: string; // Extracted PDF text for search
+
+  // Action availability
+  actions: {
+    canView: boolean; // PDF available for viewing
+    canDownload: boolean; // PDF available for download
+    canSearch: boolean; // Text extracted and searchable
+    hasThumbnail: boolean; // Preview thumbnail available
+  };
+}
+
+/**
+ * Newsletter History entry
+ * Typed wrapper around BaseContentHistory for newsletters
+ */
+export interface NewsletterHistory extends BaseContentHistory<NewsletterDocument> {
+  // Newsletter-specific history fields can be added here if needed
+  readonly __newsletterHistory: true; // Brand to distinguish from BaseContentHistory
 }
 
 /**

@@ -1,12 +1,20 @@
 # CLCA Courier - AI Coding Instructions
 
-## 🚨 CRITICAL DEVELOPMENT RULES (USER-ENFORCED)
+## 🚨 CRITICAL DEVELOPMENT STATUS
+
+### ❌ CURRENT KNOWN ISSUES (September 7, 2025)
+
+- **Sync functionality is NOT working as intended**
+- Individual sync operations have data flow issues
+- Draft→Firebase→Main list integration needs debugging
+- These issues will be addressed in next development session
 
 ### ABSOLUTE PROHIBITIONS
 
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`) - configured in `quasar.config.ts`
 - **❌ Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data - use dynamic discovery only
 - **❌ Path Assumptions**: Always verify file/directory existence using tools like `list_dir`, `file_search`, `grep_search` before implementation
+- **❌ Mass PDF Processing**: Avoid calling `lightweightNewsletterService.getNewsletters()` during sync operations
 
 ### MANDATORY PRACTICES
 
@@ -15,6 +23,7 @@
 - **✅ Manifest-Based PDF Discovery**: Use `scripts/generate-pdf-manifest.js` for build-time PDF enumeration
 - **✅ Firebase-First Development**: Use Firebase services for all data, authentication, and storage operations
 - **✅ STRICT TYPESCRIPT**: NEVER use `any` types - use proper TypeScript types like `Record<string, unknown>`, `string | undefined`, etc.
+- **✅ Filename-Based Data Matching**: Always match Firebase data to local PDFs by filename, NOT by ID
 
 ### TYPESCRIPT ENFORCEMENT
 

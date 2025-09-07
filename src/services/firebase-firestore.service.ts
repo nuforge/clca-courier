@@ -24,7 +24,9 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
+import { newsletterVersioningService } from './newsletter-versioning.service';
 import { logger } from '../utils/logger';
+import type { NewsletterDocument } from '../types/core/newsletter.types';
 
 // Newsletter metadata interface (Firebase Storage with future flexibility)
 export interface NewsletterMetadata {
@@ -88,6 +90,16 @@ export interface NewsletterMetadata {
     canDownload: boolean; // PDF available for download
     canSearch: boolean; // Text extracted and searchable
     hasThumbnail: boolean; // Preview thumbnail available
+  };
+
+  // Optional: Original file information for re-import assistance
+  originalFileInfo?: {
+    name: string;
+    size: number;
+    lastModified: number;
+    relativePath?: string; // From folder selection
+    path?: string; // Full path if available
+    importHint?: string; // User-friendly hint about original location
   };
 }
 
@@ -676,6 +688,118 @@ class FirebaseFirestoreService {
     } catch (error) {
       logger.error('Error searching newsletters:', error);
       throw error;
+    }
+  }
+
+  // Versioning operations
+  /**
+   * Update newsletter with versioning support
+   * Creates a new version entry and updates the main document
+   */
+  async updateNewsletterWithVersioning(
+    id: string,
+    updates: Partial<NewsletterMetadata>,
+    comment: string = '',
+    userId?: string,
+  ): Promise<void> {
+    try {
+      const currentUser = userId ? { uid: userId } : firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to update newsletter with versioning');
+      }
+
+      // Convert NewsletterMetadata to NewsletterDocument for versioning
+      const versioningUpdates: Partial<NewsletterDocument> = {
+        ...updates,
+        // Map NewsletterMetadata to NewsletterDocument if needed
+        actions: updates.actions || {
+          canView: true,
+          canDownload: true,
+          canSearch: !!updates.searchableText,
+          hasThumbnail: !!updates.thumbnailUrl,
+        },
+      };
+
+      await newsletterVersioningService.updateNewsletterWithVersioning(id, versioningUpdates, {
+        comment,
+        userId: currentUser.uid,
+        branch: 'main',
+      });
+
+      logger.success('Newsletter updated with versioning:', id);
+    } catch (error) {
+      logger.error('Error updating newsletter with versioning:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get newsletter version history
+   * Returns all versions of a newsletter
+   */
+  async getNewsletterHistory(id: string, limit: number = 50) {
+    try {
+      return await newsletterVersioningService.getNewsletterHistory(id, limit);
+    } catch (error) {
+      logger.error('Error getting newsletter history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restore newsletter to specific version
+   * Reverts newsletter to a previous version
+   */
+  async restoreNewsletterVersion(
+    id: string,
+    version: number,
+    comment: string = '',
+    userId?: string,
+  ): Promise<NewsletterDocument> {
+    try {
+      const currentUser = userId ? { uid: userId } : firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to restore newsletter version');
+      }
+
+      const restored = await newsletterVersioningService.restoreNewsletterVersion(
+        id,
+        version,
+        currentUser.uid,
+        comment || `Restored to version ${version}`,
+      );
+
+      logger.success('Newsletter restored to version:', id, version);
+      return restored;
+    } catch (error) {
+      logger.error('Error restoring newsletter version:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get newsletter version count
+   * Returns the number of versions for a newsletter
+   */
+  async getNewsletterVersionCount(id: string): Promise<number> {
+    try {
+      return await newsletterVersioningService.getNewsletterVersionCount(id);
+    } catch (error) {
+      logger.error('Error getting newsletter version count:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Check if newsletter has versioning enabled
+   * Returns true if the newsletter has version history
+   */
+  async hasNewsletterVersioning(id: string): Promise<boolean> {
+    try {
+      return await newsletterVersioningService.hasVersioning(id);
+    } catch (error) {
+      logger.error('Error checking newsletter versioning status:', error);
+      return false;
     }
   }
 

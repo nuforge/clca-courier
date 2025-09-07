@@ -152,12 +152,26 @@ export function useContentManagement() {
     editingNewsletter: null,
   });
 
-  // Helper function to get data source information
-  function getDataSource(newsletter: ContentManagementNewsletter): {
-    source: 'draft' | 'saved' | 'remote';
+  // Helper function to get data source information with file availability
+  function getDataSource(
+    newsletter: ContentManagementNewsletter,
+    hasFileObject = false,
+  ): {
+    source: 'draft' | 'saved' | 'remote' | 'local' | 'metadata-only';
     color: string;
     icon: string;
+    status: 'complete' | 'metadata-only' | 'file-only' | 'synced';
+    description: string;
   } {
+    // Check if this is a draft (ID starts with 'draft-')
+    const isDraft = newsletter.id.startsWith('draft-');
+
+    // Check if the download URL indicates a local file (blob: or file: protocol)
+    const isLocalFile =
+      newsletter.downloadUrl?.startsWith('blob:') ||
+      newsletter.downloadUrl?.startsWith('file:') ||
+      newsletter.downloadUrl?.includes('localhost');
+
     // Check if the newsletter has enhanced metadata (means it was processed)
     const hasEnhancedData = !!(
       newsletter.displayDate ||
@@ -170,19 +184,68 @@ export function useContentManagement() {
     const firebaseMeta = firebaseMetadataMap.value.get(newsletter.filename);
     const hasFirebaseData = !!firebaseMeta;
 
-    if (!hasEnhancedData && !hasFirebaseData) {
-      return { source: 'draft', color: 'orange', icon: 'draft' };
+    // 🔄 Local file with File object available (fresh import)
+    if (isDraft && isLocalFile && hasFileObject && !hasEnhancedData) {
+      return {
+        source: 'local',
+        color: 'purple',
+        icon: 'folder',
+        status: 'complete',
+        description: 'Local file imported (ready for processing)',
+      };
     }
 
-    if (hasEnhancedData && !hasFirebaseData) {
-      return { source: 'saved', color: 'text-primary', icon: 'save' };
+    // ⚠️ Local metadata but no File object (restored from localStorage)
+    if (isDraft && isLocalFile && !hasFileObject && !hasEnhancedData) {
+      return {
+        source: 'metadata-only',
+        color: 'orange',
+        icon: 'file-document-alert',
+        status: 'metadata-only',
+        description: 'Metadata only (file needs re-import for processing)',
+      };
     }
 
+    // 💾 Processed locally but not synced to Firebase
+    if (isDraft && hasEnhancedData && !hasFirebaseData) {
+      return {
+        source: 'saved',
+        color: 'blue-grey',
+        icon: 'content-save',
+        status: 'complete',
+        description: 'Processed locally (ready to sync)',
+      };
+    }
+
+    // ☁️ Synced to Firebase
     if (hasFirebaseData) {
-      return { source: 'remote', color: 'blue', icon: 'cloud_done' };
+      return {
+        source: 'remote',
+        color: 'blue',
+        icon: 'cloud-done',
+        status: 'synced',
+        description: 'Synced to cloud storage',
+      };
     }
 
-    return { source: 'saved', color: 'text-primary', icon: 'save' };
+    // 📝 Basic draft
+    if (isDraft && !hasEnhancedData && !hasFirebaseData) {
+      return {
+        source: 'draft',
+        color: 'grey',
+        icon: 'file-document-outline',
+        status: hasFileObject ? 'complete' : 'metadata-only',
+        description: hasFileObject ? 'Draft (ready for processing)' : 'Draft metadata only',
+      };
+    }
+
+    return {
+      source: 'saved',
+      color: 'text-primary',
+      icon: 'content-save',
+      status: 'complete',
+      description: 'Saved locally',
+    };
   }
 
   // Helper function to get sync status based on actual newsletter data
@@ -294,13 +357,11 @@ export function useContentManagement() {
       const localMetadataMapById = new Map(localMetadata.map((meta) => [meta.newsletterId, meta]));
 
       // 3. Try to load Firebase metadata (if authenticated)
-      let firebaseMetadataMapById = new Map();
       let firebaseNewsletters: Array<unknown> = [];
       try {
         const { firestoreService } = await import('../services/firebase-firestore.service');
         const fbNewsletters = await firestoreService.getAllNewslettersForAdmin();
         firebaseNewsletters = fbNewsletters as Array<unknown>;
-        firebaseMetadataMapById = new Map(fbNewsletters.map((fb) => [fb.id, fb]));
         console.log(`📄 Loaded ${fbNewsletters.length} newsletters from Firebase`);
       } catch {
         console.log('ℹ️ Firebase data not available (likely not authenticated)');
@@ -323,7 +384,9 @@ export function useContentManagement() {
 
       firebaseNewsletters.forEach((meta: unknown) => {
         const fbMeta = meta as Record<string, unknown>;
-        const newsletter = baseNewsletters.find((n) => String(n.id) === fbMeta.id);
+        // CRITICAL FIX: Match by filename, not by ID!
+        // When drafts are synced, Firebase auto-generates new IDs that don't match local PDF IDs
+        const newsletter = baseNewsletters.find((n) => n.filename === fbMeta.filename);
         if (newsletter) {
           firebaseMetadataMapByFilename.set(newsletter.filename, fbMeta);
         }
@@ -338,20 +401,22 @@ export function useContentManagement() {
       // 5. Merge all data sources
       newsletters.value = baseNewsletters.map((newsletter) => {
         const localMeta = localMetadataMapById.get(String(newsletter.id));
-        const firebaseMeta = firebaseMetadataMapById.get(String(newsletter.id));
+        // CRITICAL FIX: Use filename-based lookup for Firebase data, not ID
+        // This ensures synced drafts appear correctly in the main list
+        const firebaseMeta = firebaseMetadataMapByFilename.get(newsletter.filename);
 
         const mergedNewsletter = {
           id: String(newsletter.id),
           filename: newsletter.filename,
           title: newsletter.title,
-          description: firebaseMeta?.description || undefined,
-          summary: firebaseMeta?.summary || undefined,
+          description: (firebaseMeta?.description as string) || undefined,
+          summary: (firebaseMeta?.summary as string) || undefined,
           year:
-            firebaseMeta?.year ||
+            (firebaseMeta?.year as number) ||
             parseInt((newsletter.date || '2024').split('.')[0] || '2024') ||
             2024,
           season:
-            firebaseMeta?.season ||
+            (firebaseMeta?.season as string) ||
             (newsletter.date?.includes('summer')
               ? 'summer'
               : newsletter.date?.includes('winter')
@@ -361,40 +426,38 @@ export function useContentManagement() {
                   : newsletter.date?.includes('fall')
                     ? 'fall'
                     : 'general'),
-          month: firebaseMeta?.month,
-          displayDate: firebaseMeta?.displayDate,
-          sortValue: firebaseMeta?.sortValue,
-          syncStatus: getSyncStatus(
-            localMeta as Record<string, unknown> | undefined,
-            firebaseMeta as Record<string, unknown> | undefined,
-          ),
-          volume: firebaseMeta?.volume,
-          issue: firebaseMeta?.issue,
-          fileSize: firebaseMeta?.fileSize || 0,
-          pageCount: firebaseMeta?.pageCount || newsletter.pages,
-          wordCount: localMeta?.wordCount || firebaseMeta?.wordCount,
+          month: (firebaseMeta?.month as number) || undefined,
+          displayDate: (firebaseMeta?.displayDate as string) || undefined,
+          sortValue: (firebaseMeta?.sortValue as number) || undefined,
+          syncStatus: getSyncStatus(localMeta as Record<string, unknown> | undefined, firebaseMeta),
+          volume: (firebaseMeta?.volume as number) || undefined,
+          issue: (firebaseMeta?.issue as number) || undefined,
+          fileSize: (firebaseMeta?.fileSize as number) || 0,
+          pageCount: (firebaseMeta?.pageCount as number) || newsletter.pages,
+          wordCount: (localMeta?.wordCount as number) || (firebaseMeta?.wordCount as number),
           downloadUrl: newsletter.url,
-          thumbnailUrl: newsletter.thumbnailUrl || firebaseMeta?.thumbnailUrl || '',
-          searchableText: localMeta?.searchableText || firebaseMeta?.searchableText,
-          tags: firebaseMeta?.tags || [],
-          categories: firebaseMeta?.categories || newsletter.topics || [],
-          contributors: firebaseMeta?.contributors,
-          featured: firebaseMeta?.featured || false,
-          isPublished: firebaseMeta?.isPublished ?? true,
-          createdAt: firebaseMeta?.createdAt || new Date().toISOString(),
-          updatedAt: firebaseMeta?.updatedAt || new Date().toISOString(),
-          createdBy: firebaseMeta?.createdBy || 'system',
-          updatedBy: firebaseMeta?.updatedBy || 'system',
+          thumbnailUrl: newsletter.thumbnailUrl || (firebaseMeta?.thumbnailUrl as string) || '',
+          searchableText:
+            (localMeta?.searchableText as string) || (firebaseMeta?.searchableText as string),
+          tags: (firebaseMeta?.tags as string[]) || [],
+          categories: (firebaseMeta?.categories as string[]) || newsletter.topics || [],
+          contributors: (firebaseMeta?.contributors as string[]) || undefined,
+          featured: (firebaseMeta?.featured as boolean) || false,
+          isPublished: (firebaseMeta?.isPublished as boolean) ?? true,
+          createdAt: (firebaseMeta?.createdAt as string) || new Date().toISOString(),
+          updatedAt: (firebaseMeta?.updatedAt as string) || new Date().toISOString(),
+          createdBy: (firebaseMeta?.createdBy as string) || 'system',
+          updatedBy: (firebaseMeta?.updatedBy as string) || 'system',
 
           // Extended metadata from local extraction
           keyTerms: localMeta ? Object.keys(localMeta.keywordCounts || {}) : undefined,
-          keywordCounts: localMeta?.keywordCounts,
-          readingTimeMinutes: localMeta?.readingTimeMinutes,
-          textExtractionVersion: localMeta?.textExtractionVersion,
-          textExtractedAt: localMeta?.textExtractedAt,
+          keywordCounts: localMeta?.keywordCounts || undefined,
+          readingTimeMinutes: (localMeta?.readingTimeMinutes as number) || undefined,
+          textExtractionVersion: (localMeta?.textExtractionVersion as string) || undefined,
+          textExtractedAt: (localMeta?.textExtractedAt as string) || undefined,
 
           // Version control
-          version: firebaseMeta?.version || 1,
+          version: (firebaseMeta?.version as number) || 1,
         } as ContentManagementNewsletter;
 
         return mergedNewsletter;
@@ -428,6 +491,128 @@ export function useContentManagement() {
     }
   }
 
+  /**
+   * Refresh only Firebase metadata without triggering PDF processing
+   * Used after sync operations to update the UI without mass PDF processing
+   */
+  async function refreshFirebaseDataOnly(): Promise<void> {
+    console.log('🔄 Refreshing Firebase metadata only...');
+
+    try {
+      // Load only Firebase metadata without touching local PDFs
+      let firebaseNewsletters: Array<unknown> = [];
+      try {
+        const { firestoreService } = await import('../services/firebase-firestore.service');
+        const fbNewsletters = await firestoreService.getAllNewslettersForAdmin();
+        firebaseNewsletters = fbNewsletters as Array<unknown>;
+        console.log(`📄 Refreshed ${fbNewsletters.length} newsletters from Firebase`);
+      } catch {
+        console.log('ℹ️ Firebase data not available (likely not authenticated)');
+        return;
+      }
+
+      // Get current base newsletters (without reloading from PDF service)
+      const currentBaseNewsletters = newsletters.value.map((n) => ({
+        id: n.id,
+        filename: n.filename,
+        title: n.title,
+        url: n.downloadUrl,
+        thumbnailUrl: n.thumbnailUrl,
+        date: `${n.year}.${n.season}`,
+        pages: n.pageCount || 0,
+        topics: n.categories || [],
+        isProcessed: true,
+        isProcessing: false,
+      }));
+
+      // Update Firebase metadata maps by filename
+      const firebaseMetadataMapByFilename = new Map<string, Record<string, unknown>>();
+
+      firebaseNewsletters.forEach((meta: unknown) => {
+        const fbMeta = meta as Record<string, unknown>;
+        // CRITICAL: Match by filename, not ID
+        const newsletter = currentBaseNewsletters.find((n) => n.filename === fbMeta.filename);
+        if (newsletter) {
+          firebaseMetadataMapByFilename.set(newsletter.filename, fbMeta);
+        }
+      });
+
+      // Update the reactive Firebase metadata map
+      firebaseMetadataMap.value = firebaseMetadataMapByFilename;
+
+      // Re-merge the data using current base newsletters + updated Firebase data
+      const localMetadata = await localMetadataStorageService.getAllExtractedMetadata();
+      const localMetadataMapById = new Map(localMetadata.map((meta) => [meta.newsletterId, meta]));
+
+      newsletters.value = currentBaseNewsletters.map((newsletter) => {
+        const localMeta = localMetadataMapById.get(String(newsletter.id));
+        const firebaseMeta = firebaseMetadataMapByFilename.get(newsletter.filename);
+
+        const mergedNewsletter = {
+          id: String(newsletter.id),
+          filename: newsletter.filename,
+          title: newsletter.title,
+          description: (firebaseMeta?.description as string) || undefined,
+          summary: (firebaseMeta?.summary as string) || undefined,
+          year:
+            (firebaseMeta?.year as number) ||
+            parseInt((newsletter.date || '2024').split('.')[0] || '2024') ||
+            2024,
+          season:
+            (firebaseMeta?.season as string) ||
+            (newsletter.date?.includes('summer')
+              ? 'summer'
+              : newsletter.date?.includes('winter')
+                ? 'winter'
+                : newsletter.date?.includes('spring')
+                  ? 'spring'
+                  : newsletter.date?.includes('fall')
+                    ? 'fall'
+                    : 'general'),
+          month: (firebaseMeta?.month as number) || undefined,
+          displayDate: (firebaseMeta?.displayDate as string) || undefined,
+          sortValue: (firebaseMeta?.sortValue as number) || undefined,
+          syncStatus: getSyncStatus(localMeta as Record<string, unknown> | undefined, firebaseMeta),
+          volume: (firebaseMeta?.volume as number) || undefined,
+          issue: (firebaseMeta?.issue as number) || undefined,
+          fileSize: (firebaseMeta?.fileSize as number) || 0,
+          pageCount: (firebaseMeta?.pageCount as number) || newsletter.pages,
+          wordCount: (localMeta?.wordCount as number) || (firebaseMeta?.wordCount as number),
+          downloadUrl: newsletter.url,
+          thumbnailUrl: newsletter.thumbnailUrl || (firebaseMeta?.thumbnailUrl as string) || '',
+          searchableText:
+            (localMeta?.searchableText as string) || (firebaseMeta?.searchableText as string),
+          tags: (firebaseMeta?.tags as string[]) || [],
+          categories: (firebaseMeta?.categories as string[]) || newsletter.topics || [],
+          contributors: (firebaseMeta?.contributors as string[]) || undefined,
+          featured: (firebaseMeta?.featured as boolean) || false,
+          isPublished: (firebaseMeta?.isPublished as boolean) ?? true,
+          createdAt: (firebaseMeta?.createdAt as string) || new Date().toISOString(),
+          updatedAt: (firebaseMeta?.updatedAt as string) || new Date().toISOString(),
+          createdBy: (firebaseMeta?.createdBy as string) || 'system',
+          updatedBy: (firebaseMeta?.updatedBy as string) || 'system',
+
+          // Extended metadata from local extraction
+          keyTerms: localMeta ? Object.keys(localMeta.keywordCounts || {}) : undefined,
+          keywordCounts: localMeta?.keywordCounts || undefined,
+          readingTimeMinutes: (localMeta?.readingTimeMinutes as number) || undefined,
+          textExtractionVersion: (localMeta?.textExtractionVersion as string) || undefined,
+          textExtractedAt: (localMeta?.textExtractedAt as string) || undefined,
+
+          // Version control
+          version: (firebaseMeta?.version as number) || 1,
+        } as ContentManagementNewsletter;
+
+        return mergedNewsletter;
+      });
+
+      console.log('✅ Firebase metadata refreshed without PDF processing');
+    } catch (error) {
+      console.error('Failed to refresh Firebase metadata:', error);
+      throw error;
+    }
+  }
+
   return {
     // State
     newsletters: newsletters as Ref<ContentManagementNewsletter[]>,
@@ -450,5 +635,7 @@ export function useContentManagement() {
     formatFileSize,
     loadNewsletters,
     refreshLocalStorageStats,
+    refreshFirebaseDataOnly,
+    getDataSource,
   };
 }

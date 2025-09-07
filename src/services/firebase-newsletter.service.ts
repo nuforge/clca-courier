@@ -792,7 +792,7 @@ class FirebaseNewsletterService {
         year: enhancedData.year,
         fileSize: 0, // Will be updated by processing
         pageCount: 0, // Will be updated by processing
-        downloadUrl: `/issues/${filename}`, // Local path
+        downloadUrl: `${window.location.origin}/issues/${filename}`, // Absolute URL for local files
         storageRef: '', // Empty for local files
         tags: [],
         featured: false,

@@ -4,6 +4,7 @@ import NavigationItem from './NavigationItem.vue';
 import LatestIssueCard from './LatestIssueCard.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
+import { useFirebase } from '../composables/useFirebase';
 import type { NavigationItem as NavigationItemType } from '../types/navigation';
 
 interface Props {
@@ -22,6 +23,9 @@ const { navigationItems } = useNavigation();
 
 // Use user settings for persistent mini state
 const { sideMenuCollapsed, setSideMenuCollapsed } = useUserSettings();
+
+// Firebase authentication
+const { auth } = useFirebase();
 
 // Mini state for collapsed sidebar - initialize from user settings
 const isMini = ref(sideMenuCollapsed.value);
@@ -82,8 +86,41 @@ const isOpen = computed({
       </div>
 
       <q-space class="q-mtlg" />
-      <!-- Bottom section with Account -->
+      <!-- Bottom section with Auth and Account -->
       <div class="bottom-section">
+        <!-- Authentication Section -->
+        <div v-if="!auth.isAuthenticated.value" class="q-pa-sm">
+          <q-btn v-if="!isMini" @click="() => auth.signIn('google')" color="primary" icon="mdi-google" label="Sign In"
+            :loading="auth.isLoading.value" class="full-width" size="sm" />
+          <q-btn v-else @click="() => auth.signIn('google')" color="primary" icon="mdi-google"
+            :loading="auth.isLoading.value" round size="sm" />
+        </div>
+
+        <!-- User Info (when authenticated) -->
+        <div v-else class="q-pa-sm">
+          <div v-if="!isMini" class="bg-dark text-white rounded-borders q-pa-sm">
+            <div class="row items-center">
+              <q-avatar size="24px" class="q-mr-sm">
+                <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
+                <q-icon v-else name="mdi-account" />
+              </q-avatar>
+              <div class="col">
+                <div class="text-caption text-weight-bold">{{ auth.currentUser.value?.displayName || 'User' }}</div>
+                <div class="text-caption text-grey-4">{{ auth.currentUser.value?.email }}</div>
+              </div>
+            </div>
+            <q-btn @click="auth.signOut" flat icon="mdi-logout" label="Sign Out" size="xs"
+              class="full-width q-mt-xs text-grey-4" />
+          </div>
+          <div v-else class="text-center">
+            <q-avatar size="32px" class="q-mb-xs">
+              <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
+              <q-icon v-else name="mdi-account" />
+            </q-avatar>
+            <q-btn @click="auth.signOut" flat icon="mdi-logout" round size="xs" class="text-grey-4" />
+          </div>
+        </div>
+
         <!-- Account Link -->
         <NavigationItem :item="accountItem" :mini="isMini" />
       </div>

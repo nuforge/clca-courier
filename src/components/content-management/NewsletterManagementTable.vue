@@ -4,21 +4,10 @@
 -->
 <template>
   <div class="newsletter-management-container">
-    <!-- Contextual Action Bar (appears when items are selected) -->
-    <q-slide-transition>
-      <div v-if="selectedNewsletters.length > 0" class="contextual-action-bar bg-grey-9 text-white">
-        <div class="row items-c    name: 'date',
-    label: 'Date',
-    field: (row: ContentManagementNewsletter) => row.displayDate || 'Unknown',
-    align: 'center' as const,
-    sortable: true,
-    style: 'width: 120px;',
-    sort: (a: ContentManagementNewsletter, b: ContentManagementNewsletter) => {
-      // Use sortValue for proper chronological sorting (YYYYMM format)
-      const aValue = a.sortValue || 0;
-      const bValue = b.sortValue || 0;
-      return bValue - aValue; // Newest first
-    },d">
+    <!-- Contextual Action Bar (using reserved space approach to prevent jumping) -->
+    <div class="contextual-action-bar-container">
+      <div class="contextual-action-bar bg-grey-9 text-white" v-show="selectedNewsletters.length > 0">
+        <div class="row items-center">
           <!-- Selection Info -->
           <div class="col-auto">
             <q-checkbox v-model="isAllSelected" :indeterminate="isIndeterminate" @update:model-value="handleSelectAll"
@@ -90,7 +79,7 @@
           </div>
         </div>
       </div>
-    </q-slide-transition>
+    </div>
 
     <!-- Main Table -->
     <q-table :rows="newsletters" :columns="columns" :pagination="pagination" :loading="processingStates.isLoading" flat
@@ -158,12 +147,20 @@
             <q-icon :name="`mdi-${props.row.dataSource?.icon || 'help'}`" :color="props.row.dataSource?.color || 'grey'"
               size="sm">
               <q-tooltip>
-                {{ props.row.dataSource?.source === 'draft' ? 'Draft (no metadata)' :
-                  props.row.dataSource?.source === 'saved' ? 'Saved locally' :
-                    props.row.dataSource?.source === 'remote' ? 'Remote (Firebase)' :
-                      'Unknown source' }}
+                <div class="text-weight-medium">{{ props.row.dataSource?.description || 'Unknown source' }}</div>
+                <div class="text-caption q-mt-xs">
+                  Status: {{ props.row.dataSource?.status || 'unknown' }}
+                  <span v-if="props.row.dataSource?.status === 'metadata-only'" class="text-orange">
+                    <br />⚠️ File object lost - re-import needed for processing
+                  </span>
+                </div>
               </q-tooltip>
             </q-icon>
+            <!-- Status indicator for metadata-only items -->
+            <q-badge v-if="props.row.dataSource?.status === 'metadata-only'" color="orange" floating rounded
+              style="top: -4px; right: -4px;">
+              !
+            </q-badge>
           </div>
         </q-td>
       </template>
@@ -265,6 +262,12 @@
         <q-td :props="props" class="actions-cell" @mouseenter="hoveredRow = props.row.id"
           @mouseleave="hoveredRow = null">
           <div class="hover-actions" :class="{ 'visible': hoveredRow === props.row.id }">
+            <!-- Special re-import action for metadata-only files -->
+            <q-btn v-if="props.row.dataSource?.status === 'metadata-only'" flat dense icon="mdi-file-import"
+              color="orange" @click.stop="$emit('re-import-file', props.row)" size="sm">
+              <q-tooltip>Re-import file for processing</q-tooltip>
+            </q-btn>
+
             <q-btn flat dense icon="mdi-eye" color="primary" @click.stop="$emit('open-pdf', props.row)" size="sm">
               <q-tooltip>View PDF</q-tooltip>
             </q-btn>
@@ -275,13 +278,19 @@
             </q-btn>
 
             <q-btn flat dense icon="mdi-text-search" color="secondary" @click.stop="$emit('extract-text', props.row)"
-              :loading="extractingText[props.row.id]" size="sm">
-              <q-tooltip>Extract Text</q-tooltip>
+              :loading="extractingText[props.row.id]" :disable="props.row.dataSource?.status === 'metadata-only'"
+              size="sm">
+              <q-tooltip>
+                {{ props.row.dataSource?.status === 'metadata-only' ? 'Re-import file first' : 'Extract Text' }}
+              </q-tooltip>
             </q-btn>
 
             <q-btn flat dense icon="mdi-image" color="accent" @click.stop="$emit('generate-thumbnail', props.row)"
-              :loading="generatingThumb[props.row.id]" size="sm">
-              <q-tooltip>Generate Thumbnail</q-tooltip>
+              :loading="generatingThumb[props.row.id]" :disable="props.row.dataSource?.status === 'metadata-only'"
+              size="sm">
+              <q-tooltip>
+                {{ props.row.dataSource?.status === 'metadata-only' ? 'Re-import file first' : 'Generate Thumbnail' }}
+              </q-tooltip>
             </q-btn>
 
             <q-btn flat dense icon="mdi-cloud-upload" color="positive" @click.stop="$emit('sync-single', props.row)"
@@ -340,6 +349,7 @@ const emit = defineEmits<{
   'show-extracted-content': [newsletter: ContentManagementNewsletter];
   'delete-newsletter': [newsletter: ContentManagementNewsletter];
   'bulk-delete': [];
+  're-import-file': [newsletter: ContentManagementNewsletter];
 }>();
 
 // Local reactive state
@@ -637,10 +647,18 @@ function togglePublished(newsletter: ContentManagementNewsletter) {
 
 <style lang="scss" scoped>
 .newsletter-management-container {
+  .contextual-action-bar-container {
+    min-height: 60px; // Reserve space for the action bar
+    position: relative;
+  }
+
   .contextual-action-bar {
-    position: sticky;
+    position: absolute;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 10;
+    padding: 12px 16px;
     border-radius: 4px 4px 0 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }

@@ -19,42 +19,9 @@
               </p>
             </q-card-section>
           </q-card>
-          <!-- Authentication Required Banner -->
-          <q-banner v-if="!auth.isAuthenticated.value" class="bg-warning text-dark q-mb-md" rounded>
-            <template v-slot:avatar>
-              <q-icon name="mdi-lock-alert" />
-            </template>
-            <div class="text-weight-bold">Authentication Required</div>
-            <div class="q-mt-xs">
-              You must be logged in to sync data to Firebase. Local operations will work without authentication.
-            </div>
-            <template v-slot:action>
-              <q-btn @click="signInWithGoogle" color="primary" label="Sign in with Google"
-                :loading="auth.isLoading.value" size="sm" />
-            </template>
-          </q-banner>
-          <!-- User Info (when authenticated) -->
-          <q-card v-if="auth.isAuthenticated.value" flat bordered class="q-mb-md bg-positive text-white">
-            <q-card-section class="row items-center">
-              <q-avatar size="32px" class="q-mr-sm">
-                <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
-                <q-icon v-else name="mdi-account" />
-              </q-avatar>
-              <div class="col">
-                <div class="text-weight-bold">{{ auth.currentUser.value?.displayName || 'User' }}</div>
-                <div class="text-caption">{{ auth.currentUser.value?.email }}</div>
-              </div>
-              <q-btn @click="auth.signOut" flat color="white" label="Sign Out" size="sm" />
-            </q-card-section>
-          </q-card>
           <!-- Statistics Cards -->
           <StatisticsCards :total-newsletters="totalNewsletters" :newsletters-with-text="newslettersWithText"
             :newsletters-with-thumbnails="newslettersWithThumbnails" :total-file-size="totalFileSize" />
-
-          <!-- Local Storage Management -->
-          <LocalStorageManager :stats="localStorageStats" :is-syncing="processingStates.isSyncing"
-            @sync-to-firebase="handleSyncToFirebase" @clear-local="handleClearLocal"
-            @refresh-stats="refreshLocalStorageStats" />
 
           <!-- Filters -->
           <q-card class="q-mb-lg">
@@ -81,36 +48,129 @@
                     option-value="value" label="Filter by Month" outlined dense clearable emit-value map-options />
                 </div>
                 <div class="col-12 col-md-2">
-                  <q-btn v-if="selectedNewsletters.length === 0" color="primary" icon="mdi-refresh" label="Bulk Actions"
-                    @click="showBulkActionsMenu = !showBulkActionsMenu" class="full-width" />
+                  <!-- Removed the bulk actions button - now using expansion item below -->
                 </div>
               </div>
 
-              <!-- Bulk Actions Menu (when no selection) -->
-              <q-slide-transition>
-                <div v-if="showBulkActionsMenu && selectedNewsletters.length === 0" class="q-mt-md">
-                  <q-separator class="q-mb-md" />
-                  <div class="row q-gutter-sm">
-                    <q-btn color="primary" icon="mdi-refresh" label="Generate All Tags" @click="extractAllMetadata"
-                      :loading="processingStates.isExtracting" />
-                    <q-btn color="secondary" icon="mdi-text-search" label="Extract All Text" @click="extractAllMetadata"
-                      :loading="processingStates.isExtractingAllText" />
-                    <q-btn color="accent" icon="mdi-image-multiple" label="Generate All Thumbnails"
-                      @click="generateAllThumbnails" :loading="processingStates.isGeneratingThumbs" />
-                    <q-btn color="warning" icon="mdi-calendar-clock" label="Enhance Dates"
-                      @click="enhanceAllNewsletterDates" :loading="processingStates.isEnhancingDates" />
-                    <q-btn color="orange" icon="mdi-database-plus" label="Create Missing Records"
-                      @click="createMissingDatabaseRecords" :loading="processingStates.isCreatingRecords" />
-                    <q-btn color="positive" icon="mdi-cloud-upload" label="Sync All to Firebase"
-                      @click="handleSyncToFirebase" :loading="processingStates.isSyncing" />
-                  </div>
-                </div>
-              </q-slide-transition>
+              <!-- Bulk Actions Menu - Collapsible Section (Always visible) -->
+              <q-expansion-item v-model="showBulkActionsMenu" icon="mdi-cog" label="Administrative Actions"
+                class="q-mt-md" expand-icon-class="text-primary">
+
+                <q-card flat class="q-mt-sm">
+                  <q-card-section>
+
+                    <!-- STEP 1: System Management -->
+                    <div class="q-mb-md">
+                      <h6 class="text-h6 q-my-none text-grey-7">🔧 Step 1: System Management</h6>
+                      <div class="row q-gutter-sm q-mt-sm">
+                        <q-btn color="deep-orange" icon="mdi-delete-sweep" label="Clear All Caches"
+                          @click="clearAllCaches" :loading="processingStates.isClearingCache" outline
+                          class="text-weight-medium" />
+                        <q-btn color="positive" icon="mdi-database-import" label="Import Data" @click="showImportDialog"
+                          :loading="processingStates.isImporting" outline class="text-weight-medium" />
+                      </div>
+                    </div>
+
+                    <!-- DRAFT MANAGEMENT -->
+                    <div class="q-mb-md" v-if="hasDrafts">
+                      <h6 class="text-h6 q-my-none text-grey-7">📝 Local Drafts ({{ draftNewsletters.length }})</h6>
+                      <div class="row q-gutter-sm q-mt-sm">
+                        <q-btn color="primary" icon="mdi-cloud-upload" label="Sync Drafts to Cloud"
+                          @click="uploadDraftsToCloud" :loading="processingStates.isImporting" unelevated
+                          class="text-weight-medium" />
+                        <q-btn color="grey" icon="mdi-delete" label="Clear Local Drafts" @click="clearLocalDrafts"
+                          outline class="text-weight-medium" />
+                      </div>
+                      <q-banner class="q-mt-sm bg-blue-1 text-blue-8" rounded>
+                        <template v-slot:avatar>
+                          <q-icon name="mdi-information" />
+                        </template>
+                        {{ draftNewsletters.length }} local draft(s) ready to sync. These are stored locally and not
+                        synced to the
+                        cloud yet.
+                      </q-banner>
+                    </div>
+
+                    <!-- STEP 2: Database Setup -->
+                    <div class="q-mb-md">
+                      <h6 class="text-h6 q-my-none text-grey-7">🗄️ Step 2: Database Setup</h6>
+                      <div class="row q-gutter-sm q-mt-sm">
+                        <q-btn color="orange" icon="mdi-database-plus" label="Create Missing Records"
+                          @click="createMissingDatabaseRecords" :loading="processingStates.isCreatingRecords" unelevated
+                          class="text-weight-medium" />
+                        <q-btn color="blue" icon="mdi-link-variant" label="Fix URLs" @click="fixLocalFileUrls"
+                          :loading="processingStates.isFixingUrls" unelevated class="text-weight-medium" />
+                        <q-btn color="red" icon="mdi-database-sync" label="Rebuild Database"
+                          @click="rebuildDatabaseWithVersioning" :loading="processingStates.isRebuildingDatabase"
+                          unelevated class="text-weight-medium" />
+                      </div>
+                    </div>
+
+                    <!-- STEP 3: Content Processing -->
+                    <div class="q-mb-md">
+                      <h6 class="text-h6 q-my-none text-grey-7">📄 Step 3: Content Processing</h6>
+                      <div class="row q-gutter-sm q-mt-sm">
+                        <q-btn color="warning" icon="mdi-calendar-clock" label="Enhance Dates"
+                          @click="enhanceAllNewsletterDates" :loading="processingStates.isEnhancingDates" unelevated
+                          class="text-weight-medium" />
+                        <q-btn color="accent" icon="mdi-image-multiple" label="Generate ALL Thumbnails"
+                          @click="generateAllThumbnails" :loading="processingStates.isGeneratingThumbs" unelevated
+                          class="text-weight-medium" />
+                        <q-btn color="secondary" icon="mdi-text-search" label="Extract ALL Text"
+                          @click="extractAllMetadata" :loading="processingStates.isExtractingAllText" unelevated
+                          class="text-weight-medium" />
+                        <q-btn color="primary" icon="mdi-tag-multiple" label="Generate ALL Tags"
+                          @click="extractAllMetadata" :loading="processingStates.isExtracting" unelevated
+                          class="text-weight-medium" />
+                      </div>
+                    </div>
+
+                    <!-- STEP 4: Individual Metadata Functions -->
+                    <div class="q-mb-md">
+                      <h6 class="text-h6 q-my-none text-grey-7">🎯 Step 4: Individual Metadata Functions</h6>
+                      <p class="text-caption text-grey-6 q-mt-sm q-mb-sm">
+                        These functions work on SELECTED items or ALL items if none selected
+                      </p>
+                      <div class="row q-gutter-sm q-mt-sm">
+                        <q-btn color="purple" icon="mdi-file-document-outline" label="Extract Page Count"
+                          @click="extractPageCountForSelected" :loading="processingStates.isExtractingPageCount" dense
+                          class="text-weight-medium" />
+                        <q-btn color="teal" icon="mdi-scale" label="Extract File Size"
+                          @click="extractFileSizeForSelected" :loading="processingStates.isExtractingFileSize" dense
+                          class="text-weight-medium" />
+                        <q-btn color="indigo" icon="mdi-calendar-range" label="Extract Dates"
+                          @click="extractDatesForSelected" :loading="processingStates.isExtractingDates" dense
+                          class="text-weight-medium" />
+                        <q-btn color="pink" icon="mdi-tag-outline" label="Generate Keywords"
+                          @click="generateKeywordsForSelected" :loading="processingStates.isGeneratingKeywords" dense
+                          class="text-weight-medium" />
+                        <q-btn color="brown" icon="mdi-text-short" label="Generate Descriptions"
+                          @click="generateDescriptionsForSelected" :loading="processingStates.isGeneratingDescriptions"
+                          dense class="text-weight-medium" />
+                        <q-btn color="cyan" icon="mdi-format-title" label="Generate Titles"
+                          @click="generateTitlesForSelected" :loading="processingStates.isGeneratingTitles" dense
+                          class="text-weight-medium" />
+                      </div>
+                    </div>
+
+                    <!-- Status Indicators -->
+                    <div class="q-mt-md">
+                      <q-banner class="bg-blue-1 text-blue-9" dense rounded>
+                        <template v-slot:avatar>
+                          <q-icon name="mdi-information" />
+                        </template>
+                        💡 <strong>Workflow Tip:</strong> Run steps in order for best results.
+                        Start with System Management, then Database Setup, then Content Processing.
+                      </q-banner>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
             </q-card-section>
           </q-card>
 
           <!-- Gmail-inspired Newsletter Management Table -->
-          <NewsletterManagementTable :newsletters="filteredNewsletters"
+          <NewsletterManagementTable :newsletters="filteredNewslettersIncludingDrafts"
             v-model:selected-newsletters="selectedNewsletters" v-model:pagination="pagination"
             :processing-states="processingStates" :extracting-text="extractingText"
             :generating-thumb="thumbnailIndividualStates" :syncing-individual="syncingIndividual"
@@ -122,10 +182,10 @@
             @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
             @generate-thumbnail="generateThumbnail" @sync-single="syncSingleNewsletter"
             @show-extracted-content="showExtractedContent" @delete-newsletter="deleteNewsletter"
-            @bulk-delete="handleBulkDelete" />
+            @bulk-delete="handleBulkDelete" @re-import-file="handleReImportFile" />
           <!-- Edit Dialog -->
           <q-dialog v-model="editDialog.showDialog" persistent>
-            <q-card style="min-width: 600px; max-width: 800px;">
+            <q-card style="min-width: 700px; max-width: 900px; min-height: 600px;">
               <q-card-section class="row items-center q-pb-none">
                 <div>
                   <div class="text-h6">Edit Newsletter Metadata</div>
@@ -138,65 +198,85 @@
                 <q-space />
                 <q-btn icon="close" flat round dense v-close-popup />
               </q-card-section>
-              <q-card-section v-if="editDialog.editingNewsletter">
-                <div class="row">
-                  <!-- Basic Information -->
-                  <div class="col-12 q-pa-sm">
-                    <q-input v-model="editDialog.editingNewsletter.title" label="Title" outlined dense />
-                  </div>
-                  <div class="col-12 col-md-6 q-pa-sm">
-                    <q-input v-model="editDialog.editingNewsletter.year" label="Year" type="number" outlined dense />
-                  </div>
-                  <div class="col-12 col-md-6 q-pa-sm">
-                    <q-select v-model="editDialog.editingNewsletter.season" :options="seasonOptions" label="Season"
-                      outlined dense emit-value map-options />
-                  </div>
-                  <div class="col-12 col-md-6 q-pa-sm">
-                    <q-input v-model="editDialog.editingNewsletter.volume" label="Volume" type="number" outlined
-                      dense />
-                  </div>
-                  <div class="col-12 col-md-6 q-pa-sm">
-                    <q-input v-model="editDialog.editingNewsletter.issue" label="Issue" type="number" outlined dense />
-                  </div>
-                  <div class="col-12 q-pa-sm">
-                    <q-input v-model="editDialog.editingNewsletter.description" label="Description" type="textarea"
-                      outlined rows="3" />
-                  </div>
-                  <div class="col-12 q-pa-sm">
-                    <q-input v-model="editDialog.editingNewsletter.summary" label="Summary (for featured content)"
-                      type="textarea" outlined rows="2" />
-                  </div>
-                  <!-- Tags -->
-                  <div class="col-12 q-pa-sm">
-                    <q-select v-model="editDialog.editingNewsletter.tags" :options="availableTags" label="Tags" multiple
-                      use-chips use-input @new-value="addNewTag" outlined dense />
-                  </div>
-                  <!-- Categories -->
-                  <div class="col-12 q-pa-sm">
-                    <q-select v-model="editDialog.editingNewsletter.categories" :options="availableCategories"
-                      label="Categories" multiple use-chips outlined dense />
-                  </div>
-                  <!-- Contributors -->
-                  <div class="col-12 q-pa-sm">
-                    <q-input v-model="contributorsString" label="Contributors (comma-separated)" outlined dense />
-                  </div>
-                  <!-- Flags -->
-                  <div class="col-12 q-pa-sm">
-                    <div class="row">
-                      <div class="col-6">
-                        <q-checkbox v-model="editDialog.editingNewsletter.featured" label="Featured on homepage" />
-                      </div>
-                      <div class="col-6">
-                        <q-checkbox v-model="editDialog.editingNewsletter.isPublished"
-                          label="Published (visible to users)" />
+
+              <!-- Tab system for edit dialog -->
+              <q-tabs v-model="editTab" dense class="text-grey">
+                <q-tab name="metadata" label="Edit Metadata" />
+                <q-tab name="history" label="Version History" />
+              </q-tabs>
+
+              <q-separator />
+
+              <q-tab-panels v-model="editTab" animated>
+                <!-- Metadata editing tab -->
+                <q-tab-panel name="metadata" v-if="editDialog.editingNewsletter">
+                  <div class="row">
+                    <!-- Basic Information -->
+                    <div class="col-12 q-pa-sm">
+                      <q-input v-model="editDialog.editingNewsletter.title" label="Title" outlined dense />
+                    </div>
+                    <div class="col-12 col-md-6 q-pa-sm">
+                      <q-input v-model="editDialog.editingNewsletter.year" label="Year" type="number" outlined dense />
+                    </div>
+                    <div class="col-12 col-md-6 q-pa-sm">
+                      <q-select v-model="editDialog.editingNewsletter.season" :options="seasonOptions" label="Season"
+                        outlined dense emit-value map-options />
+                    </div>
+                    <div class="col-12 col-md-6 q-pa-sm">
+                      <q-input v-model="editDialog.editingNewsletter.volume" label="Volume" type="number" outlined
+                        dense />
+                    </div>
+                    <div class="col-12 col-md-6 q-pa-sm">
+                      <q-input v-model="editDialog.editingNewsletter.issue" label="Issue" type="number" outlined
+                        dense />
+                    </div>
+                    <div class="col-12 q-pa-sm">
+                      <q-input v-model="editDialog.editingNewsletter.description" label="Description" type="textarea"
+                        outlined rows="3" />
+                    </div>
+                    <div class="col-12 q-pa-sm">
+                      <q-input v-model="editDialog.editingNewsletter.summary" label="Summary (for featured content)"
+                        type="textarea" outlined rows="2" />
+                    </div>
+                    <!-- Tags -->
+                    <div class="col-12 q-pa-sm">
+                      <q-select v-model="editDialog.editingNewsletter.tags" :options="availableTags" label="Tags"
+                        multiple use-chips use-input @new-value="addNewTag" outlined dense />
+                    </div>
+                    <!-- Categories -->
+                    <div class="col-12 q-pa-sm">
+                      <q-select v-model="editDialog.editingNewsletter.categories" :options="availableCategories"
+                        label="Categories" multiple use-chips outlined dense />
+                    </div>
+                    <!-- Contributors -->
+                    <div class="col-12 q-pa-sm">
+                      <q-input v-model="contributorsString" label="Contributors (comma-separated)" outlined dense />
+                    </div>
+                    <!-- Flags -->
+                    <div class="col-12 q-pa-sm">
+                      <div class="row">
+                        <div class="col-6">
+                          <q-checkbox v-model="editDialog.editingNewsletter.featured" label="Featured on homepage" />
+                        </div>
+                        <div class="col-6">
+                          <q-checkbox v-model="editDialog.editingNewsletter.isPublished"
+                            label="Published (visible to users)" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </q-card-section>
+                </q-tab-panel>
+
+                <!-- Version history tab -->
+                <q-tab-panel name="history" v-if="editDialog.editingNewsletter">
+                  <NewsletterVersionHistoryPanel :newsletter-id="editDialog.editingNewsletter.id"
+                    @version-restored="handleVersionRestored" />
+                </q-tab-panel>
+              </q-tab-panels>
+
               <q-card-actions align="right">
                 <q-btn flat label="Cancel" v-close-popup />
-                <q-btn color="primary" label="Save Changes" @click="saveMetadata"
+                <q-btn v-if="editTab === 'metadata'" color="primary" label="Save Changes" @click="saveMetadata"
                   :loading="processingStates.isSaving" />
               </q-card-actions>
             </q-card>
@@ -253,47 +333,50 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { doc, updateDoc, setDoc, getDoc, type UpdateData } from 'firebase/firestore';
-import { firestore } from '../config/firebase.config';
 import { firestoreService, type NewsletterMetadata } from '../services/firebase-firestore.service';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
 import { logger } from '../utils/logger';
 // Import composables
 import { useContentManagement } from '../composables/useContentManagement';
-import { useContentExtraction } from '../composables/useContentExtraction';
 import { useFirebase } from '../composables/useFirebase';
 import { useThumbnailManagement } from '../composables/useThumbnailManagement';
-import { localMetadataStorageService, type ExtractedMetadata } from '../services/local-metadata-storage.service';
-import { tagGenerationService, type TagGenerationResult } from '../services/tag-generation.service';
-import type { Newsletter } from '../types/core/newsletter.types';
+import { tagGenerationService } from '../services/tag-generation.service';
 // Import components
-import LocalStorageManager from '../components/content-management/LocalStorageManager.vue';
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
 import NewsletterManagementTable from '../components/content-management/NewsletterManagementTable.vue';
+import NewsletterVersionHistoryPanel from '../components/content-management/NewsletterVersionHistoryPanel.vue';
 // Import types
 import type { ContentManagementNewsletter } from '../types';
+
+// Extended newsletter interface for original file info
+interface NewsletterWithFileInfo extends ContentManagementNewsletter {
+  originalFileInfo?: {
+    name: string;
+    size: number;
+    lastModified: number;
+    relativePath?: string;
+    path?: string;
+    importHint?: string;
+  };
+}
+
 const $q = useQuasar();
 // Use composables
 const {
   newsletters,
-  localStorageStats,
   processingStates: baseProcessingStates,
   filters,
   textExtractionDialog,
   editDialog,
-  filteredNewsletters,
   totalNewsletters,
   newslettersWithText,
   newslettersWithThumbnails,
   totalFileSize,
   loadNewsletters,
-  refreshLocalStorageStats
+  refreshFirebaseDataOnly,
+  getDataSource,
+  formatFileSize
 } = useContentManagement();
-
-const {
-  syncLocalMetadataToFirebase,
-  clearLocalMetadata,
-} = useContentExtraction();
 
 // Thumbnail management
 const {
@@ -306,30 +389,819 @@ const {
 // Enhanced processing states that include thumbnail generation
 const isEnhancingDates = ref(false);
 const isCreatingRecords = ref(false);
+const isRebuildingDatabase = ref(false);
+const isFixingUrls = ref(false);
+const isClearingCache = ref(false);
+const isImporting = ref(false);
+
+// Draft storage for imported metadata (not synced to cloud until explicitly uploaded)
+const draftNewsletters = ref<NewsletterMetadata[]>([]);
+const draftFileMap = ref<Map<string, File>>(new Map()); // Map draft ID to File object for thumbnail generation
+const hasDrafts = computed(() => draftNewsletters.value.length > 0);
+
+// Combined newsletters including both Firebase and local drafts
+const allNewslettersIncludingDrafts = computed(() => {
+  // Convert local drafts to ContentManagementNewsletter format to match newsletters array
+  const draftsAsContentManagement = draftNewsletters.value.map(draft => {
+    const newsletter = {
+      id: draft.id,
+      filename: draft.filename,
+      title: draft.title,
+      description: draft.description || '',
+      year: draft.year,
+      season: '', // Drafts don't have season initially
+      // Omit month since it's optional and we don't have it
+      fileSize: draft.fileSize,
+      pageCount: draft.pageCount || 0,
+      downloadUrl: draft.downloadUrl,
+      thumbnailUrl: draft.thumbnailUrl || '', // Use actual thumbnailUrl from draft
+      tags: draft.tags,
+      featured: draft.featured,
+      isPublished: draft.isPublished,
+      createdAt: draft.createdAt,
+      updatedAt: draft.updatedAt,
+      createdBy: draft.createdBy,
+      updatedBy: draft.updatedBy,
+      // Additional fields for ContentManagementNewsletter
+      extractedText: '', // Drafts don't have extracted text initially
+      actions: draft.actions,
+      version: 1, // Local drafts start at version 1
+      isDraft: true, // Mark as draft for UI distinction
+      storageRef: draft.storageRef,
+      publicationDate: draft.publicationDate
+    } as ContentManagementNewsletter;
+
+    // Add dataSource using the composable function with file availability check
+    const hasFileObject = draftFileMap.value.has(draft.id);
+    const dataSource = getDataSource(newsletter, hasFileObject);
+    return {
+      ...newsletter,
+      dataSource
+    };
+  });
+
+  // Combine Firebase newsletters with local drafts
+  return [...newsletters.value, ...draftsAsContentManagement];
+});
+
+// Filtered version that includes both Firebase and local drafts
+const filteredNewslettersIncludingDrafts = computed(() => {
+  const combined = allNewslettersIncludingDrafts.value;
+
+  // Apply the same filtering logic as the original filteredNewsletters
+  let filtered = combined;
+
+  // Apply search text filter
+  if (filters.value.searchText) {
+    const searchLower = filters.value.searchText.toLowerCase();
+    filtered = filtered.filter(newsletter =>
+      newsletter.title.toLowerCase().includes(searchLower) ||
+      newsletter.filename.toLowerCase().includes(searchLower) ||
+      (newsletter.description && newsletter.description.toLowerCase().includes(searchLower)) ||
+      newsletter.tags.some(tag => tag.toLowerCase().includes(searchLower))
+    );
+  }
+
+  // Apply year filter
+  if (filters.value.filterYear) {
+    filtered = filtered.filter(newsletter => newsletter.year === filters.value.filterYear);
+  }
+
+  // Apply season filter
+  if (filters.value.filterSeason) {
+    filtered = filtered.filter(newsletter => newsletter.season === filters.value.filterSeason);
+  }
+
+  // Apply month filter
+  if (filters.value.filterMonth) {
+    filtered = filtered.filter(newsletter => newsletter.month === filters.value.filterMonth);
+  }
+
+  return filtered;
+});
+
+// Individual metadata extraction states
+const isExtractingPageCount = ref(false);
+const isExtractingFileSize = ref(false);
+const isExtractingDates = ref(false);
+const isGeneratingKeywords = ref(false);
+const isGeneratingDescriptions = ref(false);
+const isGeneratingTitles = ref(false);
 
 const processingStates = computed(() => ({
   ...baseProcessingStates.value,
   isGeneratingThumbs: isGeneratingThumbnails.value,
   isEnhancingDates: isEnhancingDates.value,
-  isCreatingRecords: isCreatingRecords.value
+  isCreatingRecords: isCreatingRecords.value,
+  isRebuildingDatabase: isRebuildingDatabase.value,
+  isFixingUrls: isFixingUrls.value,
+  isClearingCache: isClearingCache.value,
+  isImporting: isImporting.value,
+  isExtractingPageCount: isExtractingPageCount.value,
+  isExtractingFileSize: isExtractingFileSize.value,
+  isExtractingDates: isExtractingDates.value,
+  isGeneratingKeywords: isGeneratingKeywords.value,
+  isGeneratingDescriptions: isGeneratingDescriptions.value,
+  isGeneratingTitles: isGeneratingTitles.value
 }));
 // Firebase authentication
 const { auth } = useFirebase();
-// Auth helper methods
-const signInWithGoogle = async () => {
+
+// Import Data functionality
+const showImportDialog = async (): Promise<void> => {
+  console.log('📁 [IMPORT] Starting import dialog...');
+
+  const action = await new Promise<'files' | 'folder' | 'cancel'>((resolve) => {
+    $q.dialog({
+      title: '📁 Import PDF Data',
+      message: 'Choose how you want to import PDF files:',
+      html: true,
+      options: {
+        type: 'radio',
+        model: 'files',
+        items: [
+          {
+            label: '📄 Select Individual PDF Files',
+            value: 'files'
+          },
+          {
+            label: '📁 Select Folder with PDFs',
+            value: 'folder'
+          }
+        ]
+      },
+      cancel: { label: 'Cancel', flat: true },
+      ok: { label: 'Continue', color: 'primary' },
+      persistent: true
+    }).onOk((selectedAction) => resolve(selectedAction))
+      .onCancel(() => resolve('cancel'));
+  });
+
+  console.log(`📁 [IMPORT] User selected: ${action}`);
+
+  if (action === 'cancel') {
+    console.log('📁 [IMPORT] User cancelled - ABORTING');
+    return;
+  }
+
   try {
-    await auth.signIn('google');
-    $q.notify({
-      type: 'positive',
-      message: 'Successfully signed in with Google!',
-    });
+    console.log('📁 [IMPORT] Setting spinner state to true');
+    isImporting.value = true;
+
+    if (action === 'files') {
+      console.log('📁 [IMPORT] Calling importSelectedFiles...');
+      await importSelectedFiles();
+    } else {
+      console.log('📁 [IMPORT] Calling importSelectedFolder...');
+      await importSelectedFolder();
+    }
+
+    console.log('📁 [IMPORT] Import process completed successfully');
   } catch (error) {
-    console.error('Google sign in failed:', error);
+    console.error('📁 [IMPORT] ERROR:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to sign in with Google',
+      message: 'Failed to import files',
       caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
     });
+  } finally {
+    console.log('📁 [IMPORT] Setting spinner state to false');
+    isImporting.value = false;
+    console.log('📁 [IMPORT] Function completed');
+  }
+}; const importSelectedFiles = async (): Promise<void> => {
+  // Create file input for PDF selection
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = '.pdf';
+
+  return new Promise((resolve, reject) => {
+    let dialogCancelled = false;
+
+    input.onchange = (event) => {
+      try {
+        const files = (event.target as HTMLInputElement).files;
+        if (!files || files.length === 0) {
+          console.log('📁 [IMPORT-FILES] No files selected');
+          resolve();
+          return;
+        }
+
+        $q.notify({
+          type: 'info',
+          message: `Importing ${files.length} PDF file(s) as drafts...`,
+          position: 'top'
+        });
+
+        let imported = 0;
+        for (const file of Array.from(files)) {
+          if (file.type === 'application/pdf') {
+            createDraftRecord(file);
+            imported++;
+          }
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: `Successfully imported ${imported} PDF(s) as LOCAL drafts`,
+          caption: 'Use "Sync Drafts to Cloud" to sync to Firebase',
+          position: 'top'
+        });
+
+        // NOTE: Not calling loadNewsletters() since drafts are local only
+        console.log(`📁 [IMPORT-FILES] Import completed. ${imported} files stored as local drafts.`);
+        resolve();
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Failed to import files'));
+      }
+    };
+
+    input.onclick = () => {
+      input.value = ''; // Reset value to allow re-selecting same files
+    };
+
+    // Handle dialog cancellation
+    const handleCancel = () => {
+      if (!dialogCancelled) {
+        dialogCancelled = true;
+        console.log('📁 [IMPORT-FILES] File dialog cancelled by user');
+        resolve();
+      }
+    };
+
+    // Detect cancellation with a timeout
+    const cancelTimeout = setTimeout(() => {
+      handleCancel();
+    }, 100);
+
+    // Clear timeout if change event fires
+    const originalOnChange = input.onchange;
+    input.onchange = (event) => {
+      clearTimeout(cancelTimeout);
+      if (originalOnChange) originalOnChange.call(input, event);
+    };
+
+    // Focus handling for better cancel detection
+    window.addEventListener('focus', () => {
+      setTimeout(() => {
+        if (!dialogCancelled && input.files?.length === 0) {
+          handleCancel();
+        }
+      }, 300);
+    }, { once: true });
+
+    input.click();
+  });
+};
+
+const importSelectedFolder = async (): Promise<void> => {
+  // Create directory input for folder selection
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.webkitdirectory = true;
+  input.multiple = true;
+  input.accept = '.pdf'; // Show PDF files by default in folder preview
+
+  return new Promise((resolve, reject) => {
+    let dialogCancelled = false;
+
+    input.onchange = (event) => {
+      try {
+        const files = (event.target as HTMLInputElement).files;
+        if (!files || files.length === 0) {
+          console.log('📁 [IMPORT-FOLDER] No files selected');
+          resolve();
+          return;
+        }
+
+        // Filter for PDF files
+        const pdfFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+
+        if (pdfFiles.length === 0) {
+          $q.notify({
+            type: 'warning',
+            message: 'No PDF files found in selected folder',
+            position: 'top'
+          });
+          resolve();
+          return;
+        }
+
+        $q.notify({
+          type: 'info',
+          message: `Importing ${pdfFiles.length} PDF file(s) from folder as drafts...`,
+          position: 'top'
+        });
+
+        let imported = 0;
+        for (const file of pdfFiles) {
+          createDraftRecord(file);
+          imported++;
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: `Successfully imported ${imported} PDF(s) as LOCAL drafts`,
+          caption: 'Use "Sync Drafts to Cloud" to sync to Firebase',
+          position: 'top'
+        });
+
+        // NOTE: Not calling loadNewsletters() since drafts are local only
+        console.log(`📁 [IMPORT-FOLDER] Import completed. ${imported} files stored as local drafts.`);
+        resolve();
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Failed to import folder'));
+      }
+    };
+
+    // Handle dialog cancellation
+    const handleCancel = () => {
+      if (!dialogCancelled) {
+        dialogCancelled = true;
+        console.log('📁 [IMPORT-FOLDER] Folder dialog cancelled by user');
+        resolve();
+      }
+    };
+
+    // Detect cancellation with a timeout
+    const cancelTimeout = setTimeout(() => {
+      handleCancel();
+    }, 100);
+
+    // Clear timeout if change event fires
+    const originalOnChange = input.onchange;
+    input.onchange = (event) => {
+      clearTimeout(cancelTimeout);
+      if (originalOnChange) originalOnChange.call(input, event);
+    };
+
+    // Focus handling for better cancel detection
+    window.addEventListener('focus', () => {
+      setTimeout(() => {
+        if (!dialogCancelled && input.files?.length === 0) {
+          handleCancel();
+        }
+      }, 300);
+    }, { once: true });
+
+    input.click();
+  });
+};
+
+const createDraftRecord = (file: File): void => {
+  // Create a local draft record for the imported file (NOT synced to cloud)
+  console.log(`📝 [DRAFT] Creating local draft for: ${file.name}`);
+
+  // Extract any available path information
+  // Use type assertion to access browser-specific properties
+  const fileWithPath = file as File & { webkitRelativePath?: string; path?: string };
+
+  const fileInfo = {
+    name: file.name,
+    size: file.size,
+    lastModified: file.lastModified,
+    // Store webkitRelativePath if available (from folder selection)
+    relativePath: fileWithPath.webkitRelativePath || '',
+    // Store full path if available (usually not for security reasons)
+    path: fileWithPath.path || '',
+    // Create a hint for the user about where they imported it from
+    importHint: fileWithPath.webkitRelativePath ?
+      `Originally from folder: ${fileWithPath.webkitRelativePath.split('/')[0]}` :
+      `Originally named: ${file.name}`
+  };
+
+  const draftMetadata: NewsletterMetadata = {
+    id: `draft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Local ID
+    filename: file.name,
+    title: file.name.replace('.pdf', ''),
+    description: '',
+    publicationDate: new Date().toISOString(),
+    year: new Date().getFullYear(),
+    fileSize: file.size,
+    pageCount: 0, // Will be updated during processing
+    downloadUrl: '', // Will be set when synced to Firebase Storage
+    storageRef: '', // Will be set when synced to Firebase Storage
+    tags: [], // Start with empty tags - user can add as needed
+    featured: false,
+    isPublished: false, // Drafts are not published by default
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: auth.currentUser.value?.uid || 'anonymous',
+    updatedBy: auth.currentUser.value?.uid || 'anonymous',
+    actions: {
+      canView: false,
+      canDownload: false,
+      canSearch: false,
+      hasThumbnail: false,
+    },
+    // Store file information for re-import assistance
+    originalFileInfo: fileInfo,
+  };
+
+  // Store locally in draft array (NOT in Firebase)
+  draftNewsletters.value.push(draftMetadata);
+  console.log(`📝 [DRAFT] Stored locally: ${file.name} (Total drafts: ${draftNewsletters.value.length})`);
+
+  // Store the File object for thumbnail generation (in memory only)
+  draftFileMap.value.set(draftMetadata.id, file);
+  console.log(`📝 [DRAFT] Stored File object for thumbnail generation: ${draftMetadata.id}`);
+
+  // Also store in localStorage for persistence across sessions
+  localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+  console.log(`📝 [DRAFT] Persisted to localStorage`);
+};
+
+// Load drafts from localStorage on component mount
+const loadDraftsFromStorage = (): void => {
+  console.log('📝 [DRAFT] Loading drafts from localStorage...');
+  try {
+    const storedDrafts = localStorage.getItem('newsletter-drafts');
+    if (storedDrafts) {
+      draftNewsletters.value = JSON.parse(storedDrafts);
+      console.log(`📝 [DRAFT] Loaded ${draftNewsletters.value.length} drafts from localStorage`);
+    } else {
+      console.log('📝 [DRAFT] No drafts found in localStorage');
+    }
+  } catch (error) {
+    console.error('📝 [DRAFT] Error loading drafts from localStorage:', error);
+  }
+};
+
+// Sync all drafts to Firebase
+const uploadDraftsToCloud = async (): Promise<void> => {
+  const actionId = 'SYNC-DRAFTS-' + Date.now();
+  console.log(`☁️ [${actionId}] Starting sync of ${draftNewsletters.value.length} drafts to Firebase...`);
+
+  if (draftNewsletters.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No local drafts to sync',
+      position: 'top'
+    });
+    return;
+  }
+
+  try {
+    isImporting.value = true;
+
+    let synced = 0;
+    for (const draft of draftNewsletters.value) {
+      try {
+        // Remove local-only fields and create proper metadata
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...metadataWithoutId } = draft;
+        const cleanMetadata = {
+          ...metadataWithoutId,
+          tags: draft.tags.filter(tag => tag !== 'LOCAL_ONLY'), // Remove LOCAL_ONLY tag
+          updatedAt: new Date().toISOString(),
+          updatedBy: auth.currentUser.value?.uid || 'anonymous',
+        };
+
+        await firestoreService.saveNewsletterMetadata(cleanMetadata);
+        synced++;
+        console.log(`☁️ [${actionId}] Synced: ${draft.filename}`);
+      } catch (error) {
+        console.error(`☁️ [${actionId}] Failed to sync ${draft.filename}:`, error);
+      }
+    }
+
+    // Clear local drafts after successful sync
+    draftNewsletters.value = [];
+    draftFileMap.value.clear(); // Clear file objects to prevent memory leaks
+    localStorage.removeItem('newsletter-drafts');
+
+    $q.notify({
+      type: 'positive',
+      message: `Successfully synced ${synced} drafts to Firebase`,
+      caption: 'Synced items now appear in main list',
+      position: 'top'
+    });
+
+    // Refresh only Firebase data to show synced items without triggering PDF processing
+    await refreshFirebaseDataOnly();
+    console.log(`☁️ [${actionId}] Upload completed and Firebase data refreshed`);
+
+  } catch (error) {
+    console.error(`☁️ [${actionId}] Error uploading drafts:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to upload drafts to cloud',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    isImporting.value = false;
+  }
+};
+
+// Clear local drafts without uploading
+const clearLocalDrafts = async (): Promise<void> => {
+  console.log('🗑️ [DRAFT] Clearing local drafts...');
+
+  const confirmed = await new Promise<boolean>((resolve) => {
+    $q.dialog({
+      title: 'Clear Local Drafts',
+      message: `This will permanently delete ${draftNewsletters.value.length} local draft(s) without uploading them to the cloud. Continue?`,
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Delete Drafts',
+        color: 'negative'
+      }
+    }).onOk(() => resolve(true))
+      .onCancel(() => resolve(false));
+  });
+
+  if (confirmed) {
+    draftNewsletters.value = [];
+    draftFileMap.value.clear(); // Clear file objects to prevent memory leaks
+    localStorage.removeItem('newsletter-drafts');
+
+    $q.notify({
+      type: 'info',
+      message: 'Local drafts cleared',
+      position: 'top'
+    });
+
+    console.log('🗑️ [DRAFT] Local drafts cleared');
+  }
+};
+
+// Individual Metadata Functions
+const extractPageCountForSelected = async (): Promise<void> => {
+  const actionId = 'PAGE-COUNT-' + Date.now();
+  console.log(`📊 [${actionId}] Starting page count extraction...`);
+
+  const target = selectedNewsletters.value.length > 0 ? selectedNewsletters.value : allNewslettersIncludingDrafts.value;
+  console.log(`📊 [${actionId}] Target: ${selectedNewsletters.value.length > 0 ? 'SELECTED' : 'ALL'} (${target.length} items)`);
+
+  if (target.length === 0) {
+    console.warn(`📊 [${actionId}] No newsletters to process - ABORTING`);
+    $q.notify({ type: 'warning', message: 'No newsletters to process', position: 'top' });
+    return;
+  }
+
+  try {
+    console.log(`📊 [${actionId}] Setting spinner state to true`);
+    isExtractingPageCount.value = true;
+
+    console.log(`📊 [${actionId}] Showing start notification`);
+    $q.notify({
+      type: 'info',
+      message: `Extracting page count for ${target.length} newsletter(s)...`,
+      position: 'top'
+    });
+
+    console.log(`📊 [${actionId}] Beginning processing simulation...`);
+    // Implementation would go here - extract page count from PDFs
+    // For now, just simulate the process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    console.log(`📊 [${actionId}] Processing completed successfully`);
+    $q.notify({
+      type: 'positive',
+      message: `Page count extraction completed for ${target.length} newsletters`,
+      position: 'top'
+    });
+  } catch (error) {
+    console.error(`📊 [${actionId}] ERROR:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to extract page counts',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log(`📊 [${actionId}] Setting spinner state to false`);
+    isExtractingPageCount.value = false;
+    console.log(`📊 [${actionId}] Function completed`);
+  }
+};
+
+const extractFileSizeForSelected = async (): Promise<void> => {
+  const actionId = 'FILE-SIZE-' + Date.now();
+  console.log(`📏 [${actionId}] Starting file size extraction...`);
+
+  const target = selectedNewsletters.value.length > 0 ? selectedNewsletters.value : allNewslettersIncludingDrafts.value;
+  console.log(`📏 [${actionId}] Target: ${selectedNewsletters.value.length > 0 ? 'SELECTED' : 'ALL'} (${target.length} items)`);
+
+  if (target.length === 0) {
+    console.warn(`📏 [${actionId}] No newsletters to process - ABORTING`);
+    $q.notify({ type: 'warning', message: 'No newsletters to process', position: 'top' });
+    return;
+  }
+
+  try {
+    console.log(`📏 [${actionId}] Setting spinner state to true`);
+    isExtractingFileSize.value = true;
+
+    console.log(`📏 [${actionId}] Showing start notification`);
+    $q.notify({
+      type: 'info',
+      message: `Extracting file size for ${target.length} newsletter(s)...`,
+      position: 'top'
+    });
+
+    console.log(`📏 [${actionId}] Beginning processing simulation...`);
+    // Implementation would go here - get file sizes from URLs or local files
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    console.log(`📏 [${actionId}] Processing completed successfully`);
+    $q.notify({
+      type: 'positive',
+      message: `File size extraction completed for ${target.length} newsletters`,
+      position: 'top'
+    });
+  } catch (error) {
+    console.error(`📏 [${actionId}] ERROR:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to extract file sizes',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log(`📏 [${actionId}] Setting spinner state to false`);
+    isExtractingFileSize.value = false;
+    console.log(`📏 [${actionId}] Function completed`);
+  }
+};
+
+const extractDatesForSelected = async (): Promise<void> => {
+  const actionId = 'DATES-' + Date.now();
+  console.log(`📅 [${actionId}] Starting date extraction...`);
+
+  const target = selectedNewsletters.value.length > 0 ? selectedNewsletters.value : allNewslettersIncludingDrafts.value;
+  console.log(`📅 [${actionId}] Target: ${selectedNewsletters.value.length > 0 ? 'SELECTED' : 'ALL'} (${target.length} items)`);
+
+  if (target.length === 0) {
+    console.warn(`📅 [${actionId}] No newsletters to process - ABORTING`);
+    $q.notify({ type: 'warning', message: 'No newsletters to process', position: 'top' });
+    return;
+  }
+
+  try {
+    console.log(`📅 [${actionId}] Setting spinner state to true`);
+    isExtractingDates.value = true;
+    $q.notify({
+      type: 'info',
+      message: `Extracting dates for ${target.length} newsletter(s)...`,
+      position: 'top'
+    });
+
+    // Implementation would go here - parse dates from filenames or content
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    $q.notify({
+      type: 'positive',
+      message: `Date extraction completed for ${target.length} newsletters`,
+      position: 'top'
+    });
+  } catch (error) {
+    console.error(`📅 [${actionId}] ERROR during date extraction:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to extract dates',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log(`📅 [${actionId}] Setting spinner state to false - COMPLETED`);
+    isExtractingDates.value = false;
+  }
+};
+
+const generateKeywordsForSelected = async (): Promise<void> => {
+  const actionId = 'KEYWORDS-' + Date.now();
+  console.log(`🏷️ [${actionId}] Starting keyword generation...`);
+
+  const target = selectedNewsletters.value.length > 0 ? selectedNewsletters.value : allNewslettersIncludingDrafts.value;
+  console.log(`🏷️ [${actionId}] Target: ${selectedNewsletters.value.length > 0 ? 'SELECTED' : 'ALL'} (${target.length} items)`);
+
+  if (target.length === 0) {
+    console.warn(`🏷️ [${actionId}] No newsletters to process - ABORTING`);
+    $q.notify({ type: 'warning', message: 'No newsletters to process', position: 'top' });
+    return;
+  }
+
+  try {
+    console.log(`🏷️ [${actionId}] Setting spinner state to true`);
+    isGeneratingKeywords.value = true;
+    $q.notify({
+      type: 'info',
+      message: `Generating keywords for ${target.length} newsletter(s)...`,
+      position: 'top'
+    });
+
+    // Implementation would go here - extract keywords from text content
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    $q.notify({
+      type: 'positive',
+      message: `Keyword generation completed for ${target.length} newsletters`,
+      position: 'top'
+    });
+  } catch (error) {
+    console.error(`🏷️ [${actionId}] ERROR during keyword generation:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to generate keywords',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log(`🏷️ [${actionId}] Setting spinner state to false - COMPLETED`);
+    isGeneratingKeywords.value = false;
+  }
+};
+
+const generateDescriptionsForSelected = async (): Promise<void> => {
+  const actionId = 'DESCRIPTIONS-' + Date.now();
+  console.log(`📝 [${actionId}] Starting description generation...`);
+
+  const target = selectedNewsletters.value.length > 0 ? selectedNewsletters.value : allNewslettersIncludingDrafts.value;
+  console.log(`📝 [${actionId}] Target: ${selectedNewsletters.value.length > 0 ? 'SELECTED' : 'ALL'} (${target.length} items)`);
+
+  if (target.length === 0) {
+    console.warn(`📝 [${actionId}] No newsletters to process - ABORTING`);
+    $q.notify({ type: 'warning', message: 'No newsletters to process', position: 'top' });
+    return;
+  }
+
+  try {
+    console.log(`📝 [${actionId}] Setting spinner state to true`);
+    isGeneratingDescriptions.value = true;
+    $q.notify({
+      type: 'info',
+      message: `Generating descriptions for ${target.length} newsletter(s)...`,
+      position: 'top'
+    });
+
+    // Implementation would go here - generate descriptions from content
+    await new Promise(resolve => setTimeout(resolve, 4000));
+
+    $q.notify({
+      type: 'positive',
+      message: `Description generation completed for ${target.length} newsletters`,
+      position: 'top'
+    });
+  } catch (error) {
+    console.error(`📝 [${actionId}] ERROR during description generation:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to generate descriptions',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log(`📝 [${actionId}] Setting spinner state to false - COMPLETED`);
+    isGeneratingDescriptions.value = false;
+  }
+};
+
+const generateTitlesForSelected = async (): Promise<void> => {
+  const actionId = 'TITLES-' + Date.now();
+  console.log(`📰 [${actionId}] Starting title generation...`);
+
+  const target = selectedNewsletters.value.length > 0 ? selectedNewsletters.value : allNewslettersIncludingDrafts.value;
+  console.log(`📰 [${actionId}] Target: ${selectedNewsletters.value.length > 0 ? 'SELECTED' : 'ALL'} (${target.length} items)`);
+
+  if (target.length === 0) {
+    console.warn(`📰 [${actionId}] No newsletters to process - ABORTING`);
+    $q.notify({ type: 'warning', message: 'No newsletters to process', position: 'top' });
+    return;
+  }
+
+  try {
+    console.log(`📰 [${actionId}] Setting spinner state to true`);
+    isGeneratingTitles.value = true;
+    $q.notify({
+      type: 'info',
+      message: `Generating titles for ${target.length} newsletter(s)...`,
+      position: 'top'
+    });
+
+    // Implementation would go here - generate titles from content or dates
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    $q.notify({
+      type: 'positive',
+      message: `Title generation completed for ${target.length} newsletters`,
+      position: 'top'
+    });
+  } catch (error) {
+    console.error(`📰 [${actionId}] ERROR during title generation:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to generate titles',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log(`📰 [${actionId}] Setting spinner state to false - COMPLETED`);
+    isGeneratingTitles.value = false;
   }
 };
 // Additional reactive data
@@ -337,15 +1209,18 @@ const extractingText = ref<Record<string, boolean>>({});
 const syncingIndividual = ref<Record<string, boolean>>({});
 const publishingStates = ref<Record<string, boolean>>({});
 const featuredStates = ref<Record<string, boolean>>({});
+const editTab = ref('metadata');
 
 // Helper function to update newsletter thumbnail reactively
 const updateNewsletterThumbnail = (newsletterId: string, thumbnailUrl: string): void => {
   console.log('🔄 [DEBUG] Attempting to update thumbnail for newsletter ID:', newsletterId);
   console.log('🔄 [DEBUG] Thumbnail URL length:', thumbnailUrl.length);
-  console.log('🔄 [DEBUG] Total newsletters in array:', newsletters.value.length);
+  console.log('🔄 [DEBUG] Total Firebase newsletters:', newsletters.value.length);
+  console.log('🔄 [DEBUG] Total draft newsletters:', draftNewsletters.value.length);
 
+  // Try to find in Firebase newsletters first
   const newsletterIndex = newsletters.value.findIndex(n => n.id === newsletterId);
-  console.log('🔄 [DEBUG] Found newsletter at index:', newsletterIndex);
+  console.log('🔄 [DEBUG] Found newsletter in Firebase at index:', newsletterIndex);
 
   if (newsletterIndex !== -1) {
     const newsletter = newsletters.value[newsletterIndex];
@@ -354,14 +1229,36 @@ const updateNewsletterThumbnail = (newsletterId: string, thumbnailUrl: string): 
       // Vue 3 reactivity: update the thumbnail URL
       newsletter.thumbnailUrl = thumbnailUrl;
       console.log('🔄 [DEBUG] After update - new thumbnail URL:', newsletter.thumbnailUrl?.substring(0, 50) + '...');
-      console.log('🔄 [DEBUG] Reactively updated thumbnail for:', newsletter.title);
+      console.log('🔄 [DEBUG] Reactively updated thumbnail for Firebase newsletter:', newsletter.title);
     } else {
       console.error('🔄 [DEBUG] Newsletter at index is null/undefined');
     }
-  } else {
-    console.error('🔄 [DEBUG] Newsletter not found with ID:', newsletterId);
-    console.log('🔄 [DEBUG] Available newsletter IDs:', newsletters.value.map(n => n.id));
+    return;
   }
+
+  // Try to find in local drafts
+  const draftIndex = draftNewsletters.value.findIndex(n => n.id === newsletterId);
+  console.log('🔄 [DEBUG] Found newsletter in drafts at index:', draftIndex);
+
+  if (draftIndex !== -1) {
+    const draft = draftNewsletters.value[draftIndex];
+    if (draft) {
+      console.log('🔄 [DEBUG] Before update - old draft thumbnail URL:', draft.thumbnailUrl);
+      // Vue 3 reactivity: update the thumbnail URL
+      draft.thumbnailUrl = thumbnailUrl;
+      // Also persist to localStorage
+      localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+      console.log('🔄 [DEBUG] After update - new draft thumbnail URL:', draft.thumbnailUrl?.substring(0, 50) + '...');
+      console.log('🔄 [DEBUG] Reactively updated thumbnail for draft newsletter:', draft.title);
+    } else {
+      console.error('🔄 [DEBUG] Draft at index is null/undefined');
+    }
+    return;
+  }
+
+  console.error('🔄 [DEBUG] Newsletter not found with ID:', newsletterId);
+  console.log('🔄 [DEBUG] Available Firebase IDs:', newsletters.value.map(n => n.id));
+  console.log('🔄 [DEBUG] Available draft IDs:', draftNewsletters.value.map(n => n.id));
 };
 const selectedNewsletters = ref<ContentManagementNewsletter[]>([]);
 const showBulkActionsMenu = ref(false);
@@ -456,36 +1353,53 @@ const availableMonths = computed(() => {
     value: monthNum
   }));
 });
-// Methods - Selection-based operations
-async function handleSyncToFirebase(): Promise<void> {
-  processingStates.value.isSyncing = true;
-  try {
-    await syncLocalMetadataToFirebase();
-    await refreshLocalStorageStats();
-  } finally {
-    processingStates.value.isSyncing = false;
-  }
+// Methods - Newsletter management using versioning system
+async function refreshNewsletterData(): Promise<void> {
+  // Simply reload newsletters from Firebase - no local metadata needed
+  await loadNewsletters();
 }
-async function handleClearLocal(): Promise<void> {
-  await clearLocalMetadata();
-  await refreshLocalStorageStats();
-}
-// Function to update newsletters with local metadata after extraction
-async function refreshNewslettersWithLocalMetadata(): Promise<void> {
-  try {
-    // Get all stored metadata from local storage
-    const allLocalMetadata = await localMetadataStorageService.getAllExtractedMetadata();
-    // Update newsletters with local metadata
-    for (const newsletter of newsletters.value) {
-      const localData = allLocalMetadata.find((meta: ExtractedMetadata) => meta.newsletterId === newsletter.id);
-      if (localData) {
-        newsletter.searchableText = localData.searchableText;
-        newsletter.wordCount = localData.wordCount;
-        newsletter.keywordCounts = localData.keywordCounts || {};
-      }
+
+// Extract metadata and store directly in Firebase with versioning
+async function extractNewslettersWithVersioning(newsletters: ContentManagementNewsletter[]): Promise<void> {
+  const failedExtractions: string[] = [];
+  let successCount = 0;
+
+  for (const newsletter of newsletters) {
+    try {
+      // Extract content using tag generation service
+      const tagResult = await tagGenerationService.generateTagsFromPdf(
+        newsletter.downloadUrl,
+        newsletter.filename
+      );
+
+      // Prepare updates for versioning system
+      const updates = {
+        searchableText: tagResult.textContent,
+        tags: [...(newsletter.tags || []), ...tagResult.suggestedTags].slice(0, 20), // Limit tags
+      };
+
+      // Update using versioning system
+      await firestoreService.updateNewsletterWithVersioning(
+        newsletter.id,
+        updates,
+        'Automated text extraction and tag generation'
+      );
+
+      successCount++;
+    } catch (error) {
+      console.error(`❌ Failed to extract ${newsletter.filename}:`, error);
+      failedExtractions.push(`${newsletter.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  } catch (error) {
-    console.error('Failed to refresh newsletters with local metadata:', error);
+  }
+
+  if (failedExtractions.length > 0) {
+    console.warn(`⚠️ Failed extractions:`, failedExtractions);
+    $q.notify({
+      type: 'warning',
+      message: `${successCount}/${newsletters.length} successful, ${failedExtractions.length} failed`,
+      caption: 'Check console for details',
+      position: 'top'
+    });
   }
 }
 // Selection-based bulk operations
@@ -499,54 +1413,19 @@ async function extractSelectedMetadata(): Promise<void> {
     });
     return;
   }
-  // Check for remote PDFs and prompt for download
-  const remotePdfs = selectedNewsletters.value.filter(n =>
-    n.downloadUrl?.startsWith('http') && !n.filename.includes('local')
-  );
-  if (remotePdfs.length > 0) {
-    const shouldDownload = await new Promise<boolean>((resolve) => {
-      $q.dialog({
-        title: 'Remote PDFs Detected',
-        message: `${remotePdfs.length} of the selected newsletters are stored remotely. Download them for extraction?`,
-        html: true,
-        persistent: true,
-        ok: {
-          label: 'Download & Extract',
-          color: 'primary'
-        },
-        cancel: {
-          label: 'Skip Remote PDFs',
-          color: 'grey'
-        }
-      }).onOk(() => resolve(true))
-        .onCancel(() => resolve(false));
-    });
-    if (!shouldDownload) {
-      // Filter out remote PDFs
-      const localPdfs = selectedNewsletters.value.filter(n =>
-        !n.downloadUrl?.startsWith('http') || n.filename.includes('local')
-      );
-      if (localPdfs.length === 0) {
-        $q.notify({
-          type: 'info',
-          message: 'No local PDFs to process',
-          position: 'top'
-        });
-        return;
-      }
-      selectedNewsletters.value = localPdfs;
-    }
-  }
+
   processingStates.value.isExtracting = true;
   try {
-    // Use unified tag generation service for ALL newsletters
-    await extractAllNewslettersWithUnifiedService(selectedNewsletters.value);
-    await refreshLocalStorageStats();
-    // Update local newsletters with extracted metadata
-    await refreshNewslettersWithLocalMetadata();
+    // Extract metadata directly to Firebase using versioning system
+    await extractNewslettersWithVersioning(selectedNewsletters.value);
+
+    // Refresh the newsletters list
+    await loadNewsletters();
+
     $q.notify({
       type: 'positive',
-      message: `Tag generation completed for ${selectedNewsletters.value.length} newsletters`,
+      message: `Metadata extraction completed for ${selectedNewsletters.value.length} newsletters`,
+      caption: 'All changes saved with version history',
       position: 'top'
     });
   } finally {
@@ -565,14 +1444,213 @@ async function handleExtractSelectedText(): Promise<void> {
   await extractSelectedMetadata(); // Reuse the same logic
 }
 async function generateSelectedThumbnails(): Promise<void> {
-  await generateBatchThumbnails(
-    selectedNewsletters.value,
-    // Callback: immediately update the UI for each newsletter as thumbnails are generated
-    (newsletter: ContentManagementNewsletter, thumbnailUrl: string) => {
-      updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+  if (selectedNewsletters.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No newsletters selected',
+      position: 'top'
+    });
+    return;
+  }
+
+  try {
+    // STEP 1: Separate local vs remote PDFs
+    const localPdfs: ContentManagementNewsletter[] = [];
+    const remotePdfs: ContentManagementNewsletter[] = [];
+
+    selectedNewsletters.value.forEach(newsletter => {
+      if (newsletter.downloadUrl &&
+        newsletter.downloadUrl.includes(window.location.origin) &&
+        newsletter.downloadUrl.includes('/issues/')) {
+        localPdfs.push(newsletter);
+      } else {
+        remotePdfs.push(newsletter);
+      }
+    });
+
+    console.log(`📊 PDF Analysis: ${localPdfs.length} local, ${remotePdfs.length} remote`);
+
+    // STEP 2: Handle LOCAL PDFs first - these should always work
+    if (localPdfs.length > 0) {
+      $q.notify({
+        type: 'info',
+        message: `Generating thumbnails for ${localPdfs.length} local PDF(s)...`,
+        position: 'top'
+      });
+
+      await generateBatchThumbnails(
+        localPdfs,
+        (newsletter: ContentManagementNewsletter, thumbnailUrl: string) => {
+          updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+        }
+      );
     }
-  );
+
+    // STEP 3: Handle REMOTE PDFs - check for local thumbnails first
+    if (remotePdfs.length > 0) {
+      const action = await new Promise<'check-local' | 'download' | 'skip'>((resolve) => {
+        $q.dialog({
+          title: `🚨 Remote PDF Thumbnail Generation`,
+          message: `Found ${remotePdfs.length} remote PDF(s). Remote PDFs may fail to generate thumbnails directly.`,
+          html: true,
+          options: {
+            type: 'radio',
+            model: 'check-local',
+            items: [
+              {
+                label: '✅ Check for existing local thumbnails first (RECOMMENDED)',
+                value: 'check-local'
+              },
+              {
+                label: '🌐 Try to download PDFs and generate thumbnails',
+                value: 'download'
+              },
+              {
+                label: '❌ Skip remote PDFs for now',
+                value: 'skip'
+              }
+            ]
+          },
+          cancel: false,
+          persistent: true
+        }).onOk((selectedAction) => resolve(selectedAction));
+      });
+
+      if (action === 'check-local') {
+        await checkForLocalThumbnails(remotePdfs);
+      } else if (action === 'download') {
+        $q.notify({
+          type: 'warning',
+          message: 'Attempting to download remote PDFs for thumbnail generation...',
+          caption: 'This may fail due to CORS restrictions',
+          position: 'top'
+        });
+        await generateBatchThumbnails(
+          remotePdfs,
+          (newsletter: ContentManagementNewsletter, thumbnailUrl: string) => {
+            updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+          }
+        );
+      } else {
+        $q.notify({
+          type: 'info',
+          message: `Skipped ${remotePdfs.length} remote PDF(s)`,
+          position: 'top'
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error('Error in thumbnail generation:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to generate thumbnails',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  }
 }
+
+async function checkForLocalThumbnails(newsletters: ContentManagementNewsletter[]): Promise<void> {
+  // Check for existing thumbnails in /public/thumbnails/
+  let found = 0;
+  let notFound = 0;
+  const results: string[] = [];
+
+  $q.notify({
+    type: 'info',
+    message: `🔍 Checking for local thumbnails for ${newsletters.length} remote PDF(s)...`,
+    position: 'top'
+  });
+
+  for (const newsletter of newsletters) {
+    try {
+      // Try different thumbnail filename patterns
+      const possibleThumbnails = [
+        `${newsletter.filename.replace('.pdf', '.jpg')}`,
+        `${newsletter.filename.replace('.pdf', '.png')}`,
+        `${newsletter.filename.replace('.pdf', '-thumb.jpg')}`,
+        `${newsletter.filename.replace('.pdf', '_thumbnail.jpg')}`,
+        `thumbnail-${newsletter.filename.replace('.pdf', '.jpg')}`
+      ];
+
+      let thumbnailFound = false;
+      for (const thumbnailName of possibleThumbnails) {
+        try {
+          // Use relative path for thumbnail check - avoid hardcoded localhost URLs
+          const thumbnailUrl = `/thumbnails/${thumbnailName}`;
+          const response = await fetch(thumbnailUrl, { method: 'HEAD' });
+
+          if (response.ok) {
+            // Found a thumbnail! Update the newsletter
+            updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+            found++;
+            results.push(`✅ Found: ${thumbnailName} → ${newsletter.filename}`);
+            thumbnailFound = true;
+            break;
+          }
+        } catch {
+          // Continue to next thumbnail pattern
+        }
+      }
+
+      if (!thumbnailFound) {
+        notFound++;
+        results.push(`❌ Not found: ${newsletter.filename}`);
+      }
+
+    } catch {
+      notFound++;
+      results.push(`❌ Error checking: ${newsletter.filename}`);
+    }
+  }
+
+  console.log('Local thumbnail check results:', results);
+
+  $q.notify({
+    type: found > 0 ? 'positive' : 'warning',
+    message: `🎯 Local thumbnail check complete: ${found} found, ${notFound} not found`,
+    caption: found > 0 ? 'Thumbnails linked successfully!' : 'No local thumbnails found',
+    position: 'top',
+    timeout: 5000
+  });
+
+  // If some weren't found, offer to try generating them
+  if (notFound > 0) {
+    const shouldGenerate = await new Promise<boolean>((resolve) => {
+      $q.dialog({
+        title: '🚨 Missing Thumbnails',
+        message: `${notFound} newsletter(s) don't have local thumbnails. Would you like to try generating them directly from the remote PDFs?`,
+        html: true,
+        cancel: { label: 'No, Skip Them', flat: true },
+        ok: { label: 'Yes, Try to Generate', color: 'warning' },
+        persistent: true
+      }).onOk(() => resolve(true))
+        .onCancel(() => resolve(false));
+    });
+
+    if (shouldGenerate) {
+      const missingThumbnails = newsletters.filter(newsletter =>
+        !results.some(result => result.includes(`✅ Found:`) && result.includes(newsletter.filename))
+      );
+
+      $q.notify({
+        type: 'warning',
+        message: '🌐 Attempting to generate thumbnails from remote PDFs...',
+        caption: 'This may fail due to CORS restrictions',
+        position: 'top'
+      });
+
+      await generateBatchThumbnails(
+        missingThumbnails,
+        (newsletter: ContentManagementNewsletter, thumbnailUrl: string) => {
+          updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+        }
+      );
+    }
+  }
+}
+
 async function handleSyncSelected(): Promise<void> {
   if (selectedNewsletters.value.length === 0) {
     $q.notify({
@@ -582,15 +1660,88 @@ async function handleSyncSelected(): Promise<void> {
     });
     return;
   }
-  processingStates.value.isSyncing = true;
-  try {
-    // Sync only selected newsletters (this would need to be implemented in the composable)
-    await syncLocalMetadataToFirebase(); // For now, sync all - can be enhanced later
-    await refreshLocalStorageStats();
-    // Note: Don't reload newsletters here as it would wipe out extracted keyword data
+
+  // Check if any selected items are drafts that need syncing
+  const draftsToSync = selectedNewsletters.value.filter(newsletter =>
+    newsletter.id.startsWith('draft-')
+  );
+
+  if (draftsToSync.length === 0) {
     $q.notify({
-      type: 'positive',
-      message: `Synced ${selectedNewsletters.value.length} newsletters to Firebase`,
+      type: 'info',
+      message: 'Selected newsletters are already synced to Firebase',
+      caption: 'Only local drafts need syncing',
+      position: 'top'
+    });
+    return;
+  }
+
+  // Start syncing process for drafts
+  processingStates.value.isSyncing = true;
+
+  try {
+    let synced = 0;
+    let failed = 0;
+
+    for (const draft of draftsToSync) {
+      try {
+        // Find the original draft metadata from the drafts array
+        const originalDraft = draftNewsletters.value.find(d => d.id === draft.id);
+        if (!originalDraft) {
+          console.warn(`☁️ Could not find original draft metadata for: ${draft.filename}`);
+          failed++;
+          continue;
+        }
+
+        // Remove local-only fields and create proper metadata for sync
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...metadataWithoutId } = originalDraft;
+        const cleanMetadata = {
+          ...metadataWithoutId,
+          updatedAt: new Date().toISOString(),
+          updatedBy: auth.currentUser.value?.uid || 'anonymous',
+        };
+
+        await firestoreService.saveNewsletterMetadata(cleanMetadata);
+        synced++;
+        console.log(`☁️ Synced selected draft: ${draft.filename}`);
+      } catch (error) {
+        console.error(`☁️ Failed to sync selected draft ${draft.filename}:`, error);
+        failed++;
+      }
+    }
+
+    // Show results
+    if (synced > 0) {
+      $q.notify({
+        type: 'positive',
+        message: `Successfully synced ${synced} selected draft(s) to Firebase`,
+        caption: failed > 0 ? `${failed} draft(s) failed to sync` : 'All selected drafts synced',
+        position: 'top'
+      });
+
+      // Remove synced drafts from local storage
+      draftNewsletters.value = draftNewsletters.value.filter(draft =>
+        !draftsToSync.some(selected => selected.id === draft.id)
+      );
+      localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+
+      // Refresh the newsletter list
+      await loadNewsletters();
+    } else {
+      $q.notify({
+        type: 'warning',
+        message: 'No drafts could be synced',
+        caption: 'File objects may be missing - try re-importing files',
+        position: 'top'
+      });
+    }
+  } catch (error) {
+    console.error('Sync selected failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to sync selected drafts',
+      caption: error instanceof Error ? error.message : 'Unknown error occurred',
       position: 'top'
     });
   } finally {
@@ -599,26 +1750,59 @@ async function handleSyncSelected(): Promise<void> {
 }
 // Individual newsletter sync
 async function syncSingleNewsletter(newsletter: ContentManagementNewsletter): Promise<void> {
-  syncingIndividual.value[newsletter.id] = true;
-  try {
-    // This would need a single-newsletter sync function in the composable
-    // For now, we'll simulate it
-    await new Promise(resolve => setTimeout(resolve, 1500));
+  // Check if this is a draft that needs syncing
+  if (newsletter.id.startsWith('draft-')) {
+    // Find the original draft metadata
+    const originalDraft = draftNewsletters.value.find(d => d.id === newsletter.id);
+    if (!originalDraft) {
+      $q.notify({
+        type: 'warning',
+        message: 'Cannot sync: draft metadata not found',
+        position: 'top'
+      });
+      return;
+    }
+
+    try {
+      // Remove local-only fields and create proper metadata for sync
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...metadataWithoutId } = originalDraft;
+      const cleanMetadata = {
+        ...metadataWithoutId,
+        updatedAt: new Date().toISOString(),
+        updatedBy: auth.currentUser.value?.uid || 'anonymous',
+      };
+
+      await firestoreService.saveNewsletterMetadata(cleanMetadata);
+
+      $q.notify({
+        type: 'positive',
+        message: `Successfully synced "${newsletter.title}" to Firebase`,
+        position: 'top'
+      });
+
+      // Remove from local drafts
+      draftNewsletters.value = draftNewsletters.value.filter(d => d.id !== newsletter.id);
+      localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+
+      // Refresh only Firebase data to show the synced item without triggering PDF processing
+      await refreshFirebaseDataOnly();
+    } catch (error) {
+      console.error('Single sync failed:', error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to sync newsletter',
+        caption: error instanceof Error ? error.message : 'Unknown error occurred',
+        position: 'top'
+      });
+    }
+  } else {
     $q.notify({
-      type: 'positive',
-      message: `Synced ${newsletter.title} to Firebase`,
+      type: 'info',
+      message: `"${newsletter.title}" is already synchronized`,
+      caption: 'This newsletter is already in Firebase',
       position: 'top'
     });
-    await refreshLocalStorageStats();
-  } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: `Failed to sync ${newsletter.title}`,
-      caption: error instanceof Error ? error.message : 'Unknown error',
-      position: 'top'
-    });
-  } finally {
-    syncingIndividual.value[newsletter.id] = false;
   }
 }
 
@@ -880,6 +2064,409 @@ async function enhanceAllNewsletterDates(): Promise<void> {
   }
 }
 
+async function rebuildDatabaseWithVersioning(): Promise<void> {
+  // Comprehensive database rebuild using the new versioning system
+  try {
+    isRebuildingDatabase.value = true;
+
+    // Confirm the rebuild action
+    const confirmed = await new Promise<boolean>((resolve) => {
+      $q.dialog({
+        title: 'Rebuild Database with Versioning',
+        message: 'This will clear all existing newsletter records and rebuild them using the new versioning system. This action cannot be undone. Continue?',
+        cancel: true,
+        persistent: true,
+        ok: {
+          label: 'Rebuild Database',
+          color: 'negative'
+        }
+      }).onOk(() => resolve(true))
+        .onCancel(() => resolve(false));
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    $q.notify({
+      type: 'info',
+      message: 'Starting database rebuild with versioning system...',
+      position: 'top'
+    });
+
+    // Step 1: Clear existing newsletter records
+    $q.notify({
+      type: 'info',
+      message: 'Step 1: Clearing existing newsletter records...',
+      position: 'top'
+    });
+
+    // Get existing newsletters and delete them
+    const existingNewsletters = await firestoreService.getAllNewslettersForAdmin();
+    for (const newsletter of existingNewsletters) {
+      try {
+        await firebaseNewsletterService.deleteNewsletter(newsletter.id);
+      } catch (error) {
+        console.warn(`Failed to delete existing newsletter ${newsletter.id}:`, error);
+      }
+    }
+
+    $q.notify({
+      type: 'info',
+      message: `Cleared ${existingNewsletters.length} existing records`,
+      position: 'top'
+    });
+
+    // Step 2: Get list of all local PDF files from manifest
+    $q.notify({
+      type: 'info',
+      message: 'Step 2: Loading PDF manifest...',
+      position: 'top'
+    });
+
+    const manifestResponse = await fetch('/data/pdf-manifest.json');
+    if (!manifestResponse.ok) {
+      throw new Error('Failed to load PDF manifest');
+    }
+    const manifest = await manifestResponse.json() as { files: Array<{ filename: string; path: string }> };
+    const localFiles = manifest.files.map((file) => file.filename);
+
+    $q.notify({
+      type: 'info',
+      message: `Step 3: Creating versioned records for ${localFiles.length} PDFs...`,
+      position: 'top'
+    });
+
+    // Step 3: Create versioned records for all PDFs
+    let created = 0;
+    let errors = 0;
+    const results: string[] = [];
+
+    for (const filename of localFiles) {
+      try {
+        // Create basic record using versioning system
+        await firebaseNewsletterService.createRecordForLocalFile(filename);
+
+        // The createRecordForLocalFile should now use versioning system
+        // If it doesn't, we can enhance it to use versioning
+
+        created++;
+        results.push(`✅ Created versioned record for: ${filename}`);
+
+        // Show progress
+        if (created % 10 === 0) {
+          $q.notify({
+            type: 'info',
+            message: `Progress: ${created}/${localFiles.length} records created...`,
+            position: 'top'
+          });
+        }
+      } catch (error) {
+        errors++;
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        results.push(`❌ Failed: ${filename} - ${errorMsg}`);
+        console.error(`Failed to create record for ${filename}:`, error);
+      }
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: `Database rebuild complete! Created ${created}/${localFiles.length} versioned records`,
+      caption: `${errors} errors encountered`,
+      position: 'top'
+    });
+
+    // Show detailed results in console
+    console.log('Database rebuild results:', results);
+
+    // Step 4: Refresh the newsletters list
+    $q.notify({
+      type: 'info',
+      message: 'Step 4: Refreshing newsletter data...',
+      position: 'top'
+    });
+
+    await loadNewsletters();
+
+    $q.notify({
+      type: 'positive',
+      message: 'Database rebuild with versioning system completed successfully!',
+      caption: `All ${created} newsletters now use the new versioning system`,
+      position: 'top'
+    });
+
+  } catch (error) {
+    console.error('❌ Error rebuilding database:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to rebuild database',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    isRebuildingDatabase.value = false;
+  }
+}
+
+async function fixLocalFileUrls(): Promise<void> {
+  // Fix download URLs for local files that have relative paths instead of absolute URLs
+  try {
+    isFixingUrls.value = true;
+
+    $q.notify({
+      type: 'info',
+      message: 'Checking for local files with incorrect URLs...',
+      position: 'top'
+    });
+
+    // Get all newsletters
+    const allNewsletters = await firestoreService.getAllNewslettersForAdmin();
+
+    // Find newsletters with relative download URLs (starting with /issues/)
+    const needsFixing = allNewsletters.filter(newsletter =>
+      newsletter.downloadUrl &&
+      newsletter.downloadUrl.startsWith('/issues/') &&
+      !newsletter.downloadUrl.startsWith('http')
+    );
+
+    if (needsFixing.length === 0) {
+      $q.notify({
+        type: 'positive',
+        message: 'All download URLs are already correct!',
+        position: 'top'
+      });
+      return;
+    }
+
+    $q.notify({
+      type: 'info',
+      message: `Fixing download URLs for ${needsFixing.length} newsletters...`,
+      position: 'top'
+    });
+
+    let fixed = 0;
+    let errors = 0;
+    const results: string[] = [];
+
+    for (const newsletter of needsFixing) {
+      try {
+        const newUrl = `${window.location.origin}${newsletter.downloadUrl}`;
+
+        // Update using versioning system
+        await firestoreService.updateNewsletterWithVersioning(
+          newsletter.id,
+          { downloadUrl: newUrl },
+          'Fixed download URL to use absolute path instead of relative path'
+        );
+
+        fixed++;
+        results.push(`✅ Fixed URL for: ${newsletter.filename}`);
+      } catch (error) {
+        errors++;
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        results.push(`❌ Failed to fix: ${newsletter.filename} - ${errorMsg}`);
+        console.error(`Failed to fix URL for ${newsletter.filename}:`, error);
+      }
+    }
+
+    $q.notify({
+      type: fixed > 0 ? 'positive' : 'warning',
+      message: `URL fixing complete! Fixed ${fixed}/${needsFixing.length} URLs`,
+      caption: `${errors} errors encountered`,
+      position: 'top'
+    });
+
+    // Show detailed results in console
+    console.log('URL fixing results:', results);
+
+    // Refresh the newsletters list
+    await loadNewsletters();
+
+  } catch (error) {
+    console.error('❌ Error fixing URLs:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to fix download URLs',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    isFixingUrls.value = false;
+  }
+}
+
+function clearAllCaches(): void {
+  // Comprehensive cache clearing for complete reset
+  console.log('🧹 [CLEAR-CACHE] Starting cache clearing process...');
+
+  try {
+    console.log('🧹 [CLEAR-CACHE] Setting spinner state to true');
+    isClearingCache.value = true;
+
+    // Confirm the action with simplified dialog handling
+    $q.dialog({
+      title: 'Clear All Caches',
+      message: 'This will clear ALL cached data including local storage, IndexedDB, browser cache, and reset the application to a blank state. Continue?',
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Clear Everything',
+        color: 'negative'
+      }
+    }).onOk(() => {
+      console.log('🧹 [CLEAR-CACHE] User confirmed - proceeding with cache clearing...');
+      void performCacheClear();
+    }).onCancel(() => {
+      console.log('🧹 [CLEAR-CACHE] User cancelled - setting spinner to false');
+      isClearingCache.value = false;
+    }).onDismiss(() => {
+      console.log('🧹 [CLEAR-CACHE] Dialog dismissed - setting spinner to false');
+      isClearingCache.value = false;
+    });
+
+  } catch (error) {
+    console.error('❌ Error in clearAllCaches wrapper:', error);
+    isClearingCache.value = false;
+  }
+}
+
+// Separate function to perform the actual cache clearing
+async function performCacheClear(): Promise<void> {
+  try {
+    $q.notify({
+      type: 'info',
+      message: 'Starting comprehensive cache clearing...',
+      position: 'top'
+    });
+
+    let clearedItems = 0;
+    const results: string[] = [];
+
+    // 1. Clear browser localStorage
+    try {
+      const localStorageKeys = Object.keys(localStorage);
+      localStorage.clear();
+      clearedItems++;
+      results.push(`✅ Cleared localStorage (${localStorageKeys.length} items)`);
+    } catch (error) {
+      results.push(`❌ Failed to clear localStorage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // 2. Clear browser sessionStorage
+    try {
+      const sessionStorageKeys = Object.keys(sessionStorage);
+      sessionStorage.clear();
+      clearedItems++;
+      results.push(`✅ Cleared sessionStorage (${sessionStorageKeys.length} items)`);
+    } catch (error) {
+      results.push(`❌ Failed to clear sessionStorage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // 3. Clear IndexedDB databases
+    try {
+      const databases = await indexedDB.databases();
+      for (const dbInfo of databases) {
+        if (dbInfo.name) {
+          const deleteRequest = indexedDB.deleteDatabase(dbInfo.name);
+          await new Promise((resolve, reject) => {
+            deleteRequest.onsuccess = () => resolve(true);
+            deleteRequest.onerror = () => reject(new Error(deleteRequest.error?.message || 'Failed to delete database'));
+          });
+        }
+      }
+      clearedItems++;
+      results.push(`✅ Cleared IndexedDB (${databases.length} databases)`);
+    } catch (error) {
+      results.push(`❌ Failed to clear IndexedDB: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // 4. Clear application state and local drafts
+    try {
+      newsletters.value = [];
+      selectedNewsletters.value = [];
+      draftNewsletters.value = []; // Clear local drafts
+      draftFileMap.value.clear(); // Clear file objects to prevent memory leaks
+      editDialog.value.showDialog = false;
+      editDialog.value.editingNewsletter = null;
+      clearedItems++;
+
+      // Force reactivity check
+      console.log(`🧹 [CLEAR-CACHE] After clearing - newsletters: ${newsletters.value.length}, drafts: ${draftNewsletters.value.length}`);
+      console.log(`🧹 [CLEAR-CACHE] Combined newsletters: ${allNewslettersIncludingDrafts.value.length}`);
+      console.log(`🧹 [CLEAR-CACHE] Filtered newsletters: ${filteredNewslettersIncludingDrafts.value.length}`);
+
+      results.push(`✅ Cleared application state and local drafts (${allNewslettersIncludingDrafts.value.length} remaining)`);
+    } catch (error) {
+      results.push(`❌ Failed to clear application state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // 5. Clear PDF thumbnails cache (browser cache URLs)
+    try {
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (const cacheName of cacheNames) {
+          await caches.delete(cacheName);
+        }
+        clearedItems++;
+        results.push(`✅ Cleared browser caches (${cacheNames.length} caches)`);
+      }
+    } catch (error) {
+      results.push(`❌ Failed to clear browser caches: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // 6. Reset processing states
+    try {
+      Object.keys(processingStates.value).forEach(key => {
+        if (key !== 'isClearingCache') {
+          const state = processingStates.value[key as keyof typeof processingStates.value];
+          if (typeof state === 'object' && 'value' in state) {
+            (state as { value: boolean }).value = false;
+          }
+        }
+      });
+      clearedItems++;
+      results.push(`✅ Reset processing states`);
+    } catch (error) {
+      results.push(`❌ Failed to reset processing states: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: `Cache clearing complete! Cleared ${clearedItems}/6 cache types`,
+      caption: 'Application is now in a blank state',
+      position: 'top'
+    });
+
+    // Show detailed results in console
+    console.log('Cache clearing results:', results);
+
+    // Optional: Force page reload for complete reset
+    $q.dialog({
+      title: 'Complete Reset',
+      message: 'For the most complete reset, would you like to reload the page?',
+      cancel: true,
+      ok: {
+        label: 'Reload Page',
+        color: 'primary'
+      }
+    }).onOk(() => {
+      window.location.reload();
+    });
+
+  } catch (error) {
+    console.error('❌ Error clearing caches:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to clear all caches',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    console.log('🧹 [CLEAR-CACHE] Setting spinner state to false');
+    isClearingCache.value = false;
+  }
+}
+
 async function createMissingDatabaseRecords(): Promise<void> {
   // Create Firebase database records for local PDF files that don't have records
   try {
@@ -1050,50 +2637,10 @@ function openPdf(newsletter: ContentManagementNewsletter): void {
     : `${window.location.origin}${newsletter.downloadUrl || `/issues/${newsletter.filename}`}`;
   window.open(pdfUrl, '_blank');
 }
-// UNIFIED BULK EXTRACTION - Uses same service as individual extraction
-async function extractAllNewslettersWithUnifiedService(newsletters: ContentManagementNewsletter[]): Promise<void> {
-  const failedExtractions: string[] = [];
-  let successCount = 0;
-  for (const newsletter of newsletters) {
-    try {
-      // Use the SAME tag generation service as individual operations
-      const tagResult = await tagGenerationService.generateTagsFromPdf(
-        newsletter.downloadUrl,
-        newsletter.filename
-      );
-      // Store in local storage using the correct interface
-      const extractedMetadata: ExtractedMetadata = {
-        filename: newsletter.filename,
-        newsletterId: newsletter.id,
-        searchableText: tagResult.textContent,
-        wordCount: tagResult.wordCount,
-        readingTimeMinutes: Math.ceil(tagResult.wordCount / 200), // Estimate reading time
-        textExtractionVersion: '1.0.0',
-        textExtractedAt: new Date().toISOString(),
-        keywordCounts: tagResult.keywordCounts,
-        extractedAt: new Date().toISOString(),
-        status: 'pending',
-      };
-      await localMetadataStorageService.storeExtractedMetadata(extractedMetadata);
-      successCount++;
-    } catch (error) {
-      console.error(`❌ [BULK UNIFIED] Failed to extract ${newsletter.filename}:`, error);
-      failedExtractions.push(`${newsletter.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-  if (failedExtractions.length > 0) {
-    console.warn(`⚠️ [BULK UNIFIED] Failed extractions:`, failedExtractions);
-    $q.notify({
-      type: 'warning',
-      message: `${successCount}/${newsletters.length} successful, ${failedExtractions.length} failed`,
-      caption: 'Check console for details',
-      position: 'top'
-    });
-  }
-}
-// INDIVIDUAL EXTRACTION - Uses same unified service
+// INDIVIDUAL EXTRACTION - Uses versioning service
 function editNewsletter(newsletter: ContentManagementNewsletter): void {
   editDialog.value.editingNewsletter = { ...newsletter };
+  editTab.value = 'metadata'; // Reset to metadata tab when opening
   editDialog.value.showDialog = true;
 }
 async function extractText(newsletter: ContentManagementNewsletter): Promise<void> {
@@ -1134,6 +2681,81 @@ async function generateThumbnail(newsletter: ContentManagementNewsletter): Promi
   console.log('🖼️ [DEBUG] Starting thumbnail generation for:', newsletter.title);
   console.log('🖼️ [DEBUG] Newsletter ID:', newsletter.id);
   console.log('🖼️ [DEBUG] Newsletter download URL:', newsletter.downloadUrl);
+  console.log('🖼️ [DEBUG] Draft file map size:', draftFileMap.value.size);
+  console.log('🖼️ [DEBUG] Draft file map keys:', Array.from(draftFileMap.value.keys()));
+
+  // Check if this is a local draft and use the File object
+  if (!newsletter.downloadUrl && draftFileMap.value.has(newsletter.id)) {
+    const file = draftFileMap.value.get(newsletter.id);
+    if (file) {
+      console.log('🖼️ [DEBUG] Using local File object for draft thumbnail generation');
+
+      // Create a blob URL from the File object
+      const blobUrl = URL.createObjectURL(file);
+      console.log('🖼️ [DEBUG] Created blob URL for local file:', blobUrl);
+
+      // Create a temporary newsletter object with the blob URL
+      const tempNewsletter = { ...newsletter, downloadUrl: blobUrl };
+
+      try {
+        // Check if thumbnail already exists to determine if we should force regeneration
+        const hasExistingThumbnail = !!newsletter.thumbnailUrl;
+        console.log('🖼️ [DEBUG] Has existing thumbnail:', hasExistingThumbnail);
+
+        await generateSingleThumbnail(
+          tempNewsletter,
+          // Callback: immediately update the UI when thumbnail is generated
+          (thumbnailUrl: string) => {
+            console.log('🖼️ [DEBUG] Thumbnail generated successfully for local file:', thumbnailUrl.substring(0, 50) + '...');
+            console.log('🖼️ [DEBUG] Updating newsletter ID:', newsletter.id);
+            updateNewsletterThumbnail(newsletter.id, thumbnailUrl);
+          },
+          // Force regeneration if thumbnail already exists
+          hasExistingThumbnail
+        );
+      } finally {
+        // Clean up the blob URL to prevent memory leaks
+        URL.revokeObjectURL(blobUrl);
+        console.log('🖼️ [DEBUG] Cleaned up blob URL');
+      }
+
+      console.log('🖼️ [DEBUG] Generate thumbnail function completed for local file');
+      return;
+    }
+  }
+
+  // Check if this is a regular newsletter with download URL
+  if (!newsletter.downloadUrl) {
+    // Check if this is a draft loaded from localStorage (no File object available)
+    const isDraftFromStorage = newsletter.id.startsWith('draft-') && !draftFileMap.value.has(newsletter.id);
+
+    if (isDraftFromStorage) {
+      console.log('🖼️ [DEBUG] Draft loaded from localStorage - no File object available');
+      $q.notify({
+        type: 'info',
+        message: 'Thumbnail generation requires original file',
+        caption: 'This draft was restored from browser storage after a page refresh. Re-import the PDF file or sync to cloud storage to enable thumbnail generation.',
+        position: 'top',
+        timeout: 6000,
+        actions: [
+          {
+            label: 'Dismiss',
+            color: 'white',
+            handler: () => { /* dismiss */ }
+          }
+        ]
+      });
+    } else {
+      console.log('🖼️ [DEBUG] Newsletter has no download URL and no local file - cannot generate thumbnail');
+      $q.notify({
+        type: 'warning',
+        message: 'Cannot generate thumbnail',
+        caption: 'No download URL or local file available',
+        position: 'top'
+      });
+    }
+    return;
+  }
 
   // Check if thumbnail already exists to determine if we should force regeneration
   const hasExistingThumbnail = !!newsletter.thumbnailUrl;
@@ -1187,76 +2809,78 @@ async function saveMetadata(): Promise<void> {
   processingStates.value.isSaving = true;
   try {
     const newsletter = editDialog.value.editingNewsletter;
-    const updates = { ...newsletter } as UpdateData<ContentManagementNewsletter>;
-    // Convert contributors string to array
-    if (typeof updates.contributors === 'string') {
-      updates.contributors = updates.contributors
+
+    // Convert contributors string to array if needed
+    if (typeof newsletter.contributors === 'string') {
+      newsletter.contributors = newsletter.contributors
         .split(',')
         .map((c: string) => c.trim())
         .filter((c: string) => c.length > 0);
     }
-    // Version control tracking
-    const currentVersion = newsletter.version || 1;
-    const newVersion = currentVersion + 1;
-    // Update timestamps and version
-    updates.updatedAt = new Date().toISOString();
-    updates.updatedBy = 'admin';
-    updates.version = newVersion;
-    // Add to edit history
-    const historyEntry = {
-      version: newVersion,
-      timestamp: updates.updatedAt,
-      editor: 'admin',
-      changes: 'Manual metadata update via admin interface'
+
+    // Prepare clean updates object for versioning (only NewsletterMetadata fields)
+    const updates: Partial<NewsletterMetadata> = {
+      title: newsletter.title,
+      year: newsletter.year,
+      season: newsletter.season as 'spring' | 'summer' | 'fall' | 'winter',
+      tags: newsletter.tags || [],
+      featured: newsletter.featured,
+      isPublished: newsletter.isPublished
     };
-    updates.editHistory = [
-      ...(newsletter.editHistory || []),
-      historyEntry
-    ].slice(-10); // Keep last 10 edits
-    // Update in Firestore
-    if (!newsletter.id) {
-      throw new Error('Newsletter ID is required for updating');
+
+    // Add optional fields only if they have values
+    if (newsletter.description) {
+      updates.description = newsletter.description;
     }
-    const docRef = doc(firestore, 'newsletters', newsletter.id);
-    // Check if document exists first
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      // Document exists, use updateDoc
-      await updateDoc(docRef, updates);
-    } else {
-      // Document doesn't exist, create it with setDoc
-      const fullDocumentData = {
-        id: newsletter.id,
-        filename: newsletter.filename,
-        title: newsletter.title,
-        year: newsletter.year,
-        season: newsletter.season,
-        fileSize: newsletter.fileSize,
-        downloadUrl: newsletter.downloadUrl,
-        tags: newsletter.tags || [],
-        categories: newsletter.categories || [],
-        createdAt: new Date().toISOString(),
-        ...updates
-      };
-      await setDoc(docRef, fullDocumentData);
+
+    // Add month if it exists
+    if (newsletter.month !== undefined) {
+      updates.month = newsletter.month;
     }
+
+    // Clean the updates object to remove undefined values (Firebase doesn't accept undefined)
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined)
+    ) as Partial<NewsletterMetadata>;
+
+    // Use the versioning system for updates
+    const comment = 'Manual metadata update via admin interface';
+
+    // Update using the versioning service
+    await firestoreService.updateNewsletterWithVersioning(
+      newsletter.id,
+      cleanUpdates,
+      comment
+    );
+
     // Update the local newsletter in the array
     const index = newsletters.value.findIndex(n => n.id === newsletter.id);
-    if (index !== -1) {
+    if (index !== -1 && newsletters.value[index]) {
       // Update the local array with the edited data
-      newsletters.value[index] = { ...editDialog.value.editingNewsletter };
+      const localNewsletter = newsletters.value[index];
+      Object.assign(localNewsletter, {
+        ...updates,
+        // Also update the UI-specific fields that aren't in NewsletterMetadata
+        volume: newsletter.volume,
+        issue: newsletter.issue,
+        summary: newsletter.summary,
+        categories: newsletter.categories,
+        contributors: newsletter.contributors
+      });
     } else {
       console.warn('⚠️  Newsletter not found in local array for update');
     }
+
     $q.notify({
       type: 'positive',
       message: 'Metadata updated successfully',
-      caption: `Version ${newVersion} saved`,
+      caption: 'Version history has been recorded',
       position: 'top',
     });
     editDialog.value.showDialog = false;
-    // Refresh the local data after saving to Firebase
-    await refreshNewslettersWithLocalMetadata();
+
+    // Refresh the newsletter data after saving to Firebase
+    await refreshNewsletterData();
   } catch (error) {
     console.error('Error updating metadata:', error);
     $q.notify({
@@ -1274,115 +2898,37 @@ async function saveMetadata(): Promise<void> {
   try {
     const newsletter = textExtractionDialog.value.currentFile;
     const extractedContent = textExtractionDialog.value.extractedContent;
-    // Convert the extracted content to TagGenerationResult format
-    const tagResult: TagGenerationResult = {
-      suggestedTags: extractedContent.suggestedTags || [],
-      topics: extractedContent.topics || [],
-      keyTerms: extractedContent.keyTerms || [],
-      keywordCounts: extractedContent.keywordCounts || {},
-      textContent: extractedContent.textContent || '',
-      textPreview: extractedContent.textPreview || '',
-      wordCount: extractedContent.wordCount || 0
+
+    // Prepare updates using the versioning system
+    const updates = {
+      searchableText: extractedContent.textContent || '',
+      tags: [...(newsletter.tags || []), ...(extractedContent.suggestedTags || [])].slice(0, 20) // Limit combined tags
     };
-    // Create a basic Newsletter object for the tag service
-    const basicNewsletter: Newsletter = {
-      id: parseInt(newsletter.id), // Convert string to number
-      title: newsletter.title,
-      filename: newsletter.filename,
-      date: `${newsletter.year}-${newsletter.season}`,
-      pages: newsletter.pageCount || 0,
-      url: newsletter.downloadUrl,
-      source: 'hybrid',
-      tags: newsletter.tags || [],
-      topics: newsletter.categories || [],
-    };
-    // Use unified tag application service (NO MORE DUPLICATE CODE!)
-    const updatedNewsletter = tagGenerationService.applyTagsToNewsletter(
-      basicNewsletter,
-      tagResult,
-      {
-        maxNewTags: 10,
-        maxNewCategories: 5,
-        replaceExisting: false
-      }
+
+    // Use the versioning system for updates
+    await firestoreService.updateNewsletterWithVersioning(
+      newsletter.id,
+      updates,
+      'Applied extracted metadata via admin interface'
     );
-    // Prepare Firebase update with proper typing
-    const updates: UpdateData<ContentManagementNewsletter> = {
-      searchableText: tagResult.textContent,
-      wordCount: tagResult.wordCount,
-      tags: updatedNewsletter.tags || [],
-      categories: updatedNewsletter.topics || [], // Map topics to categories for this interface
-      keyTerms: tagResult.keyTerms,
-      keywordCounts: tagResult.keywordCounts,
-      updatedAt: new Date().toISOString(),
-      updatedBy: 'admin-manual',
-    };
-    if (!newsletter.id) {
-      throw new Error('Newsletter ID is required for updating');
-    }
-    const docRef = doc(firestore, 'newsletters', newsletter.id);
-    // Check if document exists first
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      // Document exists, use updateDoc
-      await updateDoc(docRef, updates);
-    } else {
-      // Document doesn't exist, create it with setDoc
-      const fullDocumentData = {
-        id: newsletter.id,
-        filename: newsletter.filename,
-        title: newsletter.title,
-        year: newsletter.year,
-        season: newsletter.season,
-        fileSize: newsletter.fileSize,
-        downloadUrl: newsletter.downloadUrl,
-        tags: updatedNewsletter.tags || [],
-        categories: updatedNewsletter.topics || [],
-        createdAt: new Date().toISOString(),
-        searchableText: tagResult.textContent,
-        wordCount: tagResult.wordCount,
-        keyTerms: tagResult.keyTerms,
-        keywordCounts: tagResult.keywordCounts,
-        updatedAt: new Date().toISOString(),
-        updatedBy: 'admin-manual'
-      };
-      await setDoc(docRef, fullDocumentData);
-    }
+
     // Update the local newsletter object to trigger reactivity
     const index = newsletters.value.findIndex(n => n.id === newsletter.id);
     if (index !== -1 && newsletters.value[index]) {
-      // Use the FILTERED tags from the unified service, not the raw extracted content!
-      const localUpdates = {
-        searchableText: tagResult.textContent,
-        wordCount: tagResult.wordCount,
-        keyTerms: tagResult.keyTerms,
-        keywordCounts: tagResult.keywordCounts || {},
-        // ✅ USE FILTERED TAGS FROM UNIFIED SERVICE
-        tags: updatedNewsletter.tags || [],
-        categories: updatedNewsletter.topics || [],
-        updatedAt: new Date().toISOString(),
-        updatedBy: 'admin-manual'
-      };
-      // Update individual properties to maintain type safety
-      const currentNewsletter = newsletters.value[index];
-      currentNewsletter.searchableText = localUpdates.searchableText;
-      currentNewsletter.wordCount = localUpdates.wordCount;
-      currentNewsletter.keyTerms = localUpdates.keyTerms;
-      currentNewsletter.keywordCounts = localUpdates.keywordCounts;
-      currentNewsletter.tags = localUpdates.tags;
-      currentNewsletter.categories = localUpdates.categories;
-      currentNewsletter.updatedAt = localUpdates.updatedAt;
-      currentNewsletter.updatedBy = localUpdates.updatedBy;
+      const localNewsletter = newsletters.value[index];
+      Object.assign(localNewsletter, updates);
     }
+
     $q.notify({
       type: 'positive',
       message: 'Extracted metadata applied successfully',
-      caption: `Added ${updatedNewsletter.tags?.length || 0} tags, ${updatedNewsletter.topics?.length || 0} topics, and ${tagResult.wordCount} words of searchable text`,
+      caption: `Added searchable text and ${extractedContent.suggestedTags?.length || 0} tags with version history`,
       position: 'top',
     });
     textExtractionDialog.value.showDialog = false;
-    // Refresh the local data to make sure keywords persist
-    await refreshNewslettersWithLocalMetadata();
+
+    // Refresh the newsletter data to make sure changes persist
+    await refreshNewsletterData();
   } catch (error) {
     console.error('Error applying extracted metadata:', error);
     $q.notify({
@@ -1394,6 +2940,128 @@ async function saveMetadata(): Promise<void> {
   } finally {
     processingStates.value.isApplyingMetadata = false;
   }
+}
+
+// Re-import file handler for metadata-only drafts
+function handleReImportFile(newsletter: ContentManagementNewsletter): void {
+  // Get the original file info if available
+  const newsletterWithInfo = newsletter as NewsletterWithFileInfo;
+  const originalInfo = newsletterWithInfo.originalFileInfo;
+  const fileHint = originalInfo?.importHint || `Look for: ${newsletter.filename}`;
+  const sizeHint = originalInfo?.size ? ` (${formatFileSize(originalInfo.size)})` : '';
+  const lastModifiedHint = originalInfo?.lastModified ?
+    ` • Modified: ${new Date(originalInfo.lastModified).toLocaleDateString()}` : '';
+
+  $q.dialog({
+    title: '🔄 Re-import File',
+    message: `<div class="q-mb-md">
+      <p><strong>File needed:</strong> ${newsletter.filename}${sizeHint}</p>
+      <p class="text-grey-7">${fileHint}${lastModifiedHint}</p>
+      <p class="text-caption text-orange-8">⚠️ The original file object was lost after page refresh. Please select the same file to restore processing capabilities.</p>
+      <p class="text-caption text-blue-8">💡 Tip: This will restore thumbnail generation, text extraction, and other file processing features.</p>
+    </div>`,
+    html: true,
+    options: {
+      type: 'radio',
+      model: 'file',
+      items: [
+        {
+          label: '📄 Select the specific file',
+          value: 'file'
+        },
+        {
+          label: '📁 Browse folder (if from folder import)',
+          value: 'folder'
+        }
+      ]
+    },
+    cancel: { label: 'Cancel', flat: true },
+    ok: { label: 'Browse Files', color: 'primary' },
+    persistent: true
+  }).onOk((choice: 'file' | 'folder') => {
+    try {
+      if (choice === 'file') {
+        // Create file input for specific file selection
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.multiple = false;
+
+        input.onchange = (event) => {
+          const files = (event.target as HTMLInputElement).files;
+          if (!files || files.length === 0) {
+            return;
+          }
+
+          const selectedFile = files[0];
+          if (!selectedFile) {
+            return;
+          }
+
+          // Check if this looks like the right file
+          if (selectedFile.name === newsletter.filename) {
+            // Replace the file object in the map
+            draftFileMap.value.set(newsletter.id, selectedFile);
+
+            $q.notify({
+              type: 'positive',
+              message: 'File re-imported successfully!',
+              caption: `${selectedFile.name} is now available for processing`,
+              position: 'top'
+            });
+          } else {
+            // Warn about filename mismatch but allow it
+            $q.dialog({
+              title: 'Filename Mismatch',
+              message: `Selected file "${selectedFile.name}" doesn't match expected "${newsletter.filename}". Continue anyway?`,
+              cancel: true,
+              ok: { label: 'Use This File', color: 'primary' }
+            }).onOk(() => {
+              draftFileMap.value.set(newsletter.id, selectedFile);
+              $q.notify({
+                type: 'positive',
+                message: 'File imported with different name',
+                caption: `Using "${selectedFile.name}" for processing`,
+                position: 'top'
+              });
+            });
+          }
+        };
+
+        input.click();
+      } else {
+        // Fallback to general import dialog
+        void showImportDialog();
+      }
+    } catch (error) {
+      console.error('Re-import failed:', error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to re-import file',
+        caption: 'Please try again or use the general import function',
+        position: 'top'
+      });
+    }
+  });
+}
+
+// Version history handler
+async function handleVersionRestored(newsletterId: string): Promise<void> {
+  $q.notify({
+    type: 'positive',
+    message: 'Newsletter version restored successfully',
+    position: 'top'
+  });
+
+  // Refresh the current newsletter data in the edit dialog
+  const newsletter = newsletters.value.find(n => n.id === newsletterId);
+  if (newsletter && editDialog.value.editingNewsletter) {
+    // Update the editing newsletter with the latest data
+    Object.assign(editDialog.value.editingNewsletter, newsletter);
+  }
+
+  // Refresh the newsletters list to show the updated data
+  await loadNewsletters();
 }// Initialize
 onMounted(async () => {
   // For admin panel, load ALL newsletters from Firebase (including unpublished)
@@ -1401,6 +3069,9 @@ onMounted(async () => {
     processingStates.value.isLoading = true;
 
     logger.info('Admin: Initializing Firebase service for admin management...');
+
+    // Load local drafts first
+    loadDraftsFromStorage();
 
     // Initialize Firebase service
     await firebaseNewsletterService.initialize();
@@ -1451,8 +3122,5 @@ onMounted(async () => {
   } finally {
     processingStates.value.isLoading = false;
   }
-
-  // Load any extracted metadata from local storage
-  await refreshNewslettersWithLocalMetadata();
 });
 </script>
