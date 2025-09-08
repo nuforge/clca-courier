@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
-import type { NewsItem } from '../components/models';
+import { useFirebase } from '../composables/useFirebase';
+import type { NewsItem } from '../types/core/content.types';
 
 const siteStore = useSiteStore();
+const { auth } = useFirebase();
 const showDialog = ref(false);
 const selectedArticle = ref<NewsItem | null>(null);
 
@@ -19,7 +21,14 @@ const cardClasses = computed(() => {
 
 const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
-); function showArticleDetail(article: NewsItem) {
+);
+
+const isAdmin = computed(() => {
+  return auth.currentUser.value?.email === 'admin@example.com' || // Replace with actual admin check
+    auth.isAuthenticated.value; // For now, any authenticated user can access
+});
+
+function showArticleDetail(article: NewsItem) {
   selectedArticle.value = article;
   showDialog.value = true;
 }
@@ -46,7 +55,9 @@ const greyTextClass = computed(() =>
                 </div>
                 <div class="col-auto">
                   <q-btn color="primary" icon="create" label="Submit Article"
-                    @click="$router.push('/contribute/submit?type=article')" class="q-ml-md" />
+                    @click="$router.push('/contribute/submit?type=article')" class="q-mr-sm" />
+                  <q-btn v-if="isAdmin" color="secondary" icon="mdi-cog" label="Manage Content"
+                    @click="$router.push('/admin/content')" outline />
                 </div>
               </div>
             </q-card-section>

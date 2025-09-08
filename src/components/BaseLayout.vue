@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import AppHeader from './AppHeader.vue';
 import AppNavigation from './AppNavigation.vue';
@@ -29,6 +29,29 @@ const emit = defineEmits<Emits>();
 
 const siteStore = useSiteStore();
 const drawerOpen = ref(false);
+
+// Initialize store data when layout mounts
+onMounted(() => {
+  void siteStore.loadInitialData();
+
+  // Add debug function for testing published content access
+  if (import.meta.env.DEV) {
+    (window as unknown as Record<string, unknown>).testPublishedContent = async () => {
+      try {
+        console.log('Testing published content access...');
+        const { firestoreService } = await import('../services/firebase-firestore.service');
+        const publishedContent = await firestoreService.getPublishedContent();
+        console.log('Published content:', publishedContent);
+        const newsItems = await firestoreService.getPublishedContentAsNewsItems();
+        console.log('News items:', newsItems);
+        return newsItems;
+      } catch (error) {
+        console.error('Error testing published content:', error);
+        throw error;
+      }
+    };
+  }
+});
 
 // Search value management
 const searchValue = computed({

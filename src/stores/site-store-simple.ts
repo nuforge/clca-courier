@@ -111,14 +111,14 @@ export const useSiteStore = defineStore('site', () => {
   async function loadNewsItems() {
     try {
       await delay(100); // Simulate network delay
-      // Load approved content from Firebase instead of static JSON
-      newsItems.value = await firestoreService.getApprovedContentAsNewsItems();
-      logger.success(`Loaded ${newsItems.value.length} news items from Firebase`);
+      // Load published content from Firebase for public news page
+      newsItems.value = await firestoreService.getPublishedContentAsNewsItems();
+      logger.success(`Loaded ${newsItems.value.length} published news items from Firebase`);
 
       // Set up real-time subscription for future updates
       setupNewsSubscription();
     } catch (error) {
-      logger.error('Error loading news items from Firebase:', error);
+      logger.error('Error loading published news items from Firebase:', error);
       // Fallback to empty array if Firebase fails
       newsItems.value = [];
     }
@@ -130,8 +130,8 @@ export const useSiteStore = defineStore('site', () => {
       newsSubscription();
     }
 
-    // Set up new subscription for real-time updates
-    newsSubscription = firestoreService.subscribeToApprovedContent((newItems) => {
+    // Set up new subscription for real-time updates - use published content only for public access
+    newsSubscription = firestoreService.subscribeToPublishedContent((newItems) => {
       newsItems.value = newItems;
       logger.debug(`News items updated via subscription: ${newItems.length} items`);
     });

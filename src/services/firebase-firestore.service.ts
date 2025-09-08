@@ -516,42 +516,140 @@ class FirebaseFirestoreService {
 
   async getPendingContent(): Promise<UserContent[]> {
     try {
-      const q = query(
-        collection(firestore, this.COLLECTIONS.USER_CONTENT),
-        where('status', '==', 'pending'),
-        orderBy('submissionDate', 'asc'),
-      );
-
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as UserContent,
-      );
+      // Try with ordering first (requires index)
+      try {
+        const q = query(
+          collection(firestore, this.COLLECTIONS.USER_CONTENT),
+          where('status', '==', 'pending'),
+          orderBy('submissionDate', 'desc'),
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+      } catch (indexError) {
+        // Fallback: query without ordering if index not ready
+        void indexError; // Explicitly ignore the error for fallback
+        logger.warn('Index not ready, using fallback query without ordering');
+        const q = query(
+          collection(firestore, this.COLLECTIONS.USER_CONTENT),
+          where('status', '==', 'pending'),
+        );
+        const querySnapshot = await getDocs(q);
+        const results = querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+        // Sort in memory as fallback
+        return results.sort((a, b) => {
+          const aDate = new Date(a.submissionDate);
+          const bDate = new Date(b.submissionDate);
+          return bDate.getTime() - aDate.getTime();
+        });
+      }
     } catch (error) {
       logger.error('Error getting pending content:', error);
       throw error;
     }
   }
 
-  async getApprovedContent(): Promise<UserContent[]> {
+  async getPublishedContent(): Promise<UserContent[]> {
     try {
-      const q = query(
-        collection(firestore, this.COLLECTIONS.USER_CONTENT),
-        where('status', 'in', ['approved', 'published']),
-        orderBy('submissionDate', 'desc'),
-      );
-
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(
-        (doc) =>
-          ({
+      logger.debug('Fetching published content...');
+      // Query only for published content (accessible without authentication)
+      try {
+        const q = query(
+          collection(firestore, this.COLLECTIONS.USER_CONTENT),
+          where('status', '==', 'published'),
+          orderBy('submissionDate', 'desc'),
+        );
+        const querySnapshot = await getDocs(q);
+        logger.debug(`Found ${querySnapshot.size} published documents`);
+        const results = querySnapshot.docs.map((doc) => {
+          const data = {
             id: doc.id,
             ...doc.data(),
-          }) as UserContent,
-      );
+          } as UserContent;
+          logger.debug(`Published document: ${doc.id} - ${data.title} - Status: ${data.status}`);
+          return data;
+        });
+        return results;
+      } catch (indexError) {
+        // Fallback: query without ordering if index not ready
+        logger.warn('Index not ready for published content, using fallback query', indexError);
+        const q = query(
+          collection(firestore, this.COLLECTIONS.USER_CONTENT),
+          where('status', '==', 'published'),
+        );
+        const querySnapshot = await getDocs(q);
+        logger.debug(`Fallback query found ${querySnapshot.size} published documents`);
+        const results = querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+        // Sort in memory as fallback
+        return results.sort((a, b) => {
+          const aDate = new Date(a.submissionDate);
+          const bDate = new Date(b.submissionDate);
+          return bDate.getTime() - aDate.getTime();
+        });
+      }
+    } catch (error) {
+      logger.error('Error getting published content:', error);
+      throw error;
+    }
+  }
+
+  async getApprovedContent(): Promise<UserContent[]> {
+    try {
+      // Try with ordering first (requires index)
+      try {
+        const q = query(
+          collection(firestore, this.COLLECTIONS.USER_CONTENT),
+          where('status', 'in', ['approved', 'published']),
+          orderBy('submissionDate', 'desc'),
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+      } catch (indexError) {
+        // Fallback: query without ordering if index not ready
+        void indexError; // Explicitly ignore the error for fallback
+        logger.warn('Index not ready for approved content, using fallback query');
+        const q = query(
+          collection(firestore, this.COLLECTIONS.USER_CONTENT),
+          where('status', 'in', ['approved', 'published']),
+        );
+        const querySnapshot = await getDocs(q);
+        const results = querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+        // Sort in memory as fallback
+        return results.sort((a, b) => {
+          const aDate = new Date(a.submissionDate);
+          const bDate = new Date(b.submissionDate);
+          return bDate.getTime() - aDate.getTime();
+        });
+      }
     } catch (error) {
       logger.error('Error getting approved content:', error);
       throw error;
@@ -569,6 +667,22 @@ class FirebaseFirestoreService {
       photo: 'announcement', // Map photo to announcement
     };
 
+    // Convert Firestore Timestamp to ISO string for NewsItem
+    let dateString: string;
+    if (
+      userContent.submissionDate &&
+      typeof userContent.submissionDate === 'object' &&
+      'seconds' in userContent.submissionDate
+    ) {
+      // Handle Firestore Timestamp
+      const timestamp = userContent.submissionDate as { seconds: number; nanoseconds: number };
+      dateString = new Date(timestamp.seconds * 1000).toISOString();
+    } else if (typeof userContent.submissionDate === 'string') {
+      dateString = userContent.submissionDate;
+    } else {
+      dateString = new Date().toISOString(); // Fallback to current date
+    }
+
     return {
       id: userContent.id,
       title: userContent.title,
@@ -576,23 +690,65 @@ class FirebaseFirestoreService {
         userContent.content.substring(0, 200) + (userContent.content.length > 200 ? '...' : ''),
       content: userContent.content,
       author: userContent.authorName,
-      date: userContent.submissionDate,
+      date: dateString,
       category: categoryMap[userContent.type] || 'news',
       featured: userContent.status === 'published', // Featured if published
     };
   }
 
-  async getApprovedContentAsNewsItems(): Promise<NewsItem[]> {
+  async getPublishedContentAsNewsItems(): Promise<NewsItem[]> {
     try {
-      const userContent = await this.getApprovedContent();
+      const userContent = await this.getPublishedContent();
       return userContent.map((content) => this.convertUserContentToNewsItem(content));
     } catch (error) {
-      logger.error('Error getting approved content as news items:', error);
+      logger.error('Error getting published content as news items:', error);
       throw error;
     }
   }
 
-  // Real-time subscription to approved content
+  async getApprovedContentAsNewsItems(): Promise<NewsItem[]> {
+    try {
+      // For public access, only return published content
+      // Admin interfaces should use getApprovedContent() directly if they need both approved and published
+      const userContent = await this.getPublishedContent();
+      return userContent.map((content) => this.convertUserContentToNewsItem(content));
+    } catch (error) {
+      logger.error('Error getting published content as news items:', error);
+      throw error;
+    }
+  }
+
+  // Real-time subscription to published content (for public news page)
+  subscribeToPublishedContent(callback: (newsItems: NewsItem[]) => void): Unsubscribe {
+    const q = query(
+      collection(firestore, this.COLLECTIONS.USER_CONTENT),
+      where('status', '==', 'published'),
+      orderBy('submissionDate', 'desc'),
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const userContent = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+
+        const newsItems = userContent.map((content) => this.convertUserContentToNewsItem(content));
+        callback(newsItems);
+        logger.debug(`Real-time update: ${newsItems.length} published content items`);
+      },
+      (error) => {
+        logger.error('Error in published content subscription:', error);
+        callback([]); // Return empty array on error
+      },
+    );
+  }
+
+  // Real-time subscription to approved content (for admin interfaces)
   subscribeToApprovedContent(callback: (newsItems: NewsItem[]) => void): Unsubscribe {
     const q = query(
       collection(firestore, this.COLLECTIONS.USER_CONTENT),
@@ -611,6 +767,10 @@ class FirebaseFirestoreService {
             }) as UserContent,
         );
 
+        logger.debug(
+          `Subscription retrieved ${userContent.length} approved content items:`,
+          userContent,
+        );
         const newsItems = userContent.map((content) => this.convertUserContentToNewsItem(content));
         callback(newsItems);
         logger.debug(`Real-time update: ${newsItems.length} approved content items`);

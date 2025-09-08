@@ -59,14 +59,27 @@
                     <!-- Action Buttons -->
                     <q-card class="q-mb-lg">
                         <q-card-section>
-                            <div class="row ">
-                                <q-btn color="primary" icon="mdi-reload" label="Load from Firebase"
-                                    @click="loadNewsletters" :loading="isLoading" unelevated />
-                                <q-btn color="positive" icon="mdi-upload" label="Process Local PDFs → Firebase"
-                                    @click="showProcessDialog" :loading="isProcessing" unelevated />
-                                <q-btn color="orange" icon="mdi-delete-sweep" label="Clear All Caches"
-                                    @click="clearAllCaches" outline />
-                                <q-btn color="info" icon="mdi-bug" label="Debug Info" @click="showDebugInfo" outline />
+                            <div class="row q-col-gutter-md q-mb-md">
+                                <div class="col-auto">
+                                    <q-btn color="secondary" icon="mdi-content-paste" label="Manage Content"
+                                        @click="$router.push('/admin/content')" unelevated />
+                                </div>
+                                <div class="col-auto">
+                                    <q-btn color="primary" icon="mdi-reload" label="Load from Firebase"
+                                        @click="loadNewsletters" :loading="isLoading" unelevated />
+                                </div>
+                                <div class="col-auto">
+                                    <q-btn color="positive" icon="mdi-upload" label="Process Local PDFs → Firebase"
+                                        @click="showProcessDialog" :loading="isProcessing" unelevated />
+                                </div>
+                                <div class="col-auto">
+                                    <q-btn color="orange" icon="mdi-delete-sweep" label="Clear All Caches"
+                                        @click="clearAllCaches" outline />
+                                </div>
+                                <div class="col-auto">
+                                    <q-btn color="info" icon="mdi-bug" label="Debug Info" @click="showDebugInfo"
+                                        outline />
+                                </div>
                             </div>
 
                             <!-- Processing Progress -->

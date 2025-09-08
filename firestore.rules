@@ -33,8 +33,22 @@ service cloud.firestore {
 
     // User-generated content collection
     match /userContent/{contentId} {
+      // Allow anyone to read published content (for news page)
+      allow read: if resource.data.status == 'published';
+      
+      // Allow authenticated users to read ALL content (for admin interface)
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && request.auth.uid == request.resource.data.authorId;
+      
+      // Allow authenticated users to create content (they must be the author)
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.authorId;
+      
+      // Allow authors to update their own content, or authenticated users to update status
+      allow update: if isAuthenticated() && 
+        (request.auth.uid == resource.data.authorId || 
+         request.auth.uid == request.resource.data.reviewedBy);
+      
+      // Allow authenticated users to delete content
+      allow delete: if isAuthenticated();
     }
 
     // Newsletter issues collection
