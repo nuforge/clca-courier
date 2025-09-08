@@ -9,17 +9,18 @@ A modern Vue 3 + Quasar application for managing and distributing the CLCA commu
 - 📰 **Newsletter Archive & Search** - Complete digital archive with advanced search
 - 📁 **Dual PDF Viewer** - PDFTron WebViewer & PDF.js integration
 - 🗺️ **Interactive Community Map** - Google Maps with lot visualization
-- 📧 **Content Submission System** - User-friendly submission workflow
+- 📧 **Content Submission System** - User-friendly submission workflow with Firebase backend
 - **Multi-Provider Authentication** - Google, Facebook, Twitter, GitHub OAuth
 - 📊 **Real-time Database** - Firestore for newsletters and user content
-- 👥 **Role-based Access** - Reader, Contributor, Editor, Admin permissions
+- 👥 **Simple Access Control** - Authentication-based content management
 - 📱 **Responsive Design** - Optimized for all devices
-- 🔄 **Enhanced Admin Interface** - Sync status detection and data source visualization
+- 🔄 **Enhanced Admin Interface** - Comprehensive content review and publishing workflow
 - 📅 **Smart Date Management** - Monthly and seasonal newsletter support with proper sorting
 - 🎯 **Unified Type System** - Single source of truth for newsletter data structures
 - 🛠️ **Professional Code Quality** - Centralized logging, clean architecture, TypeScript strict mode
-- 📋 **Consolidated Admin Interface** - Single comprehensive newsletter management page
+- 📋 **Consolidated Admin Interface** - Single comprehensive content management page
 - 🧹 **Code Quality Standards** - Zero unused imports, proper async/await patterns, type safety
+- 📝 **Public Content Access** - Published content visible to all users without authentication
 
 ## 🚀 Recent Major Updates (September 8, 2025)
 
@@ -147,7 +148,9 @@ Complete documentation available in [`docs/`](./docs/):
 - **Newsletter Metadata**: Complete storage and search in Firestore
 - **User-Generated Content**: Article submissions with approval workflow
 - **File Uploads**: Progress tracking and secure storage
-- **Real-time Collaboration**: Live updates for editors
+- **Real-time Collaboration**: Live updates for content management
+- **Content Status Workflow**: Pending → Approved → Published progression
+- **Public Content Access**: Published content accessible without authentication
 
 ### Security & Performance
 
