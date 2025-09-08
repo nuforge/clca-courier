@@ -44,11 +44,10 @@
             :expanded="store.workflowToolbarExpanded" @import-pdfs="handleImportPdfs"
             @upload-drafts="uploadDraftsToCloud" @clear-drafts="clearLocalDrafts"
             @refresh-data="store.refreshNewsletters" @sync-all="syncAllToFirebase" @backup-data="backupData"
-            @extract-all-text="extractAllTextToFirebase" @generate-all-thumbnails="generateAllThumbnails"
-            @extract-page-count="extractPageCountForSelected" @extract-file-size="extractFileSizeForSelected"
-            @extract-dates="extractDatesForSelected" @generate-keywords="generateKeywordsForSelected"
-            @generate-descriptions="generateDescriptionsForSelected" @generate-titles="generateTitlesForSelected"
-            @toggle-expanded="store.toggleWorkflowToolbar" />
+            @extract-all-text="extractAllTextToFirebase" @extract-page-count="extractPageCountForSelected"
+            @extract-file-size="extractFileSizeForSelected" @extract-dates="extractDatesForSelected"
+            @generate-keywords="generateKeywordsForSelected" @generate-descriptions="generateDescriptionsForSelected"
+            @generate-titles="generateTitlesForSelected" @toggle-expanded="store.toggleWorkflowToolbar" />
 
           <!-- Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="store.filteredNewsletters"
@@ -58,9 +57,8 @@
             :featured-states="store.featuredStates" @update:selected-newsletters="store.setSelectedNewsletters"
             @toggle-featured="toggleNewsletterFeatured" @toggle-published="toggleNewsletterPublished"
             @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
-            @generate-thumbnail="generateThumbnail" @sync-single="syncSingleNewsletter"
-            @show-extracted-content="showExtractedContent" @re-import-file="handleReImportFile"
-            @delete-newsletter="deleteNewsletter" />
+            @sync-single="syncSingleNewsletter" @show-extracted-content="showExtractedContent"
+            @re-import-file="handleReImportFile" @delete-newsletter="deleteNewsletter" />
 
         </div>
       </div>
@@ -70,8 +68,7 @@
     <NewsletterImportDialog v-model="store.showImportDialog" @imported="store.refreshNewsletters" />
 
     <NewsletterEditDialog v-model="store.showEditDialog" :newsletter="store.currentNewsletter"
-      @save-newsletter="saveMetadata" @extract-text="extractText" @generate-thumbnail="generateThumbnail"
-      @sync-newsletter="syncSingleNewsletter" />
+      @save-newsletter="saveMetadata" @extract-text="extractText" @sync-newsletter="syncSingleNewsletter" />
 
     <TextExtractionDialog v-model="store.showTextDialog" :newsletter="store.currentNewsletter" />
   </q-page>
@@ -160,17 +157,6 @@ function extractAllTextToFirebase(): void {
     $q.notify({ type: 'positive', message: 'Text extraction completed' });
   } finally {
     store.isExtractingText = false;
-  }
-}
-
-function generateAllThumbnails(): void {
-  store.isGeneratingThumbs = true;
-  try {
-    logger.info('Generating all thumbnails...');
-    // Implementation for bulk thumbnail generation
-    $q.notify({ type: 'positive', message: 'Thumbnails generated' });
-  } finally {
-    store.isGeneratingThumbs = false;
   }
 }
 
@@ -492,31 +478,6 @@ function extractText(newsletter: ContentManagementNewsletter): void {
     message: `Text extraction should happen during PDF import, not manually`,
     caption: 'Use the import process to extract text content'
   });
-}
-
-async function generateThumbnail(newsletter: ContentManagementNewsletter): Promise<void> {
-  store.thumbnailIndividualStates[newsletter.filename] = true;
-
-  try {
-    logger.info(`Generating thumbnail for ${newsletter.filename}`);
-
-    // Use the WORKING usePdfThumbnails composable that other components use
-    const thumbnailDataUrl = await regenerateThumbnail(newsletter.downloadUrl);
-
-    if (thumbnailDataUrl) {
-      newsletter.thumbnailUrl = thumbnailDataUrl;
-      logger.success(`Thumbnail generated for ${newsletter.filename}`);
-      $q.notify({ type: 'positive', message: `Thumbnail generated for ${newsletter.filename}` });
-    } else {
-      logger.warn(`Failed to generate thumbnail for ${newsletter.filename}`);
-      $q.notify({ type: 'warning', message: `Failed to generate thumbnail for ${newsletter.filename}` });
-    }
-  } catch (error) {
-    logger.error(`Error generating thumbnail for ${newsletter.filename}:`, error);
-    $q.notify({ type: 'negative', message: `Error generating thumbnail for ${newsletter.filename}` });
-  } finally {
-    store.thumbnailIndividualStates[newsletter.filename] = false;
-  }
 }
 
 function syncSingleNewsletter(newsletter: ContentManagementNewsletter): void {

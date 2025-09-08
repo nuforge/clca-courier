@@ -13,7 +13,7 @@
 
       <q-card-section>
         <div class="q-mb-md">
-                    <p class="text-grey-7 q-mb-md">
+          <p class="text-grey-7 q-mb-md">
             Select PDF files to upload. Files will be processed and uploaded to Firebase.
           </p>
         </div>
@@ -237,18 +237,18 @@ async function processFile(fileItem: FileItem): Promise<void> {
   try {
     fileItem.status = 'processing';
     fileItem.progress = 50;
-    
+
     // Simple file upload - no PDF processing, no thumbnails, no metadata extraction
     logger.info(`Processing file: ${fileItem.name}`);
-    
+
     // TODO: Add actual file upload logic here when ready
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload
-    
+
     fileItem.progress = 100;
     fileItem.status = 'completed';
-    
+
     logger.success(`File processed: ${fileItem.name}`);
-    
+
   } catch (error) {
     logger.error(`Processing failed for ${fileItem.name}:`, error);
     fileItem.status = 'error';

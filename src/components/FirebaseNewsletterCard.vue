@@ -342,28 +342,16 @@ const onThumbnailError = () => {
 };
 
 // Generate thumbnail for newsletter (admin only)
-const generateThumbnail = async () => {
+const generateThumbnail = () => {
   try {
     thumbnailGenerating.value = true;
 
-    // Use the working usePdfThumbnails composable
-    const { usePdfThumbnails } = await import('../composables/usePdfThumbnails');
-    const { regenerateThumbnail } = usePdfThumbnails();
-    const thumbnailDataUrl = await regenerateThumbnail(props.newsletter.downloadUrl || '');
-
-    if (thumbnailDataUrl) {
-      // Notify user of success
-      $q.notify({
-        type: 'positive',
-        message: 'Thumbnail regenerated successfully',
-        caption: props.newsletter.filename,
-      });
-
-      // Emit event to parent to refresh data
-      emit('metadataUpdated', props.newsletter.id, { thumbnailUrl: thumbnailDataUrl });
-    } else {
-      throw new Error('Failed to generate thumbnail');
-    }
+    // Thumbnail generation removed - PDF processing disabled
+    $q.notify({
+      type: 'warning',
+      message: 'Thumbnail generation disabled',
+      caption: 'PDF processing functionality removed',
+    });
 
   } catch (error) {
     logger.error('Error generating thumbnail:', error);

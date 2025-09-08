@@ -203,32 +203,56 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { useSimplifiedAdmin } from '../composables/useSimplifiedAdmin';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 
 const $q = useQuasar();
 
-// Composable
-const {
-    newsletters,
-    isLoading,
-    isProcessing,
-    processingStatus,
-    publishedNewsletters,
-    unpublishedNewsletters,
-    featuredNewsletters,
-    totalNewsletters,
-    loadNewsletters,
-    processLocalPdfsToFirebase,
-    updateNewsletter,
-    togglePublished,
-    toggleFeatured,
-    deleteNewsletter,
-    getLocalPdfFilenames,
-} = useSimplifiedAdmin();
+// Basic admin state (simplified without PDF processing)
+const newsletters = ref<NewsletterMetadata[]>([]);
+const isLoading = ref(false);
+const isProcessing = ref(false);
+const processingStatus = ref({ message: '', percentage: 0 });
+const publishedNewsletters = ref<NewsletterMetadata[]>([]);
+const unpublishedNewsletters = ref<NewsletterMetadata[]>([]);
+const featuredNewsletters = ref<NewsletterMetadata[]>([]);
+const totalNewsletters = ref(0);
 
-// Local state
+// Placeholder functions (PDF processing removed)
+const loadNewsletters = () => {
+    // TODO: Implement newsletter loading from Firebase
+    console.log('Loading newsletters...');
+};
+
+const processLocalPdfsToFirebase = (files: string[]) => {
+    // TODO: Implement PDF processing (removed for now)
+    console.log('PDF processing removed for files:', files);
+};
+
+const updateNewsletter = (id: string, updates: Partial<NewsletterMetadata>) => {
+    // TODO: Implement newsletter update
+    console.log('Update newsletter:', id, updates);
+};
+
+const togglePublished = (newsletter: NewsletterMetadata) => {
+    // TODO: Implement publish toggle
+    console.log('Toggle published:', newsletter);
+};
+
+const toggleFeatured = (newsletter: NewsletterMetadata) => {
+    // TODO: Implement featured toggle
+    console.log('Toggle featured:', newsletter);
+};
+
+const deleteNewsletter = (newsletter: NewsletterMetadata) => {
+    // TODO: Implement newsletter deletion
+    console.log('Delete newsletter:', newsletter);
+};
+
+const getLocalPdfFilenames = (): Promise<string[]> => {
+    // TODO: Implement local PDF discovery
+    return Promise.resolve([]);
+};// Local state
 const showProcessingDialog = ref(false);
 const showEditDialog = ref(false);
 const localPdfFiles = ref<string[]>([]);
@@ -283,9 +307,9 @@ const showProcessDialog = async (): Promise<void> => {
     showProcessingDialog.value = true;
 };
 
-const processLocalPdfs = async (): Promise<void> => {
+const processLocalPdfs = (): void => {
     showProcessingDialog.value = false;
-    await processLocalPdfsToFirebase(localPdfFiles.value);
+    processLocalPdfsToFirebase(localPdfFiles.value);
 };
 
 const editNewsletter = (newsletter: NewsletterMetadata): void => {
@@ -298,7 +322,7 @@ const cancelEdit = (): void => {
     showEditDialog.value = false;
 };
 
-const saveEdit = async (): Promise<void> => {
+const saveEdit = (): void => {
     if (!editingNewsletter.value) return;
 
     const updates: Partial<NewsletterMetadata> = {
@@ -312,7 +336,7 @@ const saveEdit = async (): Promise<void> => {
         updates.description = editingNewsletter.value.description;
     }
 
-    await updateNewsletter(editingNewsletter.value.id, updates);
+    updateNewsletter(editingNewsletter.value.id, updates);
     cancelEdit();
 };
 
@@ -365,7 +389,7 @@ const showDebugInfo = (): void => {
         firebaseProject: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'Not set',
         currentUser: firebaseAuthService.getCurrentUser()?.email || 'Not authenticated',
         newsletterCount: newsletters.value.length,
-        firstFewFilenames: newsletters.value.slice(0, 3).map(n => n.filename),
+        firstFewFilenames: newsletters.value.slice(0, 3).map((n: NewsletterMetadata) => n.filename),
         environment: import.meta.env.MODE,
         timestamp: new Date().toISOString(),
         // Additional debug info
@@ -381,7 +405,7 @@ const showDebugInfo = (): void => {
             authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
             databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
         },
-        sampleNewsletterData: newsletters.value.slice(0, 2).map(n => ({
+        sampleNewsletterData: newsletters.value.slice(0, 2).map((n: NewsletterMetadata) => ({
             id: n.id,
             filename: n.filename,
             createdAt: n.createdAt,
@@ -411,7 +435,7 @@ const showDebugInfo = (): void => {
 };
 
 // Load data on mount
-onMounted(async () => {
-    await loadNewsletters();
+onMounted(() => {
+    loadNewsletters();
 });
 </script>
