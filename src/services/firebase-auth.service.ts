@@ -64,6 +64,31 @@ class FirebaseAuthService {
   private avatarCacheExpiry = new Map<string, number>();
   private readonly AVATAR_CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
+  /**
+   * Cache avatar image as data URL to prevent 429 rate limits
+   */
+  private async cacheAvatarImage(photoURL: string, cacheKey: string): Promise<void> {
+    try {
+      const response = await fetch(photoURL);
+      const blob = await response.blob();
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+
+      const now = Date.now();
+      this.avatarCache.set(cacheKey, dataUrl);
+      this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+    } catch (error) {
+      logger.warn('Failed to cache avatar image:', error);
+      // Fallback to original URL if caching fails
+      const now = Date.now();
+      this.avatarCache.set(cacheKey, photoURL);
+      this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+    }
+  }
+
   constructor() {
     this.initializeAuthListener();
   }
@@ -98,6 +123,7 @@ class FirebaseAuthService {
     if (cachedPhotoURL) {
       const now = Date.now();
       const cacheKey = user.uid;
+      const originalPhotoURL = cachedPhotoURL; // Store original URL for caching
 
       // Check if we have a cached version that's still valid
       if (this.avatarCache.has(cacheKey) && this.avatarCacheExpiry.has(cacheKey)) {
@@ -105,14 +131,14 @@ class FirebaseAuthService {
         if (now < expiry) {
           cachedPhotoURL = this.avatarCache.get(cacheKey)!;
         } else {
-          // Cache expired, update it
-          this.avatarCache.set(cacheKey, cachedPhotoURL);
-          this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+          // Cache expired, use cached version while updating in background
+          cachedPhotoURL = this.avatarCache.get(cacheKey)!;
+          void this.cacheAvatarImage(originalPhotoURL, cacheKey);
         }
       } else {
-        // No cache entry, create one
-        this.avatarCache.set(cacheKey, cachedPhotoURL);
-        this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+        // No cache entry, use default avatar while caching
+        cachedPhotoURL = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>')}`;
+        void this.cacheAvatarImage(originalPhotoURL, cacheKey);
       }
     }
 

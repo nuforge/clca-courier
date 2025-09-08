@@ -61,7 +61,7 @@
               <!-- Main Search Bar -->
               <div class="row q-mb-md">
                 <div class="col-12 col-md-8 q-pa-md">
-                  <q-input v-model="searchInput" label="Search newsletters by title, content, tags, year, or season..."
+                  <q-input v-model="searchInput" label="Search newsletters by title, content, tags, year, or month..."
                     outlined dense :class="{ 'bg-grey': !isDarkMode }" clearable :loading="isSearching"
                     @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
                     :aria-label="'Search through ' + (stats?.totalNewsletters || 0) + ' newsletters'" role="searchbox"
@@ -142,13 +142,12 @@
                       </q-select>
                     </div>
 
-                    <!-- Season Filter -->
+                    <!-- Month Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
-                      <q-select v-model="filters.season" :options="seasonOptions" label="Season" outlined dense
-                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
-                        @update:model-value="onFilterChange">
+                      <q-select v-model="filters.month" :options="monthOptions" label="Month" outlined dense clearable
+                        emit-value map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onFilterChange">
                         <template v-slot:prepend>
-                          <q-icon name="wb_sunny" />
+                          <q-icon name="calendar_month" />
                         </template>
                       </q-select>
                     </div>
@@ -216,9 +215,9 @@
                         color="primary" text-color="white" dense role="listitem">
                         Year: {{ filters.year }}
                       </q-chip>
-                      <q-chip v-if="filters.season" removable @remove="filters.season = null; onFilterChange()"
+                      <q-chip v-if="filters.month" removable @remove="filters.month = null; onFilterChange()"
                         color="secondary" text-color="white" dense role="listitem">
-                        Season: {{seasonOptions.find(o => o.value === filters.season)?.label}}
+                        Month: {{monthOptions.find(o => o.value === filters.month)?.label}}
                       </q-chip>
                       <q-chip v-if="filters.pageCount" removable @remove="filters.pageCount = null; onFilterChange()"
                         color="info" text-color="white" dense role="listitem">
@@ -455,7 +454,7 @@ const accessibilityReport = ref<AccessibilityReport | null>(null);
 // Enhanced filters with accessibility options
 const filters = ref({
   year: null as number | null,
-  season: null as string | null,
+  month: null as number | null,
   pageCount: null as string | null,
   featured: false,
   // Boolean filters will default to null if not set
@@ -495,11 +494,19 @@ const sortOptions = [
   { label: 'Fewest Pages', value: 'pages-asc' }
 ];
 
-const seasonOptions = [
-  { label: 'Spring', value: 'spring' },
-  { label: 'Summer', value: 'summer' },
-  { label: 'Fall', value: 'fall' },
-  { label: 'Winter', value: 'winter' }
+const monthOptions = [
+  { label: 'January', value: 1 },
+  { label: 'February', value: 2 },
+  { label: 'March', value: 3 },
+  { label: 'April', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'June', value: 6 },
+  { label: 'July', value: 7 },
+  { label: 'August', value: 8 },
+  { label: 'September', value: 9 },
+  { label: 'October', value: 10 },
+  { label: 'November', value: 11 },
+  { label: 'December', value: 12 }
 ];
 
 const pageCountOptions = [
@@ -518,9 +525,9 @@ const onFilterChange = () => {
   const filterUpdate: Record<string, unknown> = {};
 
   if (filters.value.year) filterUpdate.year = filters.value.year;
-  if (filters.value.season) filterUpdate.season = filters.value.season;
+  if (filters.value.month) filterUpdate.month = filters.value.month;
   if (filters.value.pageCount) filterUpdate.pageCount = filters.value.pageCount;
-  if (filters.value.featured) filterUpdate.featured = filters.value.featured;
+  if (filters.value.featured !== undefined) filterUpdate.featured = filters.value.featured;
 
   filterUpdate.sortBy = sortBy.value;
 
@@ -534,7 +541,7 @@ const onFilterChange = () => {
 const clearAllFilters = () => {
   filters.value = {
     year: null,
-    season: null,
+    month: null,
     pageCount: null,
     featured: false,
     hasDescription: null,

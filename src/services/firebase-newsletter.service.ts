@@ -16,7 +16,7 @@ import { logger } from '../utils/logger';
 
 export interface NewsletterSearchFilters {
   year?: number;
-  season?: string;
+  month?: number; // 1-12 for January-December
   tags?: string[];
   featured?: boolean;
   contentType?: string;
@@ -345,9 +345,16 @@ class FirebaseNewsletterService {
       filtered = filtered.filter((n) => n.year === filters.year);
     }
 
-    // Season filter
-    if (filters.season) {
-      filtered = filtered.filter((n) => n.season === filters.season);
+    // Month filter (simple month matching only - exclude season-only newsletters)
+    if (filters.month) {
+      filtered = filtered.filter((n) => {
+        // Only match newsletters that have a real publication date AND no season
+        if (n.publicationDate && !n.season) {
+          const newsletterMonth = new Date(n.publicationDate).getMonth() + 1;
+          return newsletterMonth === filters.month;
+        }
+        return false;
+      });
     }
 
     // Tags filter - improved to handle partial matches
@@ -363,7 +370,13 @@ class FirebaseNewsletterService {
 
     // Featured filter
     if (filters.featured !== undefined) {
-      filtered = filtered.filter((n) => n.featured === filters.featured);
+      if (filters.featured) {
+        // Show only featured newsletters
+        filtered = filtered.filter((n) => n.featured === true);
+      } else {
+        // Show all newsletters (both non-featured and those without featured property)
+        filtered = filtered.filter((n) => !n.featured);
+      }
     }
 
     // Date range filter

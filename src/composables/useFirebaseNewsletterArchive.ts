@@ -173,7 +173,7 @@ export function useFirebaseNewsletterArchive() {
     const filters = currentFilters.value;
     return !!(
       filters.year ||
-      filters.season ||
+      filters.month ||
       filters.tags?.length ||
       filters.featured !== undefined ||
       filters.contentType ||
@@ -441,9 +441,27 @@ export function useFirebaseNewsletterArchive() {
         }
       });
 
-      // Season suggestions
-      if (newsletter.season?.toLowerCase().includes(queryLower)) {
-        suggestions.add(newsletter.season);
+      // Month suggestions (from publication date or season mapping)
+      if (newsletter.publicationDate) {
+        const monthNames = [
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December',
+        ];
+        const month = new Date(newsletter.publicationDate).getMonth();
+        const monthName = monthNames[month];
+        if (monthName && monthName.toLowerCase().includes(queryLower)) {
+          suggestions.add(monthName);
+        }
       }
     });
 
