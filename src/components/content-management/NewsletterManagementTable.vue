@@ -10,8 +10,8 @@
         <div class="row items-center">
           <!-- Selection Info -->
           <div class="col-auto">
-            <q-checkbox :model-value="isAllSelected" :indeterminate="isIndeterminate" @update:model-value="handleSelectAll"
-              color="white" keep-color class="q-mr-md" />
+            <q-checkbox :model-value="isAllSelected" :indeterminate="isIndeterminate"
+              @update:model-value="handleSelectAll" color="white" keep-color class="q-mr-md" />
             <span class="text-weight-medium">
               {{ selectedCount }} of {{ totalCount }} selected
             </span>
