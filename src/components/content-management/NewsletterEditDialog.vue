@@ -211,22 +211,47 @@ const contributorsString = computed({
   }
 });
 
-// Calculate word count from searchable text if not available
-const calculatedWordCount = computed(() => {
-  if (!localNewsletter.value) return 0;
+// Calculate word count from extracted text data if available, fallback to searchable text
+const calculatedWordCount = ref(0);
+
+// Function to update word count
+async function updateWordCount(): Promise<void> {
+  if (!localNewsletter.value) {
+    calculatedWordCount.value = 0;
+    return;
+  }
 
   // If we already have a word count and it's not 0, use it
   if (localNewsletter.value.wordCount && localNewsletter.value.wordCount > 0) {
-    return localNewsletter.value.wordCount;
+    calculatedWordCount.value = localNewsletter.value.wordCount;
+    return;
+  }
+
+  // Try to get word count from extracted text data
+  try {
+    const response = await fetch('/docs/pdf-text-extraction-2025-09-04.json');
+    const extractedData = await response.json() as Array<{ filename: string; textContent: string; wordCount?: number }>;
+    const extractedEntry = extractedData.find(entry => entry.filename === localNewsletter.value?.filename);
+
+    if (extractedEntry && extractedEntry.textContent) {
+      calculatedWordCount.value = extractedEntry.textContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+      return;
+    }
+  } catch {
+    // Fallback to searchable text if extracted data is not available
+    console.warn('Could not load extracted text data, using searchable text');
   }
 
   // Otherwise calculate from searchable text
   if (localNewsletter.value.searchableText) {
-    return localNewsletter.value.searchableText.trim().split(/\s+/).filter(word => word.length > 0).length;
+    calculatedWordCount.value = localNewsletter.value.searchableText.trim().split(/\s+/).filter(word => word.length > 0).length;
+  } else {
+    calculatedWordCount.value = 0;
   }
+}
 
-  return 0;
-});// Form options
+// Watch for changes to update word count
+watch(() => localNewsletter.value?.filename, updateWordCount, { immediate: true });// Form options
 const seasonOptions = [
   { label: 'Spring', value: 'spring' },
   { label: 'Summer', value: 'summer' },

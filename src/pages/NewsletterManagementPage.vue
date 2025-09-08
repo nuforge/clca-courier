@@ -73,7 +73,8 @@
             @extract-selected-text="handleExtractSelectedText"
             @generate-selected-thumbnails="generateSelectedThumbnails" @sync-selected="handleSyncSelected"
             @bulk-toggle-published="handleBulkTogglePublished" @bulk-toggle-featured="handleBulkToggleFeatured"
-            @bulk-delete="handleBulkDelete" @clear-selection="store.clearSelection" />
+            @bulk-update-word-counts="handleBulkUpdateWordCounts" @bulk-delete="handleBulkDelete"
+            @clear-selection="store.clearSelection" />
 
           <!-- Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="store.filteredNewsletters"
@@ -107,7 +108,7 @@ import { onMounted, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
-import { firestoreService } from '../services/firebase-firestore.service';
+import { firestoreService, type NewsletterMetadata } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
 
@@ -807,6 +808,81 @@ async function handleBulkToggleFeatured(featured: boolean): Promise<void> {
     $q.notify({
       type: 'negative',
       message: 'Failed to update featured status',
+      caption: error instanceof Error ? error.message : 'Unknown error'
+    });
+  } finally {
+    store.isToggling = false;
+  }
+}
+
+async function handleBulkUpdateWordCounts(): Promise<void> {
+  if (store.selectedNewsletters.length === 0) {
+    $q.notify({ type: 'warning', message: 'No newsletters selected' });
+    return;
+  }
+
+  store.isToggling = true;
+  try {
+    logger.info(`Updating word counts for ${store.selectedNewsletters.length} newsletters...`);
+
+    // Load extracted text data
+    let extractedData: Array<{ filename: string; textContent: string; wordCount?: number }> = [];
+    try {
+      const response = await fetch('/docs/pdf-text-extraction-2025-09-04.json');
+      extractedData = await response.json() as Array<{ filename: string; textContent: string; wordCount?: number }>;
+    } catch (error) {
+      logger.error('Failed to load extracted text data:', error);
+      $q.notify({ type: 'negative', message: 'Failed to load extracted text data' });
+      return;
+    }
+
+    let updatedCount = 0;
+    for (const newsletter of store.selectedNewsletters) {
+      try {
+        if (newsletter.id) {
+          // Find extracted data for this newsletter
+          const extractedEntry = extractedData.find(entry => entry.filename === newsletter.filename);
+
+          if (extractedEntry && extractedEntry.textContent) {
+            // Calculate word count from full extracted text
+            const wordCount = extractedEntry.textContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+
+            if (wordCount > 0) {
+              await firestoreService.updateNewsletterMetadata(newsletter.id, {
+                wordCount: wordCount,
+                updatedAt: new Date().toISOString()
+              } as unknown as Partial<NewsletterMetadata>);
+
+              // Update local state
+              newsletter.wordCount = wordCount;
+              logger.success(`Updated ${newsletter.filename} word count: ${wordCount.toLocaleString()} words`);
+              updatedCount++;
+            } else {
+              logger.warn(`No valid text content found for ${newsletter.filename}`);
+            }
+          } else {
+            logger.warn(`No extracted text data found for ${newsletter.filename}`);
+          }
+        }
+      } catch (error) {
+        logger.error(`Failed to update word count for ${newsletter.filename}:`, error);
+      }
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: `Updated word counts for ${updatedCount} newsletters`,
+      caption: `Total newsletters selected: ${store.selectedNewsletters.length}`
+    });
+
+    // Refresh data to show updated word counts
+    await store.refreshNewsletters();
+
+  } catch (error) {
+    logger.error('Bulk word count update failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update word counts',
       caption: error instanceof Error ? error.message : 'Unknown error'
     });
   } finally {

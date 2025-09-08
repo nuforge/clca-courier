@@ -590,6 +590,35 @@ const columns = [
       // Just year if that's all we have
       return row.year ? row.year.toString() : '—';
     },
+    sort: (a: UnifiedNewsletter, b: UnifiedNewsletter) => {
+      const getDateValue = (newsletter: UnifiedNewsletter): number => {
+        if (newsletter.publicationDate) {
+          const date = new Date(newsletter.publicationDate);
+          if (!isNaN(date.getTime())) {
+            return date.getTime();
+          }
+        }
+
+        // Fallback to constructed date
+        if (newsletter.month && newsletter.year) {
+          return new Date(newsletter.year, newsletter.month - 1, 1).getTime();
+        }
+
+        if (newsletter.season && newsletter.year) {
+          const seasonMonth = newsletter.season === 'spring' ? 3 :
+            newsletter.season === 'summer' ? 6 :
+              newsletter.season === 'fall' ? 9 : 12;
+          return new Date(newsletter.year, seasonMonth - 1, 1).getTime();
+        }
+
+        return newsletter.year ? new Date(newsletter.year, 0, 1).getTime() : 0;
+      };
+
+      const aValue = getDateValue(a);
+      const bValue = getDateValue(b);
+
+      return aValue - bValue;
+    },
     align: 'center' as const,
     sortable: true,
     style: 'width: 120px;'

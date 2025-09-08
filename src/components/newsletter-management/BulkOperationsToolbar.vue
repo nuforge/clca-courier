@@ -30,6 +30,12 @@
                         <q-btn color="blue-grey" icon="mdi-star-off" label="Unfeature All"
                             @click="$emit('bulk-toggle-featured', false)" :loading="isToggling" class="q-mr-sm" />
 
+                        <q-separator vertical class="q-mx-sm" />
+
+                        <q-btn color="orange" icon="format_quote" label="Update Word Counts"
+                            @click="$emit('bulk-update-word-counts')" :loading="isToggling" class="q-mr-sm"
+                            hint="Calculate word counts from existing text" />
+
                         <q-btn color="negative" icon="mdi-delete" label="Delete Selected" @click="$emit('bulk-delete')"
                             :loading="isDeleting" class="q-mr-sm" />
                         <q-btn flat icon="mdi-close" label="Clear Selection" @click="$emit('clear-selection')" />
@@ -66,6 +72,7 @@ defineEmits<{
     'sync-selected': [];
     'bulk-toggle-published': [published: boolean];
     'bulk-toggle-featured': [featured: boolean];
+    'bulk-update-word-counts': [];
     'bulk-delete': [];
     'clear-selection': [];
 }>();
