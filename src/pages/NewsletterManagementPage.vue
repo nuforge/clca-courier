@@ -47,7 +47,8 @@
             @extract-all-text="extractAllTextToFirebase" @extract-page-count="extractPageCountForSelected"
             @extract-file-size="extractFileSizeForSelected" @extract-dates="extractDatesForSelected"
             @generate-keywords="generateKeywordsForSelected" @generate-descriptions="generateDescriptionsForSelected"
-            @generate-titles="generateTitlesForSelected" @toggle-expanded="store.toggleWorkflowToolbar" />
+            @generate-titles="generateTitlesForSelected" @generate-thumbnails="generateAllThumbnails"
+            @toggle-expanded="store.toggleWorkflowToolbar" />
 
           <!-- Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="store.filteredNewsletters"
@@ -57,6 +58,7 @@
             :featured-states="store.featuredStates" @update:selected-newsletters="store.setSelectedNewsletters"
             @toggle-featured="toggleNewsletterFeatured" @toggle-published="toggleNewsletterPublished"
             @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
+            @generate-thumbnail="generateThumbnail" @generate-selected-thumbnails="generateSelectedThumbnails"
             @sync-single="syncSingleNewsletter" @show-extracted-content="showExtractedContent"
             @re-import-file="handleReImportFile" @delete-newsletter="deleteNewsletter" />
 
@@ -81,6 +83,7 @@ import { useNewsletterManagementStore } from '../stores/newsletter-management.st
 import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
 // Components
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
@@ -158,6 +161,75 @@ function extractAllTextToFirebase(): void {
   } finally {
     store.isExtractingText = false;
   }
+}
+
+function generateAllThumbnails(): void {
+  const newslettersWithoutThumbnails = store.filteredNewsletters.filter(n => !n.thumbnailUrl);
+
+  if (newslettersWithoutThumbnails.length === 0) {
+    $q.notify({ type: 'info', message: 'All newsletters already have thumbnails' });
+    return;
+  }
+
+  $q.dialog({
+    title: 'Generate All Thumbnails',
+    message: `Generate thumbnails for ${newslettersWithoutThumbnails.length} newsletters without thumbnails?`,
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    store.isGeneratingThumbs = true;
+
+    void (async () => {
+      try {
+        logger.info(`Starting thumbnail generation for ${newslettersWithoutThumbnails.length} newsletters`);
+
+        // Import the service dynamically
+        const { firebaseNewsletterService } = await import('../services/firebase-newsletter.service');
+
+        const validNewsletters = newslettersWithoutThumbnails.filter((n): n is typeof n & { id: string } => !!n.id);
+        const newsletterIds = validNewsletters.map(n => n.id);
+
+        // Show progress notification
+        const progressNotify = $q.notify({
+          type: 'ongoing',
+          message: 'Generating all thumbnails...',
+          caption: '0 of ' + newsletterIds.length + ' completed',
+          timeout: 0,
+          actions: [{ icon: 'close', color: 'white' }]
+        });
+
+        await firebaseNewsletterService.generateMultipleThumbnails(
+          newsletterIds,
+          (completed: number, total: number, current: string) => {
+            progressNotify({
+              message: 'Generating all thumbnails...',
+              caption: `${completed} of ${total} completed${current !== 'Completed' ? ` (${current})` : ''}`
+            });
+          }
+        );
+
+        progressNotify();
+
+        await store.refreshNewsletters();
+
+        $q.notify({
+          type: 'positive',
+          message: `Thumbnails generated for all ${newsletterIds.length} newsletters`,
+          icon: 'mdi-image-multiple'
+        });
+
+      } catch (error) {
+        logger.error('All thumbnails generation failed:', error);
+        $q.notify({
+          type: 'negative',
+          message: `Thumbnail generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          caption: 'Check console for details'
+        });
+      } finally {
+        store.isGeneratingThumbs = false;
+      }
+    });
+  });
 }
 
 // =============================================
@@ -477,6 +549,99 @@ function extractText(newsletter: ContentManagementNewsletter): void {
     type: 'warning',
     message: `Text extraction should happen during PDF import, not manually`,
     caption: 'Use the import process to extract text content'
+  });
+}
+
+function generateThumbnail(newsletter: UnifiedNewsletter): void {
+  logger.debug('generateThumbnail called with:', newsletter);
+
+  if (!newsletter.id) {
+    logger.error('No newsletter ID:', newsletter);
+    $q.notify({ type: 'warning', message: 'Newsletter ID required for thumbnail generation' });
+    return;
+  }
+
+  if (newsletter.thumbnailUrl) {
+    logger.info('Newsletter already has thumbnail:', newsletter.thumbnailUrl);
+    $q.notify({ type: 'info', message: 'Newsletter already has a thumbnail' });
+    return;
+  }
+
+  // For existing newsletters, we can't re-download the PDF due to CORS
+  // Thumbnails should be generated during import
+  $q.notify({
+    type: 'warning',
+    message: 'Thumbnail generation for existing newsletters is not available',
+    caption: 'Thumbnails are generated automatically during PDF import. Re-import the file to generate a thumbnail.',
+    timeout: 5000
+  });
+} function generateSelectedThumbnails(): void {
+  if (store.selectedNewsletters.length === 0) {
+    $q.notify({ type: 'warning', message: 'No newsletters selected' });
+    return;
+  }
+
+  const newslettersWithoutThumbnails = store.selectedNewsletters.filter(n => !n.thumbnailUrl);
+
+  if (newslettersWithoutThumbnails.length === 0) {
+    $q.notify({ type: 'info', message: 'All selected newsletters already have thumbnails' });
+    return;
+  }
+
+  $q.dialog({
+    title: 'Generate Thumbnails',
+    message: `Generate thumbnails for ${newslettersWithoutThumbnails.length} newsletters?`,
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    void (async () => {
+      try {
+        logger.info(`Starting batch thumbnail generation for ${newslettersWithoutThumbnails.length} newsletters`);
+
+        // Import the service dynamically
+        const { firebaseNewsletterService } = await import('../services/firebase-newsletter.service');
+
+        const validNewsletters = newslettersWithoutThumbnails.filter((n): n is typeof n & { id: string } => !!n.id);
+        const newsletterIds = validNewsletters.map(n => n.id);
+
+        // Show progress notification
+        const progressNotify = $q.notify({
+          type: 'ongoing',
+          message: 'Generating thumbnails...',
+          caption: '0 of ' + newsletterIds.length + ' completed',
+          timeout: 0,
+          actions: [{ icon: 'close', color: 'white' }]
+        });
+
+        await firebaseNewsletterService.generateMultipleThumbnails(
+          newsletterIds,
+          (completed: number, total: number, current: string) => {
+            progressNotify({
+              message: 'Generating thumbnails...',
+              caption: `${completed} of ${total} completed${current !== 'Completed' ? ` (${current})` : ''}`
+            });
+          }
+        );
+
+        progressNotify();
+
+        await store.refreshNewsletters();
+
+        $q.notify({
+          type: 'positive',
+          message: `Thumbnails generated for ${newsletterIds.length} newsletters`,
+          icon: 'mdi-image-multiple'
+        });
+
+      } catch (error) {
+        logger.error('Batch thumbnail generation failed:', error);
+        $q.notify({
+          type: 'negative',
+          message: `Batch thumbnail generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          caption: 'Check console for details'
+        });
+      }
+    });
   });
 }
 
