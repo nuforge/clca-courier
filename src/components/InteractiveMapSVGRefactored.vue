@@ -1,24 +1,31 @@
 <template>
   <div :class="['interactive-map-container', backgroundClasses.card, borderClasses.light]">
     <div class="map-content">
-      <!-- SVG Container with original MapSVG as template -->
+      <!-- SVG Container with static template -->
       <div ref="mapContainer" class="map-svg-container">
-        <!-- Original MapSVG component as template -->
-        <MapSVG ref="mapSvgRef" class="original-map-template" :style="{
-          display: isRoadsLoaded ? 'none' : 'block',
-          opacity: isRoadsLoaded ? 0 : 1
-        }" />
+        <!-- Static SVG template for initial loading -->
+        <svg class="original-map-template" width="100%" height="100%" :viewBox="MAP_VIEWBOX"
+          xmlns="http://www.w3.org/2000/svg" :style="{
+            display: isRoadsLoaded ? 'none' : 'block',
+            opacity: isRoadsLoaded ? 0 : 1
+          }">
+          <g :transform="MAP_TRANSFORM">
+            <g v-for="road in ROAD_DATA" :key="`template-${road.id}`" :id="road.id">
+              <path :d="road.pathData" stroke="#323232" stroke-width="2" fill="none" />
+            </g>
+          </g>
+        </svg>
 
         <!-- Interactive overlay SVG -->
         <svg v-if="isRoadsLoaded" ref="interactiveSvgRef" class="interactive-map-svg" width="100%" height="100%"
-          viewBox="0 0 2000 1800" xmlns="http://www.w3.org/2000/svg" :style="{
+          :viewBox="MAP_VIEWBOX" xmlns="http://www.w3.org/2000/svg" :style="{
             transform: `translate(${state.panX}px, ${state.panY}px) scale(${state.zoomLevel})`,
             transition: 'transform 0.3s ease'
           }" @wheel.prevent="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
           @mouseup="handleMouseUp" @mouseleave="handleMouseLeave">
 
           <!-- Layer 1: Render unselected, non-hovered roads first (bottom layer) -->
-          <g class="unselected-roads-layer" transform="matrix(1,0,0,1,-591.034,-160.657)">
+          <g class="unselected-roads-layer" :transform="MAP_TRANSFORM">
             <g v-for="road in unselectedRoads" :key="`unselected-${road.id}`" :id="road.id" :data-road-name="road.name"
               class="road-group">
               <!-- Invisible hit area for easier clicking -->
@@ -84,9 +91,9 @@
           textClasses.primary,
           borderClasses.light
         ]" :style="{
-              left: tooltipPosition.x + 'px',
-              top: tooltipPosition.y + 'px'
-            }" @click="handleTooltipSelection">
+          left: tooltipPosition.x + 'px',
+          top: tooltipPosition.y + 'px'
+        }" @click="handleTooltipSelection">
           {{ tooltipContent }}
         </div>
       </Transition>
@@ -105,7 +112,7 @@
 import { ref, nextTick, onMounted, computed } from 'vue';
 import { useInteractiveMap } from '../composables/useInteractiveMap';
 import { useTheme } from '../composables/useTheme';
-import MapSVG from './MapSVG.vue';
+import { ROAD_DATA, MAP_VIEWBOX, MAP_TRANSFORM } from '../constants/mapSvgData';
 
 // Theme management
 const {
@@ -147,7 +154,7 @@ const {
 
 // Template refs
 const mapContainer = ref<HTMLElement>();
-const mapSvgRef = ref<InstanceType<typeof MapSVG>>();
+const mapSvgRef = ref<SVGSVGElement>();
 const interactiveSvgRef = ref<SVGSVGElement>();
 
 // Mouse interaction state
@@ -172,21 +179,12 @@ const hoveredUnselectedRoad = computed(() =>
     : null
 );
 
-// Initialize the map when the original SVG is mounted
+// Initialize the map when the SVG is mounted
 const onMapSVGMounted = async () => {
   await nextTick();
 
-  if (mapSvgRef.value?.$el) {
-    // The $el might be the SVG element itself, or we need to find it
-    let svgElement: SVGSVGElement | null = null;
-
-    if (mapSvgRef.value.$el instanceof SVGSVGElement) {
-      // The $el is the SVG element itself
-      svgElement = mapSvgRef.value.$el;
-    } else {
-      // Look for SVG element within $el
-      svgElement = mapSvgRef.value.$el.querySelector('svg') as SVGSVGElement;
-    }
+  if (mapSvgRef.value) {
+    const svgElement = mapSvgRef.value;
 
     if (svgElement) {
       console.log('Found SVG element, initializing parser...');
@@ -198,16 +196,16 @@ const onMapSVGMounted = async () => {
         console.warn('SVG structure validation issues:', validation.issues);
       }
     } else {
-      console.error('SVG element not found in MapSVG component');
+      console.error('SVG element not found');
     }
   } else {
-    console.error('MapSVG ref not available or $el not found');
+    console.error('SVG ref not available');
   }
 };
 
 // Initialize the map when component is mounted
 onMounted(async () => {
-  // Use nextTick to ensure the MapSVG component is fully rendered
+  // Use nextTick to ensure the SVG element is fully rendered
   await nextTick();
   await onMapSVGMounted();
 });
