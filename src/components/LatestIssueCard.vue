@@ -57,7 +57,7 @@ const loadThumbnail = async () => {
 // Open the latest issue in the PDF viewer
 const openLatestIssue = () => {
   if (latestIssue.value) {
-    openDocument(latestIssue.value)
+    void openDocument(latestIssue.value)
   }
 }
 

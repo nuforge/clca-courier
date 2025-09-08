@@ -263,8 +263,8 @@ const previewContent = computed((): BaseContentItem => ({
 }));
 
 // Lifecycle
-onMounted(async () => {
-  await loadCategories();
+onMounted(() => {
+  loadCategories();
 
   if (props.editMode && props.existingContent) {
     loadExistingContent();
@@ -281,10 +281,10 @@ watch(() => formData.value.type, (newType) => {
 });
 
 // Methods
-async function loadCategories() {
+function loadCategories() {
   try {
     predefinedCategories.value = contentSubmissionService.getPredefinedCategories();
-    userDefinedCategories.value = await contentSubmissionService.getUserDefinedCategories();
+    userDefinedCategories.value = contentSubmissionService.getUserDefinedCategories();
     filteredCategories.value = allCategories.value;
   } catch {
     $q.notify({

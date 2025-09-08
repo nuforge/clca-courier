@@ -367,7 +367,7 @@ const openWebViewer = () => {
     console.log('Newsletter data:', props.newsletter)
 
     // Use the URL from newsletter (already properly constructed)
-    pdfViewer.openDocument({
+    void pdfViewer.openDocument({
       id: parseInt(props.newsletter.id, 10), // Convert string ID to number
       title: props.newsletter.title,
       date: props.newsletter.publicationDate,

@@ -352,7 +352,7 @@ const openWebViewer = () => {
 
     if (webUrl) {
       // Use the existing PDF viewer
-      pdfViewer.openDocument({
+      void pdfViewer.openDocument({
         id: parseInt(props.newsletter.id, 10), // Convert string ID to number for PDF viewer
         title: props.newsletter.title,
         filename: props.newsletter.filename,

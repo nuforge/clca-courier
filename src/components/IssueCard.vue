@@ -41,7 +41,7 @@ function handleCardClick() {
 
 function handlePdfClick(event: Event) {
   event.stopPropagation() // Prevent card click
-  openDocument(props.issue)
+  void openDocument(props.issue)
 }
 
 function handleRegenerateThumbnail(event: Event) {
