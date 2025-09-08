@@ -311,11 +311,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { ContentManagementNewsletter, ProcessingStates } from 'src/types';
+import type { UnifiedNewsletter } from 'src/types/core/newsletter.types';
+import type { ProcessingStates } from 'src/types/core/content-management.types';
 
 interface Props {
-  newsletters: ContentManagementNewsletter[];
-  selectedNewsletters: ContentManagementNewsletter[];
+  newsletters: UnifiedNewsletter[];
+  selectedNewsletters: UnifiedNewsletter[];
   pagination: {
     sortBy: string;
     descending: boolean;
@@ -333,23 +334,23 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  'update:selectedNewsletters': [newsletters: ContentManagementNewsletter[]];
+  'update:selectedNewsletters': [newsletters: UnifiedNewsletter[]];
   'extract-selected-text': [];
   'generate-selected-thumbnails': [];
   'sync-selected': [];
   'bulk-toggle-featured': [featured: boolean];
   'bulk-toggle-published': [published: boolean];
-  'toggle-featured': [newsletter: ContentManagementNewsletter];
-  'toggle-published': [newsletter: ContentManagementNewsletter];
-  'open-pdf': [newsletter: ContentManagementNewsletter];
-  'edit-newsletter': [newsletter: ContentManagementNewsletter];
-  'extract-text': [newsletter: ContentManagementNewsletter];
-  'generate-thumbnail': [newsletter: ContentManagementNewsletter];
-  'sync-single': [newsletter: ContentManagementNewsletter];
-  'show-extracted-content': [newsletter: ContentManagementNewsletter];
-  'delete-newsletter': [newsletter: ContentManagementNewsletter];
+  'toggle-featured': [newsletter: UnifiedNewsletter];
+  'toggle-published': [newsletter: UnifiedNewsletter];
+  'open-pdf': [newsletter: UnifiedNewsletter];
+  'edit-newsletter': [newsletter: UnifiedNewsletter];
+  'extract-text': [newsletter: UnifiedNewsletter];
+  'generate-thumbnail': [newsletter: UnifiedNewsletter];
+  'sync-single': [newsletter: UnifiedNewsletter];
+  'show-extracted-content': [newsletter: UnifiedNewsletter];
+  'delete-newsletter': [newsletter: UnifiedNewsletter];
   'bulk-delete': [];
-  're-import-file': [newsletter: ContentManagementNewsletter];
+  're-import-file': [newsletter: UnifiedNewsletter];
 }>();
 
 // Local reactive state
@@ -365,8 +366,8 @@ const sortedNewsletters = computed(() => {
   if (!sortBy) return props.newsletters;
 
   const sorted = [...props.newsletters].sort((a, b) => {
-    let aVal = a[sortBy as keyof ContentManagementNewsletter];
-    let bVal = b[sortBy as keyof ContentManagementNewsletter];
+    let aVal = a[sortBy as keyof UnifiedNewsletter];
+    let bVal = b[sortBy as keyof UnifiedNewsletter];
 
     // Handle undefined values
     if (aVal === undefined && bVal === undefined) return 0;
@@ -488,11 +489,11 @@ const columns = [
   {
     name: 'date',
     label: 'Date',
-    field: (row: ContentManagementNewsletter) => row.month ? `${row.month}/${row.year}` : `${row.season}/${row.year}`,
+    field: (row: UnifiedNewsletter) => row.month ? `${row.month}/${row.year}` : `${row.season}/${row.year}`,
     align: 'center' as const,
     sortable: true,
     style: 'width: 120px;',
-    sort: (a: ContentManagementNewsletter, b: ContentManagementNewsletter) => {
+    sort: (a: UnifiedNewsletter, b: UnifiedNewsletter) => {
       // Custom sorting: prioritize months, then seasons, then year
       const aValue = a.month ? (a.year * 100 + a.month) : (a.year * 100 + (a.season === 'spring' ? 3 : a.season === 'summer' ? 6 : a.season === 'fall' ? 9 : 12));
       const bValue = b.month ? (b.year * 100 + b.month) : (b.year * 100 + (b.season === 'spring' ? 3 : b.season === 'summer' ? 6 : b.season === 'fall' ? 9 : 12));
@@ -604,7 +605,7 @@ function clearSelection() {
   emit('update:selectedNewsletters', []);
 }
 
-function handleRowClick(evt: Event, row: ContentManagementNewsletter) {
+function handleRowClick(evt: Event, row: UnifiedNewsletter) {
   // Toggle selection on row click (excluding action areas)
   const target = evt.target as HTMLElement;
   if (target.closest('.quick-actions') || target.closest('.hover-actions')) {
@@ -614,7 +615,7 @@ function handleRowClick(evt: Event, row: ContentManagementNewsletter) {
   toggleRowSelection(row, !props.selectedNewsletters.some(n => n.id === row.id));
 }
 
-function toggleRowSelection(row: ContentManagementNewsletter, selected: boolean) {
+function toggleRowSelection(row: UnifiedNewsletter, selected: boolean) {
   if (selected) {
     emit('update:selectedNewsletters', [...props.selectedNewsletters, row]);
   } else {
@@ -622,7 +623,7 @@ function toggleRowSelection(row: ContentManagementNewsletter, selected: boolean)
   }
 }
 
-function isLocalPdf(newsletter: ContentManagementNewsletter): boolean {
+function isLocalPdf(newsletter: UnifiedNewsletter): boolean {
   return !newsletter.downloadUrl?.startsWith('http') || newsletter.filename.includes('local');
 }
 
@@ -636,11 +637,11 @@ function bulkTogglePublished(published: boolean) {
 }
 
 // Individual toggles
-function toggleFeatured(newsletter: ContentManagementNewsletter) {
+function toggleFeatured(newsletter: UnifiedNewsletter) {
   emit('toggle-featured', newsletter);
 }
 
-function togglePublished(newsletter: ContentManagementNewsletter) {
+function togglePublished(newsletter: UnifiedNewsletter) {
   emit('toggle-published', newsletter);
 }
 </script>

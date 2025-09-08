@@ -6,7 +6,6 @@
 import {
   doc,
   getDoc,
-  setDoc,
   updateDoc,
   deleteDoc,
   deleteField,
@@ -26,6 +25,7 @@ import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
 import { newsletterVersioningService } from './newsletter-versioning.service';
 import { logger } from '../utils/logger';
+import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
 
 // Newsletter metadata interface (Firebase Storage with future flexibility)
@@ -192,7 +192,7 @@ class FirebaseFirestoreService {
         throw new Error('User must be authenticated to save newsletter metadata');
       }
 
-      const docRef = await addDoc(collection(firestore, this.COLLECTIONS.NEWSLETTERS), {
+      const docRef = await safeAddDoc(collection(firestore, this.COLLECTIONS.NEWSLETTERS), {
         ...metadata,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -232,8 +232,8 @@ class FirebaseFirestoreService {
 
       const docRef = doc(firestore, this.COLLECTIONS.NEWSLETTERS, id);
 
-      // Use setDoc with merge to create document if it doesn't exist, or update if it does
-      await setDoc(
+      // Use safeSetDoc with merge to create document if it doesn't exist, or update if it does
+      await safeSetDoc(
         docRef,
         {
           ...updates,
@@ -539,7 +539,7 @@ class FirebaseFirestoreService {
   async createUserProfile(profile: Omit<UserProfile, 'createdAt' | 'lastLoginAt'>): Promise<void> {
     try {
       const docRef = doc(firestore, this.COLLECTIONS.USER_PROFILES, profile.uid);
-      await setDoc(docRef, {
+      await safeSetDoc(docRef, {
         ...profile,
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),

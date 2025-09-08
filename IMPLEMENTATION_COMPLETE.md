@@ -104,7 +104,7 @@
 
 ## 📝 CONVERSATION SUMMARY
 
-**User Frustration**: Let's get this to a MVP workable state... RIght now I JUST WANT TO POPULATE A DATABASE WITH META DATA... Let's AUTOMATICALLY UPLOAD AND UPDATE changes in firebase and ignore any local syncing bullsh\*t."
+**User Frustration**: Let's get this to a MVP workable state... RIght now I JUST WANT TO POPULATE A DATABASE WITH META DATA... Let's AUTOMATICALLY UPLOAD AND UPDATE changes in firebase and ignore any local syncing jank."
 
 **Solution Delivered**:
 

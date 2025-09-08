@@ -6,7 +6,7 @@
  */
 import { ref, reactive } from 'vue';
 import { Notify } from 'quasar';
-import type { ContentManagementNewsletter } from 'src/types/core/content-management.types';
+import type { UnifiedNewsletter } from 'src/types/core/newsletter.types';
 import { EnhancedThumbnailService } from 'src/services/enhanced-thumbnail.service';
 
 export interface ThumbnailProgress {
@@ -36,7 +36,7 @@ export function useThumbnailManagement() {
    * Generate thumbnail for a single newsletter with reactive UI update
    */
   const generateSingleThumbnail = async (
-    newsletter: ContentManagementNewsletter,
+    newsletter: UnifiedNewsletter,
     onThumbnailGenerated?: (thumbnailUrl: string) => void,
     forceRegenerate = false,
   ): Promise<boolean> => {
@@ -89,8 +89,8 @@ export function useThumbnailManagement() {
    * Generate thumbnails for multiple newsletters with progress tracking and reactive updates
    */
   const generateBatchThumbnails = async (
-    newsletters: ContentManagementNewsletter[],
-    onThumbnailGenerated?: (newsletter: ContentManagementNewsletter, thumbnailUrl: string) => void,
+    newsletters: UnifiedNewsletter[],
+    onThumbnailGenerated?: (newsletter: UnifiedNewsletter, thumbnailUrl: string) => void,
   ): Promise<void> => {
     if (newsletters.length === 0) {
       Notify.create({
@@ -184,7 +184,7 @@ export function useThumbnailManagement() {
   /**
    * Check if newsletter has cached thumbnail
    */
-  const hasCachedThumbnail = async (newsletter: ContentManagementNewsletter): Promise<boolean> => {
+  const hasCachedThumbnail = async (newsletter: UnifiedNewsletter): Promise<boolean> => {
     return await thumbnailService.hasCachedThumbnail(newsletter.filename);
   };
 
@@ -192,7 +192,7 @@ export function useThumbnailManagement() {
    * Get cached thumbnail with fallback generation
    */
   const getThumbnailWithFallback = async (
-    newsletter: ContentManagementNewsletter,
+    newsletter: UnifiedNewsletter,
   ): Promise<string | null> => {
     return await thumbnailService.getThumbnailWithFallback(newsletter);
   };
@@ -201,9 +201,9 @@ export function useThumbnailManagement() {
    * Get newsletters that need thumbnails
    */
   const getNewslettersNeedingThumbnails = async (
-    newsletters: ContentManagementNewsletter[],
-  ): Promise<ContentManagementNewsletter[]> => {
-    const needingThumbnails: ContentManagementNewsletter[] = [];
+    newsletters: UnifiedNewsletter[],
+  ): Promise<UnifiedNewsletter[]> => {
+    const needingThumbnails: UnifiedNewsletter[] = [];
 
     for (const newsletter of newsletters) {
       const hasCached = await hasCachedThumbnail(newsletter);
@@ -219,7 +219,7 @@ export function useThumbnailManagement() {
    * Generate missing thumbnails for provided newsletters
    */
   const generateMissingThumbnails = async (
-    newsletters: ContentManagementNewsletter[],
+    newsletters: UnifiedNewsletter[],
   ): Promise<void> => {
     const missingThumbnails = await getNewslettersNeedingThumbnails(newsletters);
 

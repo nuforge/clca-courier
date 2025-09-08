@@ -1,53 +1,175 @@
 /**
  * Newsletter and Publication Types
- * Consolidated from newsletter-interfaces.ts and related files
+ * UNIFIED TYPE SYSTEM - Consolidates all newsletter interfaces into one canonical type
  */
 
 import type { BaseContentDocument, BaseContentHistory } from './versioning.types';
 
-/**
- * Unified Newsletter Interface
- * Consolidates LightweightNewsletter and NewsletterMetadata into single consistent interface
- * This is the primary newsletter type used throughout the application
- */
-export interface Newsletter {
-  // Core identification
-  id: number;
+// Import NewsletterArticle from content management types
+interface NewsletterArticle {
   title: string;
-  filename: string;
-  date: string;
+  content: string;
+  pageNumbers: number[];
+  wordCount: number;
+}
 
-  // Basic metadata
-  pages: number;
-  url: string;
-  fileSize?: string;
+// File location tracking - where does this file actually exist?
+interface FileLocationStatus {
+  localFile: boolean; // Exists in public/issues/
+  firebaseStorage: boolean; // Exists in Firebase Storage
+  firebaseMetadata: boolean; // Has metadata in Firestore
+  draftData: boolean; // Has draft in localStorage
+  processedMetadata: boolean; // Has extracted metadata locally
+}
 
-  // Source information
-  source: 'local' | 'drive' | 'hybrid';
+// Data source object returned by getDataSource function
+export interface DataSourceInfo {
+  source: 'draft' | 'saved' | 'remote' | 'local' | 'metadata-only';
+  color: string;
+  icon: string;
+  status: 'complete' | 'metadata-only' | 'file-only' | 'synced';
+  description: string;
+  locationStatus: FileLocationStatus;
+  syncActions: {
+    canUpload: boolean;
+    canDownload: boolean;
+    canSyncMetadata: boolean;
+    needsUpload: boolean;
+    needsDownload: boolean;
+    status:
+      | 'synced'
+      | 'needs-upload'
+      | 'needs-download'
+      | 'needs-sync'
+      | 'local-only'
+      | 'remote-only'
+      | 'unknown';
+  };
+  locations: string[]; // Human-readable list of where file exists
+}
+
+/**
+ * CANONICAL NEWSLETTER TYPE
+ * This is THE ONLY newsletter type that should be used throughout the application
+ * Consolidates: Newsletter, LightweightNewsletter, ContentManagementNewsletter, NewsletterMetadata
+ */
+export interface UnifiedNewsletter {
+  // CORE IDENTIFICATION - Required fields
+  id: string; // Firebase document ID or hash-based ID
+  filename: string; // PDF filename
+  title: string; // Display title
+
+  // BASIC METADATA - Essential properties
+  downloadUrl: string; // Where to download/view the PDF
+  fileSize: number; // File size in bytes
+  pageCount: number; // Number of pages
+  isPublished: boolean; // Publication status
+  featured: boolean; // Featured status
+
+  // DATE INFORMATION - Normalized date handling
+  year: number; // Publication year (required)
+  publicationDate: string; // ISO date string
+  displayDate?: string; // Human-readable date ("August 2025")
+  sortValue?: number; // Numeric sort value (YYYYMM)
+  season?: 'spring' | 'summer' | 'fall' | 'winter' | undefined;
+  month?: number; // 1-12 for monthly newsletters
+
+  // CONTENT METADATA - Rich content information
+  description?: string; // Brief description
+  summary?: string; // Longer summary
+  searchableText?: string; // Full text content
+  tags: string[]; // Content tags
+  categories?: string[]; // Content categories
+  keyTerms?: string[]; // Extracted key terms
+  keywordCounts?: Record<string, number>; // Word frequency
+
+  // VISUAL ASSETS
+  thumbnailUrl?: string; // Thumbnail image URL
+
+  // PROCESSING STATUS
+  isProcessed?: boolean; // Has rich metadata
+  isProcessing?: boolean; // Currently being processed
+
+  // PUBLICATION METADATA
+  issueNumber?: string; // Issue identifier
+  issue?: number; // Issue number (numeric)
+  volume?: number; // Volume number
+  contributors?: string[] | string; // Authors/contributors
+
+  // CONTENT ANALYSIS
+  wordCount?: number; // Total word count
+  readingTimeMinutes?: number; // Estimated reading time
+  articleCount?: number; // Number of articles
+  articles?: NewsletterArticle[]; // Extracted articles
+
+  // VERSION CONTROL
+  version?: number; // Version number for tracking changes
+
+  // MANAGEMENT SPECIFIC PROPERTIES
+  syncStatus?: string; // Sync status for management UI
+  dataSource?: DataSourceInfo; // Data source information object
+  extractedText?: string; // Extracted text for management
+  actions?: string[] | Record<string, unknown>; // Available actions
+  isDraft?: boolean; // Draft status
+
+  // AUDIT FIELDS
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
+  createdBy: string; // User ID
+  updatedBy: string; // User ID
+
+  // TEXT EXTRACTION METADATA
+  textExtractionVersion?: string; // Version of extraction algorithm
+  textExtractedAt?: string; // When text was extracted
+
+  // STORAGE CONFIGURATION
+  storageRef?: string; // Firebase Storage path
+  storage?: {
+    primary: {
+      provider: 'firebase';
+      downloadUrl: string;
+      storageRef: string;
+      fileSize: number;
+    };
+    thumbnail?: {
+      provider: 'firebase';
+      downloadUrl: string;
+      storageRef: string;
+    };
+    archive?: {
+      provider: 'b2' | 'r2' | 'spaces' | 'wasabi';
+      downloadUrl: string;
+      storageRef: string;
+      fileSize: number;
+    };
+  };
+
+  // LEGACY COMPATIBILITY - Will be phased out
+  date?: string; // Legacy date field
+  pages?: number; // Legacy pages field
+  url?: string; // Legacy URL field
+  topics?: string[]; // Legacy topics field
+  contentType?: 'newsletter' | 'special' | 'annual';
+  source?: 'local' | 'drive' | 'hybrid';
   localFile?: string;
   driveId?: string;
   driveUrl?: string;
-
-  // Visual assets
-  thumbnailUrl?: string;
   thumbnailPath?: string;
-
-  // Content classification
-  topics?: string[];
-  tags?: string[];
-  contentType?: 'newsletter' | 'special' | 'annual';
-
-  // Processing status (for async loading)
-  isProcessed?: boolean;
-  isProcessing?: boolean;
-
-  // Extended metadata (optional)
   publishDate?: string;
   author?: string;
   subject?: string;
   keywords?: string;
   quality?: 'web' | 'print';
 }
+
+/**
+ * TYPE ALIASES - For backward compatibility during migration
+ * @deprecated Use UnifiedNewsletter instead
+ */
+export type Newsletter = UnifiedNewsletter;
+export type LightweightNewsletter = UnifiedNewsletter;
+export type ContentManagementNewsletter = UnifiedNewsletter;
+export type NewsletterMetadata = UnifiedNewsletter;
 
 /**
  * Newsletter Document for versioning system
@@ -100,9 +222,8 @@ export interface NewsletterHistory extends BaseContentHistory<NewsletterDocument
 
 /**
  * Legacy alias for backward compatibility
- * @deprecated Use Newsletter interface instead
+ * @deprecated Use UnifiedNewsletter interface instead
  */
-export type UnifiedNewsletter = Newsletter;
 
 /**
  * Newsletter service statistics for debugging and monitoring

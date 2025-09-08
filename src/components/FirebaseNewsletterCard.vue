@@ -357,7 +357,7 @@ const generateThumbnail = async () => {
       title: props.newsletter.title,
       downloadUrl: props.newsletter.downloadUrl || '',
       year: props.newsletter.year || new Date().getFullYear(),
-      season: props.newsletter.season || 'unknown',
+      season: props.newsletter.season,
       fileSize: props.newsletter.fileSize || 0,
       tags: props.newsletter.tags || [],
       description: props.newsletter.description || '',

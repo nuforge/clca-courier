@@ -1,101 +1,13 @@
 /**
  * Content Management Types
  * Types specifically for the newsletter content management system
+ * Updated to use unified newsletter type system
  */
 
-/**
- * Extended Newsletter interface for content management
- * Contains all properties needed for the content management page
- */
-export interface ContentManagementNewsletter {
-  // Core identification (compatible with Newsletter)
-  id: string;
-  filename: string;
-  title: string;
+import type { UnifiedNewsletter } from './newsletter.types';
 
-  // Management-specific properties
-  description?: string;
-  summary?: string;
-  year: number;
-  season: string;
-  month?: number; // 1-12 for monthly newsletters
-  displayDate?: string; // Human-readable date like "August 2025"
-  sortValue?: number; // Numeric sort value like 202508
-  volume?: number;
-  issue?: number;
-  fileSize: number; // Differs from core Newsletter (string vs number)
-  pageCount?: number;
-  wordCount?: number;
-  downloadUrl: string;
-  thumbnailUrl?: string;
-  searchableText?: string;
-  tags: string[];
-  categories?: string[];
-  contributors?: string[] | string;
-  featured: boolean;
-  isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  updatedBy: string;
-
-  // Extended properties for text extraction
-  keyTerms?: string[];
-  keywordCounts?: Record<string, number>;
-  readingTimeMinutes?: number;
-  articleCount?: number;
-  articles?: NewsletterArticle[];
-  textExtractionVersion?: string;
-  textExtractedAt?: string;
-
-  // Simple version control
-  version?: number;
-  editHistory?: EditHistoryEntry[];
-}
-
-/**
- * Simple edit history entry
- */
-export interface EditHistoryEntry {
-  version: number;
-  timestamp: string;
-  editor: string;
-  changes: string; // Simple description of what changed
-}
-
-/**
- * Newsletter article extracted from PDF content
- */
-export interface NewsletterArticle {
-  title: string;
-  content: string;
-  pageNumbers: number[];
-  wordCount: number;
-}
-
-/**
- * Extracted content from PDF processing
- */
-export interface ExtractedContent {
-  textContent: string;
-  textPreview: string;
-  wordCount: number;
-  suggestedTags: string[];
-  topics: string[];
-  keyTerms: string[];
-  keywordCounts?: Record<string, number>;
-  articles?: NewsletterArticle[];
-}
-
-/**
- * Local storage stats for metadata management
- */
-export interface LocalStorageStats {
-  total: number;
-  pending: number;
-  synced: number;
-  errors: number;
-}
+// Re-export the unified type for backward compatibility
+export type { UnifiedNewsletter as ContentManagementNewsletter } from './newsletter.types';
 
 /**
  * Processing states for async operations
@@ -114,6 +26,16 @@ export interface ProcessingStates {
 }
 
 /**
+ * Local storage stats for metadata management
+ */
+export interface LocalStorageStats {
+  total: number;
+  pending: number;
+  synced: number;
+  errors: number;
+}
+
+/**
  * Filter options for newsletter management
  */
 export interface NewsletterFilters {
@@ -124,11 +46,35 @@ export interface NewsletterFilters {
 }
 
 /**
+ * Extracted content from PDF processing
+ */
+export interface ExtractedContent {
+  textContent: string;
+  textPreview: string;
+  wordCount: number;
+  suggestedTags: string[];
+  topics: string[];
+  keyTerms: string[];
+  keywordCounts?: Record<string, number>;
+  articles?: NewsletterArticle[];
+}
+
+/**
+ * Newsletter article extracted from PDF content
+ */
+export interface NewsletterArticle {
+  title: string;
+  content: string;
+  pageNumbers: number[];
+  wordCount: number;
+}
+
+/**
  * Text extraction dialog state
  */
 export interface TextExtractionDialogState {
   showDialog: boolean;
-  currentFile: ContentManagementNewsletter | null;
+  currentFile: UnifiedNewsletter | null;
   extractedContent: ExtractedContent | null;
   extractionProgress: number;
   extractionStatus: string;
@@ -139,5 +85,12 @@ export interface TextExtractionDialogState {
  */
 export interface EditDialogState {
   showDialog: boolean;
-  editingNewsletter: ContentManagementNewsletter | null;
+  editingNewsletter: UnifiedNewsletter | null;
+}
+
+export interface ContentExtractionOptions {
+  extractText: boolean;
+  generateSummary: boolean;
+  generateTags: boolean;
+  generateKeyTerms: boolean;
 }

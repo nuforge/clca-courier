@@ -35,7 +35,12 @@
 </template>
 
 <script setup lang="ts">
-import type { LocalStorageStats } from 'src/types';
+interface LocalStorageStats {
+    total: number;
+    pending: number;
+    synced: number;
+    errors: number;
+}
 
 interface Props {
     stats: LocalStorageStats;

@@ -12,14 +12,14 @@ import {
 import { localMetadataStorageService } from '../services/local-metadata-storage.service';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 import type {
-  ContentManagementNewsletter,
   LocalStorageStats,
   ProcessingStates,
   NewsletterFilters,
   TextExtractionDialogState,
   EditDialogState,
-} from '../types';
+} from '../types/core/content-management.types';
 
 // Quick hash function for comparing data
 function simpleHash(obj: Record<string, unknown>): string {
@@ -203,7 +203,7 @@ export function useContentManagement() {
   const $q = useQuasar();
 
   // State
-  const newsletters = ref<ContentManagementNewsletter[]>([]);
+  const newsletters = ref<UnifiedNewsletter[]>([]);
   const localStorageStats = ref<LocalStorageStats>({ total: 0, pending: 0, synced: 0, errors: 0 });
 
   // Metadata maps for sync status checking
@@ -248,7 +248,7 @@ export function useContentManagement() {
 
   // Helper function to get data source information with comprehensive file location tracking
   function getDataSource(
-    newsletter: ContentManagementNewsletter,
+    newsletter: UnifiedNewsletter,
     hasFileObject = false,
   ): {
     source: 'draft' | 'saved' | 'remote' | 'local' | 'metadata-only';
@@ -419,7 +419,7 @@ export function useContentManagement() {
 
   // Helper function to get sync status based on actual newsletter data
   function getNewsletterSyncStatus(
-    newsletter: ContentManagementNewsletter,
+    newsletter: UnifiedNewsletter,
   ): 'synced' | 'local' | 'firebase' | 'unknown' {
     const firebaseMeta = firebaseMetadataMap.value.get(newsletter.filename);
     const hasFirebaseData = !!firebaseMeta;
@@ -578,15 +578,27 @@ export function useContentManagement() {
       if (draftData.fileData) {
         console.log('📁 Uploading file to Firebase Storage...');
         // Upload file to Firebase Storage if we have file data
+        const uploadMetadata: {
+          title: string;
+          publicationDate: string;
+          year: number;
+          season?: string;
+          tags: string[];
+        } = {
+          title: newsletter.title,
+          publicationDate:
+            newsletter.displayDate || `${newsletter.year}.${newsletter.season || 'unknown'}`,
+          year: newsletter.year,
+          tags: newsletter.tags,
+        };
+
+        if (newsletter.season) {
+          uploadMetadata.season = newsletter.season;
+        }
+
         const uploadResult = await firebaseStorageService.uploadNewsletterPdf(
           draftData.fileData as File,
-          {
-            title: newsletter.title,
-            publicationDate: newsletter.displayDate || `${newsletter.year}.${newsletter.season}`,
-            year: newsletter.year,
-            season: newsletter.season,
-            tags: newsletter.tags,
-          },
+          uploadMetadata,
         );
         downloadUrl = uploadResult.downloadUrl;
       }
@@ -618,8 +630,7 @@ export function useContentManagement() {
       // Add optional fields only if they exist
       if (newsletter.description) newsletterMetadata.description = newsletter.description;
       if (newsletter.issue) newsletterMetadata.issueNumber = newsletter.issue.toString();
-      if (newsletter.season)
-        newsletterMetadata.season = newsletter.season as 'spring' | 'summer' | 'fall' | 'winter';
+      if (newsletter.season) newsletterMetadata.season = newsletter.season;
       if (newsletter.month) newsletterMetadata.month = newsletter.month;
       if (newsletter.pageCount) newsletterMetadata.pageCount = newsletter.pageCount;
       if (newsletter.displayDate) newsletterMetadata.displayDate = newsletter.displayDate;
@@ -811,8 +822,7 @@ export function useContentManagement() {
         // Add optional fields only if they exist
         if (newsletter.description) newsletterMetadata.description = newsletter.description;
         if (newsletter.issue) newsletterMetadata.issueNumber = newsletter.issue.toString();
-        if (newsletter.season)
-          newsletterMetadata.season = newsletter.season as 'spring' | 'summer' | 'fall' | 'winter';
+        if (newsletter.season) newsletterMetadata.season = newsletter.season;
         if (newsletter.month) newsletterMetadata.month = newsletter.month;
         if (newsletter.pageCount) newsletterMetadata.pageCount = newsletter.pageCount;
         if (newsletter.displayDate) newsletterMetadata.displayDate = newsletter.displayDate;
@@ -1106,6 +1116,12 @@ export function useContentManagement() {
           updatedBy:
             (firebaseMeta?.updatedBy as string) || (draftMeta?.updatedBy as string) || 'system',
 
+          // Required date field
+          publicationDate:
+            (firebaseMeta?.publicationDate as string) ||
+            (draftMeta?.publicationDate as string) ||
+            new Date().toISOString(),
+
           // Extended metadata from local extraction
           keyTerms: localMeta ? Object.keys(localMeta.keywordCounts || {}) : undefined,
           keywordCounts: localMeta?.keywordCounts || undefined,
@@ -1124,7 +1140,7 @@ export function useContentManagement() {
 
           // Version control
           version: (firebaseMeta?.version as number) || (draftMeta?.version as number) || 1,
-        } as ContentManagementNewsletter;
+        } as UnifiedNewsletter;
 
         return mergedNewsletter;
       });
@@ -1271,6 +1287,9 @@ export function useContentManagement() {
           createdBy: (firebaseMeta?.createdBy as string) || 'system',
           updatedBy: (firebaseMeta?.updatedBy as string) || 'system',
 
+          // Required date field
+          publicationDate: (firebaseMeta?.publicationDate as string) || new Date().toISOString(),
+
           // Extended metadata from local extraction
           keyTerms: localMeta ? Object.keys(localMeta.keywordCounts || {}) : undefined,
           keywordCounts: localMeta?.keywordCounts || undefined,
@@ -1280,7 +1299,7 @@ export function useContentManagement() {
 
           // Version control
           version: (firebaseMeta?.version as number) || 1,
-        } as ContentManagementNewsletter;
+        } as UnifiedNewsletter;
 
         return mergedNewsletter;
       });
@@ -1294,7 +1313,7 @@ export function useContentManagement() {
 
   return {
     // State
-    newsletters: newsletters as Ref<ContentManagementNewsletter[]>,
+    newsletters: newsletters as Ref<UnifiedNewsletter[]>,
     localStorageStats,
     processingStates,
     filters,

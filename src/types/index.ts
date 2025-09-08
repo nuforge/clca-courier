@@ -7,7 +7,17 @@
 // Core types
 export * from './core/content.types';
 export * from './core/newsletter.types';
-export * from './core/content-management.types';
+// Only export specific types from content-management to avoid conflicts
+export type {
+  ProcessingStates,
+  LocalStorageStats,
+  NewsletterFilters,
+  ExtractedContent,
+  TextExtractionDialogState,
+  EditDialogState,
+  ContentExtractionOptions,
+  NewsletterArticle,
+} from './core/content-management.types';
 export * from './core/user.types';
 export * from './core/api.types';
 

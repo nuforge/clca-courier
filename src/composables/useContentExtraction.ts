@@ -14,7 +14,8 @@ import {
 } from '../services/local-metadata-storage.service';
 import { advancedPdfTextExtractionService } from '../services/advanced-pdf-text-extraction-service';
 
-import type { ContentManagementNewsletter, ExtractedContent } from '../types';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
+import type { ExtractedContent } from '../types/core/content-management.types';
 
 export function useContentExtraction() {
   const $q = useQuasar();
@@ -261,7 +262,7 @@ export function useContentExtraction() {
   }
 
   async function extractAllText(
-    newsletters: ContentManagementNewsletter[],
+    newsletters: UnifiedNewsletter[],
     onProgress?: (current: number, total: number) => void,
   ): Promise<void> {
     const newslettersToProcess = newsletters.filter((n) => !n.searchableText);
@@ -487,9 +488,7 @@ export function useContentExtraction() {
     }
   }
 
-  async function extractContentForFile(
-    newsletter: ContentManagementNewsletter,
-  ): Promise<ExtractedContent> {
+  async function extractContentForFile(newsletter: UnifiedNewsletter): Promise<ExtractedContent> {
     const pdfUrl = newsletter.downloadUrl?.startsWith('http')
       ? newsletter.downloadUrl
       : `${window.location.origin}${newsletter.downloadUrl || `/issues/${newsletter.filename}`}`;

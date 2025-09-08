@@ -423,10 +423,11 @@ const allNewslettersIncludingDrafts = computed(() => {
       title: draft.title,
       description: draft.description || '',
       year: draft.year,
-      season: '', // Drafts don't have season initially
+      season: undefined, // Drafts don't have season initially
       // Omit month since it's optional and we don't have it
       fileSize: draft.fileSize,
       pageCount: draft.pageCount || 0,
+      publicationDate: draft.publicationDate || new Date().toISOString(),
       downloadUrl: draft.downloadUrl,
       thumbnailUrl: draft.thumbnailUrl || '', // Use actual thumbnailUrl from draft
       tags: draft.tags,
@@ -441,8 +442,7 @@ const allNewslettersIncludingDrafts = computed(() => {
       actions: draft.actions,
       version: 1, // Local drafts start at version 1
       isDraft: true, // Mark as draft for UI distinction
-      storageRef: draft.storageRef,
-      publicationDate: draft.publicationDate
+      storageRef: draft.storageRef
     } as ContentManagementNewsletter;
 
     // Add dataSource using the composable function with file availability check
@@ -1733,7 +1733,7 @@ async function syncNewsletterToFirebase(newsletter: ContentManagementNewsletter)
     if (newsletter.season && ['spring', 'summer', 'fall', 'winter'].includes(newsletter.season)) {
       metadataToSync = {
         ...baseMetadata,
-        season: newsletter.season as 'spring' | 'summer' | 'fall' | 'winter'
+        season: newsletter.season
       };
     } else {
       metadataToSync = baseMetadata;
@@ -3295,6 +3295,8 @@ onMounted(async () => {
       hasText: !!newsletter.searchableText,
       hasThumbnail: !!newsletter.thumbnailUrl,
       fileSize: newsletter.fileSize || 0,
+      pageCount: newsletter.pageCount || 0, // Add required property
+      publicationDate: newsletter.publicationDate || new Date().toISOString(), // Add required property
       localMetadata: null,
       syncedToFirebase: true, // These are already in Firebase
       actions: newsletter.actions ? [newsletter.actions.canView ? 'view' : '', newsletter.actions.canDownload ? 'download' : ''].filter(Boolean) : [],
