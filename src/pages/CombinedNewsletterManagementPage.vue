@@ -116,9 +116,13 @@
                         <q-btn color="accent" icon="mdi-image-multiple" label="Generate ALL Thumbnails"
                           @click="generateAllThumbnails" :loading="processingStates.isGeneratingThumbs" unelevated
                           class="text-weight-medium" />
-                        <q-btn color="secondary" icon="mdi-text-search" label="Extract ALL Text"
-                          @click="extractAllMetadata" :loading="processingStates.isExtractingAllText" unelevated
+                        <q-btn color="secondary" icon="mdi-text-search" label="Extract ALL Text to Firebase"
+                          @click="extractAllTextToFirebase" :loading="processingStates.isExtractingAllText" unelevated
                           class="text-weight-medium" />
+                        <q-chip v-if="newslettersNeedingExtraction > 0"
+                          :label="`${newslettersNeedingExtraction} need extraction`" color="orange" text-color="white"
+                          size="sm" />
+                        <q-chip v-else label="All extracted ✓" color="green" text-color="white" size="sm" />
                         <q-btn color="primary" icon="mdi-tag-multiple" label="Generate ALL Tags"
                           @click="extractAllMetadata" :loading="processingStates.isExtracting" unelevated
                           class="text-weight-medium" />
@@ -335,6 +339,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { firestoreService, type NewsletterMetadata } from '../services/firebase-firestore.service';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
+import { pdfExtractionFirebaseIntegration } from '../services/pdf-extraction-firebase-integration.service';
 import { logger } from '../utils/logger';
 // Import composables
 import { useContentManagement } from '../composables/useContentManagement';
@@ -400,6 +405,13 @@ const isImporting = ref(false);
 const draftNewsletters = ref<NewsletterMetadata[]>([]);
 const draftFileMap = ref<Map<string, File>>(new Map()); // Map draft ID to File object for thumbnail generation
 const hasDrafts = computed(() => draftNewsletters.value.length > 0);
+
+// Count newsletters that need Firebase text extraction
+const newslettersNeedingExtraction = computed(() => {
+  return newsletters.value.filter(n => {
+    return !n.searchableText || !n.wordCount || n.wordCount === 0;
+  }).length;
+});
 
 // Combined newsletters including both Firebase and local drafts
 const allNewslettersIncludingDrafts = computed(() => {
@@ -2023,6 +2035,86 @@ async function extractAllMetadata(): Promise<void> {
   clearSelection();
 }
 
+// Firebase Text Extraction Function
+async function extractAllTextToFirebase(): Promise<void> {
+  try {
+    processingStates.value.isExtractingAllText = true;
+
+    $q.notify({
+      type: 'info',
+      message: 'Starting PDF text extraction to Firebase...',
+      position: 'top'
+    });
+
+    // Load newsletters first to get the latest state
+    await loadNewsletters();
+
+    if (newsletters.value.length === 0) {
+      $q.notify({
+        type: 'warning',
+        message: 'No newsletters found to process',
+        position: 'top'
+      });
+      return;
+    }
+
+    // Filter newsletters that need text extraction
+    // Check if text extraction is missing based on ContentManagementNewsletter properties
+    const needsExtraction = newsletters.value.filter(n => {
+      return !n.searchableText || !n.wordCount || n.wordCount === 0;
+    });
+
+    if (needsExtraction.length === 0) {
+      $q.notify({
+        type: 'info',
+        message: 'All newsletters already have extracted text',
+        position: 'top'
+      });
+      return;
+    }
+
+    $q.notify({
+      type: 'info',
+      message: `Processing ${needsExtraction.length} newsletters...`,
+      position: 'top'
+    });
+
+    // Prepare PDF data for batch processing
+    const pdfBatch = needsExtraction.map(newsletter => ({
+      url: newsletter.downloadUrl,
+      filename: newsletter.filename
+      // metadata is optional, so we omit it to avoid type conflicts
+    }));
+
+    // Process batch
+    const results = await pdfExtractionFirebaseIntegration.batchExtractAndStore(pdfBatch);
+
+    // Show completion notification
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+
+    $q.notify({
+      type: successful > 0 ? 'positive' : 'negative',
+      message: `Firebase text extraction complete: ${successful} successful, ${failed} failed`,
+      position: 'top',
+      timeout: 5000
+    });
+
+    // Reload newsletters to see updated data
+    await loadNewsletters();
+
+  } catch (error) {
+    console.error('Firebase PDF extraction failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: `Firebase extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      position: 'top'
+    });
+  } finally {
+    processingStates.value.isExtractingAllText = false;
+  }
+}
+
 async function generateAllThumbnails(): Promise<void> {
   // Select all newsletters and generate thumbnails
   selectedNewsletters.value = [...newsletters.value];
@@ -2901,32 +2993,85 @@ async function saveMetadata(): Promise<void> {
     const newsletter = textExtractionDialog.value.currentFile;
     const extractedContent = textExtractionDialog.value.extractedContent;
 
-    // Prepare updates using the versioning system
-    const updates = {
-      searchableText: extractedContent.textContent || '',
-      tags: [...(newsletter.tags || []), ...(extractedContent.suggestedTags || [])].slice(0, 20) // Limit combined tags
-    };
+    // CRITICAL FIX: Check if this newsletter exists in Firebase before updating
+    // If the ID is a local hash (like 1470066587), we need to handle it differently
+    console.log('🔍 Attempting to apply metadata for newsletter:', {
+      id: newsletter.id,
+      filename: newsletter.filename,
+      hasFirebaseId: newsletter.id && !newsletter.id.startsWith('draft-') && newsletter.id.length > 10
+    });
 
-    // Use the versioning system for updates
-    await firestoreService.updateNewsletterWithVersioning(
-      newsletter.id,
-      updates,
-      'Applied extracted metadata via admin interface'
-    );
+    // Check if we're dealing with a local-only newsletter (numeric hash ID)
+    const isLocalOnly = !isNaN(Number(newsletter.id)) || newsletter.id.startsWith('draft-');
 
-    // Update the local newsletter object to trigger reactivity
-    const index = newsletters.value.findIndex(n => n.id === newsletter.id);
-    if (index !== -1 && newsletters.value[index]) {
-      const localNewsletter = newsletters.value[index];
-      Object.assign(localNewsletter, updates);
+    if (isLocalOnly) {
+      // This is a local-only newsletter - we need to create it in Firebase first
+      $q.notify({
+        type: 'info',
+        message: 'Creating newsletter record in Firebase...',
+        position: 'top'
+      });
+
+      // Create a new Firebase document for this newsletter
+      const newMetadata: Omit<NewsletterMetadata, 'id'> = {
+        filename: newsletter.filename,
+        title: newsletter.title,
+        description: newsletter.description || '',
+        year: newsletter.year,
+        season: (newsletter.season as 'spring' | 'summer' | 'fall' | 'winter') || 'summer',
+        fileSize: newsletter.fileSize,
+        downloadUrl: newsletter.downloadUrl,
+        thumbnailUrl: newsletter.thumbnailUrl || '',
+        publicationDate: newsletter.displayDate || new Date().toISOString(),
+        storageRef: newsletter.filename,
+        tags: [...(newsletter.tags || []), ...(extractedContent.suggestedTags || [])].slice(0, 20),
+        featured: newsletter.featured || false,
+        isPublished: newsletter.isPublished !== false, // Default to true unless explicitly false
+        searchableText: extractedContent.textContent || '',
+        // Required fields for NewsletterMetadata
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: 'admin', // Will be overridden by the service
+        updatedBy: 'admin', // Will be overridden by the service
+        actions: {
+          canView: true,
+          canDownload: !!newsletter.downloadUrl,
+          canSearch: !!extractedContent.textContent,
+          hasThumbnail: !!newsletter.thumbnailUrl
+        }
+      };
+
+      // Save as new document (this will generate a proper Firebase ID)
+      const newId = await firestoreService.saveNewsletterMetadata(newMetadata);
+
+      $q.notify({
+        type: 'positive',
+        message: 'Newsletter created in Firebase with extracted metadata',
+        caption: `New ID: ${newId} • Added ${extractedContent.suggestedTags?.length || 0} tags`,
+        position: 'top'
+      });
+
+    } else {
+      // This newsletter exists in Firebase - update it normally
+      const updates = {
+        searchableText: extractedContent.textContent || '',
+        tags: [...(newsletter.tags || []), ...(extractedContent.suggestedTags || [])].slice(0, 20)
+      };
+
+      await firestoreService.updateNewsletterWithVersioning(
+        newsletter.id,
+        updates,
+        'Applied extracted metadata via admin interface'
+      );
+
+      $q.notify({
+        type: 'positive',
+        message: 'Extracted metadata applied successfully',
+        caption: `Added searchable text and ${extractedContent.suggestedTags?.length || 0} tags with version history`,
+        position: 'top'
+      });
     }
 
-    $q.notify({
-      type: 'positive',
-      message: 'Extracted metadata applied successfully',
-      caption: `Added searchable text and ${extractedContent.suggestedTags?.length || 0} tags with version history`,
-      position: 'top',
-    });
     textExtractionDialog.value.showDialog = false;
 
     // Refresh the newsletter data to make sure changes persist
@@ -2937,7 +3082,7 @@ async function saveMetadata(): Promise<void> {
       type: 'negative',
       message: 'Failed to apply extracted metadata',
       caption: error instanceof Error ? error.message : 'Unknown error occurred',
-      position: 'top',
+      position: 'top'
     });
   } finally {
     processingStates.value.isApplyingMetadata = false;

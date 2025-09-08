@@ -1,22 +1,34 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useQuasar } from 'quasar';
+import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
+import { pdfExtractionFirebaseIntegration, type PdfExtractionResult } from '../services/pdf-extraction-firebase-integration.service';
 import { advancedPdfTextExtractionService, type AdvancedPdfExtraction } from '../services/advanced-pdf-text-extraction-service';
 import { pdfTextDatabaseService } from '../services/pdf-text-database-service';
 
+// Type definitions
 interface ManifestFile {
   filename: string;
   path: string;
-  size?: number;
+  size: number;
+  lastModified: string;
 }
 
 interface ExtractedPdfData {
   filename: string;
   title: string;
   date: string;
-  textContent: string;
   wordCount: number;
   characterCount: number;
+  textContent?: string;
+  metadata?: {
+    author?: string;
+    subject?: string;
+    keywords?: string;
+    creationDate?: string;
+    modifiedDate?: string;
+  };
+  topics?: string[];
   pages: Array<{
     pageNumber: number;
     content: string;
@@ -27,35 +39,44 @@ interface ExtractedPdfData {
       position: { x: number; y: number; width: number; height: number };
       description?: string;
       thumbnail: string;
+      fullSize?: string;
       size: number;
       format: string;
       isSignificant: boolean;
     }>;
   }>;
-  metadata: {
-    author?: string;
-    subject?: string;
-    keywords?: string;
-    creationDate?: string;
-    modifiedDate?: string;
-  };
   extractedAt: string;
   processingTimeMs: number;
   articles?: Array<{
     title: string;
     content: string;
     wordCount: number;
+    pageNumbers: number[];
   }>;
-  topics?: string[];
 }
+
+const $q = useQuasar();
+const { newsletters, loadNewsletters } = useFirebaseNewsletterArchive();
+
+// State for Firebase integration
+const firebaseExtracting = ref(false);
+const firebaseResults = ref<PdfExtractionResult[]>([]);
+
+const needsExtraction = computed(() => {
+  return newsletters.value.filter(n =>
+    pdfExtractionFirebaseIntegration.needsTextExtraction(n)
+  );
+});
+
+onMounted(() => {
+  void loadNewsletters();
+});
 
 interface ProcessingError {
   filename: string;
   error: string;
   type: 'text' | 'image'; // Added type to distinguish error types
 }
-
-const $q = useQuasar();
 
 // State
 const availablePdfs = ref<string[]>([]);
@@ -294,7 +315,7 @@ function updateOrAddPdfData(newData: ExtractedPdfData) {
         ...existing,
         ...newData,
         // Merge text content if both exist
-        textContent: newData.textContent || existing.textContent,
+        textContent: newData.textContent || existing.textContent || '',
         wordCount: Math.max(newData.wordCount, existing.wordCount),
         characterCount: Math.max(newData.characterCount, existing.characterCount),
         // Merge pages data additively
@@ -329,6 +350,84 @@ function updateOrAddPdfData(newData: ExtractedPdfData) {
     }
   } else {
     extractedData.value.push(newData);
+  }
+}
+
+// Firebase Integration Function
+async function extractAllPdfsToFirebase() {
+  try {
+    firebaseExtracting.value = true;
+    firebaseResults.value = [];
+
+    $q.notify({
+      type: 'info',
+      message: 'Starting PDF text extraction to Firebase...',
+      position: 'top'
+    });
+
+    // Load newsletters first
+    await loadNewsletters();
+
+    if (newsletters.value.length === 0) {
+      $q.notify({
+        type: 'warning',
+        message: 'No newsletters found to process',
+        position: 'top'
+      });
+      return;
+    }
+
+    // Filter newsletters that need text extraction
+    const newslettersToProcess = needsExtraction.value;
+
+    if (newslettersToProcess.length === 0) {
+      $q.notify({
+        type: 'info',
+        message: 'All newsletters already have extracted text',
+        position: 'top'
+      });
+      return;
+    }
+
+    $q.notify({
+      type: 'info',
+      message: `Processing ${newslettersToProcess.length} newsletters...`,
+      position: 'top'
+    });
+
+    // Prepare PDF data for batch processing
+    const pdfBatch = newslettersToProcess.map(newsletter => ({
+      url: newsletter.downloadUrl,
+      filename: newsletter.filename,
+      metadata: newsletter
+    }));
+
+    // Process batch
+    firebaseResults.value = await pdfExtractionFirebaseIntegration.batchExtractAndStore(pdfBatch);
+
+    // Show completion notification
+    const successful = firebaseResults.value.filter(r => r.success).length;
+    const failed = firebaseResults.value.filter(r => !r.success).length;
+
+    $q.notify({
+      type: successful > 0 ? 'positive' : 'negative',
+      message: `Firebase extraction complete: ${successful} successful, ${failed} failed`,
+      position: 'top',
+      timeout: 5000
+    });
+
+    // Reload newsletters to see updated data
+    await loadNewsletters();
+
+  } catch (error) {
+    console.error('Firebase PDF extraction failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: `Firebase extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      position: 'top'
+    });
+  } finally {
+    firebaseExtracting.value = false;
   }
 }
 
@@ -419,6 +518,7 @@ async function extractPdfText(filename: string): Promise<ExtractedPdfData | null
         title: article.title,
         content: article.content,
         wordCount: article.wordCount,
+        pageNumbers: [1], // Default to page 1 for now
       })),
       topics: advancedExtraction.topics,
     };
@@ -468,6 +568,7 @@ async function extractPdfTextOnly(filename: string): Promise<ExtractedPdfData | 
         title: article.title,
         content: article.content,
         wordCount: article.wordCount,
+        pageNumbers: [1], // Default to page 1 for now
       })),
       topics: advancedExtraction.topics,
     };
@@ -669,9 +770,9 @@ async function saveToDatabase() {
           filename: pdf.filename,
           title: pdf.title,
           date: pdf.date,
-          rawText: pdf.textContent, // Use cleaned text as raw text
-          cleanedText: pdf.textContent,
-          structuredText: pdf.textContent,
+          rawText: pdf.textContent || '', // Use cleaned text as raw text
+          cleanedText: pdf.textContent || '',
+          structuredText: pdf.textContent || '',
           totalWords: pdf.wordCount,
           totalCharacters: pdf.characterCount,
           readingTimeMinutes: Math.ceil(pdf.wordCount / 200),
@@ -696,11 +797,11 @@ async function saveToDatabase() {
           })),
           sections: [],
           metadata: {
-            ...(pdf.metadata.author && { author: pdf.metadata.author }),
-            ...(pdf.metadata.subject && { subject: pdf.metadata.subject }),
-            ...(pdf.metadata.keywords && { keywords: pdf.metadata.keywords.split(', ') }),
-            ...(pdf.metadata.creationDate && { creationDate: pdf.metadata.creationDate }),
-            ...(pdf.metadata.modifiedDate && { modifiedDate: pdf.metadata.modifiedDate }),
+            ...(pdf.metadata?.author && { author: pdf.metadata.author }),
+            ...(pdf.metadata?.subject && { subject: pdf.metadata.subject }),
+            ...(pdf.metadata?.keywords && { keywords: pdf.metadata.keywords.split(', ') }),
+            ...(pdf.metadata?.creationDate && { creationDate: pdf.metadata.creationDate }),
+            ...(pdf.metadata?.modifiedDate && { modifiedDate: pdf.metadata.modifiedDate }),
             pageCount: pdf.pages.length,
           },
           searchableTerms: [],
@@ -794,6 +895,18 @@ async function saveToDatabase() {
           <q-btn @click="startFullExtraction" :loading="isProcessingText || isProcessingImages"
             :disable="selectedFiles.length === 0 || isProcessingText || isProcessingImages" color="green"
             icon="auto_awesome" label="Extract Text + Images" class="col-12 col-md-3" />
+
+          <!-- Firebase Integration Section -->
+          <div class="col-12 q-mt-md">
+            <q-separator class="q-mb-md" />
+            <div class="text-subtitle2 q-mb-sm">🔥 Firebase Integration</div>
+            <q-btn @click="extractAllPdfsToFirebase" :loading="firebaseExtracting"
+              :disable="firebaseExtracting || isProcessingText || isProcessingImages" color="deep-orange"
+              icon="cloud_upload" label="Extract All PDFs to Firebase" class="q-mr-sm" />
+            <q-chip v-if="needsExtraction.length > 0" :label="`${needsExtraction.length} PDFs need extraction`"
+              color="orange" text-color="white" />
+            <q-chip v-else label="All PDFs extracted" color="green" text-color="white" />
+          </div>
         </div>
 
         <!-- Feature info -->
@@ -847,6 +960,41 @@ async function saveToDatabase() {
                 <q-item-section>
                   <q-item-label>{{ error.filename }}</q-item-label>
                   <q-item-label caption>{{ error.type }}: {{ error.error }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
+        </div>
+      </q-card-section>
+
+      <!-- Firebase Progress Section -->
+      <q-card-section v-if="firebaseExtracting || firebaseResults.length > 0">
+        <div class="text-h6 q-mb-md">🔥 Firebase Integration Progress</div>
+
+        <div v-if="firebaseExtracting" class="q-mb-md">
+          <q-linear-progress indeterminate color="deep-orange" size="20px" class="q-mb-sm" />
+          <div class="text-body2">Processing newsletters for Firebase storage...</div>
+        </div>
+
+        <!-- Firebase Results -->
+        <div v-if="firebaseResults.length > 0" class="q-mt-md">
+          <q-expansion-item icon="cloud_done"
+            :label="`Firebase Results (${firebaseResults.filter(r => r.success).length} successful, ${firebaseResults.filter(r => !r.success).length} failed)`"
+            header-class="text-deep-orange">
+            <q-list separator>
+              <q-item v-for="result in firebaseResults" :key="result.filename">
+                <q-item-section avatar>
+                  <q-icon :name="result.success ? 'check_circle' : 'error'"
+                    :color="result.success ? 'positive' : 'negative'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ result.filename }}</q-item-label>
+                  <q-item-label caption v-if="result.success">
+                    ✅ Successfully stored in Firebase
+                  </q-item-label>
+                  <q-item-label caption v-if="!result.success" class="text-negative">
+                    ❌ {{ result.error }}
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
