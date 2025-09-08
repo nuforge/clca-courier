@@ -4,6 +4,7 @@ import type { ClassifiedAd, NewsItem, Event, CommunityStats } from '../types';
 import type { PdfDocument } from '../composables/usePdfViewer';
 import { useUserSettings } from '../composables/useUserSettings';
 import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
+import { logger } from '../utils/logger';
 
 // Import JSON data directly
 import newsData from '../data/news.json';
@@ -92,7 +93,7 @@ export const useSiteStore = defineStore('site', () => {
         loadStats(),
       ]);
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      logger.error('Error loading initial data:', error);
     } finally {
       isLoading.value = false;
     }
@@ -118,7 +119,7 @@ export const useSiteStore = defineStore('site', () => {
         category: newsletter.categories?.[0] || '',
       }));
     } catch (error) {
-      console.error('Error loading archived issues:', error);
+      logger.error('Error loading archived issues:', error);
       archivedIssues.value = [];
     }
   }
@@ -128,7 +129,7 @@ export const useSiteStore = defineStore('site', () => {
       await delay(100); // Simulate network delay
       newsItems.value = newsData as NewsItem[];
     } catch (error) {
-      console.error('Error loading news items:', error);
+      logger.error('Error loading news items:', error);
       newsItems.value = [];
     }
   }
@@ -138,7 +139,7 @@ export const useSiteStore = defineStore('site', () => {
       await delay(100);
       classifieds.value = classifiedsData as ClassifiedAd[];
     } catch (error) {
-      console.error('Error loading classifieds:', error);
+      logger.error('Error loading classifieds:', error);
       classifieds.value = [];
     }
   }
@@ -148,7 +149,7 @@ export const useSiteStore = defineStore('site', () => {
       await delay(100);
       events.value = eventsData as Event[];
     } catch (error) {
-      console.error('Error loading events:', error);
+      logger.error('Error loading events:', error);
       events.value = [];
     }
   }
@@ -158,7 +159,7 @@ export const useSiteStore = defineStore('site', () => {
       await delay(100);
       stats.value = communityStatsData as CommunityStats;
     } catch (error) {
-      console.error('Error loading stats:', error);
+      logger.error('Error loading stats:', error);
       stats.value = {
         households: 0,
         lakes: 0,

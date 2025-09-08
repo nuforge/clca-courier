@@ -1,6 +1,8 @@
 // Storage service for managing user settings and data persistence
 // Combines localStorage for simple settings and IndexedDB for complex data
 
+import { logger } from '../utils/logger';
+
 export interface UserSettings {
   theme: 'light' | 'dark' | 'auto';
   language: string;
@@ -80,7 +82,7 @@ class StorageService {
     try {
       return JSON.parse(JSON.stringify(data));
     } catch (error) {
-      console.warn('Failed to serialize data for IndexedDB:', error);
+      logger.warn('Failed to serialize data for IndexedDB:', error);
       throw new Error('Data contains non-serializable values');
     }
   }
@@ -91,7 +93,7 @@ class StorageService {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('Failed to open IndexedDB:', request.error);
+        logger.error('Failed to open IndexedDB:', request.error);
         reject(new Error(request.error?.message || 'Failed to open IndexedDB'));
       };
 
@@ -132,7 +134,7 @@ class StorageService {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
     } catch (error) {
-      console.warn(`Failed to parse localStorage item ${key}:`, error);
+      logger.warn(`Failed to parse localStorage item ${key}:`, error);
       return defaultValue;
     }
   }
@@ -141,7 +143,7 @@ class StorageService {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`Failed to set localStorage item ${key}:`, error);
+      logger.error(`Failed to set localStorage item ${key}:`, error);
     }
   }
 
@@ -173,7 +175,7 @@ class StorageService {
         }
       }
     } catch (error) {
-      console.warn('Failed to load settings from IndexedDB:', error);
+      logger.warn('Failed to load settings from IndexedDB:', error);
     }
 
     // Return defaults if nothing found
@@ -203,7 +205,7 @@ class StorageService {
         await this.saveToIndexedDB(SETTINGS_STORE, serializedData);
       }
     } catch (error) {
-      console.error('Failed to save settings to IndexedDB:', error);
+      logger.error('Failed to save settings to IndexedDB:', error);
     }
   }
 
@@ -309,7 +311,7 @@ class StorageService {
         await this.saveToIndexedDB(CACHE_STORE, serializedItem);
       }
     } catch (error) {
-      console.error('Failed to cache data:', error);
+      logger.error('Failed to cache data:', error);
     }
   }
 
@@ -329,7 +331,7 @@ class StorageService {
 
       return item.data;
     } catch (error) {
-      console.error('Failed to get cached data:', error);
+      logger.error('Failed to get cached data:', error);
       return null;
     }
   }
@@ -349,7 +351,7 @@ class StorageService {
           reject(new Error(request.error?.message || 'IndexedDB delete operation failed'));
       });
     } catch (error) {
-      console.error('Failed to remove cached data:', error);
+      logger.error('Failed to remove cached data:', error);
     }
   }
 
@@ -367,7 +369,7 @@ class StorageService {
         transaction.objectStore(CACHE_STORE).clear();
       }
     } catch (error) {
-      console.error('Failed to clear IndexedDB data:', error);
+      logger.error('Failed to clear IndexedDB data:', error);
     }
   }
 

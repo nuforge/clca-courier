@@ -6,6 +6,7 @@
 
 import { advancedPdfTextExtractionService } from './advanced-pdf-text-extraction-service';
 import type { Newsletter } from '../types/core/newsletter.types';
+import { logger } from '../utils/logger';
 
 export interface TagGenerationResult {
   // Text tags for display and search
@@ -64,7 +65,7 @@ export class TagGenerationService {
 
       return result;
     } catch (error) {
-      console.error(`❌ [TagGenerationService] Failed to generate tags for ${filename}:`, error);
+      logger.error(`❌ [TagGenerationService] Failed to generate tags for ${filename}:`, error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Tag generation failed: ${errorMessage}`);
     }

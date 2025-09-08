@@ -4,6 +4,7 @@
  */
 
 import type { ContentType, ContentSubmissionData } from '../types/core/content.types';
+import { logger } from '../utils/logger';
 
 class ContentSubmissionService {
   /**
@@ -66,7 +67,7 @@ class ContentSubmissionService {
   /**
    * Get user-defined categories (async)
    */
-  async getUserDefinedCategories(): Promise<string[]> {
+  getUserDefinedCategories(): string[] {
     // In a real implementation, this would fetch from storage
     return ['lake-activities', 'volunteer-opportunities', 'neighborhood-watch'];
   }
@@ -75,7 +76,7 @@ class ContentSubmissionService {
    * Submit content (placeholder implementation)
    */
   async submitContent(data: ContentSubmissionData): Promise<string> {
-    console.log('📤 Content submission data:', data);
+    logger.debug('Content submission data:', data);
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -83,7 +84,7 @@ class ContentSubmissionService {
     // Generate mock ID
     const contentId = `content_${Date.now()}`;
 
-    console.log('✅ Content submitted successfully with ID:', contentId);
+    logger.success('Content submitted successfully with ID:', contentId);
     return contentId;
   }
 }

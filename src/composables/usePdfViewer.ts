@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import type { WebViewerInstance } from '@pdftron/webviewer';
+import { logger } from '../utils/logger';
 
 export interface PdfDocument {
   id: number;
@@ -99,8 +100,8 @@ export function usePdfViewer() {
 
   // Open a PDF document in the viewer with validation
   const openDocument = async (document: PdfDocument) => {
-    console.log('🔍 [usePdfViewer] Opening document:', document);
-    console.log('🔍 [usePdfViewer] Document URL:', document.url);
+    logger.debug('Opening document:', document);
+    logger.debug('Document URL:', document.url);
 
     selectedDocument.value = document;
     showViewer.value = true;
@@ -144,7 +145,7 @@ export function usePdfViewer() {
       error.value = null;
       validationError.value = null;
 
-      console.log('🔄 [usePdfViewer] Switching to document:', document.title);
+      logger.debug('Switching to document:', document.title);
 
       // Validate first
       const isValid = await validateDocument(document);
@@ -162,7 +163,7 @@ export function usePdfViewer() {
         await documentViewer.loadDocument(document.url);
       }
     } catch (err) {
-      console.error('Error switching document:', err);
+      logger.error('Error switching document:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to switch document';
       error.value = errorMessage;
       isLoading.value = false;
@@ -180,11 +181,11 @@ export function usePdfViewer() {
     documentViewer.addEventListener('documentLoaded', () => {
       isLoading.value = false;
       error.value = null;
-      console.log('✅ [usePdfViewer] PDF viewer ready');
+      logger.success('PDF viewer ready');
     });
 
     documentViewer.addEventListener('documentLoadError', (err) => {
-      console.error('❌ [usePdfViewer] WebViewer document load error:', err);
+      logger.error('WebViewer document load error:', err);
       error.value = 'Failed to load PDF document. The file may be corrupted or invalid.';
       isLoading.value = false;
     });
@@ -193,9 +194,9 @@ export function usePdfViewer() {
   // Handle PDF viewer ready event (legacy support)
   const onViewerReady = (success: boolean) => {
     if (success) {
-      console.log('✅ [usePdfViewer] PDF viewer ready');
+      logger.success('PDF viewer ready');
     } else {
-      console.error('❌ [usePdfViewer] PDF viewer failed to initialize');
+      logger.error('PDF viewer failed to initialize');
       error.value = 'PDF viewer failed to initialize';
     }
     isLoading.value = false;
@@ -203,7 +204,7 @@ export function usePdfViewer() {
 
   // Handle PDF viewer error
   const onViewerError = (errorMessage: string) => {
-    console.error('PDF Viewer error:', errorMessage);
+    logger.error('PDF Viewer error:', errorMessage);
     error.value = errorMessage;
     isLoading.value = false;
   };

@@ -113,6 +113,7 @@ import { ref, nextTick, onMounted, computed } from 'vue';
 import { useInteractiveMap } from '../composables/useInteractiveMap';
 import { useTheme } from '../composables/useTheme';
 import { ROAD_DATA, MAP_VIEWBOX, MAP_TRANSFORM } from '../constants/mapSvgData';
+import { logger } from '../utils/logger';
 
 // Theme management
 const {
@@ -187,19 +188,19 @@ const onMapSVGMounted = async () => {
     const svgElement = mapSvgRef.value;
 
     if (svgElement) {
-      console.log('Found SVG element, initializing parser...');
+      logger.debug('Found SVG element, initializing parser...');
       await initializeSVGParser(svgElement);
 
       // Validate structure
       const validation = validateSVGStructure();
       if (!validation.isValid) {
-        console.warn('SVG structure validation issues:', validation.issues);
+        logger.warn('SVG structure validation issues:', validation.issues);
       }
     } else {
-      console.error('SVG element not found');
+      logger.error('SVG element not found');
     }
   } else {
-    console.error('SVG ref not available');
+    logger.error('SVG ref not available');
   }
 };
 
@@ -247,7 +248,7 @@ const handleMouseLeave = () => {
 // Handle tooltip click to select the currently hovered road
 const handleTooltipSelection = () => {
   if (state.hoveredRoadId) {
-    console.log('Tooltip clicked for road:', state.hoveredRoadId);
+    logger.debug('Tooltip clicked for road:', state.hoveredRoadId);
     handleRoadClick(state.hoveredRoadId);
     hideTooltip(); // Hide tooltip after selection
   }
@@ -255,18 +256,18 @@ const handleTooltipSelection = () => {
 
 // Road interaction handlers
 const handleRoadClick = (roadId: string) => {
-  console.log('Road clicked:', roadId);
+  logger.debug('Road clicked:', roadId);
   toggleRoadSelection(roadId);
 };
 
 const handleRoadMouseEnter = (roadId: string, event: MouseEvent) => {
-  console.log('Road mouse enter:', roadId);
+  logger.debug('Road mouse enter:', roadId);
   hoverRoad(roadId);
   showRoadTooltip(roadId, event.clientX + 10, event.clientY - 10);
 };
 
 const handleRoadMouseLeave = (roadId: string) => {
-  console.log('Road mouse leave:', roadId);
+  logger.debug('Road mouse leave:', roadId);
   if (state.hoveredRoadId === roadId) {
     clearHover();
     hideTooltip();
