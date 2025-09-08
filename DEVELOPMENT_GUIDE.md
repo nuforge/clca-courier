@@ -20,6 +20,16 @@
 - ✅ Service optimization: 3 unused services/composables removed
 - ✅ Bundle optimization: Reduced size and improved production code quality
 
+#### UI/UX Improvements ✅
+
+- ✅ Date sorting: Custom sort function for chronological ordering
+- ✅ Word count fixes: Using full extracted text content instead of snippets
+- ✅ Expandable WorkflowToolbar: Smooth expand/collapse with persistent state
+- ✅ Month-based filtering: Replaced season dropdown with month dropdown
+- ✅ Boolean filter logic: Proper handling of false/null/undefined states
+- ✅ Avatar caching: Data URL caching to prevent 429 rate limit errors
+- ✅ ESLint compliance: Fixed floating promise errors and compilation issues
+
 ### ABSOLUTE PROHIBITIONS
 
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`)
@@ -27,6 +37,8 @@
 - **❌ Path Assumptions**: Always verify file/directory existence before implementation
 - **❌ Theme Violations**: Never hardcode background colors or theme-specific styles
 - **❌ Gutter + Columns**: Never use `q-gutter-*` classes with precise column layouts
+- **❌ Floating Promises**: Never use async functions without proper handling
+- **❌ Feature Removal**: Never remove working functionality without understanding requirements
 
 ### MANDATORY PRACTICES
 
@@ -40,6 +52,10 @@
 - **✅ UNIFIED TYPES**: Use UnifiedNewsletter interface exclusively - NO other Newsletter types
 - **✅ CLEAN ARCHITECTURE**: Remove unused code and services for optimal bundle size
 - **✅ Sync Status Logic**: Always compare actual newsletter data for sync detection, not empty IndexedDB metadata
+- **✅ ASYNC PROMISE HANDLING**: Use `await`, `.catch()`, `.then()` with error handlers, or explicit `void` for fire-and-forget
+- **✅ BOOLEAN FILTER LOGIC**: Check for `!== undefined` when filtering boolean values to handle false/null/undefined properly
+- **✅ INTERFACE CONSISTENCY**: When changing filter interfaces, update ALL related components, services, and composables
+- **✅ DATA URL CACHING**: Cache external resources as data URLs to prevent rate limiting
 
 ## 🏗️ Architecture
 
@@ -64,7 +80,65 @@
 - **Cost**: ~$0.85/month for current scale
 - **Future-Ready**: Service layer supports additional providers when needed
 
-## 🛠️ Development Commands
+## � CRITICAL DEVELOPMENT LESSONS - MANDATORY COMPLIANCE
+
+### ⚠️ RECURRING ERRORS TO AVOID
+
+**These errors have been repeatedly encountered and MUST be prevented:**
+
+#### 1. Floating Promise Violations
+
+- **Error**: Using async functions without proper handling (`this.cacheAvatarImage()` without `await` or `void`)
+- **Fix**: ALWAYS use `await`, `.catch()`, `.then()`, or explicit `void` operator
+- **ESLint Rule**: `@typescript-eslint/no-floating-promises`
+
+#### 2. Boolean Filter Logic Errors
+
+- **Error**: Using `if (filters.featured)` which excludes `false` values
+- **Fix**: Use `if (filters.featured !== undefined)` to handle true/false/null/undefined properly
+- **Impact**: Filter toggles don't work when set to OFF state
+
+#### 3. Interface Change Propagation Failures
+
+- **Error**: Changing `season` to `month` in one file but missing related files
+- **Fix**: ALWAYS search codebase for ALL references when changing interfaces
+- **Tools**: Use `grep_search` to find all occurrences before making changes
+
+#### 4. Working Feature Destruction
+
+- **Error**: Removing working functionality instead of debugging root cause
+- **Example**: Removing season-to-month mapping that was working for summer months
+- **Fix**: Debug why some cases work and others don't, don't remove working parts
+
+#### 5. TypeScript Compilation Context
+
+- **Error**: Not excluding build/dist folders from TypeScript compilation
+- **Fix**: Ensure `tsconfig.json` excludes `"dist/**/*"`, `".quasar/dist/**/*"`
+- **Impact**: 60+ false compilation errors from built files
+
+#### 6. Syntax Errors from Incomplete Replacements
+
+- **Error**: Leaving duplicate code blocks or missing closing braces during edits
+- **Fix**: Always check context before and after replacement strings
+- **Tool**: Read larger file sections to understand full context
+
+#### 7. Rate Limiting from External Resources
+
+- **Error**: Repeatedly requesting Google avatar URLs causing 429 errors
+- **Fix**: Cache external resources as data URLs to eliminate repeat requests
+- **Implementation**: Convert images to base64 data URLs and store locally
+
+### 🎯 DEBUGGING METHODOLOGY
+
+**When features don't work as expected:**
+
+1. **Identify Working Cases**: Find what IS working correctly
+2. **Compare Non-Working Cases**: Identify differences in data/logic
+3. **Trace Data Flow**: Follow data from source through all transformations
+4. **Search for Hidden Logic**: Use `grep_search` to find all related filtering/mapping
+5. **Fix Root Cause**: Address the actual issue, don't remove working functionality
+
+## �🛠️ Development Commands
 
 ```bash
 # Development with hot reload

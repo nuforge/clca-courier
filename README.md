@@ -23,6 +23,16 @@ A modern Vue 3 + Quasar application for managing and distributing the CLCA commu
 
 ## 🚀 Recent Major Updates (September 8, 2025)
 
+### ✅ Phase 9 Complete: UI/UX Improvements & Filter Enhancements
+
+- **Date Sorting Fixed**: Custom sort function implemented for chronological ordering vs string sorting
+- **Word Count Calculations**: Fixed to use full extracted text content instead of truncated searchableText
+- **WorkflowToolbar Expandable**: Implemented smooth expand/collapse with persistent state management
+- **Month-Based Filtering**: Replaced season dropdown with month dropdown for more precise filtering
+- **Featured Filter Logic**: Fixed boolean filtering to properly handle false/null/undefined states
+- **Google OAuth Avatar Caching**: Implemented data URL caching to prevent 429 rate limit errors
+- **ESLint Error Resolution**: Fixed floating promise errors and TypeScript compilation issues
+
 ### ✅ Comprehensive Refactoring Completed
 
 - **Type System Unification**: Single `UnifiedNewsletter` interface across entire codebase
