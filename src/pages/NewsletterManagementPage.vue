@@ -1,5 +1,5 @@
 <!--
-  Combined Newsletter Management Page (Refactored)
+  Newsletter Management Page
   Clean, modular architecture with separated concerns
 -->
 <template>
@@ -12,7 +12,7 @@
             <q-card-section>
               <div class="text-h4 text-center q-mb-md">
                 <q-icon name="mdi-database-edit" class="q-mr-sm" />
-                Newsletter Content Management
+                Newsletter Management
               </div>
               <p class="text-center text-body1">
                 Comprehensive PDF metadata extraction, text processing, and content management

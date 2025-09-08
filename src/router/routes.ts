@@ -34,16 +34,11 @@ const routes: RouteRecordRaw[] = [
       { path: '/accessibility', component: () => import('pages/AccessibilityPage.vue') },
 
       // Admin routes
-      { path: '/admin', component: () => import('pages/AdminDashboardPage.vue') },
-      { path: '/admin/setup', component: () => import('pages/AdminSetupPage.vue') },
+      { path: '/admin', component: () => import('pages/AdminPage.vue') },
       { path: '/admin/firebase-demo', component: () => import('pages/FirebaseDemoPage.vue') },
       {
-        path: '/admin/content-management',
-        component: () => import('pages/CombinedNewsletterManagementPage.vue'),
-      },
-      {
-        path: '/admin/simplified',
-        component: () => import('pages/SimplifiedAdminPage.vue'),
+        path: '/admin/newsletter-management',
+        component: () => import('pages/NewsletterManagementPage.vue'),
       },
       { path: '/admin/test', component: () => import('pages/LightweightTestPage.vue') },
     ],
