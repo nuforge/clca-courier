@@ -1,168 +1,154 @@
 <template>
-    <q-card flat bordered :class="cardClasses" class="newsletter-card cursor-pointer transition-all"
-        @click="openNewsletter" :style="cardStyle" :tabindex="0" @keydown.enter="openNewsletter"
-        @keydown.space.prevent="openNewsletter" role="article"
-        :aria-label="'Newsletter: ' + newsletter.title + ', published ' + formattedDate + (newsletter.description ? ', ' + newsletter.description : '')">
+  <q-card flat bordered :class="cardClasses" class="newsletter-card cursor-pointer transition-all"
+    @click="openNewsletter" :style="cardStyle" :tabindex="0" @keydown.enter="openNewsletter"
+    @keydown.space.prevent="openNewsletter" role="article"
+    :aria-label="'Newsletter: ' + newsletter.title + ', published ' + formattedDate + (newsletter.description ? ', ' + newsletter.description : '')">
 
-        <!-- Thumbnail Section -->
-        <div class="thumbnail-container" role="img"
-            :aria-label="newsletter.thumbnailUrl ? 'Newsletter thumbnail' : 'PDF document icon'">
-            <q-img v-if="newsletter.thumbnailUrl" :src="newsletter.thumbnailUrl"
-                :alt="'Thumbnail preview for ' + newsletter.title" class="thumbnail-image" loading="lazy"
-                @error="onThumbnailError">
-                <template v-slot:loading>
-                    <div class="absolute-center">
-                        <q-spinner color="primary" size="2em" />
-                    </div>
-                </template>
-            </q-img>
+    <!-- Thumbnail Section -->
+    <div class="thumbnail-container" role="img"
+      :aria-label="newsletter.thumbnailUrl ? 'Newsletter thumbnail' : 'PDF document icon'">
+      <q-img v-if="newsletter.thumbnailUrl" :src="newsletter.thumbnailUrl"
+        :alt="'Thumbnail preview for ' + newsletter.title" class="thumbnail-image" loading="lazy"
+        @error="onThumbnailError">
+        <template v-slot:loading>
+          <div class="absolute-center">
+            <q-spinner color="primary" size="2em" />
+          </div>
+        </template>
+      </q-img>
 
-            <!-- Fallback when no thumbnail -->
-            <div v-else class="thumbnail-fallback" :class="fallbackClasses">
-                <q-icon name="mdi-file-pdf-box" size="3rem" class="text-grey-5" />
-                <div class="text-caption text-center q-mt-xs">PDF</div>
+      <!-- Fallback when no thumbnail -->
+      <div v-else class="thumbnail-fallback" :class="fallbackClasses">
+        <q-icon name="mdi-file-pdf-box" size="3rem" class="text-grey-5" />
+        <div class="text-caption text-center q-mt-xs">PDF</div>
 
-                <!-- Admin: Show regenerate thumbnail button if no thumbnail -->
-                <q-btn v-if="showAdminControls && !newsletter.thumbnailUrl" flat dense size="sm" color="primary"
-                    icon="image" class="q-mt-xs" @click.stop="generateThumbnail" :loading="thumbnailGenerating">
-                    <q-tooltip>Generate Thumbnail</q-tooltip>
-                </q-btn>
-            </div>
+        <!-- Admin: Show regenerate thumbnail button if no thumbnail -->
+        <q-btn v-if="showAdminControls && !newsletter.thumbnailUrl" flat dense size="sm" color="primary" icon="image"
+          class="q-mt-xs" @click.stop="generateThumbnail" :loading="thumbnailGenerating">
+          <q-tooltip>Generate Thumbnail</q-tooltip>
+        </q-btn>
+      </div>
 
-            <!-- Featured Badge -->
-            <q-badge v-if="newsletter.featured" color="accent" floating rounded class="featured-badge"
-                aria-label="Featured newsletter" style="top: 8px; right: 8px;">
-                <q-icon name="star" size="12px" class="q-mr-xs" />
-                Featured
-            </q-badge>
+      <!-- Featured Badge -->
+      <q-badge v-if="newsletter.featured" color="accent" floating rounded class="featured-badge"
+        aria-label="Featured newsletter" style="top: 8px; right: 8px;">
+        <q-icon name="star" size="12px" class="q-mr-xs" />
+        Featured
+      </q-badge>
 
-            <!-- Publication Status Badge -->
-            <q-badge :color="newsletter.isPublished === true ? 'positive' : 'orange'" floating
-                :class="newsletter.featured === true ? 'status-badge-with-featured' : 'status-badge'"
-                :aria-label="newsletter.isPublished === true ? 'Published newsletter' : 'Draft newsletter'"
-                :style="newsletter.featured === true ? 'top: 40px; right: 8px;' : 'top: 8px; right: 8px;'">
-                <q-icon :name="newsletter.isPublished === true ? 'visibility' : 'visibility_off'" size="12px"
-                    class="q-mr-xs" />
-                {{ newsletter.isPublished === true ? 'Published' : 'Draft' }}
-            </q-badge>
+      <!-- Accessibility indicators -->
+      <div class="accessibility-indicators absolute-top-right q-pa-xs">
+        <q-icon v-if="newsletter.description" name="description" size="16px" class="text-positive q-mr-xs"
+          aria-label="Has description for screen readers">
+          <q-tooltip>Has description</q-tooltip>
+        </q-icon>
+        <q-icon v-if="newsletter.searchableText" name="search" size="16px" class="text-info"
+          aria-label="Text content is searchable">
+          <q-tooltip>Searchable content</q-tooltip>
+        </q-icon>
+      </div>
+    </div>
 
-            <!-- Accessibility indicators -->
-            <div class="accessibility-indicators absolute-top-right q-pa-xs">
-                <q-icon v-if="newsletter.description" name="description" size="16px" class="text-positive q-mr-xs"
-                    aria-label="Has description for screen readers">
-                    <q-tooltip>Has description</q-tooltip>
-                </q-icon>
-                <q-icon v-if="newsletter.searchableText" name="search" size="16px" class="text-info"
-                    aria-label="Text content is searchable">
-                    <q-tooltip>Searchable content</q-tooltip>
-                </q-icon>
-            </div>
+    <!-- Content Section -->
+    <q-card-section class="newsletter-content">
+      <!-- Title -->
+      <div class="text-subtitle1 text-weight-medium newsletter-title q-mb-xs" role="heading" aria-level="3">
+        {{ newsletter.title }}
+      </div>
+
+      <!-- Publication Info -->
+      <div class="text-caption text-grey-6 q-mb-sm">
+        <q-icon name="event" size="14px" class="q-mr-xs" />
+        <time :datetime="newsletter.publicationDate" :aria-label="'Published on ' + formattedDate">
+          {{ formattedDate }}
+        </time>
+        <span v-if="newsletter.season" class="q-ml-sm">
+          <q-icon name="wb_sunny" size="14px" class="q-mr-xs" />
+          {{ capitalizeFirst(newsletter.season) }}
+        </span>
+      </div>
+
+      <!-- Issue Number -->
+      <div v-if="newsletter.issueNumber" class="text-caption text-grey-6 q-mb-sm">
+        <q-icon name="numbers" size="14px" class="q-mr-xs" />
+        Issue {{ newsletter.issueNumber }}
+      </div>
+
+      <!-- Description -->
+      <div v-if="newsletter.description" class="text-body2 newsletter-description q-mb-sm"
+        :aria-label="'Description: ' + newsletter.description">
+        {{ truncatedDescription }}
+      </div>
+
+      <!-- Tags -->
+      <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mb-sm" role="list" aria-label="Tags">
+        <q-chip v-for="tag in visibleTags" :key="tag" size="sm" color="primary" text-color="white" dense
+          class="q-mr-xs q-mb-xs" role="listitem" :aria-label="'Tag: ' + tag">
+          {{ tag }}
+        </q-chip>
+        <q-chip v-if="newsletter.tags.length > maxVisibleTags" size="sm" color="grey" text-color="white" dense
+          class="q-mr-xs q-mb-xs" :aria-label="'And ' + (newsletter.tags.length - maxVisibleTags) + ' more tags'">
+          +{{ newsletter.tags.length - maxVisibleTags }}
+        </q-chip>
+      </div>
+    </q-card-section>
+
+    <!-- Footer Section -->
+    <q-card-section class="newsletter-footer q-pt-none">
+      <div class="row items-center text-caption text-grey-6">
+        <!-- File Info -->
+        <div class="col">
+          <q-icon name="description" size="14px" class="q-mr-xs" />
+          <span v-if="newsletter.pageCount" :aria-label="newsletter.pageCount + ' pages'">
+            {{ newsletter.pageCount }} pages
+          </span>
+          <span v-else>PDF</span>
+          <span v-if="formattedFileSize" class="q-ml-sm" :aria-label="'File size: ' + formattedFileSize">
+            • {{ formattedFileSize }}
+          </span>
         </div>
 
-        <!-- Content Section -->
-        <q-card-section class="newsletter-content">
-            <!-- Title -->
-            <div class="text-subtitle1 text-weight-medium newsletter-title q-mb-xs" role="heading" aria-level="3">
-                {{ newsletter.title }}
-            </div>
+        <!-- Actions -->
+        <div class="col-auto" role="group" aria-label="Newsletter actions">
+          <!-- Admin Toggle Actions (only shown when showAdminControls is true) -->
+          <template v-if="showAdminControls">
+            <q-btn flat dense round size="sm" :color="newsletter.isPublished === true ? 'positive' : 'orange'"
+              :icon="newsletter.isPublished === true ? 'visibility' : 'visibility_off'"
+              @click.stop="togglePublishedStatus"
+              :aria-label="(newsletter.isPublished === true ? 'Unpublish' : 'Publish') + ' newsletter: ' + newsletter.title"
+              :tabindex="0" :loading="publishLoading">
+              <q-tooltip>{{ newsletter.isPublished === true ? 'Unpublish' : 'Publish' }}
+                Newsletter</q-tooltip>
+            </q-btn>
 
-            <!-- Publication Info -->
-            <div class="text-caption text-grey-6 q-mb-sm">
-                <q-icon name="event" size="14px" class="q-mr-xs" />
-                <time :datetime="newsletter.publicationDate" :aria-label="'Published on ' + formattedDate">
-                    {{ formattedDate }}
-                </time>
-                <span v-if="newsletter.season" class="q-ml-sm">
-                    <q-icon name="wb_sunny" size="14px" class="q-mr-xs" />
-                    {{ capitalizeFirst(newsletter.season) }}
-                </span>
-            </div>
+            <q-btn flat dense round size="sm" :color="newsletter.featured === true ? 'accent' : 'grey'"
+              :icon="newsletter.featured === true ? 'star' : 'star_border'" @click.stop="toggleFeaturedStatus"
+              :aria-label="(newsletter.featured === true ? 'Remove from featured' : 'Add to featured') + ' newsletter: ' + newsletter.title"
+              :tabindex="0" :loading="featuredLoading">
+              <q-tooltip>{{ newsletter.featured ? 'Remove from Featured' : 'Add to Featured'
+                }}</q-tooltip>
+            </q-btn>
 
-            <!-- Issue Number -->
-            <div v-if="newsletter.issueNumber" class="text-caption text-grey-6 q-mb-sm">
-                <q-icon name="numbers" size="14px" class="q-mr-xs" />
-                Issue {{ newsletter.issueNumber }}
-            </div>
+            <q-separator vertical inset class="q-mx-xs" />
+          </template>
 
-            <!-- Description -->
-            <div v-if="newsletter.description" class="text-body2 newsletter-description q-mb-sm"
-                :aria-label="'Description: ' + newsletter.description">
-                {{ truncatedDescription }}
-            </div>
+          <!-- View/Download Actions -->
+          <q-btn flat dense round size="sm" color="primary" icon="open_in_new" @click.stop="viewNewsletter"
+            :aria-label="'View newsletter: ' + newsletter.title" :tabindex="0">
+            <q-tooltip>View PDF</q-tooltip>
+          </q-btn>
 
-            <!-- Tags -->
-            <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mb-sm" role="list" aria-label="Tags">
-                <q-chip v-for="tag in visibleTags" :key="tag" size="sm" color="primary" text-color="white" dense
-                    class="q-mr-xs q-mb-xs" role="listitem" :aria-label="'Tag: ' + tag">
-                    {{ tag }}
-                </q-chip>
-                <q-chip v-if="newsletter.tags.length > maxVisibleTags" size="sm" color="grey" text-color="white" dense
-                    class="q-mr-xs q-mb-xs"
-                    :aria-label="'And ' + (newsletter.tags.length - maxVisibleTags) + ' more tags'">
-                    +{{ newsletter.tags.length - maxVisibleTags }}
-                </q-chip>
-            </div>
-        </q-card-section>
+          <q-btn v-if="newsletter.downloadUrl" flat dense round size="sm" color="secondary" icon="download"
+            @click.stop="downloadNewsletter" :aria-label="'Download newsletter: ' + newsletter.title" :tabindex="0">
+            <q-tooltip>Download PDF</q-tooltip>
+          </q-btn>
+        </div>
+      </div>
+    </q-card-section>
 
-        <!-- Footer Section -->
-        <q-card-section class="newsletter-footer q-pt-none">
-            <div class="row items-center text-caption text-grey-6">
-                <!-- File Info -->
-                <div class="col">
-                    <q-icon name="description" size="14px" class="q-mr-xs" />
-                    <span v-if="newsletter.pageCount" :aria-label="newsletter.pageCount + ' pages'">
-                        {{ newsletter.pageCount }} pages
-                    </span>
-                    <span v-else>PDF</span>
-                    <span v-if="formattedFileSize" class="q-ml-sm" :aria-label="'File size: ' + formattedFileSize">
-                        • {{ formattedFileSize }}
-                    </span>
-                </div>
-
-                <!-- Actions -->
-                <div class="col-auto" role="group" aria-label="Newsletter actions">
-                    <!-- Admin Toggle Actions (only shown when showAdminControls is true) -->
-                    <template v-if="showAdminControls">
-                        <q-btn flat dense round size="sm"
-                            :color="newsletter.isPublished === true ? 'positive' : 'orange'"
-                            :icon="newsletter.isPublished === true ? 'visibility' : 'visibility_off'"
-                            @click.stop="togglePublishedStatus"
-                            :aria-label="(newsletter.isPublished === true ? 'Unpublish' : 'Publish') + ' newsletter: ' + newsletter.title"
-                            :tabindex="0" :loading="publishLoading">
-                            <q-tooltip>{{ newsletter.isPublished === true ? 'Unpublish' : 'Publish' }}
-                                Newsletter</q-tooltip>
-                        </q-btn>
-
-                        <q-btn flat dense round size="sm" :color="newsletter.featured === true ? 'accent' : 'grey'"
-                            :icon="newsletter.featured === true ? 'star' : 'star_border'"
-                            @click.stop="toggleFeaturedStatus"
-                            :aria-label="(newsletter.featured === true ? 'Remove from featured' : 'Add to featured') + ' newsletter: ' + newsletter.title"
-                            :tabindex="0" :loading="featuredLoading">
-                            <q-tooltip>{{ newsletter.featured ? 'Remove from Featured' : 'Add to Featured'
-                                }}</q-tooltip>
-                        </q-btn>
-
-                        <q-separator vertical inset class="q-mx-xs" />
-                    </template>
-
-                    <!-- View/Download Actions -->
-                    <q-btn flat dense round size="sm" color="primary" icon="open_in_new" @click.stop="viewNewsletter"
-                        :aria-label="'View newsletter: ' + newsletter.title" :tabindex="0">
-                        <q-tooltip>View PDF</q-tooltip>
-                    </q-btn>
-
-                    <q-btn v-if="newsletter.downloadUrl" flat dense round size="sm" color="secondary" icon="download"
-                        @click.stop="downloadNewsletter" :aria-label="'Download newsletter: ' + newsletter.title"
-                        :tabindex="0">
-                        <q-tooltip>Download PDF</q-tooltip>
-                    </q-btn>
-                </div>
-            </div>
-        </q-card-section>
-
-        <!-- Loading overlay for actions -->
-        <q-inner-loading :showing="loading" color="primary" />
-    </q-card>
+    <!-- Loading overlay for actions -->
+    <q-inner-loading :showing="loading" color="primary" />
+  </q-card>
 </template>
 
 <script setup lang="ts">
@@ -174,17 +160,17 @@ import { logger } from '../utils/logger';
 
 // Props
 interface Props {
-    newsletter: NewsletterMetadata;
-    showAdminControls?: boolean; // Optional prop to show admin toggle buttons
+  newsletter: NewsletterMetadata;
+  showAdminControls?: boolean; // Optional prop to show admin toggle buttons
 }
 
 const props = defineProps<Props>();
 
 // Emits
 const emit = defineEmits<{
-    metadataUpdated: [newsletterId: string, updates: Partial<NewsletterMetadata>];
-    newsletterDeleted: [newsletterId: string];
-    refreshNeeded: [];
+  metadataUpdated: [newsletterId: string, updates: Partial<NewsletterMetadata>];
+  newsletterDeleted: [newsletterId: string];
+  refreshNeeded: [];
 }>();
 
 // Composables
@@ -206,395 +192,430 @@ const maxDescriptionLength = 100;
 const isDarkMode = computed(() => siteStore.isDarkMode);
 
 const cardClasses = computed(() => {
-    const base = 'newsletter-card';
-    if (isDarkMode.value) {
-        return `${base} bg-dark text-white q-dark`;
-    } else {
-        return `${base} bg-white text-dark`;
-    }
+  const base = 'newsletter-card';
+  if (isDarkMode.value) {
+    return `${base} bg-dark text-white q-dark`;
+  } else {
+    return `${base} bg-white text-dark`;
+  }
 });
 
 const cardStyle = computed(() => ({
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column' as const
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column' as const
 }));
 
 // Controls when admin toggle buttons are shown
 const showAdminControls = computed(() => {
-    return props.showAdminControls ?? false;
+  return props.showAdminControls ?? false;
 });
 
 const fallbackClasses = computed(() => ({
-    'flex': true,
-    'flex-center': true,
-    'column': true,
-    'full-height': true,
-    'bg-grey-2': !isDarkMode.value,
-    'bg-grey-8': isDarkMode.value
+  'flex': true,
+  'flex-center': true,
+  'column': true,
+  'full-height': true,
+  'bg-grey-2': !isDarkMode.value,
+  'bg-grey-8': isDarkMode.value
 }));
 
 const formattedDate = computed(() => {
-    // Use the enhanced displayDate if available, otherwise fall back to publicationDate formatting
-    if (props.newsletter.displayDate) {
-        return props.newsletter.displayDate;
-    }
+  // Use the enhanced displayDate if available, otherwise fall back to publicationDate formatting
+  if (props.newsletter.displayDate) {
+    return props.newsletter.displayDate;
+  }
 
-    const date = new Date(props.newsletter.publicationDate);
-    return isNaN(date.getTime())
-        ? 'Date unknown'
-        : date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+  const date = new Date(props.newsletter.publicationDate);
+  return isNaN(date.getTime())
+    ? 'Date unknown'
+    : date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
 });
 
 const formattedFileSize = computed(() => {
-    if (!props.newsletter.fileSize) return '';
+  if (!props.newsletter.fileSize) return '';
 
-    const size = props.newsletter.fileSize;
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  const size = props.newsletter.fileSize;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 });
 
 const truncatedDescription = computed(() => {
-    if (!props.newsletter.description) return '';
+  if (!props.newsletter.description) return '';
 
-    if (props.newsletter.description.length <= maxDescriptionLength) {
-        return props.newsletter.description;
-    }
+  if (props.newsletter.description.length <= maxDescriptionLength) {
+    return props.newsletter.description;
+  }
 
-    return props.newsletter.description.substring(0, maxDescriptionLength) + '...';
+  return props.newsletter.description.substring(0, maxDescriptionLength) + '...';
 });
 
 const visibleTags = computed(() => {
-    if (!props.newsletter.tags) return [];
-    return props.newsletter.tags.slice(0, maxVisibleTags);
+  if (!props.newsletter.tags) return [];
+  return props.newsletter.tags.slice(0, maxVisibleTags);
 });
 
 // Methods
 const capitalizeFirst = (str: string): string => {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 const openNewsletter = () => {
-    // For now, just view the newsletter
-    viewNewsletter();
+  // For now, just view the newsletter
+  viewNewsletter();
 }; const viewNewsletter = () => {
-    if (!props.newsletter.downloadUrl) {
-        $q.notify({
-            type: 'negative',
-            message: 'PDF not available for viewing'
-        });
-        return;
-    }
+  if (!props.newsletter.downloadUrl) {
+    $q.notify({
+      type: 'negative',
+      message: 'PDF not available for viewing'
+    });
+    return;
+  }
 
-    try {
-        loading.value = true;
+  try {
+    loading.value = true;
 
-        // Open PDF in the global PDF viewer
-        // This would integrate with your existing PDF viewer system
-        logger.info('Opening newsletter:', props.newsletter.title);
+    // Open PDF in the global PDF viewer
+    // This would integrate with your existing PDF viewer system
+    logger.info('Opening newsletter:', props.newsletter.title);
 
-        // For now, open in new tab
-        window.open(props.newsletter.downloadUrl, '_blank');
+    // For now, open in new tab
+    window.open(props.newsletter.downloadUrl, '_blank');
 
-    } catch (error) {
-        logger.error('Error opening newsletter:', error);
-        $q.notify({
-            type: 'negative',
-            message: 'Failed to open PDF'
-        });
-    } finally {
-        loading.value = false;
-    }
+  } catch (error) {
+    logger.error('Error opening newsletter:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to open PDF'
+    });
+  } finally {
+    loading.value = false;
+  }
 }; const downloadNewsletter = () => {
-    if (!props.newsletter.downloadUrl) {
-        $q.notify({
-            type: 'negative',
-            message: 'Download not available'
-        });
-        return;
-    }
+  if (!props.newsletter.downloadUrl) {
+    $q.notify({
+      type: 'negative',
+      message: 'Download not available'
+    });
+    return;
+  }
 
-    try {
-        loading.value = true;
+  try {
+    loading.value = true;
 
-        // Create download link
-        const link = document.createElement('a');
-        link.href = props.newsletter.downloadUrl;
-        link.download = props.newsletter.filename;
-        link.target = '_blank';
+    // Create download link
+    const link = document.createElement('a');
+    link.href = props.newsletter.downloadUrl;
+    link.download = props.newsletter.filename;
+    link.target = '_blank';
 
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-        $q.notify({
-            type: 'positive',
-            message: `Downloading ${props.newsletter.title}`
-        });
+    $q.notify({
+      type: 'positive',
+      message: `Downloading ${props.newsletter.title}`
+    });
 
-        logger.info('Newsletter download started:', props.newsletter.filename);
+    logger.info('Newsletter download started:', props.newsletter.filename);
 
-    } catch (error) {
-        logger.error('Error downloading newsletter:', error);
-        $q.notify({
-            type: 'negative',
-            message: 'Failed to download PDF'
-        });
-    } finally {
-        loading.value = false;
-    }
+  } catch (error) {
+    logger.error('Error downloading newsletter:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to download PDF'
+    });
+  } finally {
+    loading.value = false;
+  }
 };
 
 const onThumbnailError = () => {
-    thumbnailError.value = true;
-    logger.warn('Thumbnail failed to load for:', props.newsletter.title);
+  thumbnailError.value = true;
+  logger.warn('Thumbnail failed to load for:', props.newsletter.title);
 };
 
 // Generate thumbnail for newsletter (admin only)
-const generateThumbnail = () => {
-    try {
-        thumbnailGenerating.value = true;
+const generateThumbnail = async () => {
+  try {
+    thumbnailGenerating.value = true;
 
-        $q.notify({
-            type: 'info',
-            message: 'Thumbnail generation not yet implemented',
-            caption: 'This feature will be available in a future update',
-            position: 'top'
-        });
+    // Import the thumbnail service
+    const { enhancedThumbnailService } = await import('../services/enhanced-thumbnail.service');
 
-        // TODO: Implement thumbnail generation
-        // This would call a thumbnail generation service
+    // Convert newsletter to ContentManagementNewsletter format
+    const contentNewsletter = {
+      id: props.newsletter.id,
+      filename: props.newsletter.filename,
+      title: props.newsletter.title,
+      downloadUrl: props.newsletter.downloadUrl || '',
+      year: props.newsletter.year || new Date().getFullYear(),
+      season: props.newsletter.season || 'unknown',
+      fileSize: props.newsletter.fileSize || 0,
+      tags: props.newsletter.tags || [],
+      description: props.newsletter.description || '',
+      pageCount: props.newsletter.pageCount || 0,
+      featured: props.newsletter.featured || false,
+      isPublished: props.newsletter.isPublished || false,
+      createdAt: props.newsletter.createdAt || new Date().toISOString(),
+      updatedAt: props.newsletter.updatedAt || new Date().toISOString(),
+      createdBy: props.newsletter.createdBy || 'admin',
+      updatedBy: props.newsletter.updatedBy || 'admin',
+      actions: props.newsletter.actions || { synced: false, hasThumbnail: false },
+      publicationDate: props.newsletter.publicationDate || new Date().toISOString(),
+    };
 
-    } catch (error) {
-        logger.error('Error generating thumbnail:', error);
-        $q.notify({
-            type: 'negative',
-            message: 'Failed to generate thumbnail',
-            position: 'top'
-        });
-    } finally {
-        thumbnailGenerating.value = false;
+    // Generate thumbnail and update Firebase
+    const thumbnailBase64 = await enhancedThumbnailService.generateNewsletterThumbnail(contentNewsletter);
+
+    if (thumbnailBase64) {
+      $q.notify({
+        type: 'positive',
+        message: 'Thumbnail generated successfully',
+        position: 'top'
+      });
+
+      // Emit event to parent to refresh data
+      emit('metadataUpdated', props.newsletter.id, { thumbnailUrl: thumbnailBase64 });
+    } else {
+      $q.notify({
+        type: 'warning',
+        message: 'Thumbnail generation completed but no image was created',
+        position: 'top'
+      });
     }
+
+  } catch (error) {
+    logger.error('Error generating thumbnail:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to generate thumbnail',
+      position: 'top'
+    });
+  } finally {
+    thumbnailGenerating.value = false;
+  }
 };
 
 // Admin toggle methods
 const togglePublishedStatus = async () => {
+  try {
+    publishLoading.value = true;
+
+    // Explicitly handle undefined/falsy values as false for better boolean logic
+    const currentStatus = props.newsletter.isPublished === true;
+    const newStatus = !currentStatus;
+
+    logger.info(`Toggling publication status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
+
+    // First, ensure the newsletter exists in Firebase by syncing it if needed
     try {
-        publishLoading.value = true;
-
-        // Explicitly handle undefined/falsy values as false for better boolean logic
-        const currentStatus = props.newsletter.isPublished === true;
-        const newStatus = !currentStatus;
-
-        logger.info(`Toggling publication status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
-
-        // First, ensure the newsletter exists in Firebase by syncing it if needed
-        try {
-            await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
-                isPublished: newStatus
-            });
-        } catch (error) {
-            // If update fails because document doesn't exist, notify parent to handle sync
-            if (error instanceof Error && error.message.includes('No document to update')) {
-                logger.warn('Document does not exist, requesting parent to sync first...');
-                emit('refreshNeeded');
-                $q.notify({
-                    type: 'warning',
-                    message: 'Newsletter needs to be synced to Firebase first',
-                    caption: 'Please use the sync button to create the Firebase record',
-                    position: 'top'
-                });
-                return;
-            } else {
-                throw error; // Re-throw other errors
-            }
-        }
-
-        // Update the newsletter object directly to provide immediate feedback
-        const mutableNewsletter = props.newsletter as NewsletterMetadata & { isPublished: boolean };
-        mutableNewsletter.isPublished = newStatus;
-
-        // Emit event to parent so archive can refresh if needed
-        emit('metadataUpdated', props.newsletter.id, { isPublished: newStatus });
-
-        $q.notify({
-            type: 'positive',
-            message: `Newsletter ${newStatus ? 'published' : 'unpublished'} successfully`,
-            position: 'top'
-        });
-
-        logger.info(`Newsletter ${props.newsletter.id} ${newStatus ? 'published' : 'unpublished'}`);
-
+      await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
+        isPublished: newStatus
+      });
     } catch (error) {
-        logger.error('Error toggling publish status:', error);
+      // If update fails because document doesn't exist, notify parent to handle sync
+      if (error instanceof Error && error.message.includes('No document to update')) {
+        logger.warn('Document does not exist, requesting parent to sync first...');
+        emit('refreshNeeded');
         $q.notify({
-            type: 'negative',
-            message: 'Failed to update publication status',
-            caption: error instanceof Error ? error.message : 'Unknown error',
-            position: 'top'
+          type: 'warning',
+          message: 'Newsletter needs to be synced to Firebase first',
+          caption: 'Please use the sync button to create the Firebase record',
+          position: 'top'
         });
-    } finally {
-        publishLoading.value = false;
+        return;
+      } else {
+        throw error; // Re-throw other errors
+      }
     }
+
+    // Update the newsletter object directly to provide immediate feedback
+    const mutableNewsletter = props.newsletter as NewsletterMetadata & { isPublished: boolean };
+    mutableNewsletter.isPublished = newStatus;
+
+    // Emit event to parent so archive can refresh if needed
+    emit('metadataUpdated', props.newsletter.id, { isPublished: newStatus });
+
+    $q.notify({
+      type: 'positive',
+      message: `Newsletter ${newStatus ? 'published' : 'unpublished'} successfully`,
+      position: 'top'
+    });
+
+    logger.info(`Newsletter ${props.newsletter.id} ${newStatus ? 'published' : 'unpublished'}`);
+
+  } catch (error) {
+    logger.error('Error toggling publish status:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update publication status',
+      caption: error instanceof Error ? error.message : 'Unknown error',
+      position: 'top'
+    });
+  } finally {
+    publishLoading.value = false;
+  }
 };
 
 const toggleFeaturedStatus = async () => {
+  try {
+    featuredLoading.value = true;
+
+    // Explicitly handle undefined/falsy values as false for better boolean logic
+    const currentStatus = props.newsletter.featured === true;
+    const newStatus = !currentStatus;
+
+    logger.info(`Toggling featured status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
+
+    // First, ensure the newsletter exists in Firebase by syncing it if needed
     try {
-        featuredLoading.value = true;
-
-        // Explicitly handle undefined/falsy values as false for better boolean logic
-        const currentStatus = props.newsletter.featured === true;
-        const newStatus = !currentStatus;
-
-        logger.info(`Toggling featured status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
-
-        // First, ensure the newsletter exists in Firebase by syncing it if needed
-        try {
-            await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
-                featured: newStatus
-            });
-        } catch (error) {
-            // If update fails because document doesn't exist, notify parent to handle sync
-            if (error instanceof Error && error.message.includes('No document to update')) {
-                logger.warn('Document does not exist, requesting parent to sync first...');
-                emit('refreshNeeded');
-                $q.notify({
-                    type: 'warning',
-                    message: 'Newsletter needs to be synced to Firebase first',
-                    caption: 'Please use the sync button to create the Firebase record',
-                    position: 'top'
-                });
-                return;
-            } else {
-                throw error; // Re-throw other errors
-            }
-        }
-
-        // Update the newsletter object directly to provide immediate feedback
-        const mutableNewsletter = props.newsletter as NewsletterMetadata & { featured: boolean };
-        mutableNewsletter.featured = newStatus;
-
-        // Emit event to parent so archive can refresh if needed
-        emit('metadataUpdated', props.newsletter.id, { featured: newStatus });
-
-        $q.notify({
-            type: 'positive',
-            message: `Newsletter ${newStatus ? 'added to featured' : 'removed from featured'}`,
-            position: 'top'
-        });
-
-        logger.info(`Newsletter ${props.newsletter.id} featured status: ${newStatus}`);
-
+      await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
+        featured: newStatus
+      });
     } catch (error) {
-        logger.error('Error toggling featured status:', error);
+      // If update fails because document doesn't exist, notify parent to handle sync
+      if (error instanceof Error && error.message.includes('No document to update')) {
+        logger.warn('Document does not exist, requesting parent to sync first...');
+        emit('refreshNeeded');
         $q.notify({
-            type: 'negative',
-            message: 'Failed to update featured status',
-            position: 'top'
+          type: 'warning',
+          message: 'Newsletter needs to be synced to Firebase first',
+          caption: 'Please use the sync button to create the Firebase record',
+          position: 'top'
         });
-    } finally {
-        featuredLoading.value = false;
+        return;
+      } else {
+        throw error; // Re-throw other errors
+      }
     }
+
+    // Update the newsletter object directly to provide immediate feedback
+    const mutableNewsletter = props.newsletter as NewsletterMetadata & { featured: boolean };
+    mutableNewsletter.featured = newStatus;
+
+    // Emit event to parent so archive can refresh if needed
+    emit('metadataUpdated', props.newsletter.id, { featured: newStatus });
+
+    $q.notify({
+      type: 'positive',
+      message: `Newsletter ${newStatus ? 'added to featured' : 'removed from featured'}`,
+      position: 'top'
+    });
+
+    logger.info(`Newsletter ${props.newsletter.id} featured status: ${newStatus}`);
+
+  } catch (error) {
+    logger.error('Error toggling featured status:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update featured status',
+      position: 'top'
+    });
+  } finally {
+    featuredLoading.value = false;
+  }
 };
 </script>
 
 <style scoped>
 .newsletter-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 8px;
-    overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .newsletter-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
 .thumbnail-container {
-    position: relative;
-    height: 140px;
-    overflow: hidden;
-    background-color: #f5f5f5;
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+  background-color: #f5f5f5;
 }
 
 .thumbnail-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .thumbnail-fallback {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .featured-badge {
-    top: 8px;
-    right: 8px;
+  top: 8px;
+  right: 8px;
 }
 
 .status-badge {
-    top: 8px;
-    left: 8px;
+  top: 8px;
+  left: 8px;
 }
 
 .accessibility-indicators {
-    top: 40px;
-    right: 8px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 4px;
-    padding: 2px;
-    display: flex;
-    gap: 2px;
+  top: 40px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  padding: 2px;
+  display: flex;
+  gap: 2px;
 }
 
 .newsletter-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .newsletter-title {
-    line-height: 1.3;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .newsletter-description {
-    line-height: 1.4;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .newsletter-footer {
-    margin-top: auto;
+  margin-top: auto;
 }
 
 /* Dark mode adjustments */
 .q-dark .newsletter-card {
-    border-color: #444;
+  border-color: #444;
 }
 
 .q-dark .thumbnail-container {
-    background-color: #2a2a2a;
+  background-color: #2a2a2a;
 }
 
 .q-dark .thumbnail-fallback {
-    background-color: #2a2a2a;
+  background-color: #2a2a2a;
 }
 </style>

@@ -1380,6 +1380,15 @@ async function extractNewslettersWithVersioning(newsletters: ContentManagementNe
 
   for (const newsletter of newsletters) {
     try {
+      // CRITICAL FIX: Find the actual Firebase document ID by filename
+      // The newsletter.id is a hash-based ID, but Firebase documents have different IDs
+      const firebaseId = await firestoreService.findNewsletterIdByFilename(newsletter.filename);
+
+      if (!firebaseId) {
+        // Newsletter not in Firebase yet - need to sync it first
+        throw new Error(`Newsletter not found in Firebase: ${newsletter.filename}. Please sync to Firebase first.`);
+      }
+
       // Extract content using tag generation service
       const tagResult = await tagGenerationService.generateTagsFromPdf(
         newsletter.downloadUrl,
@@ -1392,11 +1401,12 @@ async function extractNewslettersWithVersioning(newsletters: ContentManagementNe
         tags: [...(newsletter.tags || []), ...tagResult.suggestedTags].slice(0, 20), // Limit tags
       };
 
-      // Update using versioning system
+      // Update using versioning system with the correct Firebase document ID
       await firestoreService.updateNewsletterWithVersioning(
-        newsletter.id,
+        firebaseId,
         updates,
-        'Automated text extraction and tag generation'
+        'Automated text extraction and tag generation',
+        undefined // Let the service get the current user
       );
 
       successCount++;
@@ -1683,6 +1693,12 @@ async function syncNewsletterToFirebase(newsletter: ContentManagementNewsletter)
       ...metadataWithoutId,
       updatedAt: new Date().toISOString(),
       updatedBy: auth.currentUser.value?.uid || 'anonymous',
+      // Include thumbnail data if it exists
+      ...(originalDraft.thumbnailUrl ? { thumbnailUrl: originalDraft.thumbnailUrl } : {}),
+      actions: {
+        ...metadataWithoutId.actions,
+        hasThumbnail: !!originalDraft.thumbnailUrl
+      }
     };
   } else {
     // This is a regular newsletter - CREATE FIREBASE RECORD
@@ -1707,8 +1723,10 @@ async function syncNewsletterToFirebase(newsletter: ContentManagementNewsletter)
         canView: true,
         canDownload: true,
         canSearch: false,
-        hasThumbnail: false
-      }
+        hasThumbnail: !!newsletter.thumbnailUrl // SET TO TRUE IF THUMBNAIL EXISTS
+      },
+      // Conditionally add thumbnailUrl if it exists
+      ...(newsletter.thumbnailUrl ? { thumbnailUrl: newsletter.thumbnailUrl } : {})
     };
 
     // Add season only if it's a valid value
@@ -1722,8 +1740,8 @@ async function syncNewsletterToFirebase(newsletter: ContentManagementNewsletter)
     }
   }
 
-  // ALWAYS SAVE TO FIREBASE
-  await firestoreService.saveNewsletterMetadata(metadataToSync);
+  // ALWAYS UPSERT TO FIREBASE (UPDATE IF EXISTS, CREATE IF NEW)
+  await firestoreService.upsertNewsletterMetadata(metadataToSync);
 
   // Remove from local drafts if it was a draft
   if (newsletter.id.startsWith('draft-')) {

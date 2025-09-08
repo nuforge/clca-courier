@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '../../config/firebase.config';
 import { logger } from '../../utils/logger';
+import { validateVersioningData, cleanForFirebase } from '../../utils/data-type-validator';
 import type {
   BaseContentDocument,
   BaseContentHistory,
@@ -95,19 +96,25 @@ export class ContentVersioningService {
         userId: options.userId,
         changeType: this.determineChangeType(changes),
         changes,
-        snapshot: this.cleanUndefinedValues(mergedDocument) as T, // Clean the snapshot too!
+        snapshot: this.cleanUndefinedValues(mergedDocument) as T,
         hash: mergedDocument.versioning!.currentHash,
         comment: options.comment || '',
         branch: options.branch || 'main',
       };
 
-      // 6. Save history entry
-      const historyRef = doc(firestore, collectionName, id, 'history', newVersion.toString());
-      await setDoc(historyRef, historyEntry);
+      // 6. Save history entry - VALIDATE AND CLEAN DATA
+      const validation = validateVersioningData(historyEntry);
+      if (!validation.isValid) {
+        logger.error('Versioning data validation failed:', validation.errors);
+        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      }
 
-      // 7. Update main document
-      // Use setDoc with merge option for more reliable updates
-      await setDoc(docRef, mergedDocument, { merge: true });
+      const historyRef = doc(firestore, collectionName, id, 'history', newVersion.toString());
+      await setDoc(historyRef, validation.cleanedData);
+
+      // 7. Update main document - CLEAN THIS TOO
+      const cleanedDocument = cleanForFirebase(mergedDocument);
+      await setDoc(docRef, cleanedDocument, { merge: true });
 
       logger.info(`Content versioning: Updated ${collectionName}/${id} to version ${newVersion}`);
     } catch (error) {

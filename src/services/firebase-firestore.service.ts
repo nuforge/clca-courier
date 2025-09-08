@@ -267,6 +267,87 @@ class FirebaseFirestoreService {
     }
   }
 
+  // UPSERT: Update existing newsletter by filename or create new one
+  async upsertNewsletterMetadata(metadata: Omit<NewsletterMetadata, 'id'>): Promise<string> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to save newsletter metadata');
+      }
+
+      // First, try to find existing newsletter by filename
+      const q = query(
+        collection(firestore, this.COLLECTIONS.NEWSLETTERS),
+        where('filename', '==', metadata.filename),
+        limit(1),
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Newsletter exists - UPDATE IT
+        const existingDoc = querySnapshot.docs[0];
+        if (existingDoc) {
+          const existingId = existingDoc.id;
+
+          logger.info(
+            `Found existing newsletter with filename ${metadata.filename}, updating document ${existingId}`,
+          );
+
+          await this.updateNewsletterMetadata(existingId, metadata);
+          return existingId;
+        }
+      }
+
+      // Newsletter doesn't exist - CREATE NEW ONE
+      logger.info(
+        `No existing newsletter found with filename ${metadata.filename}, creating new document`,
+      );
+
+      const docRef = await addDoc(collection(firestore, this.COLLECTIONS.NEWSLETTERS), {
+        ...metadata,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: currentUser.uid,
+        updatedBy: currentUser.uid,
+      });
+
+      logger.success('New newsletter metadata created:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      logger.error('Error upserting newsletter metadata:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find Firebase document ID by filename
+   * Used to get the actual Firebase document ID when we only have the filename
+   */
+  async findNewsletterIdByFilename(filename: string): Promise<string | null> {
+    try {
+      const q = query(
+        collection(firestore, this.COLLECTIONS.NEWSLETTERS),
+        where('filename', '==', filename),
+        limit(1),
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        if (doc) {
+          return doc.id;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      logger.error(`Error finding newsletter ID by filename ${filename}:`, error);
+      return null;
+    }
+  }
+
   async getAllNewsletterMetadata(): Promise<NewsletterMetadata[]> {
     try {
       logger.info('Attempting to fetch newsletter metadata...');
