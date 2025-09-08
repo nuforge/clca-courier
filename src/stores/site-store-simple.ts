@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import type { ClassifiedAd, NewsItem, Event, CommunityStats } from '../types';
 import { useUserSettings } from '../composables/useUserSettings';
 import { logger } from '../utils/logger';
+import { firestoreService } from '../services/firebase-firestore.service';
+import type { Unsubscribe } from 'firebase/firestore';
 
-// Import JSON data directly
-import newsData from '../data/news.json';
+// Import JSON data directly (keeping for non-news content)
 import classifiedsData from '../data/classifieds.json';
 import eventsData from '../data/events.json';
 import communityStatsData from '../data/community-stats.json';
@@ -32,6 +33,9 @@ export const useSiteStore = defineStore('site', () => {
     yearsPublished: 0,
     issuesPerYear: 0,
   });
+
+  // Firebase subscription state
+  let newsSubscription: Unsubscribe | null = null;
 
   // Computed values
   const archivedIssuesComputed = computed(() => archivedIssues.value);
@@ -99,6 +103,7 @@ export const useSiteStore = defineStore('site', () => {
 
   function loadArchivedIssues() {
     // Archived issues loading removed - no PDF processing
+    // This function remains for future implementation if needed
     archivedIssues.value = [];
     logger.debug('Archived issues loading skipped - PDF processing removed');
   }
@@ -106,12 +111,43 @@ export const useSiteStore = defineStore('site', () => {
   async function loadNewsItems() {
     try {
       await delay(100); // Simulate network delay
-      newsItems.value = newsData as NewsItem[];
+      // Load approved content from Firebase instead of static JSON
+      newsItems.value = await firestoreService.getApprovedContentAsNewsItems();
+      logger.success(`Loaded ${newsItems.value.length} news items from Firebase`);
+
+      // Set up real-time subscription for future updates
+      setupNewsSubscription();
     } catch (error) {
-      logger.error('Error loading news items:', error);
+      logger.error('Error loading news items from Firebase:', error);
+      // Fallback to empty array if Firebase fails
       newsItems.value = [];
     }
   }
+
+  function setupNewsSubscription() {
+    // Clean up existing subscription
+    if (newsSubscription) {
+      newsSubscription();
+    }
+
+    // Set up new subscription for real-time updates
+    newsSubscription = firestoreService.subscribeToApprovedContent((newItems) => {
+      newsItems.value = newItems;
+      logger.debug(`News items updated via subscription: ${newItems.length} items`);
+    });
+  }
+
+  function cleanup() {
+    if (newsSubscription) {
+      newsSubscription();
+      newsSubscription = null;
+    }
+  }
+
+  // Cleanup when store is unmounted
+  onUnmounted(() => {
+    cleanup();
+  });
 
   async function loadClassifieds() {
     try {
@@ -198,6 +234,7 @@ export const useSiteStore = defineStore('site', () => {
     refreshClassifieds,
     refreshEvents,
     refreshAll,
+    cleanup,
 
     // User settings
     userSettings,

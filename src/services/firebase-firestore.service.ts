@@ -27,6 +27,7 @@ import { newsletterVersioningService } from './newsletter-versioning.service';
 import { logger } from '../utils/logger';
 import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
+import type { NewsItem } from '../types/core/content.types';
 
 // Newsletter metadata interface (Firebase Storage with future flexibility)
 export interface NewsletterMetadata {
@@ -533,6 +534,92 @@ class FirebaseFirestoreService {
       logger.error('Error getting pending content:', error);
       throw error;
     }
+  }
+
+  async getApprovedContent(): Promise<UserContent[]> {
+    try {
+      const q = query(
+        collection(firestore, this.COLLECTIONS.USER_CONTENT),
+        where('status', 'in', ['approved', 'published']),
+        orderBy('submissionDate', 'desc'),
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          }) as UserContent,
+      );
+    } catch (error) {
+      logger.error('Error getting approved content:', error);
+      throw error;
+    }
+  }
+
+  // Convert UserContent to NewsItem for display
+  convertUserContentToNewsItem(userContent: UserContent): NewsItem {
+    // Map content type to category
+    const categoryMap: Record<string, 'news' | 'announcement' | 'event'> = {
+      article: 'news',
+      announcement: 'announcement',
+      event: 'event',
+      classified: 'announcement', // Map classified to announcement
+      photo: 'announcement', // Map photo to announcement
+    };
+
+    return {
+      id: userContent.id,
+      title: userContent.title,
+      summary:
+        userContent.content.substring(0, 200) + (userContent.content.length > 200 ? '...' : ''),
+      content: userContent.content,
+      author: userContent.authorName,
+      date: userContent.submissionDate,
+      category: categoryMap[userContent.type] || 'news',
+      featured: userContent.status === 'published', // Featured if published
+    };
+  }
+
+  async getApprovedContentAsNewsItems(): Promise<NewsItem[]> {
+    try {
+      const userContent = await this.getApprovedContent();
+      return userContent.map((content) => this.convertUserContentToNewsItem(content));
+    } catch (error) {
+      logger.error('Error getting approved content as news items:', error);
+      throw error;
+    }
+  }
+
+  // Real-time subscription to approved content
+  subscribeToApprovedContent(callback: (newsItems: NewsItem[]) => void): Unsubscribe {
+    const q = query(
+      collection(firestore, this.COLLECTIONS.USER_CONTENT),
+      where('status', 'in', ['approved', 'published']),
+      orderBy('submissionDate', 'desc'),
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const userContent = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            }) as UserContent,
+        );
+
+        const newsItems = userContent.map((content) => this.convertUserContentToNewsItem(content));
+        callback(newsItems);
+        logger.debug(`Real-time update: ${newsItems.length} approved content items`);
+      },
+      (error) => {
+        logger.error('Error in approved content subscription:', error);
+        callback([]); // Return empty array on error
+      },
+    );
   }
 
   // User profile operations
