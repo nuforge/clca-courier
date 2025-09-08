@@ -77,13 +77,26 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
+import { useRoleAuth } from '../composables/useRoleAuth';
 import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
 import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
 import type { UnifiedNewsletter } from '../types/core/newsletter.types';
+
+// Authorization check - require admin role for newsletter management
+const { requireAdmin, isAuthReady } = useRoleAuth();
+
+// Watch for authentication readiness and check authorization
+watch(isAuthReady, (ready: boolean) => {
+  if (ready) {
+    if (!requireAdmin()) {
+      // Redirect handled by useRoleAuth
+    }
+  }
+}, { immediate: true });
 
 // Components
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';

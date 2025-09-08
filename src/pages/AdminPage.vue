@@ -214,12 +214,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { firebaseAuthService } from '../services/firebase-auth.service';
+import { useRoleAuth } from '../composables/useRoleAuth';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 
 const $q = useQuasar();
+
+// Authorization check - require admin role for admin page access
+const { requireAdmin, isAuthReady } = useRoleAuth();
+
+// Watch for authentication readiness and check authorization
+watch(isAuthReady, (ready: boolean) => {
+  if (ready) {
+    if (!requireAdmin()) {
+      // User will be redirected automatically by requireAdmin()
+    }
+  }
+}, { immediate: true });
 
 // Basic admin state (simplified without PDF processing)
 const newsletters = ref<NewsletterMetadata[]>([]);

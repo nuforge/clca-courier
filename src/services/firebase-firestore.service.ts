@@ -115,6 +115,7 @@ export interface UserContent {
   authorEmail: string;
   submissionDate: string;
   status: 'pending' | 'approved' | 'rejected' | 'published';
+  featured?: boolean; // Optional featured flag for highlighted content
   reviewedBy?: string; // Editor UID
   reviewDate?: string;
   reviewNotes?: string;
@@ -514,6 +515,23 @@ class FirebaseFirestoreService {
     }
   }
 
+  async updateContentFeaturedStatus(contentId: string, featured: boolean): Promise<void> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to update featured status');
+      }
+
+      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
+      await updateDoc(docRef, { featured });
+
+      logger.success('Content featured status updated:', contentId, featured);
+    } catch (error) {
+      logger.error('Error updating content featured status:', error);
+      throw error;
+    }
+  }
+
   async getPendingContent(): Promise<UserContent[]> {
     try {
       // Try with ordering first (requires index)
@@ -692,7 +710,7 @@ class FirebaseFirestoreService {
       author: userContent.authorName,
       date: dateString,
       category: categoryMap[userContent.type] || 'news',
-      featured: userContent.status === 'published', // Featured if published
+      featured: userContent.featured ?? false, // Use featured property if set, default to false
     };
   }
 

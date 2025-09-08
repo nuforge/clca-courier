@@ -3,96 +3,106 @@
   Displays user-submitted content in a table format with actions
 -->
 <template>
-    <div>
-        <q-table :rows="content" :columns="tableColumns" row-key="id" selection="multiple"
-            :selected="selectedContentItems"
-            @update:selected="(value: readonly UserContent[]) => $emit('update:selected', value.map(item => item.id))"
-            :pagination="{ rowsPerPage: 10 }" class="full-width">
-            <!-- Status column -->
-            <template v-slot:body-cell-status="props">
-                <q-td :props="props">
-                    <q-badge :color="getStatusColor(props.value)" :label="props.value.toUpperCase()" />
-                </q-td>
+  <div>
+    <q-table :rows="content" :columns="tableColumns" row-key="id" selection="multiple" :selected="selectedContentItems"
+      @update:selected="(value: readonly UserContent[]) => $emit('update:selected', value.map(item => item.id))"
+      :pagination="{ rowsPerPage: 10 }" class="full-width">
+      <!-- Status column -->
+      <template v-slot:body-cell-status="props">
+        <q-td :props="props">
+          <q-badge :color="getStatusColor(props.value)">
+            <q-icon :name="getStatusIcon(props.value)" class="q-mr-xs" />
+            {{ props.value.toUpperCase() }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <!-- Type column -->
+      <template v-slot:body-cell-type="props">
+        <q-td :props="props">
+          <q-badge color="grey" :label="props.value.toUpperCase()" />
+        </q-td>
+      </template>
+
+      <!-- Title column -->
+      <template v-slot:body-cell-title="props">
+        <q-td :props="props" class="cursor-pointer" @click="$emit('view', props.row)">
+          <div class="text-weight-medium">{{ props.value }}</div>
+          <div class="text-caption text-grey">{{ truncateText(props.row.content, 100) }}</div>
+        </q-td>
+      </template>
+
+      <!-- Author column -->
+      <template v-slot:body-cell-author="props">
+        <q-td :props="props">
+          <div>{{ props.row.authorName }}</div>
+          <div class="text-caption text-grey">{{ props.row.authorEmail }}</div>
+        </q-td>
+      </template>
+
+      <!-- Date column -->
+      <template v-slot:body-cell-submissionDate="props">
+        <q-td :props="props">
+          {{ formatDate(props.value) }}
+        </q-td>
+      </template>
+
+      <!-- Featured column -->
+      <template v-slot:body-cell-featured="props">
+        <q-td :props="props">
+          <q-toggle :model-value="props.row.featured || false"
+            @update:model-value="(value: boolean) => handleToggleFeatured(props.row.id, value)" color="orange"
+            :disable="props.row.status !== 'published'">
+            <q-tooltip>
+              {{ props.row.status !== 'published' ? 'Must be published to feature' : 'Toggle featured' }}
+            </q-tooltip>
+          </q-toggle>
+        </q-td>
+      </template>
+
+      <!-- Actions column -->
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <div class="row items-center q-gutter-xs">
+            <q-btn flat round size="sm" icon="visibility" @click="$emit('view', props.row)" color="grey">
+              <q-tooltip>View Details</q-tooltip>
+            </q-btn>
+
+            <!-- Pending actions -->
+            <template v-if="showActions && props.row.status === 'pending'">
+              <q-btn flat round size="sm" icon="check" @click="$emit('approve', props.row.id)" color="positive">
+                <q-tooltip>Approve</q-tooltip>
+              </q-btn>
+              <q-btn flat round size="sm" icon="close" @click="$emit('reject', props.row.id)" color="negative">
+                <q-tooltip>Reject</q-tooltip>
+              </q-btn>
             </template>
 
-            <!-- Type column -->
-            <template v-slot:body-cell-type="props">
-                <q-td :props="props">
-                    <q-badge color="grey" :label="props.value.toUpperCase()" />
-                </q-td>
+            <!-- Approved actions -->
+            <template v-if="showPublishActions && props.row.status === 'approved'">
+              <q-btn flat round size="sm" icon="publish" @click="$emit('publish', props.row.id)" color="blue">
+                <q-tooltip>Publish</q-tooltip>
+              </q-btn>
             </template>
 
-            <!-- Title column -->
-            <template v-slot:body-cell-title="props">
-                <q-td :props="props" class="cursor-pointer" @click="$emit('view', props.row)">
-                    <div class="text-weight-medium">{{ props.value }}</div>
-                    <div class="text-caption text-grey">{{ truncateText(props.row.content, 100) }}</div>
-                </q-td>
+            <!-- Published actions -->
+            <template v-if="showUnpublishActions && props.row.status === 'published'">
+              <q-btn flat round size="sm" icon="unpublished" @click="$emit('unpublish', props.row.id)" color="orange">
+                <q-tooltip>Unpublish</q-tooltip>
+              </q-btn>
             </template>
 
-            <!-- Author column -->
-            <template v-slot:body-cell-author="props">
-                <q-td :props="props">
-                    <div>{{ props.row.authorName }}</div>
-                    <div class="text-caption text-grey">{{ props.row.authorEmail }}</div>
-                </q-td>
+            <!-- Rejected actions -->
+            <template v-if="showReconsiderActions && props.row.status === 'rejected'">
+              <q-btn flat round size="sm" icon="refresh" @click="$emit('reconsider', props.row.id)" color="blue">
+                <q-tooltip>Reconsider</q-tooltip>
+              </q-btn>
             </template>
-
-            <!-- Date column -->
-            <template v-slot:body-cell-submissionDate="props">
-                <q-td :props="props">
-                    {{ formatDate(props.value) }}
-                </q-td>
-            </template>
-
-            <!-- Actions column -->
-            <template v-slot:body-cell-actions="props">
-                <q-td :props="props">
-                    <div class="row items-center q-gutter-xs">
-                        <q-btn flat round size="sm" icon="visibility" @click="$emit('view', props.row)" color="grey">
-                            <q-tooltip>View Details</q-tooltip>
-                        </q-btn>
-
-                        <!-- Pending actions -->
-                        <template v-if="showActions && props.row.status === 'pending'">
-                            <q-btn flat round size="sm" icon="check" @click="$emit('approve', props.row.id)"
-                                color="positive">
-                                <q-tooltip>Approve</q-tooltip>
-                            </q-btn>
-                            <q-btn flat round size="sm" icon="close" @click="$emit('reject', props.row.id)"
-                                color="negative">
-                                <q-tooltip>Reject</q-tooltip>
-                            </q-btn>
-                        </template>
-
-                        <!-- Approved actions -->
-                        <template v-if="showPublishActions && props.row.status === 'approved'">
-                            <q-btn flat round size="sm" icon="publish" @click="$emit('publish', props.row.id)"
-                                color="blue">
-                                <q-tooltip>Publish</q-tooltip>
-                            </q-btn>
-                        </template>
-
-                        <!-- Published actions -->
-                        <template v-if="showUnpublishActions && props.row.status === 'published'">
-                            <q-btn flat round size="sm" icon="unpublished" @click="$emit('unpublish', props.row.id)"
-                                color="orange">
-                                <q-tooltip>Unpublish</q-tooltip>
-                            </q-btn>
-                        </template>
-
-                        <!-- Rejected actions -->
-                        <template v-if="showReconsiderActions && props.row.status === 'rejected'">
-                            <q-btn flat round size="sm" icon="refresh" @click="$emit('reconsider', props.row.id)"
-                                color="blue">
-                                <q-tooltip>Reconsider</q-tooltip>
-                            </q-btn>
-                        </template>
-                    </div>
-                </q-td>
-            </template>
-        </q-table>
-    </div>
+          </div>
+        </q-td>
+      </template>
+    </q-table>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -100,140 +110,164 @@ import { computed } from 'vue';
 import type { UserContent } from '../../services/firebase-firestore.service';
 
 interface Props {
-    content: UserContent[];
-    selected: string[];
-    showActions?: boolean;
-    showPublishActions?: boolean;
-    showUnpublishActions?: boolean;
-    showReconsiderActions?: boolean;
+  content: UserContent[];
+  selected: string[];
+  showActions?: boolean;
+  showPublishActions?: boolean;
+  showUnpublishActions?: boolean;
+  showReconsiderActions?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    showActions: false,
-    showPublishActions: false,
-    showUnpublishActions: false,
-    showReconsiderActions: false,
+  showActions: false,
+  showPublishActions: false,
+  showUnpublishActions: false,
+  showReconsiderActions: false,
 });
 
-defineEmits<{
-    'update:selected': [value: string[]];
-    'approve': [id: string];
-    'reject': [id: string];
-    'publish': [id: string];
-    'unpublish': [id: string];
-    'reconsider': [id: string];
-    'view': [content: UserContent];
+const emit = defineEmits<{
+  'update:selected': [value: string[]];
+  'approve': [id: string];
+  'reject': [id: string];
+  'publish': [id: string];
+  'unpublish': [id: string];
+  'reconsider': [id: string];
+  'view': [content: UserContent];
+  'toggle-featured': [id: string, featured: boolean];
 }>();
+
+// Helper method to handle toggle featured
+const handleToggleFeatured = (id: string, featured: boolean) => {
+  emit('toggle-featured', id, featured);
+};
+
+// Status icon mapping
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'pending': return 'schedule';
+    case 'approved': return 'check_circle';
+    case 'published': return 'publish';
+    case 'rejected': return 'cancel';
+    default: return 'help';
+  }
+};
 
 // Computed for selected content items (convert IDs back to objects for table)
 const selectedContentItems = computed(() =>
-    props.content.filter(item => props.selected.includes(item.id))
+  props.content.filter(item => props.selected.includes(item.id))
 );
 
 // Table columns
 const tableColumns = computed(() => [
-    {
-        name: 'status',
-        label: 'Status',
-        align: 'center' as const,
-        field: 'status',
-        sortable: true,
-    },
-    {
-        name: 'type',
-        label: 'Type',
-        align: 'center' as const,
-        field: 'type',
-        sortable: true,
-    },
-    {
-        name: 'title',
-        label: 'Title & Content',
-        align: 'left' as const,
-        field: 'title',
-        sortable: true,
-        style: 'width: 40%',
-    },
-    {
-        name: 'author',
-        label: 'Author',
-        align: 'left' as const,
-        field: 'authorName',
-        sortable: true,
-    },
-    {
-        name: 'submissionDate',
-        label: 'Submitted',
-        align: 'left' as const,
-        field: 'submissionDate',
-        sortable: true,
-    },
-    {
-        name: 'actions',
-        label: 'Actions',
-        align: 'center' as const,
-        field: '',
-        sortable: false,
-    },
+  {
+    name: 'status',
+    label: 'Status',
+    align: 'center' as const,
+    field: 'status',
+    sortable: true,
+  },
+  {
+    name: 'type',
+    label: 'Type',
+    align: 'center' as const,
+    field: 'type',
+    sortable: true,
+  },
+  {
+    name: 'title',
+    label: 'Title & Content',
+    align: 'left' as const,
+    field: 'title',
+    sortable: true,
+    style: 'width: 40%',
+  },
+  {
+    name: 'author',
+    label: 'Author',
+    align: 'left' as const,
+    field: 'authorName',
+    sortable: true,
+  },
+  {
+    name: 'submissionDate',
+    label: 'Submitted',
+    align: 'left' as const,
+    field: 'submissionDate',
+    sortable: true,
+  },
+  {
+    name: 'featured',
+    label: 'Featured',
+    align: 'center' as const,
+    field: 'featured',
+    sortable: true,
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    align: 'center' as const,
+    field: '',
+    sortable: false,
+  },
 ]);
 
 // Utility functions
 const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'pending': return 'orange';
-        case 'approved': return 'green';
-        case 'published': return 'blue';
-        case 'rejected': return 'red';
-        default: return 'grey';
-    }
+  switch (status) {
+    case 'pending': return 'orange';
+    case 'approved': return 'green';
+    case 'published': return 'blue';
+    case 'rejected': return 'red';
+    default: return 'grey';
+  }
 };
 
 const formatDate = (dateValue: string | Date | { seconds: number; nanoseconds: number }) => {
-    let date: Date;
+  let date: Date;
 
-    // Handle Firestore Timestamp objects
-    if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
-        date = new Date((dateValue as { seconds: number }).seconds * 1000);
-    } else if (dateValue instanceof Date) {
-        date = dateValue;
-    } else if (typeof dateValue === 'string') {
-        date = new Date(dateValue);
-    } else {
-        return 'Invalid Date';
-    }
+  // Handle Firestore Timestamp objects
+  if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
+    date = new Date((dateValue as { seconds: number }).seconds * 1000);
+  } else if (dateValue instanceof Date) {
+    date = dateValue;
+  } else if (typeof dateValue === 'string') {
+    date = new Date(dateValue);
+  } else {
+    return 'Invalid Date';
+  }
 
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-        return 'Invalid Date';
-    }
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
 
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1) {
-        return 'Yesterday';
-    } else if (diffDays < 7) {
-        return `${diffDays} days ago`;
-    } else {
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    }
+  if (diffDays === 1) {
+    return 'Yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
 }; const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
 };
 </script>
 
 <style scoped>
 .cursor-pointer {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .cursor-pointer:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(0, 0, 0, 0.04);
 }
 </style>

@@ -406,7 +406,7 @@ import { useSiteStore } from '../stores/site-store-simple';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
 import FirebaseNewsletterCard from '../components/FirebaseNewsletterCard.vue';
-import { firebaseAuthService } from '../services/firebase-auth.service';
+import { useRoleAuth } from '../composables/useRoleAuth';
 
 // Local interfaces for enhanced features
 interface AccessibilityReport {
@@ -477,11 +477,9 @@ const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 );
 
-// Admin access check
-const isAdmin = computed(() => {
-  // For now, simple authenticated check - can be enhanced to check specific roles
-  return firebaseAuthService.isAuthenticated();
-});
+// Admin access check - use proper role-based authorization
+const { isEditor } = useRoleAuth();
+const isAdmin = computed(() => isEditor.value);
 
 // Filter options
 const sortOptions = [

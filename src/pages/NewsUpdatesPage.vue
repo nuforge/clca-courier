@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
-import { useFirebase } from '../composables/useFirebase';
+import { useRoleAuth } from '../composables/useRoleAuth';
 import type { NewsItem } from '../types/core/content.types';
 
 const siteStore = useSiteStore();
-const { auth } = useFirebase();
+const { isEditor } = useRoleAuth();
 const showDialog = ref(false);
 const selectedArticle = ref<NewsItem | null>(null);
 
@@ -23,10 +23,8 @@ const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 );
 
-const isAdmin = computed(() => {
-  return auth.currentUser.value?.email === 'admin@example.com' || // Replace with actual admin check
-    auth.isAuthenticated.value; // For now, any authenticated user can access
-});
+// Use proper role-based admin check
+const isAdmin = computed(() => isEditor.value);
 
 function showArticleDetail(article: NewsItem) {
   selectedArticle.value = article;
