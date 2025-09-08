@@ -276,17 +276,24 @@ export function usePdfThumbnails() {
   };
 
   const generatePDFJSThumbnail = async (url: string): Promise<string | null> => {
+    // CORS Check: Firebase Storage URLs will fail from localhost
+    if (
+      url.includes('firebasestorage.googleapis.com') &&
+      window.location.hostname === 'localhost'
+    ) {
+      console.warn(
+        '🚫 Skipping PDF.js thumbnail generation for Firebase Storage URL from localhost (CORS blocked)',
+      );
+      return null;
+    }
+
     try {
       console.log('🔄 Attempting PDF.js thumbnail generation for:', url);
 
-      // Configure PDF.js worker at runtime to avoid Vite build issues
+      // Configure PDF.js worker at runtime
       if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        // Use dynamic path construction with correct base path for GitHub Pages
-        const isProduction = import.meta.env.PROD;
-        const basePath = isProduction ? '/clca-courier' : '';
-        const workerPath = new URL(`${basePath}/pdf.worker.min.js`, window.location.origin).href;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
-        console.log('📝 PDF.js worker configured:', workerPath);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        console.log('📝 PDF.js worker configured: /pdf.worker.min.js');
       }
 
       // Ensure we have a full URL for PDF.js
@@ -304,6 +311,7 @@ export function usePdfThumbnails() {
         url: fullUrl,
         // Add CORS settings for better compatibility
         withCredentials: false,
+        verbosity: 0, // Suppress warnings
       });
       const pdf = await loadingTask.promise;
 

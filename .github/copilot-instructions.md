@@ -40,6 +40,7 @@
 
 **AI MUST REFUSE TO PROCEED IF ANY OF THESE ARE VIOLATED:**
 
+- **❌ RE-DOWNLOADING PROCESSED FILES**: NEVER download/fetch a PDF file that was just processed during import - USE THE ORIGINAL FILE DATA
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`) - configured in `quasar.config.ts`
 - **❌ Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data - use dynamic discovery only
 - **❌ Path Assumptions**: Always verify file/directory existence using tools like `list_dir`, `file_search`, `grep_search` before implementation

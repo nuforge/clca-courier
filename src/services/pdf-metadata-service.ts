@@ -230,6 +230,11 @@ class PDFMetadataService {
    */
   private async generateThumbnailFromPDF(pdf: PDFDocumentProxy): Promise<string> {
     try {
+      // Import logger for better debugging
+      const { logger } = await import('../utils/logger');
+
+      logger.debug('Starting thumbnail generation from PDF');
+
       // Get first page
       const page = await pdf.getPage(1);
 
@@ -238,9 +243,16 @@ class PDFMetadataService {
       const scale = 150 / viewport.width;
       const scaledViewport = page.getViewport({ scale });
 
+      logger.debug(`Thumbnail dimensions: ${scaledViewport.width}x${scaledViewport.height}`);
+
       // Create canvas
       const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d')!;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        logger.error('Failed to get canvas 2D context for thumbnail generation');
+        return this.generatePlaceholderThumbnail();
+      }
+
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
 
@@ -251,9 +263,13 @@ class PDFMetadataService {
       }).promise;
 
       // Convert to data URL
-      return canvas.toDataURL('image/jpeg', 0.8);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      logger.success(`Thumbnail generated successfully: ${dataUrl.length} characters`);
+      return dataUrl;
     } catch (error) {
-      console.error('[PDFMetadataService] Error generating thumbnail:', error);
+      // Import logger for error reporting
+      const { logger } = await import('../utils/logger');
+      logger.error('[PDFMetadataService] Error generating thumbnail:', error);
       // Return placeholder thumbnail
       return this.generatePlaceholderThumbnail();
     }
@@ -326,6 +342,11 @@ class PDFMetadataService {
    */
   private async estimateFileSize(pdfUrl: string): Promise<string> {
     try {
+      // Don't try to estimate file size for blob URLs - they don't support HEAD requests
+      if (pdfUrl.startsWith('blob:')) {
+        return 'Unknown';
+      }
+
       const response = await fetch(pdfUrl, { method: 'HEAD' });
       const contentLength = response.headers.get('content-length');
 

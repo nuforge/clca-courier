@@ -84,6 +84,7 @@ import { useNewsletterManagementStore } from '../stores/newsletter-management.st
 import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
+import { usePdfThumbnails } from '../composables/usePdfThumbnails';
 
 // Components
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
@@ -100,6 +101,7 @@ import TextExtractionDialog from '../components/content-management/TextExtractio
 
 const store = useNewsletterManagementStore();
 const $q = useQuasar();
+const { regenerateThumbnail } = usePdfThumbnails();
 
 // =============================================
 // WORKFLOW TOOLBAR HANDLERS
@@ -484,55 +486,14 @@ function editNewsletter(newsletter: ContentManagementNewsletter): void {
 }
 
 function extractText(newsletter: ContentManagementNewsletter): void {
-  store.extractingText[newsletter.filename] = true;
-
-  // REAL PDF TEXT EXTRACTION
-  void (async () => {
-    try {
-      if (newsletter.downloadUrl) {
-        const response = await fetch(newsletter.downloadUrl);
-        const arrayBuffer = await response.arrayBuffer();
-
-        const pdfjsLib = await import('pdfjs-dist');
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-        // Extract page count while we have the PDF loaded
-        if (!newsletter.pageCount) {
-          newsletter.pageCount = pdf.numPages;
-          logger.info(`Extracted page count: ${pdf.numPages} pages for ${newsletter.filename}`);
-        }
-
-        let fullText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item) => ('str' in item ? item.str : ''))
-            .join(' ');
-          fullText += pageText + '\n';
-        }
-
-        newsletter.searchableText = fullText.trim();
-
-        // Calculate word count properly - filter out empty strings
-        const words = fullText.trim().split(/\s+/).filter(word => word.length > 0);
-        newsletter.wordCount = words.length;
-
-        logger.info(`Extracted ${newsletter.wordCount} words from ${newsletter.filename}`);
-      }
-
-      store.extractingText[newsletter.filename] = false;
-      $q.notify({
-        type: 'positive',
-        message: `Text extracted for ${newsletter.filename}`,
-        caption: `${newsletter.pageCount} pages, ${newsletter.wordCount?.toLocaleString()} words`
-      });
-    } catch (error) {
-      store.extractingText[newsletter.filename] = false;
-      logger.error(`Failed to extract text from ${newsletter.filename}:`, error);
-      $q.notify({ type: 'negative', message: `Failed to extract text from ${newsletter.filename}` });
-    }
-  })();
+  // Text extraction should happen during import, not manually
+  // This is a placeholder for UI consistency
+  logger.warn(`Text extraction requested for ${newsletter.filename} - this should happen during import`);
+  $q.notify({
+    type: 'warning',
+    message: `Text extraction should happen during PDF import, not manually`,
+    caption: 'Use the import process to extract text content'
+  });
 }
 
 async function generateThumbnail(newsletter: ContentManagementNewsletter): Promise<void> {
@@ -541,41 +502,16 @@ async function generateThumbnail(newsletter: ContentManagementNewsletter): Promi
   try {
     logger.info(`Generating thumbnail for ${newsletter.filename}`);
 
-    // REAL THUMBNAIL GENERATION using PDF.js directly (same approach as extractText)
-    if (newsletter.downloadUrl) {
-      const response = await fetch(newsletter.downloadUrl);
-      const arrayBuffer = await response.arrayBuffer();
+    // Use the WORKING usePdfThumbnails composable that other components use
+    const thumbnailDataUrl = await regenerateThumbnail(newsletter.downloadUrl);
 
-      const pdfjsLib = await import('pdfjs-dist');
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const page = await pdf.getPage(1);
-
-      // Extract page count while we have the PDF loaded
-      if (!newsletter.pageCount) {
-        newsletter.pageCount = pdf.numPages;
-        logger.info(`Extracted page count: ${pdf.numPages} pages for ${newsletter.filename}`);
-      }
-
-      const scale = 0.5;
-      const viewport = page.getViewport({ scale });
-
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d')!;
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      await page.render({
-        canvasContext: context,
-        viewport: viewport
-      }).promise;
-
-      // Convert to data URL
-      newsletter.thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+    if (thumbnailDataUrl) {
+      newsletter.thumbnailUrl = thumbnailDataUrl;
       logger.success(`Thumbnail generated for ${newsletter.filename}`);
       $q.notify({ type: 'positive', message: `Thumbnail generated for ${newsletter.filename}` });
     } else {
-      logger.warn(`No download URL available for ${newsletter.filename}`);
-      $q.notify({ type: 'warning', message: `No PDF URL available for ${newsletter.filename}` });
+      logger.warn(`Failed to generate thumbnail for ${newsletter.filename}`);
+      $q.notify({ type: 'warning', message: `Failed to generate thumbnail for ${newsletter.filename}` });
     }
   } catch (error) {
     logger.error(`Error generating thumbnail for ${newsletter.filename}:`, error);

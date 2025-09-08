@@ -276,9 +276,17 @@ async function processFile(fileItem: FileItem): Promise<void> {
       // Extract page count manually
       try {
         const pdfjsLib = await import('pdfjs-dist');
+
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+
         const arrayBuffer = await fileItem.file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjsLib.getDocument({
+          data: arrayBuffer,
+          verbosity: 0 // Suppress warnings
+        }).promise;
         comprehensiveMetadata.pageCount = pdf.numPages;
+        logger.info(`Fallback: Extracted ${pdf.numPages} pages for ${fileItem.name}`);
       } catch (error) {
         logger.warn(`Could not extract page count for ${fileItem.name}:`, error);
       }
@@ -293,6 +301,7 @@ async function processFile(fileItem: FileItem): Promise<void> {
       }
 
       // Generate thumbnail
+      logger.info(`Fallback: Generating thumbnail for ${fileItem.name}`);
       const thumbnailBlob = await generateThumbnailFromPDF(fileItem.file);
       if (thumbnailBlob) {
         comprehensiveMetadata.thumbnailDataUrl = await new Promise((resolve) => {
@@ -300,7 +309,16 @@ async function processFile(fileItem: FileItem): Promise<void> {
           reader.onload = () => resolve(reader.result as string);
           reader.readAsDataURL(thumbnailBlob);
         });
+        logger.success(`Fallback: Thumbnail generated for ${fileItem.name}: ${comprehensiveMetadata.thumbnailDataUrl?.length} chars`);
+      } else {
+        logger.error(`Fallback: Failed to generate thumbnail for ${fileItem.name}`);
       }
+    } else {
+      // Log what we got from comprehensive extraction
+      logger.info(`Comprehensive extraction SUCCESS for ${fileItem.name}:`);
+      logger.info(`- Pages: ${comprehensiveMetadata.pages || 'MISSING'}`);
+      logger.info(`- Thumbnail: ${comprehensiveMetadata.thumbnailDataUrl ? `${comprehensiveMetadata.thumbnailDataUrl.length} chars` : 'MISSING'}`);
+      logger.info(`- Text content: ${comprehensiveMetadata.textContent ? `${comprehensiveMetadata.textContent.length} chars` : 'MISSING'}`);
     }
 
     fileItem.progress = 30;
@@ -505,11 +523,17 @@ function formatFileSize(bytes: number): string {
 // Fallback functions for when comprehensive extraction fails
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    // Use PDF.js to extract text
+    // Use PDF.js to extract text with proper configuration
     const pdfjsLib = await import('pdfjs-dist');
 
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      verbosity: 0 // Suppress warnings
+    }).promise;
 
     let fullText = '';
 
@@ -539,16 +563,26 @@ async function extractTextFromPDF(file: File): Promise<string> {
 
 async function generateThumbnailFromPDF(file: File): Promise<Blob | null> {
   try {
-    // Use PDF.js to generate thumbnail
+    // Use PDF.js to generate thumbnail with proper configuration
     const pdfjsLib = await import('pdfjs-dist');
 
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      verbosity: 0 // Suppress warnings
+    }).promise;
+
     const page = await pdf.getPage(1); // First page
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    if (!context) return null;
+    if (!context) {
+      logger.error('Failed to get canvas context for thumbnail generation');
+      return null;
+    }
 
     const viewport = page.getViewport({ scale: 0.5 });
     canvas.height = viewport.height;
@@ -560,7 +594,14 @@ async function generateThumbnailFromPDF(file: File): Promise<Blob | null> {
     }).promise;
 
     return new Promise((resolve) => {
-      canvas.toBlob(resolve, 'image/jpeg', 0.8);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          logger.success(`Thumbnail generated successfully: ${blob.size} bytes`);
+        } else {
+          logger.error('Failed to convert canvas to blob');
+        }
+        resolve(blob);
+      }, 'image/jpeg', 0.8);
     });
 
   } catch (error) {
