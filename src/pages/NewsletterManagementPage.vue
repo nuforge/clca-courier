@@ -401,11 +401,33 @@ async function handleExtractSelectedText(): Promise<void> {
 
     for (const newsletter of store.selectedNewsletters) {
       store.extractingText[newsletter.filename] = true;
-      // Simulate text extraction
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (!newsletter.searchableText) {
-        newsletter.searchableText = `Sample extracted text for ${newsletter.filename}...`;
+      try {
+        // REAL PDF TEXT EXTRACTION
+        if (newsletter.downloadUrl && !newsletter.searchableText) {
+          const response = await fetch(newsletter.downloadUrl);
+          const arrayBuffer = await response.arrayBuffer();
+
+          const pdfjsLib = await import('pdfjs-dist');
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+          let fullText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item) => ('str' in item ? item.str : ''))
+              .join(' ');
+            fullText += pageText + '\n';
+          }
+
+          newsletter.searchableText = fullText.trim();
+          newsletter.wordCount = fullText.split(/\s+/).length;
+
+          // TODO: Need to implement Firebase update method
+        }
+      } catch (error) {
+        logger.error(`Failed to extract text from ${newsletter.filename}:`, error);
       }
 
       store.extractingText[newsletter.filename] = false;
@@ -432,11 +454,35 @@ async function generateSelectedThumbnails(): Promise<void> {
 
     for (const newsletter of store.selectedNewsletters) {
       store.thumbnailIndividualStates[newsletter.filename] = true;
-      // Simulate thumbnail generation
-      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (!newsletter.thumbnailUrl) {
-        newsletter.thumbnailUrl = `/thumbnails/${newsletter.filename.replace('.pdf', '.jpg')}`;
+      try {
+        // REAL THUMBNAIL GENERATION
+        if (newsletter.downloadUrl && !newsletter.thumbnailUrl) {
+          const response = await fetch(newsletter.downloadUrl);
+          const arrayBuffer = await response.arrayBuffer();
+
+          const pdfjsLib = await import('pdfjs-dist');
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const page = await pdf.getPage(1);
+
+          const scale = 0.5;
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d')!;
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          await page.render({
+            canvasContext: context,
+            viewport: viewport
+          }).promise;
+
+          // Convert to data URL for now (temporary storage)
+          newsletter.thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+        }
+      } catch (error) {
+        logger.error(`Failed to generate thumbnail for ${newsletter.filename}:`, error);
       }
 
       store.thumbnailIndividualStates[newsletter.filename] = false;
@@ -627,13 +673,38 @@ function editNewsletter(newsletter: ContentManagementNewsletter): void {
 function extractText(newsletter: ContentManagementNewsletter): void {
   store.extractingText[newsletter.filename] = true;
 
-  setTimeout(() => {
-    if (!newsletter.searchableText) {
-      newsletter.searchableText = `Sample extracted text for ${newsletter.filename}...`;
+  // REAL PDF TEXT EXTRACTION
+  void (async () => {
+    try {
+      if (newsletter.downloadUrl && !newsletter.searchableText) {
+        const response = await fetch(newsletter.downloadUrl);
+        const arrayBuffer = await response.arrayBuffer();
+
+        const pdfjsLib = await import('pdfjs-dist');
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item) => ('str' in item ? item.str : ''))
+            .join(' ');
+          fullText += pageText + '\n';
+        }
+
+        newsletter.searchableText = fullText.trim();
+        newsletter.wordCount = fullText.split(/\s+/).length;
+      }
+
+      store.extractingText[newsletter.filename] = false;
+      $q.notify({ type: 'positive', message: `Text extracted for ${newsletter.filename}` });
+    } catch (error) {
+      store.extractingText[newsletter.filename] = false;
+      logger.error(`Failed to extract text from ${newsletter.filename}:`, error);
+      $q.notify({ type: 'negative', message: `Failed to extract text from ${newsletter.filename}` });
     }
-    store.extractingText[newsletter.filename] = false;
-    $q.notify({ type: 'positive', message: `Text extracted for ${newsletter.filename}` });
-  }, 2000);
+  })();
 }
 
 function generateThumbnail(newsletter: ContentManagementNewsletter): void {

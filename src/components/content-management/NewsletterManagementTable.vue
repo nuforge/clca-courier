@@ -99,8 +99,8 @@
           <div class="selection-wrapper">
             <!-- Primary Checkbox -->
             <q-checkbox :model-value="selectedNewsletters.some(n => n.id === props.row.id)"
-              @update:model-value="(val) => toggleRowSelection(props.row, val)" color="primary" class="primary-checkbox"
-              @click.stop />
+              @update:model-value="(val) => $emit('update:selectedNewsletters', val ? [...selectedNewsletters, props.row] : selectedNewsletters.filter(n => n.id !== props.row.id))"
+              color="primary" class="primary-checkbox" @click.stop />
 
             <!-- Quick Action Toggles (always visible like Gmail stars) -->
             <div class="quick-actions always-visible">
