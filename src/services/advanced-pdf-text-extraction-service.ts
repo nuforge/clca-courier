@@ -5,6 +5,7 @@
 
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
 import PDF_CONFIG from '../utils/pdf-config';
+import { logger } from '../utils/logger';
 
 // PDF.js metadata interface for proper typing
 interface PdfJsMetadata {
@@ -124,7 +125,7 @@ class AdvancedPdfTextExtractionService {
   ): Promise<AdvancedPdfExtraction> {
     const startTime = Date.now();
 
-    console.log(`[Advanced PDF Extraction] Starting extraction for: ${filename}`);
+    logger.pdf(`Starting extraction for: ${filename}`);
 
     try {
       // Use centralized PDF configuration to prevent worker issues
@@ -144,7 +145,7 @@ class AdvancedPdfTextExtractionService {
           pages.push(pageData);
           rawText += pageData.rawText + '\n\n';
         } catch (pageError) {
-          console.warn(`[Advanced PDF Extraction] Error extracting page ${pageNum}:`, pageError);
+          logger.warn(`Error extracting page ${pageNum}:`, pageError);
           // Add empty page data to maintain page numbering
           pages.push({
             pageNumber: pageNum,
@@ -214,16 +215,14 @@ class AdvancedPdfTextExtractionService {
         processingTimeMs: processingTime,
         extractionVersion: this.EXTRACTION_VERSION,
       };
-      console.log(
-        `[Advanced PDF Extraction] Successfully extracted ${filename} in ${processingTime}ms`,
-      );
-      console.log(`  - ${totalWords} words across ${numPages} pages`);
-      console.log(`  - ${articles.length} articles, ${sections.length} sections`);
-      console.log(`  - ${searchableTerms.length} searchable terms`);
+      logger.pdf(`Successfully extracted ${filename} in ${processingTime}ms`);
+      logger.pdf(`  - ${totalWords} words across ${numPages} pages`);
+      logger.pdf(`  - ${articles.length} articles, ${sections.length} sections`);
+      logger.pdf(`  - ${searchableTerms.length} searchable terms`);
 
       return result;
     } catch (error) {
-      console.error(`[Advanced PDF Extraction] Failed to extract ${filename}:`, error);
+      logger.error(`Failed to extract ${filename}:`, error);
       throw new Error(
         `Failed to extract PDF data: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
