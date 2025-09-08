@@ -178,7 +178,7 @@ function importSettings() {
               <q-card-section>
                 <div class="text-h6 q-mb-md">Notification Preferences</div>
 
-                <div class="column q-gutter-md">
+                <div class="column ">
                   <q-toggle :model-value="userSettings.notificationSettings.value.browser"
                     @update:model-value="(val) => handleNotificationUpdate('browser', val)"
                     label="Browser Notifications" color="primary" />
@@ -206,7 +206,7 @@ function importSettings() {
               <q-card-section>
                 <div class="text-h6 q-mb-md">Display Options</div>
 
-                <div class="column q-gutter-md">
+                <div class="column ">
                   <q-toggle :model-value="userSettings.displaySettings.value.compactMode"
                     @update:model-value="(val) => handleDisplayUpdate('compactMode', val)" label="Compact Mode"
                     color="primary" />
@@ -238,7 +238,7 @@ function importSettings() {
               <q-card-section>
                 <div class="text-h6 q-mb-md">PDF Viewer Preferences</div>
 
-                <div class="column q-gutter-md">
+                <div class="column ">
                   <div>
                     <div class="text-subtitle2 q-mb-sm">Default Zoom Level</div>
                     <q-slider :model-value="userSettings.pdfSettings.value.defaultZoom"
@@ -278,7 +278,7 @@ function importSettings() {
             <q-card-section>
               <div class="text-h6 q-mb-md">Settings Management</div>
 
-              <div class="row q-gutter-md">
+              <div class="row ">
                 <q-btn @click="exportSettings" icon="mdi-export" label="Export Settings" color="primary" outline />
 
                 <q-btn @click="importSettings" icon="mdi-import" label="Import Settings" color="primary" outline />

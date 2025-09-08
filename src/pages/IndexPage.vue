@@ -107,7 +107,7 @@ const quickLinks: QuickLink[] = [
         <p class="text-h5 text-weight-light q-mb-lg">Your source for Conashaugh Lakes community news and updates</p>
 
         <!-- Actions -->
-        <div class="q-gutter-md">
+        <div class="">
           <q-btn v-for="action in heroActions" :key="action.label" :label="action.label" :icon="action.icon"
             :color="action.color" :to="action.to" size="lg" unelevated class="q-px-lg" />
         </div>

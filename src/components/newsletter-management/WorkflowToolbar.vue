@@ -18,7 +18,7 @@
       <q-tab-panels v-model="activeTab" animated>
         <!-- Import and Draft Management -->
         <q-tab-panel name="import">
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <q-btn color="positive" icon="mdi-file-import" label="Import PDFs" @click="$emit('import-pdfs')" />
             <q-btn v-if="hasDrafts" color="positive" icon="mdi-upload" :label="`Upload ${draftCount} Drafts to Cloud`"
               @click="$emit('upload-drafts')" :loading="isUploading" />
@@ -29,7 +29,7 @@
 
         <!-- Database Operations -->
         <q-tab-panel name="database">
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <q-btn color="blue" icon="mdi-refresh" label="Refresh Data" @click="$emit('refresh-data')"
               :loading="isLoading" />
             <q-btn color="orange" icon="mdi-database-sync" label="Sync All to Firebase" @click="$emit('sync-all')"
@@ -40,7 +40,7 @@
 
         <!-- Content Enhancement -->
         <q-tab-panel name="enhance">
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <q-btn color="secondary" icon="mdi-text-search" label="Extract All Text" @click="$emit('extract-all-text')"
               :loading="isExtractingText" />
             <q-btn color="accent" icon="mdi-image-multiple" label="Generate All Thumbnails"
@@ -50,7 +50,7 @@
 
         <!-- Metadata Operations -->
         <q-tab-panel name="metadata">
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <q-btn color="purple" icon="mdi-counter" label="Extract Page Count" @click="$emit('extract-page-count')"
               :loading="isExtractingPageCount" />
             <q-btn color="brown" icon="mdi-file-document-outline" label="Extract File Size"
@@ -62,7 +62,7 @@
 
         <!-- AI Content Generation -->
         <q-tab-panel name="ai">
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <q-btn color="teal" icon="mdi-tag-plus" label="Generate Keywords" @click="$emit('generate-keywords')"
               :loading="isGeneratingKeywords" />
             <q-btn color="indigo" icon="mdi-text-box-plus" label="Generate Descriptions"
@@ -74,7 +74,7 @@
 
         <!-- Quick Stats -->
         <q-tab-panel name="stats">
-          <div class="row q-gutter-md">
+          <div class="row ">
             <div class="col-auto">
               <q-chip color="primary" text-color="white" icon="mdi-file-multiple">
                 Total: {{ totalNewsletters }}

@@ -34,7 +34,7 @@
     <!-- History List -->
     <div v-else class="history-list">
       <!-- Statistics -->
-      <div class="history-stats q-pa-sm bg-grey-1 rounded-borders q-mb-md">
+      <div class="history-stats q-pa-sm rounded-borders q-mb-md">
         <div class="row items-center">
           <div class="col">
             <div class="text-body2 text-grey-7">
@@ -55,19 +55,19 @@
           @update:model-value="(val: boolean) => toggleExpansion(entry.id, val)" :class="[
             'version-entry',
             { 'current-version': index === 0 },
-            { 'bg-blue-1': index === 0 }
+            { 'text-primary': index === 0 }
           ]">
           <template v-slot:header>
             <div class="full-width row items-center no-wrap">
               <!-- Version Info -->
               <div class="col">
-                <div class="row items-center q-gutter-sm">
+                <div class="row items-center">
                   <!-- Version Badge -->
                   <q-badge :color="index === 0 ? 'primary' : 'grey-6'" :label="`v${entry.version}`"
-                    class="text-weight-bold" />
+                    class="text-weight-bold q-mr-sm" />
 
                   <!-- Current Version Indicator -->
-                  <q-badge v-if="index === 0" color="positive" label="Current" />
+                  <q-badge v-if="index === 0" color="positive" label="Current" class="q-mr-sm" />
 
                   <!-- Change Type -->
                   <q-chip :icon="getChangeTypeIcon(entry.changeType)" :color="getChangeTypeColor(entry.changeType)"
@@ -123,11 +123,13 @@
             </div>
 
             <!-- Version Actions -->
-            <div class="row q-gutter-sm">
+            <div class="row items-center">
               <q-btn v-if="index !== 0" @click="restoreVersion(entry.version)" color="primary" outline size="sm"
-                icon="mdi-restore" label="Restore This Version" :loading="isRestoring === entry.version" />
+                icon="mdi-restore" label="Restore This Version" :loading="isRestoring === entry.version"
+                class="q-mr-sm" />
 
-              <q-btn @click="viewVersion(entry)" color="grey-7" flat size="sm" icon="mdi-eye" label="View Details" />
+              <q-btn @click="viewVersion(entry)" color="grey-7" flat size="sm" icon="mdi-eye" label="View Details"
+                class="q-mr-sm" />
 
               <q-btn v-if="index !== 0" @click="compareWithCurrent(entry)" color="grey-7" flat size="sm"
                 icon="mdi-compare" label="Compare" />

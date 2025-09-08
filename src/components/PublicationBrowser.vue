@@ -46,7 +46,7 @@
     </q-card>
 
     <!-- PDF Grid -->
-    <div v-if="pdfs.length > 0" class="row q-gutter-md">
+    <div v-if="pdfs.length > 0" class="row ">
       <q-card v-for="issue in pdfs" :key="issue.id" class="col-12 col-md-6 col-lg-4 cursor-pointer" flat
         bordered @click="openPdf(issue)">
         <q-card-section>

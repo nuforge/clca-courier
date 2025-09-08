@@ -62,7 +62,7 @@
               <div class="row q-mb-md">
                 <div class="col-12 col-md-8 q-pa-md">
                   <q-input v-model="searchInput" label="Search newsletters by title, content, tags, year, or season..."
-                    outlined dense :class="{ 'bg-grey-1': !isDarkMode, 'bg-grey-9': isDarkMode }" clearable
+                    outlined dense :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }" clearable
                     :loading="isSearching" @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
                     :aria-label="'Search through ' + (stats?.totalNewsletters || 0) + ' newsletters'" role="searchbox"
                     aria-expanded="false" :aria-describedby="searchInput ? 'search-suggestions' : null">
@@ -99,7 +99,7 @@
                 </div>
                 <div class="col-12 col-md-4 q-pa-md">
                   <!-- Quick Filter Buttons -->
-                  <div class="row q-gutter-xs q-mb-md">
+                  <div class="row  q-mb-md">
                     <q-btn outline dense color="primary" size="sm" @click="applyQuickFilter('featured')"
                       :label="'Featured (' + (quickFilterOptions?.featured?.length || 0) + ')'"
                       :aria-label="'Show only featured newsletters, ' + (quickFilterOptions?.featured?.length || 0) + ' available'" />
@@ -111,7 +111,7 @@
                   </div>
 
                   <q-select v-model="sortBy" :options="sortOptions" label="Sort By" outlined dense emit-value
-                    map-options :class="{ 'bg-grey-1': !isDarkMode, 'bg-grey-9': isDarkMode }"
+                    map-options :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
                     @update:model-value="onSortChange" aria-label="Sort newsletters by different criteria">
                     <template v-slot:prepend>
                       <q-icon name="sort" />
@@ -134,7 +134,7 @@
                     <!-- Year Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.year" :options="yearFilterOptions" label="Year" outlined dense
-                        clearable emit-value map-options :class="{ 'bg-grey-1': !isDarkMode, 'bg-grey-9': isDarkMode }"
+                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="event" />
@@ -145,7 +145,7 @@
                     <!-- Season Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.season" :options="seasonOptions" label="Season" outlined dense
-                        clearable emit-value map-options :class="{ 'bg-grey-1': !isDarkMode, 'bg-grey-9': isDarkMode }"
+                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="wb_sunny" />
@@ -157,7 +157,7 @@
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.pageCount" :options="pageCountOptions" label="Page Count" outlined
                         dense clearable emit-value map-options
-                        :class="{ 'bg-grey-1': !isDarkMode, 'bg-grey-9': isDarkMode }"
+                        :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="description" />
@@ -212,7 +212,7 @@
                     <q-space />
 
                     <!-- Active Filter Chips -->
-                    <div v-if="hasActiveFilters" class="q-gutter-xs" role="list" aria-label="Active filters">
+                    <div v-if="hasActiveFilters" class="" role="list" aria-label="Active filters">
                       <q-chip v-if="filters.year" removable @remove="filters.year = null; onFilterChange()"
                         color="primary" text-color="white" dense role="listitem">
                         Year: {{ filters.year }}
@@ -335,7 +335,7 @@
             <!-- Helpful suggestions -->
             <div v-if="searchInput || hasActiveFilters" class="q-mt-md">
               <div class="text-body2 q-mb-sm">Try:</div>
-              <div class="row justify-center q-gutter-xs">
+              <div class="row justify-center ">
                 <q-btn v-if="searchInput" outline size="sm" color="primary" @click="searchInput = ''; onSearchInput()"
                   label="Clear Search" />
                 <q-btn v-if="hasActiveFilters" outline size="sm" color="secondary" @click="clearAllFilters"
@@ -347,7 +347,7 @@
             <!-- Search suggestions based on available content -->
             <div v-if="!searchInput && !hasActiveFilters && stats?.availableTags.length" class="q-mt-md">
               <div class="text-body2 q-mb-sm">Popular topics:</div>
-              <div class="row justify-center q-gutter-xs">
+              <div class="row justify-center ">
                 <q-chip v-for="tag in stats.availableTags.slice(0, 6)" :key="tag" clickable size="sm" color="grey-3"
                   text-color="dark" class="q-mr-xs q-mb-xs" @click="searchInput = tag; onSearchInput()">
                   {{ tag }}

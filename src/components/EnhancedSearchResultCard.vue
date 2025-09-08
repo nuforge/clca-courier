@@ -14,7 +14,7 @@
             </div>
 
             <!-- Basic info row -->
-            <div class="row items-center q-gutter-sm q-mb-sm text-caption text-grey-6">
+            <div class="row items-center  q-mb-sm text-caption text-grey-6">
                 <div class="flex items-center">
                     <q-icon name="mdi-calendar" size="xs" class="q-mr-xs" />
                     {{ formatDate(result.date) }}

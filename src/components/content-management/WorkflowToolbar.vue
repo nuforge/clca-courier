@@ -10,7 +10,7 @@
                     <!-- STEP 1: System Management -->
                     <div class="q-mb-md">
                         <h6 class="text-h6 q-my-none text-grey-7">🏗️ Step 1: System Management</h6>
-                        <div class="row q-gutter-sm q-mt-sm">
+                        <div class="row  q-mt-sm">
                             <q-btn color="positive" icon="mdi-database-import" label="Import Data"
                                 @click="$emit('import-data')" :loading="processingStates.isImporting" outline
                                 class="text-weight-medium" />
@@ -27,7 +27,7 @@
                     <!-- STEP 2: Database Setup -->
                     <div class="q-mb-md">
                         <h6 class="text-h6 q-my-none text-grey-7">🗄️ Step 2: Database Setup</h6>
-                        <div class="row q-gutter-sm q-mt-sm">
+                        <div class="row  q-mt-sm">
                             <q-btn color="deep-orange" icon="mdi-database-plus" label="Create Missing Records"
                                 @click="$emit('create-records')" :loading="processingStates.isCreatingRecords"
                                 unelevated class="text-weight-medium" />
@@ -45,7 +45,7 @@
                     <!-- STEP 3: Content Processing -->
                     <div class="q-mb-md">
                         <h6 class="text-h6 q-my-none text-grey-7">📄 Step 3: Content Processing</h6>
-                        <div class="row q-gutter-sm q-mt-sm">
+                        <div class="row  q-mt-sm">
                             <q-btn color="warning" icon="mdi-calendar-clock" label="Enhance Dates"
                                 @click="$emit('enhance-dates')" :loading="processingStates.isEnhancingDates" unelevated
                                 class="text-weight-medium" />
@@ -71,7 +71,7 @@
                         <p class="text-caption text-grey-6 q-mt-sm q-mb-sm">
                             These functions work on SELECTED items or ALL items if none selected
                         </p>
-                        <div class="row q-gutter-sm q-mt-sm">
+                        <div class="row  q-mt-sm">
                             <q-btn color="purple" icon="mdi-file-document-outline" label="Extract Page Count"
                                 @click="$emit('extract-page-count')" :loading="processingStates.isExtractingPageCount"
                                 dense class="text-weight-medium" />
@@ -95,7 +95,7 @@
 
                     <!-- Status Indicators -->
                     <div class="q-mt-md">
-                        <q-banner class="bg-blue-1 text-blue-9" dense rounded>
+                        <q-banner class="bg-info text-white" dense rounded>
                             <template v-slot:avatar>
                                 <q-icon name="mdi-information" />
                             </template>

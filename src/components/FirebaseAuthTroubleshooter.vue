@@ -6,7 +6,7 @@
     </q-card-section>
 
     <q-card-section>
-      <div class="q-gutter-md">
+      <div class="">
         <!-- Environment Info -->
         <q-expansion-item label="Environment Information" icon="info">
           <div class="q-pa-md">
@@ -18,7 +18,7 @@
         </q-expansion-item>
 
         <!-- Test Buttons -->
-        <div class="q-gutter-sm">
+        <div class="">
           <q-btn
             color="primary"
             label="Test Popup Auth"

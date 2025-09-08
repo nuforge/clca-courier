@@ -1,13 +1,13 @@
 <template>
   <q-page class="firebase-demo-page q-pa-md">
-    <div class="row q-gutter-md">
+    <div class="row ">
       <!-- Authentication Section -->
       <div class="col-12 col-md-6">
         <q-card class="q-pa-md">
           <q-card-section>
             <div class="text-h6 q-mb-md">🔐 Firebase Authentication</div>
 
-            <div v-if="!auth.isAuthenticated.value" class="q-gutter-sm">
+            <div v-if="!auth.isAuthenticated.value" class="">
               <q-btn @click="signInWithGoogle" color="primary" icon="mdi-google" label="Sign in with Google (Popup)"
                 :loading="auth.isLoading.value" class="full-width" />
 
@@ -26,7 +26,7 @@
                 label="Sign in with Facebook" :loading="auth.isLoading.value" class="full-width" />
             </div>
 
-            <div v-else class="q-gutter-sm">
+            <div v-else class="">
               <q-card flat bordered class="q-pa-sm">
                 <q-item>
                   <q-item-section avatar>

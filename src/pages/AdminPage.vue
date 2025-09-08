@@ -21,7 +21,7 @@
                     </q-card>
 
                     <!-- Statistics -->
-                    <div class="row q-gutter-md q-mb-lg">
+                    <div class="row  q-mb-lg">
                         <div class="col-12 col-md-3">
                             <q-card class="text-center">
                                 <q-card-section>
@@ -59,7 +59,7 @@
                     <!-- Action Buttons -->
                     <q-card class="q-mb-lg">
                         <q-card-section>
-                            <div class="row q-gutter-md">
+                            <div class="row ">
                                 <q-btn color="primary" icon="mdi-reload" label="Load from Firebase"
                                     @click="loadNewsletters" :loading="isLoading" unelevated />
                                 <q-btn color="positive" icon="mdi-upload" label="Process Local PDFs → Firebase"
@@ -185,7 +185,7 @@
                     <q-input v-model="editingNewsletter.title" label="Title" outlined class="q-mb-md" />
                     <q-input v-model="editingNewsletter.description" label="Description" outlined type="textarea"
                         rows="3" class="q-mb-md" />
-                    <div class="row q-gutter-md">
+                    <div class="row ">
                         <q-toggle v-model="editingNewsletter.isPublished" label="Published" color="positive" />
                         <q-toggle v-model="editingNewsletter.featured" label="Featured" color="orange" />
                     </div>

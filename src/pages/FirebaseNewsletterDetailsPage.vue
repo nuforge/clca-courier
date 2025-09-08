@@ -53,7 +53,7 @@
                                         </div>
 
                                         <!-- Action Buttons -->
-                                        <div class="q-mt-md q-gutter-sm">
+                                        <div class="q-mt-md ">
                                             <q-btn color="primary" icon="visibility" label="View PDF"
                                                 @click="viewNewsletter" :loading="viewLoading" class="full-width" />
 

@@ -1,7 +1,7 @@
 <template>
   <q-card class="q-mb-lg">
     <q-card-section>
-      <div class="row q-gutter-md">
+      <div class="row ">
         <div class="col-12 col-md-4">
           <q-input v-model="localFilters.searchText" label="Search newsletters..." outlined dense clearable
             debounce="300" @update:model-value="updateSearch">

@@ -27,7 +27,7 @@
         </q-input>
 
         <!-- Quick Action Buttons -->
-        <div class="row q-gutter-sm q-mb-md">
+        <div class="row  q-mb-md">
           <q-btn color="primary" label="Search" icon="mdi-magnify" :loading="isSearching" @click="performSearchAction"
             :disable="(!searchFilters.query || !searchFilters.query.trim()) && !hasActiveFilters" />
           <q-btn outline color="primary" label="Clear" icon="mdi-close" @click="clearSearchAction"
@@ -62,7 +62,7 @@
               <!-- Date Range -->
               <div class="col-12 col-md-6">
                 <div class="text-subtitle2 q-mb-sm">Date Range</div>
-                <div class="row q-gutter-sm">
+                <div class="row ">
                   <div class="col">
                     <q-input v-model="dateRangeStart" type="date" outlined dense label="From"
                       :bg-color="isDarkMode ? 'grey-9' : 'white'" />
@@ -77,7 +77,7 @@
               <!-- Page Count Range -->
               <div class="col-12 col-md-6">
                 <div class="text-subtitle2 q-mb-sm">Page Count</div>
-                <div class="row q-gutter-sm">
+                <div class="row ">
                   <div class="col">
                     <q-input v-model.number="searchFilters.minPages" type="number" outlined dense label="Min pages"
                       :bg-color="isDarkMode ? 'grey-9' : 'white'" min="1" />
@@ -108,7 +108,7 @@
 
         <!-- Search Stats -->
         <div v-if="searchStats.totalResults > 0" class="q-mt-md">
-          <div class="row q-gutter-md text-caption text-grey-6">
+          <div class="row  text-caption text-grey-6">
             <div>
               <q-icon name="mdi-file-document" size="xs" class="q-mr-xs" />
               {{ searchStats.totalResults }} result{{ searchStats.totalResults !== 1 ? 's' : '' }}

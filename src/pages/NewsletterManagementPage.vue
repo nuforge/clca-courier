@@ -90,6 +90,7 @@ import { onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
+import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
 
@@ -620,7 +621,9 @@ function deleteNewsletter(newsletter: ContentManagementNewsletter): void {
   }).onOk(() => {
     void (async () => {
       try {
-        await firebaseNewsletterService.deleteNewsletter(newsletter.id);
+        if (newsletter.id) {
+          await firestoreService.deleteNewsletterMetadata(newsletter.id);
+        }
         await store.refreshNewsletters();
         $q.notify({
           type: 'positive',
@@ -638,19 +641,51 @@ function deleteNewsletter(newsletter: ContentManagementNewsletter): void {
 }
 
 function toggleNewsletterFeatured(newsletter: ContentManagementNewsletter): void {
-  newsletter.featured = !newsletter.featured;
-  $q.notify({
-    type: 'positive',
-    message: `${newsletter.filename} ${newsletter.featured ? 'featured' : 'unfeatured'}`
-  });
+  void (async () => {
+    try {
+      newsletter.featured = !newsletter.featured;
+
+      if (newsletter.id) {
+        await firestoreService.updateNewsletterMetadata(newsletter.id, {
+          featured: newsletter.featured
+        });
+      }
+
+      $q.notify({
+        type: 'positive',
+        message: `${newsletter.filename} ${newsletter.featured ? 'featured' : 'unfeatured'}`
+      });
+    } catch (error) {
+      // Revert on failure
+      newsletter.featured = !newsletter.featured;
+      logger.error(`Failed to toggle featured status for ${newsletter.filename}:`, error);
+      $q.notify({ type: 'negative', message: `Failed to update featured status` });
+    }
+  })();
 }
 
 function toggleNewsletterPublished(newsletter: ContentManagementNewsletter): void {
-  newsletter.isPublished = !newsletter.isPublished;
-  $q.notify({
-    type: 'positive',
-    message: `${newsletter.filename} ${newsletter.isPublished ? 'published' : 'unpublished'}`
-  });
+  void (async () => {
+    try {
+      newsletter.isPublished = !newsletter.isPublished;
+
+      if (newsletter.id) {
+        await firestoreService.updateNewsletterMetadata(newsletter.id, {
+          isPublished: newsletter.isPublished
+        });
+      }
+
+      $q.notify({
+        type: 'positive',
+        message: `${newsletter.filename} ${newsletter.isPublished ? 'published' : 'unpublished'}`
+      });
+    } catch (error) {
+      // Revert on failure
+      newsletter.isPublished = !newsletter.isPublished;
+      logger.error(`Failed to toggle published status for ${newsletter.filename}:`, error);
+      $q.notify({ type: 'negative', message: `Failed to update published status` });
+    }
+  })();
 }
 
 function openPdf(newsletter: ContentManagementNewsletter): void {
@@ -729,8 +764,57 @@ function syncSingleNewsletter(newsletter: ContentManagementNewsletter): void {
 }
 
 function saveMetadata(newsletter: ContentManagementNewsletter): void {
-  logger.info(`Saving metadata for ${newsletter.filename}`);
-  $q.notify({ type: 'positive', message: `Metadata saved for ${newsletter.filename}` });
+  void (async () => {
+    try {
+      logger.info(`Saving metadata for ${newsletter.filename}`);
+
+      const metadata = {
+        filename: newsletter.filename,
+        title: newsletter.title || '',
+        description: newsletter.description || '',
+        publicationDate: newsletter.publicationDate || new Date().toISOString(),
+        year: newsletter.year || new Date().getFullYear(),
+        ...(newsletter.month && { month: newsletter.month }),
+        ...(newsletter.season && { season: newsletter.season }),
+        displayDate: newsletter.displayDate || '',
+        sortValue: newsletter.sortValue || 0,
+        pageCount: newsletter.pageCount || 0,
+        fileSize: newsletter.fileSize || 0,
+        searchableText: newsletter.searchableText || '',
+        tags: newsletter.tags || [],
+        downloadUrl: newsletter.downloadUrl || '',
+        storageRef: newsletter.storageRef || '',
+        isPublished: newsletter.isPublished || false,
+        featured: newsletter.featured || false,
+        wordCount: newsletter.wordCount || 0,
+        actions: {
+          canView: true,
+          canDownload: true,
+          canSearch: !!newsletter.searchableText,
+          hasThumbnail: false
+        },
+        createdAt: newsletter.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: newsletter.createdBy || '',
+        updatedBy: ''
+      };
+
+      if (newsletter.id) {
+        // Update existing
+        await firestoreService.updateNewsletterMetadata(newsletter.id, metadata);
+      } else {
+        // Create new
+        const newId = await firestoreService.saveNewsletterMetadata(metadata);
+        newsletter.id = newId;
+      }
+
+      $q.notify({ type: 'positive', message: `Metadata saved for ${newsletter.filename}` });
+      store.showEditDialog = false;
+    } catch (error) {
+      logger.error(`Failed to save metadata for ${newsletter.filename}:`, error);
+      $q.notify({ type: 'negative', message: `Failed to save metadata for ${newsletter.filename}` });
+    }
+  })();
 }
 
 // =============================================

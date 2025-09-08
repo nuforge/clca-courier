@@ -1,6 +1,6 @@
 <template>
     <div class="firebase-debug-panel q-pa-md">
-        <div class="row q-gutter-md">
+        <div class="row ">
             <div class="col-12">
                 <q-card>
                     <q-card-section>
@@ -9,7 +9,7 @@
                     </q-card-section>
 
                     <q-card-section>
-                        <div class="row q-gutter-md">
+                        <div class="row ">
                             <div class="col-12 col-md-6">
                                 <q-btn color="primary" icon="refresh" label="Check My Content" @click="checkUserContent"
                                     :loading="loading" class="full-width" />

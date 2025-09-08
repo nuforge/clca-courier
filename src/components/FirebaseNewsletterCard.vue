@@ -216,8 +216,8 @@ const fallbackClasses = computed(() => ({
   'flex-center': true,
   'column': true,
   'full-height': true,
-  'bg-grey-2': !isDarkMode.value,
-  'bg-grey-8': isDarkMode.value
+  'bg-grey': !isDarkMode.value,
+  'bg-grey': isDarkMode.value
 }));
 
 const formattedDate = computed(() => {

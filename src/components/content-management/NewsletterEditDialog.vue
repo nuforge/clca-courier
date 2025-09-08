@@ -33,7 +33,7 @@
           <q-tab-panels v-model="activeTab" animated>
             <!-- Metadata Tab -->
             <q-tab-panel name="metadata">
-              <div v-if="localNewsletter" class="row q-gutter-md">
+              <div v-if="localNewsletter" class="row ">
                 <div class="col-12 col-md-6">
                   <q-input v-model="localNewsletter.title" label="Title" outlined dense />
                 </div>
@@ -77,10 +77,10 @@
 
             <!-- Content Tab -->
             <q-tab-panel name="content">
-              <div v-if="localNewsletter" class="q-gutter-md">
+              <div v-if="localNewsletter" class="">
                 <q-input v-model="localNewsletter.searchableText" label="Searchable Text Content" type="textarea"
                   outlined rows="8" readonly hint="Auto-extracted text content (read-only)" />
-                <div class="row q-gutter-md">
+                <div class="row ">
                   <div class="col-12 col-md-6">
                     <q-input v-model="localNewsletter.wordCount" label="Word Count" type="number" outlined dense
                       readonly />
@@ -95,11 +95,11 @@
 
             <!-- Processing Tab -->
             <q-tab-panel name="processing">
-              <div v-if="localNewsletter" class="q-gutter-md">
+              <div v-if="localNewsletter" class="">
                 <q-card flat bordered>
                   <q-card-section>
                     <div class="text-h6 q-mb-md">Processing Actions</div>
-                    <div class="row q-gutter-sm">
+                    <div class="row ">
                       <q-btn color="primary" icon="mdi-text-search" label="Extract Text"
                         @click="$emit('extract-text', localNewsletter)" :loading="extractingText" outline />
                       <q-btn color="accent" icon="mdi-image" label="Generate Thumbnail"
@@ -113,7 +113,7 @@
                 <q-card flat bordered>
                   <q-card-section>
                     <div class="text-h6 q-mb-md">File Information</div>
-                    <div class="row q-gutter-md">
+                    <div class="row ">
                       <div class="col-12 col-md-6">
                         <q-input v-model="localNewsletter.filename" label="Filename" outlined dense readonly />
                       </div>

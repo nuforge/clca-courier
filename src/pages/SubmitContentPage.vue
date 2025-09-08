@@ -35,7 +35,7 @@
           Thank you for your submission. Our editorial team will review your content and
           provide feedback within 3-5 business days.
         </p>
-        <div class="row justify-center q-gutter-md">
+        <div class="row justify-center ">
           <q-btn color="primary" label="Submit Another" @click="resetForm" />
           <q-btn color="grey-7" outline label="Back to Contribute" to="/contribute" />
         </div>

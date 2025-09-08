@@ -40,7 +40,7 @@
             <h2 class="content-title q-mt-sm q-mb-sm">{{ content.title }}</h2>
 
             <div class="content-meta text-grey-6">
-              <div class="row items-center q-gutter-md">
+              <div class="row items-center ">
                 <div class="flex items-center">
                   <q-icon name="person" size="sm" class="q-mr-xs" />
                   {{ content.author.displayName }}
@@ -84,7 +84,7 @@
             <q-separator class="q-mb-md" />
             <h6 class="q-mt-none q-mb-md">Images & Media</h6>
 
-            <div class="row q-gutter-md">
+            <div class="row ">
               <div
                 v-for="attachment in content.attachments"
                 :key="attachment.id"
@@ -103,7 +103,7 @@
                       </div>
                     </template>
                     <template v-slot:error>
-                      <div class="absolute-full flex flex-center bg-grey-2">
+                      <div class="absolute-full flex flex-center bg-grey">
                         <div class="text-center text-grey-6">
                           <q-icon name="broken_image" size="2em" class="q-mb-sm" />
                           <div class="text-caption">Failed to load</div>

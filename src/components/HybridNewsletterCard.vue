@@ -19,7 +19,7 @@
           class="rounded-borders newsletter-thumbnail" loading="lazy" fit="cover" :ratio="1 / 1.3"
           @error="onThumbnailError" @click="openWebViewer">
           <template v-slot:error>
-            <div class="absolute-full flex flex-center bg-grey-3 text-grey-7 column">
+            <div class="absolute-full flex flex-center bg-grey text-grey-7 column">
               <q-icon name="description" size="2rem" />
               <div class="text-caption q-mt-sm">PDF Cover</div>
             </div>
@@ -39,7 +39,7 @@
     <q-card-section class="q-py-sm">
       <div class="row items-center justify-between text-body2 text-grey-7">
         <div class="col-12">
-          <div class="row items-center q-gutter-md">
+          <div class="row items-center ">
             <div v-if="validPageCount" class="flex items-center no-wrap">
               <q-icon name="description" size="sm" class="q-mr-xs" />
               <span class="text-nowrap">{{ validPageCount }} pages</span>
@@ -60,9 +60,9 @@
       </div>
 
       <!-- Source indicators -->
-      <div class="row q-gutter-xs q-mt-sm items-center" v-if="Object.keys(sources).length > 0">
+      <div class="row  q-mt-sm items-center" v-if="Object.keys(sources).length > 0">
         <!-- Source Indicators -->
-        <div class="q-gutter-xs">
+        <div class="">
           <!-- Local Source Available -->
           <q-chip v-if="sources.local" icon="computer" size="sm" color="primary" text-color="white" dense outline
             class="q-my-none">
@@ -86,7 +86,7 @@
     <!-- Actions -->
     <q-card-actions class="q-pa-md">
       <div class="full-width">
-        <div class="row q-gutter-xs">
+        <div class="row ">
           <!-- Web View Button - Only show if local source is available -->
           <q-btn v-if="sources.local" unelevated icon="visibility" color="primary" @click="openWebViewer"
             :loading="loading.webView" class="col">
@@ -162,9 +162,9 @@
         style="min-width: 350px; max-width: 500px;">
         <q-card-section class="q-pb-md">
           <div class="text-h6 text-primary q-mb-md">Available Sources</div>
-          <div class="column q-gutter-md">
+          <div class="column ">
             <div v-for="source in availableSources" :key="source.type" v-show="source.available"
-              :class="$q.dark.isActive ? 'bg-grey-8 shadow-2' : 'bg-grey-2 shadow-1'"
+              :class="$q.dark.isActive ? 'bg-grey shadow-2' : 'bg-grey shadow-1'"
               class="flex items-center justify-between q-pa-md rounded-borders">
               <div class="flex items-center">
                 <q-icon :name="getSourceIcon(source.type)" :color="source.type === 'local' ? 'primary' : 'secondary'"
@@ -200,7 +200,7 @@
         </q-card-section>
 
         <q-card-section>
-          <div class="q-gutter-sm">
+          <div class="">
             <div><strong>Title:</strong> {{ newsletter.title }}</div>
             <div v-if="validDate"><strong>Date:</strong> {{ formatDate(newsletter.publicationDate) }}</div>
             <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>

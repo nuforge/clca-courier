@@ -28,7 +28,7 @@
           </q-input>
 
           <!-- Sort and Selection controls -->
-          <div class="row q-gutter-sm q-mb-md">
+          <div class="row  q-mb-md">
             <q-select v-model="sortBy" :options="sortOptions" option-label="label" option-value="value" emit-value
               map-options dense outlined label="Sort by" class="col" />
             <q-btn flat dense :icon="sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'" @click="toggleSortOrder"
@@ -36,7 +36,7 @@
           </div>
 
           <!-- Selection controls -->
-          <div class="row q-gutter-sm q-mb-md">
+          <div class="row  q-mb-md">
             <q-btn flat dense color="primary" icon="select_all" label="Select All" @click="selectAllVisible"
               :disable="sortedAndFilteredRoads.length === 0" size="sm" />
             <q-btn flat dense color="negative" icon="clear_all" label="Clear" @click="clearSelection"

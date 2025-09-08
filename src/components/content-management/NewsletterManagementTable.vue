@@ -6,7 +6,7 @@
   <div class="newsletter-management-container">
     <!-- Contextual Action Bar (using reserved space approach to prevent jumping) -->
     <div class="contextual-action-bar-container">
-      <div class="contextual-action-bar bg-grey-9 text-white" v-show="selectedNewsletters.length > 0">
+      <div class="contextual-action-bar bg-primary text-white" v-show="selectedNewsletters.length > 0">
         <div class="row items-center">
           <!-- Selection Info -->
           <div class="col-auto">
@@ -21,9 +21,9 @@
 
           <!-- Contextual Actions -->
           <div class="col-auto">
-            <div class="row q-gutter-sm">
+            <div class="row items-center">
               <!-- Quick Toggle Actions -->
-              <q-btn-group>
+              <q-btn-group class="q-mr-sm">
                 <q-btn flat dense icon="mdi-star" @click="bulkToggleFeatured(true)"
                   :loading="processingStates.isSyncing" color="amber" text-color="white">
                   <q-tooltip>Mark as Featured</q-tooltip>
@@ -34,9 +34,9 @@
                 </q-btn>
               </q-btn-group>
 
-              <q-separator vertical inset color="white" />
+              <q-separator vertical inset color="white" class="q-mx-sm" />
 
-              <q-btn-group>
+              <q-btn-group class="q-mr-sm">
                 <q-btn flat dense icon="mdi-eye" @click="bulkTogglePublished(true)"
                   :loading="processingStates.isSyncing" color="positive" text-color="white">
                   <q-tooltip>Publish</q-tooltip>
@@ -47,29 +47,30 @@
                 </q-btn>
               </q-btn-group>
 
-              <q-separator vertical inset color="white" />
+              <q-separator vertical inset color="white" class="q-mx-sm" />
 
               <!-- Bulk Operations -->
               <q-btn flat dense icon="mdi-text-search" @click="$emit('extract-selected-text')"
-                :loading="processingStates.isExtracting" color="secondary" text-color="white">
+                :loading="processingStates.isExtracting" color="secondary" text-color="white" class="q-mr-sm">
                 <q-tooltip>Extract Text</q-tooltip>
               </q-btn>
 
               <q-btn flat dense icon="mdi-image-multiple" @click="$emit('generate-selected-thumbnails')"
-                :loading="processingStates.isGeneratingThumbs" color="accent" text-color="white">
+                :loading="processingStates.isGeneratingThumbs" color="accent" text-color="white" class="q-mr-sm">
                 <q-tooltip>Generate Thumbnails</q-tooltip>
               </q-btn>
 
               <q-btn flat dense icon="mdi-cloud-upload" @click="$emit('sync-selected')"
-                :loading="processingStates.isSyncing" color="positive" text-color="white">
+                :loading="processingStates.isSyncing" color="positive" text-color="white" class="q-mr-sm">
                 <q-tooltip>Sync to Firebase</q-tooltip>
               </q-btn>
 
-              <q-btn flat dense icon="mdi-delete" @click="$emit('bulk-delete')" color="negative" text-color="white">
+              <q-btn flat dense icon="mdi-delete" @click="$emit('bulk-delete')" color="negative" text-color="white"
+                class="q-mr-sm">
                 <q-tooltip>Delete Selected</q-tooltip>
               </q-btn>
 
-              <q-separator vertical inset color="white" />
+              <q-separator vertical inset color="white" class="q-mx-sm" />
 
               <!-- Clear Selection -->
               <q-btn flat dense icon="mdi-close" @click="clearSelection" color="negative" text-color="white">

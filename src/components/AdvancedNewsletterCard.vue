@@ -73,7 +73,7 @@
     <q-card-section class="q-py-sm">
       <div class="row items-center justify-between text-body2 text-grey-7">
         <div class="col-12">
-          <div class="row items-center q-gutter-md">
+          <div class="row items-center ">
             <div v-if="validPageCount" class="flex items-center no-wrap">
               <q-icon name="description" size="sm" class="q-mr-xs" />
               <span class="text-nowrap">{{ validPageCount }} pages</span>
@@ -89,7 +89,7 @@
 
       <!-- Topics -->
       <div v-if="newsletter.topics && newsletter.topics.length > 0" class="q-mt-sm">
-        <div class="row q-gutter-xs">
+        <div class="row ">
           <q-chip v-for="topic in newsletter.topics.slice(0, 3)" :key="topic" dense size="sm" outline color="primary"
             class="text-caption">
             {{ topic }}
@@ -176,7 +176,7 @@
         </q-card-section>
 
         <q-card-section>
-          <div class="q-gutter-sm">
+          <div class="">
             <div><strong>Title:</strong> {{ newsletter.title }}</div>
             <div><strong>Date:</strong> {{ formatDate(newsletter.publicationDate) }}</div>
             <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>
@@ -190,7 +190,7 @@
             </div>
             <div v-if="hasLocalSource || hasDriveSource">
               <strong>Available Sources:</strong>
-              <div class="q-mt-xs q-gutter-xs">
+              <div class="q-mt-xs ">
                 <q-chip v-if="hasLocalSource" dense size="sm" color="primary" text-color="white">
                   Local
                   <q-tooltip v-if="fileValidation.lastChecked">

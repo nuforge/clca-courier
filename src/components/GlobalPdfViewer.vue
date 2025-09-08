@@ -13,7 +13,7 @@
           class="q-mr-md" v-if="availableDocuments.length > 1">
           <q-list>
             <q-item v-for="document in availableDocuments" :key="document.id" clickable v-close-popup
-              @click="switchDocument(document)" :class="{ 'bg-grey-2': selectedDocument?.id === document.id }">
+              @click="switchDocument(document)" :class="{ 'bg-grey': selectedDocument?.id === document.id }">
               <q-item-section>
                 <q-item-label>{{ document.title }}</q-item-label>
                 <q-item-label caption>{{ document.date }} • {{ document.pages }} pages</q-item-label>

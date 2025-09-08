@@ -19,7 +19,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-6">
-                    <div class="row q-gutter-sm">
+                    <div class="row ">
                         <q-btn color="positive" icon="mdi-cloud-upload" label="Sync to Firebase"
                             @click="$emit('sync-to-firebase')" :loading="isSyncing" :disable="stats.pending === 0"
                             size="sm" />

@@ -20,7 +20,7 @@
 
             <q-card-section class="q-pa-none" style="height: calc(100vh - 120px)">
                 <div v-if="newsletter" class="full-height">
-                    <q-tabs v-model="activeTab" align="left" dense class="text-grey-6 bg-grey-2" active-color="primary"
+                    <q-tabs v-model="activeTab" align="left" dense class="text-grey-6 bg-grey" active-color="primary"
                         narrow-indicator>
                         <q-tab name="text" icon="mdi-text-box" label="Extracted Text" />
                         <q-tab name="metadata" icon="mdi-information" label="Metadata" />
@@ -32,7 +32,7 @@
                     <q-tab-panels v-model="activeTab" animated class="full-height">
                         <!-- Extracted Text Tab -->
                         <q-tab-panel name="text" class="q-pa-md">
-                            <div class="row q-gutter-md">
+                            <div class="row ">
                                 <div class="col-12">
                                     <q-input :model-value="newsletter.searchableText || 'No text content available'"
                                         label="Full Text Content" type="textarea" outlined readonly class="full-width"
@@ -44,7 +44,7 @@
 
                         <!-- Metadata Tab -->
                         <q-tab-panel name="metadata" class="q-pa-md">
-                            <div class="row q-gutter-md">
+                            <div class="row ">
                                 <div class="col-12 col-md-6">
                                     <q-card flat bordered>
                                         <q-card-section>
@@ -146,12 +146,12 @@
 
                         <!-- Analysis Tab -->
                         <q-tab-panel name="analysis" class="q-pa-md">
-                            <div class="row q-gutter-md">
+                            <div class="row ">
                                 <div class="col-12">
                                     <q-card flat bordered>
                                         <q-card-section>
                                             <div class="text-h6 q-mb-md">Text Analysis</div>
-                                            <div class="row q-gutter-md">
+                                            <div class="row ">
                                                 <div class="col-12 col-md-6">
                                                     <div class="text-subtitle2 q-mb-sm">Word Frequency (Top 10)</div>
                                                     <q-list dense bordered class="rounded-borders">

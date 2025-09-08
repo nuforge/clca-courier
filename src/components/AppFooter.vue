@@ -7,7 +7,7 @@ const emailSubscription = ref('');
 const currentYear = new Date().getFullYear();
 
 const footerClasses = computed(() =>
-  siteStore.isDarkMode ? 'bg-dark text-white' : 'bg-grey-9 text-white'
+  siteStore.isDarkMode ? 'bg-dark text-white' : 'bg-grey text-white'
 );
 
 const quickLinks = [
@@ -42,7 +42,7 @@ const socialLinks = [
   <footer :class="footerClasses" class="footer-container">
     <div class="q-pa-lg">
       <!-- Main Footer Content -->
-      <div class="row q-gutter-lg">
+      <div class="row ">
         <!-- Brand Section -->
         <div class="col-12 col-md-3">
           <div class="text-h6 q-mb-md">
@@ -88,7 +88,7 @@ const socialLinks = [
           <p class="text-body2 q-mb-md">
             Subscribe to receive the latest issues and community updates.
           </p>
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <div class="col">
               <q-input v-model="emailSubscription" dense outlined placeholder="Enter your email" bg-color="white" dark
                 class="text-dark">
@@ -140,7 +140,7 @@ const socialLinks = [
         <!-- Social Media -->
         <div class="col-12 col-md-6 text-right">
           <div class="text-body2 q-mb-sm">Follow Us</div>
-          <div class="q-gutter-sm">
+          <div class="">
             <q-btn v-for="social in socialLinks" :key="social.label" :icon="social.icon" :href="social.url"
               target="_blank" flat round size="sm" color="white" :aria-label="social.label" />
           </div>

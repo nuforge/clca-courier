@@ -110,7 +110,7 @@
                                     </div>
                                 </template>
                                 <template v-slot:error>
-                                    <div class="absolute-full flex flex-center bg-grey-2">
+                                    <div class="absolute-full flex flex-center bg-grey">
                                         <div class="text-center text-grey-6">
                                             <q-icon name="broken_image" size="2em" class="q-mb-sm" />
                                             <div class="text-caption">Failed to load</div>

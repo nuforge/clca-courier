@@ -9,7 +9,7 @@
 
         <q-card-section>
           <!-- Search Interface -->
-          <div class="row q-gutter-md items-center q-mb-md">
+          <div class="row  items-center q-mb-md">
             <div class="col-12 col-md-6">
               <q-input v-model="searchQuery" placeholder="Search newsletters (instant results)..." outlined clearable
                 @clear="clearSearch" @keyup.enter="performSearch">
@@ -33,7 +33,7 @@
           </div>
 
           <!-- Statistics -->
-          <div class="row q-gutter-md q-mb-md">
+          <div class="row  q-mb-md">
             <div class="col">
               <q-chip color="primary" text-color="white" icon="description">
                 {{ newsletters.length }} Newsletters
@@ -65,7 +65,7 @@
               </q-chip>
             </div>
 
-            <div class="row q-gutter-sm">
+            <div class="row ">
               <div v-for="result in searchResults.slice(0, 6)" :key="result.id" class="col-12 col-md-6">
                 <q-card flat bordered>
                   <q-card-section class="q-pa-sm">
@@ -92,7 +92,7 @@
 
           <!-- All Newsletters -->
           <div class="text-subtitle1 q-mb-sm">All Newsletters</div>
-          <div class="row q-gutter-sm">
+          <div class="row ">
             <div v-for="newsletter in newsletters.slice(0, 12)" :key="newsletter.id"
               class="col-12 col-sm-6 col-md-4 col-lg-3">
               <q-card flat bordered>
