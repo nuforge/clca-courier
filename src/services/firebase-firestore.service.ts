@@ -645,6 +645,62 @@ class FirebaseFirestoreService {
     }
   }
 
+  // Admin version: Subscribe to ALL newsletters (including unpublished) with real-time updates
+  subscribeToNewslettersForAdmin(
+    callback: (newsletters: NewsletterMetadata[]) => void,
+  ): () => void {
+    try {
+      logger.info('Setting up ADMIN newsletter subscription (including unpublished)...');
+
+      // Query ALL newsletters without publication status filter
+      const q = query(
+        collection(firestore, this.COLLECTIONS.NEWSLETTERS),
+        orderBy('createdAt', 'desc'),
+        limit(100),
+      );
+
+      return onSnapshot(
+        q,
+        (querySnapshot) => {
+          logger.info(
+            `Admin newsletter subscription received ${querySnapshot.docs.length} documents`,
+          );
+
+          const newsletters = querySnapshot.docs
+            .map((doc) => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                ...data,
+              } as NewsletterMetadata;
+            })
+            // NO client-side filtering for admin - show ALL newsletters
+            .sort(
+              (a, b) =>
+                new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime(),
+            );
+
+          logger.success(
+            `Admin newsletter subscription processed ${newsletters.length} newsletters (including unpublished)`,
+          );
+          callback(newsletters);
+        },
+        (error) => {
+          logger.error('Admin newsletter subscription error:', error);
+          if (error.message.includes('permission')) {
+            logger.debug('Permission denied for admin newsletter subscription');
+          }
+          // Call callback with empty array to prevent app crash
+          callback([]);
+        },
+      );
+    } catch (error) {
+      logger.error('Error setting up admin newsletter subscription:', error);
+      callback([]);
+      return () => {};
+    }
+  }
+
   subscribeToPendingContent(callback: (content: UserContent[]) => void): Unsubscribe {
     try {
       logger.info('Setting up pending content subscription...');

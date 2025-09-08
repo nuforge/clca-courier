@@ -3,10 +3,11 @@
  * Firebase-first approach for MVP
  */
 
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { pdfProcessingService } from '../services/pdf-processing.service';
 import { firebaseAuthService } from '../services/firebase-auth.service';
+import { firestoreService } from '../services/firebase-firestore.service';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 import type { PdfProcessingProgress } from '../services/pdf-processing.service';
 import { logger } from '../utils/logger';
@@ -25,6 +26,17 @@ export function useSimplifiedAdmin() {
     results: [],
   });
 
+  // Reactive subscription for real-time updates
+  const unsubscribe = ref<(() => void) | null>(null);
+
+  // Cleanup subscription on unmount
+  onUnmounted(() => {
+    if (unsubscribe.value) {
+      unsubscribe.value();
+      logger.info('Simplified admin subscription cleaned up');
+    }
+  });
+
   // Get current user
   const getCurrentUser = () => {
     const user = firebaseAuthService.getCurrentUser();
@@ -40,7 +52,7 @@ export function useSimplifiedAdmin() {
   const loadNewsletters = async (): Promise<void> => {
     try {
       isLoading.value = true;
-      logger.info('Loading newsletters from Firebase...');
+      logger.info('Loading newsletters from Firebase with reactive subscription...');
 
       // Clear any browser cache before loading
       if ('caches' in window) {
@@ -53,9 +65,18 @@ export function useSimplifiedAdmin() {
         }
       }
 
+      // Setup reactive subscription for real-time updates
+      unsubscribe.value = firestoreService.subscribeToNewslettersForAdmin((updatedNewsletters) => {
+        logger.info(`Received ${updatedNewsletters.length} newsletters via reactive subscription`);
+        newsletters.value = updatedNewsletters;
+      });
+
+      // Also do initial load using the existing service for immediate data
       newsletters.value = await pdfProcessingService.getAllNewslettersForAdmin();
 
-      logger.info(`Loaded ${newsletters.value.length} newsletters from Firebase`);
+      logger.info(
+        `Loaded ${newsletters.value.length} newsletters from Firebase + reactive subscription active`,
+      );
 
       // Debug: Log first few newsletter filenames
       if (newsletters.value.length > 0) {

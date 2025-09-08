@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import type {
   ContentManagementNewsletter,
   NewsletterFilters,
   ProcessingStates,
 } from '../types/core/content-management.types';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
+import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 
 export const useNewsletterManagementStore = defineStore('newsletter-management', () => {
@@ -37,6 +38,26 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
   const isGeneratingDescriptions = ref(false);
   const isGeneratingTitles = ref(false);
   const isGeneratingThumbs = ref(false);
+
+  // Reactive subscription for real-time updates
+  const unsubscribe = ref<(() => void) | null>(null);
+
+  // Setup reactive subscription for admin view (including unpublished)
+  const setupReactiveSubscription = () => {
+    logger.info('Setting up reactive admin subscription for newsletter management...');
+    unsubscribe.value = firestoreService.subscribeToNewslettersForAdmin((updatedNewsletters) => {
+      logger.info(`Received ${updatedNewsletters.length} newsletters via reactive subscription`);
+      newsletters.value = updatedNewsletters as ContentManagementNewsletter[];
+    });
+  };
+
+  // Cleanup subscription on unmount
+  onUnmounted(() => {
+    if (unsubscribe.value) {
+      unsubscribe.value();
+      logger.info('Newsletter management store subscription cleaned up');
+    }
+  });
   const isSyncing = ref(false);
   const isUploading = ref(false);
   const isToggling = ref(false);
@@ -156,11 +177,17 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
   async function loadNewsletters(): Promise<void> {
     isLoading.value = true;
     try {
-      logger.info('🔄 Loading newsletters from Firebase...');
-      await firebaseNewsletterService.initialize();
-      const data = firebaseNewsletterService.newsletters.value;
+      logger.info('🔄 Loading ALL newsletters for admin (including unpublished)...');
+
+      // Setup reactive subscription for real-time updates
+      setupReactiveSubscription();
+
+      // Also do initial load for immediate data
+      const data = await firebaseNewsletterService.loadAllNewslettersForAdmin();
       newsletters.value = data as ContentManagementNewsletter[];
-      logger.success(`✅ Loaded ${data.length} newsletters`);
+      logger.success(
+        `✅ Loaded ${data.length} newsletters (admin view) + reactive subscription active`,
+      );
     } catch (error) {
       logger.error('❌ Failed to load newsletters:', error);
       throw error;

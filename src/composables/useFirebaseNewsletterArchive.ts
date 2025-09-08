@@ -10,7 +10,7 @@ import {
   type NewsletterSearchFilters,
   type NewsletterSearchResult,
 } from '../services/firebase-newsletter.service';
-import { type NewsletterMetadata } from '../services/firebase-firestore.service';
+import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 
 export interface ArchiveFilters extends NewsletterSearchFilters {
@@ -69,6 +69,52 @@ export function useFirebaseNewsletterArchive() {
   // Filters and search
   const currentFilters = ref<ArchiveFilters>({});
   const searchQuery = ref('');
+
+  // Reactive subscription management
+  const unsubscribe = ref<(() => void) | null>(null);
+  const currentMode = ref<'public' | 'admin'>('public');
+
+  // Setup reactive subscription based on admin/public mode
+  const setupReactiveSubscription = (includeUnpublished = false) => {
+    // Cleanup existing subscription
+    if (unsubscribe.value) {
+      unsubscribe.value();
+      unsubscribe.value = null;
+    }
+
+    const mode = includeUnpublished ? 'admin' : 'public';
+    currentMode.value = mode;
+
+    logger.info(`Setting up ${mode} newsletter subscription for archive...`);
+
+    if (includeUnpublished) {
+      // Admin mode: subscribe to ALL newsletters (including unpublished)
+      unsubscribe.value = firestoreService.subscribeToNewslettersForAdmin((updatedNewsletters) => {
+        logger.info(
+          `Archive received ${updatedNewsletters.length} newsletters via admin subscription`,
+        );
+        newsletters.value = updatedNewsletters;
+        void applyFilters(); // Re-apply filters when data updates
+      });
+    } else {
+      // Public mode: subscribe to published newsletters only
+      unsubscribe.value = firestoreService.subscribeToNewsletters((updatedNewsletters) => {
+        logger.info(
+          `Archive received ${updatedNewsletters.length} published newsletters via public subscription`,
+        );
+        newsletters.value = updatedNewsletters;
+        void applyFilters(); // Re-apply filters when data updates
+      });
+    }
+  };
+
+  // Cleanup subscription on unmount
+  onUnmounted(() => {
+    if (unsubscribe.value) {
+      unsubscribe.value();
+      logger.info('Archive newsletter subscription cleaned up');
+    }
+  });
 
   // Stats (computed to be reactive)
   const stats = computed<ArchiveStats | null>(() => {
@@ -244,28 +290,24 @@ export function useFirebaseNewsletterArchive() {
       isLoading.value = true;
       error.value = null;
 
-      let loadedNewsletters: NewsletterMetadata[];
+      logger.info(
+        `Initializing reactive subscription for ${includeUnpublished ? 'admin' : 'public'} mode...`,
+      );
 
-      if (includeUnpublished) {
-        // Admin mode: load all newsletters including unpublished
-        loadedNewsletters = await firebaseNewsletterService.loadAllNewslettersForAdmin();
-      } else {
-        // Public mode: load only published newsletters
-        loadedNewsletters = await firebaseNewsletterService.loadNewsletters();
-      }
+      // Setup reactive subscription instead of one-time loading
+      setupReactiveSubscription(includeUnpublished);
 
-      newsletters.value = loadedNewsletters;
-
-      // Apply current filters
-      await applyFilters();
-      // Stats will be automatically recalculated due to computed property
+      // Initial loading is handled by the subscription callback
+      // Just wait a moment for the first data to arrive
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       logger.success(
-        `Loaded ${loadedNewsletters.length} newsletters${includeUnpublished ? ' (including unpublished)' : ''}`,
+        `Initialized reactive subscription for newsletters${includeUnpublished ? ' (including unpublished)' : ''}`,
       );
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load newsletters';
-      logger.error('Error loading newsletters:', err);
+      error.value =
+        err instanceof Error ? err.message : 'Failed to initialize newsletter subscription';
+      logger.error('Error initializing newsletter subscription:', err);
       throw err;
     } finally {
       isLoading.value = false;

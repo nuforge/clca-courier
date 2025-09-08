@@ -717,7 +717,7 @@ async function handleSyncSelected(): Promise<void> {
   }
 }
 
-function handleBulkTogglePublished(published: boolean): void {
+async function handleBulkTogglePublished(published: boolean): Promise<void> {
   if (store.selectedNewsletters.length === 0) {
     $q.notify({ type: 'warning', message: 'No newsletters selected' });
     return;
@@ -725,20 +725,48 @@ function handleBulkTogglePublished(published: boolean): void {
 
   store.isToggling = true;
   try {
-    store.selectedNewsletters.forEach(newsletter => {
-      newsletter.isPublished = published;
-    });
+    logger.info(`${published ? 'Publishing' : 'Unpublishing'} ${store.selectedNewsletters.length} newsletters...`);
+
+    // Update Firebase for each selected newsletter
+    for (const newsletter of store.selectedNewsletters) {
+      try {
+        if (newsletter.id) {
+          await firestoreService.updateNewsletterMetadata(newsletter.id, {
+            isPublished: published,
+            updatedAt: new Date().toISOString()
+          });
+
+          // Update local state
+          newsletter.isPublished = published;
+          logger.success(`Updated ${newsletter.filename} publication status to ${published}`);
+        }
+      } catch (error) {
+        logger.error(`Failed to update ${newsletter.filename}:`, error);
+      }
+    }
 
     $q.notify({
       type: 'positive',
-      message: `${store.selectedNewsletters.length} newsletters ${published ? 'published' : 'unpublished'}`
+      message: `${store.selectedNewsletters.length} newsletters ${published ? 'published' : 'unpublished'}`,
+      caption: 'Changes saved to Firebase'
+    });
+
+    // Clear selection after successful operation
+    store.clearSelection();
+
+  } catch (error) {
+    logger.error('Bulk publish operation failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update publication status',
+      caption: error instanceof Error ? error.message : 'Unknown error'
     });
   } finally {
     store.isToggling = false;
   }
 }
 
-function handleBulkToggleFeatured(featured: boolean): void {
+async function handleBulkToggleFeatured(featured: boolean): Promise<void> {
   if (store.selectedNewsletters.length === 0) {
     $q.notify({ type: 'warning', message: 'No newsletters selected' });
     return;
@@ -746,13 +774,41 @@ function handleBulkToggleFeatured(featured: boolean): void {
 
   store.isToggling = true;
   try {
-    store.selectedNewsletters.forEach(newsletter => {
-      newsletter.featured = featured;
-    });
+    logger.info(`${featured ? 'Featuring' : 'Unfeaturing'} ${store.selectedNewsletters.length} newsletters...`);
+
+    // Update Firebase for each selected newsletter
+    for (const newsletter of store.selectedNewsletters) {
+      try {
+        if (newsletter.id) {
+          await firestoreService.updateNewsletterMetadata(newsletter.id, {
+            featured: featured,
+            updatedAt: new Date().toISOString()
+          });
+
+          // Update local state
+          newsletter.featured = featured;
+          logger.success(`Updated ${newsletter.filename} featured status to ${featured}`);
+        }
+      } catch (error) {
+        logger.error(`Failed to update ${newsletter.filename}:`, error);
+      }
+    }
 
     $q.notify({
       type: 'positive',
-      message: `${store.selectedNewsletters.length} newsletters ${featured ? 'featured' : 'unfeatured'}`
+      message: `${store.selectedNewsletters.length} newsletters ${featured ? 'featured' : 'unfeatured'}`,
+      caption: 'Changes saved to Firebase'
+    });
+
+    // Clear selection after successful operation
+    store.clearSelection();
+
+  } catch (error) {
+    logger.error('Bulk feature operation failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update featured status',
+      caption: error instanceof Error ? error.message : 'Unknown error'
     });
   } finally {
     store.isToggling = false;

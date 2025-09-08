@@ -17,10 +17,19 @@
                             class="q-mr-sm" />
                         <q-btn color="orange" icon="mdi-cloud-upload" label="Sync to Cloud"
                             @click="$emit('sync-selected')" :loading="isSyncing" class="q-mr-sm" />
+
+                        <!-- Publication Controls -->
                         <q-btn color="positive" icon="mdi-publish" label="Publish All"
                             @click="$emit('bulk-toggle-published', true)" :loading="isToggling" class="q-mr-sm" />
-                        <q-btn color="orange" icon="mdi-star" label="Feature All"
+                        <q-btn color="warning" icon="mdi-publish-off" label="Unpublish All"
+                            @click="$emit('bulk-toggle-published', false)" :loading="isToggling" class="q-mr-sm" />
+
+                        <!-- Featured Controls -->
+                        <q-btn color="amber" icon="mdi-star" label="Feature All"
                             @click="$emit('bulk-toggle-featured', true)" :loading="isToggling" class="q-mr-sm" />
+                        <q-btn color="blue-grey" icon="mdi-star-off" label="Unfeature All"
+                            @click="$emit('bulk-toggle-featured', false)" :loading="isToggling" class="q-mr-sm" />
+
                         <q-btn color="negative" icon="mdi-delete" label="Delete Selected" @click="$emit('bulk-delete')"
                             :loading="isDeleting" class="q-mr-sm" />
                         <q-btn flat icon="mdi-close" label="Clear Selection" @click="$emit('clear-selection')" />
