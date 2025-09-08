@@ -1665,6 +1665,73 @@ async function checkForLocalThumbnails(newsletters: ContentManagementNewsletter[
   }
 }
 
+// SINGLE REUSABLE SYNC FUNCTION - NO MORE DUPLICATES!
+async function syncNewsletterToFirebase(newsletter: ContentManagementNewsletter): Promise<void> {
+  let metadataToSync;
+
+  if (newsletter.id.startsWith('draft-')) {
+    // This is a draft - find original metadata
+    const originalDraft = draftNewsletters.value.find(d => d.id === newsletter.id);
+    if (!originalDraft) {
+      throw new Error('Cannot sync: draft metadata not found');
+    }
+
+    // Remove local-only fields and create proper metadata for sync
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...metadataWithoutId } = originalDraft;
+    metadataToSync = {
+      ...metadataWithoutId,
+      updatedAt: new Date().toISOString(),
+      updatedBy: auth.currentUser.value?.uid || 'anonymous',
+    };
+  } else {
+    // This is a regular newsletter - CREATE FIREBASE RECORD
+    const currentDate = new Date().toISOString();
+    const baseMetadata = {
+      filename: newsletter.filename,
+      title: newsletter.title || newsletter.filename.replace('.pdf', ''),
+      description: newsletter.description || '',
+      publicationDate: newsletter.displayDate || currentDate,
+      year: newsletter.year || new Date().getFullYear(),
+      fileSize: newsletter.fileSize || 0,
+      downloadUrl: newsletter.downloadUrl || '',
+      storageRef: `newsletters/${newsletter.filename}`,
+      tags: newsletter.tags || [],
+      featured: newsletter.featured || false,
+      isPublished: newsletter.isPublished || false,
+      createdAt: currentDate,
+      updatedAt: currentDate,
+      createdBy: auth.currentUser.value?.uid || 'anonymous',
+      updatedBy: auth.currentUser.value?.uid || 'anonymous',
+      actions: {
+        canView: true,
+        canDownload: true,
+        canSearch: false,
+        hasThumbnail: false
+      }
+    };
+
+    // Add season only if it's a valid value
+    if (newsletter.season && ['spring', 'summer', 'fall', 'winter'].includes(newsletter.season)) {
+      metadataToSync = {
+        ...baseMetadata,
+        season: newsletter.season as 'spring' | 'summer' | 'fall' | 'winter'
+      };
+    } else {
+      metadataToSync = baseMetadata;
+    }
+  }
+
+  // ALWAYS SAVE TO FIREBASE
+  await firestoreService.saveNewsletterMetadata(metadataToSync);
+
+  // Remove from local drafts if it was a draft
+  if (newsletter.id.startsWith('draft-')) {
+    draftNewsletters.value = draftNewsletters.value.filter(d => d.id !== newsletter.id);
+    localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+  }
+}
+
 async function handleSyncSelected(): Promise<void> {
   if (selectedNewsletters.value.length === 0) {
     $q.notify({
@@ -1675,78 +1742,54 @@ async function handleSyncSelected(): Promise<void> {
     return;
   }
 
-  // Check if any selected items are drafts that need syncing
-  const draftsToSync = selectedNewsletters.value.filter(newsletter =>
-    newsletter.id.startsWith('draft-')
-  );
+  // PROCESS ALL SELECTED NEWSLETTERS TO FIREBASE
+  // Create or update Firebase records for all selected newsletters
+  const newslettersToProcess = selectedNewsletters.value;
 
-  if (draftsToSync.length === 0) {
-    $q.notify({
-      type: 'info',
-      message: 'Selected newsletters are already synced to Firebase',
-      caption: 'Only local drafts need syncing',
-      position: 'top'
-    });
-    return;
-  }
-
-  // Start syncing process for drafts
+  // Start processing ALL selected newsletters to Firebase using the reusable function
   processingStates.value.isSyncing = true;
 
   try {
     let synced = 0;
     let failed = 0;
 
-    for (const draft of draftsToSync) {
+    for (const newsletter of newslettersToProcess) {
       try {
-        // Find the original draft metadata from the drafts array
-        const originalDraft = draftNewsletters.value.find(d => d.id === draft.id);
-        if (!originalDraft) {
-          console.warn(`☁️ Could not find original draft metadata for: ${draft.filename}`);
-          failed++;
-          continue;
-        }
-
-        // Remove local-only fields and create proper metadata for sync
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, ...metadataWithoutId } = originalDraft;
-        const cleanMetadata = {
-          ...metadataWithoutId,
-          updatedAt: new Date().toISOString(),
-          updatedBy: auth.currentUser.value?.uid || 'anonymous',
-        };
-
-        await firestoreService.saveNewsletterMetadata(cleanMetadata);
+        await syncNewsletterToFirebase(newsletter);
         synced++;
-        console.log(`☁️ Synced selected draft: ${draft.filename}`);
+        console.log(`☁️ Processed to Firebase: ${newsletter.filename}`);
       } catch (error) {
-        console.error(`☁️ Failed to sync selected draft ${draft.filename}:`, error);
+        console.error(`☁️ Failed to process ${newsletter.filename}:`, error);
         failed++;
       }
-    }
-
-    // Show results
+    }    // Show results
     if (synced > 0) {
       $q.notify({
         type: 'positive',
-        message: `Successfully synced ${synced} selected draft(s) to Firebase`,
-        caption: failed > 0 ? `${failed} draft(s) failed to sync` : 'All selected drafts synced',
+        message: `Successfully processed ${synced} newsletter(s) to Firebase`,
+        caption: failed > 0 ? `${failed} newsletter(s) failed to process` : 'All selected newsletters processed',
         position: 'top'
       });
 
-      // Remove synced drafts from local storage
-      draftNewsletters.value = draftNewsletters.value.filter(draft =>
-        !draftsToSync.some(selected => selected.id === draft.id)
-      );
-      localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+      // Remove processed drafts from local storage if any
+      const processedDraftIds = newslettersToProcess
+        .filter(n => n.id.startsWith('draft-'))
+        .map(n => n.id);
+
+      if (processedDraftIds.length > 0) {
+        draftNewsletters.value = draftNewsletters.value.filter(draft =>
+          !processedDraftIds.includes(draft.id)
+        );
+        localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
+      }
 
       // Refresh the newsletter list
       await loadNewsletters();
     } else {
       $q.notify({
         type: 'warning',
-        message: 'No drafts could be synced',
-        caption: 'File objects may be missing - try re-importing files',
+        message: 'No newsletters could be processed',
+        caption: 'Check console for error details',
         position: 'top'
       });
     }
@@ -1762,65 +1805,29 @@ async function handleSyncSelected(): Promise<void> {
     processingStates.value.isSyncing = false;
   }
 }
-// Individual newsletter sync
+// Individual newsletter sync - NOW USES REUSABLE FUNCTION
 async function syncSingleNewsletter(newsletter: ContentManagementNewsletter): Promise<void> {
-  // Check if this is a draft that needs syncing
-  if (newsletter.id.startsWith('draft-')) {
-    // Find the original draft metadata
-    const originalDraft = draftNewsletters.value.find(d => d.id === newsletter.id);
-    if (!originalDraft) {
-      $q.notify({
-        type: 'warning',
-        message: 'Cannot sync: draft metadata not found',
-        position: 'top'
-      });
-      return;
-    }
+  try {
+    await syncNewsletterToFirebase(newsletter);
 
-    try {
-      // Remove local-only fields and create proper metadata for sync
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...metadataWithoutId } = originalDraft;
-      const cleanMetadata = {
-        ...metadataWithoutId,
-        updatedAt: new Date().toISOString(),
-        updatedBy: auth.currentUser.value?.uid || 'anonymous',
-      };
-
-      await firestoreService.saveNewsletterMetadata(cleanMetadata);
-
-      $q.notify({
-        type: 'positive',
-        message: `Successfully synced "${newsletter.title}" to Firebase`,
-        position: 'top'
-      });
-
-      // Remove from local drafts
-      draftNewsletters.value = draftNewsletters.value.filter(d => d.id !== newsletter.id);
-      localStorage.setItem('newsletter-drafts', JSON.stringify(draftNewsletters.value));
-
-      // Refresh only Firebase data to show the synced item without triggering PDF processing
-      await refreshFirebaseDataOnly();
-    } catch (error) {
-      console.error('Single sync failed:', error);
-      $q.notify({
-        type: 'negative',
-        message: 'Failed to sync newsletter',
-        caption: error instanceof Error ? error.message : 'Unknown error occurred',
-        position: 'top'
-      });
-    }
-  } else {
     $q.notify({
-      type: 'info',
-      message: `"${newsletter.title}" is already synchronized`,
-      caption: 'This newsletter is already in Firebase',
+      type: 'positive',
+      message: `Successfully created/updated "${newsletter.title}" in Firebase`,
+      position: 'top'
+    });
+
+    // Refresh only Firebase data to show the synced item without triggering PDF processing
+    await refreshFirebaseDataOnly();
+  } catch (error) {
+    console.error('Single sync failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to sync newsletter',
+      caption: error instanceof Error ? error.message : 'Unknown error occurred',
       position: 'top'
     });
   }
-}
-
-// Toggle newsletter published status
+}// Toggle newsletter published status
 async function toggleNewsletterPublished(newsletter: ContentManagementNewsletter): Promise<void> {
   publishingStates.value[newsletter.id] = true;
   try {
@@ -1830,9 +1837,24 @@ async function toggleNewsletterPublished(newsletter: ContentManagementNewsletter
 
     console.log(`Toggling publication status: ${currentStatus} -> ${newStatus} for newsletter ${newsletter.id}`);
 
-    await firestoreService.updateNewsletterMetadata(newsletter.id, {
-      isPublished: newStatus
-    });
+    // First, ensure the newsletter exists in Firebase by syncing it if needed
+    try {
+      await firestoreService.updateNewsletterMetadata(newsletter.id, {
+        isPublished: newStatus
+      });
+    } catch (error) {
+      // If update fails because document doesn't exist, create it first
+      if (error instanceof Error && error.message.includes('No document to update')) {
+        console.log('Document does not exist, creating it first...');
+        await syncNewsletterToFirebase(newsletter);
+        // Now try the update again
+        await firestoreService.updateNewsletterMetadata(newsletter.id, {
+          isPublished: newStatus
+        });
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
 
     // Update the local newsletter object
     newsletter.isPublished = newStatus;
@@ -1865,9 +1887,24 @@ async function toggleNewsletterFeatured(newsletter: ContentManagementNewsletter)
 
     console.log(`Toggling featured status: ${currentStatus} -> ${newStatus} for newsletter ${newsletter.id}`);
 
-    await firestoreService.updateNewsletterMetadata(newsletter.id, {
-      featured: newStatus
-    });
+    // First, ensure the newsletter exists in Firebase by syncing it if needed
+    try {
+      await firestoreService.updateNewsletterMetadata(newsletter.id, {
+        featured: newStatus
+      });
+    } catch (error) {
+      // If update fails because document doesn't exist, create it first
+      if (error instanceof Error && error.message.includes('No document to update')) {
+        console.log('Document does not exist, creating it first...');
+        await syncNewsletterToFirebase(newsletter);
+        // Now try the update again
+        await firestoreService.updateNewsletterMetadata(newsletter.id, {
+          featured: newStatus
+        });
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
 
     // Update the local newsletter object
     newsletter.featured = newStatus;

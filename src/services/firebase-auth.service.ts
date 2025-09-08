@@ -59,6 +59,11 @@ class FirebaseAuthService {
 
   private listeners: Set<(state: AuthState) => void> = new Set();
 
+  // Avatar caching to prevent 429 rate limits
+  private avatarCache = new Map<string, string>();
+  private avatarCacheExpiry = new Map<string, number>();
+  private readonly AVATAR_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
   constructor() {
     this.initializeAuthListener();
   }
@@ -85,14 +90,37 @@ class FirebaseAuthService {
   }
 
   /**
-   * Transform Firebase User to our FirebaseAuthUser interface
+   * Transform Firebase User to our FirebaseAuthUser interface with avatar caching
    */
   private transformFirebaseUser(user: User): FirebaseAuthUser {
+    // Cache avatar URL to prevent rate limiting
+    let cachedPhotoURL = user.photoURL;
+    if (cachedPhotoURL) {
+      const now = Date.now();
+      const cacheKey = user.uid;
+
+      // Check if we have a cached version that's still valid
+      if (this.avatarCache.has(cacheKey) && this.avatarCacheExpiry.has(cacheKey)) {
+        const expiry = this.avatarCacheExpiry.get(cacheKey)!;
+        if (now < expiry) {
+          cachedPhotoURL = this.avatarCache.get(cacheKey)!;
+        } else {
+          // Cache expired, update it
+          this.avatarCache.set(cacheKey, cachedPhotoURL);
+          this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+        }
+      } else {
+        // No cache entry, create one
+        this.avatarCache.set(cacheKey, cachedPhotoURL);
+        this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+      }
+    }
+
     return {
       uid: user.uid,
       email: user.email,
       displayName: user.displayName,
-      photoURL: user.photoURL,
+      photoURL: cachedPhotoURL,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
       metadata: {
@@ -310,6 +338,29 @@ class FirebaseAuthService {
       logger.error('Error getting access token:', error);
       return null;
     }
+  }
+
+  /**
+   * Clear avatar cache (useful for troubleshooting 429 errors)
+   */
+  clearAvatarCache(): void {
+    this.avatarCache.clear();
+    this.avatarCacheExpiry.clear();
+    logger.info('Avatar cache cleared');
+  }
+
+  /**
+   * Get cached avatar URL for user (prevents rate limiting)
+   */
+  getCachedAvatarUrl(userId: string): string | null {
+    const now = Date.now();
+    if (this.avatarCache.has(userId) && this.avatarCacheExpiry.has(userId)) {
+      const expiry = this.avatarCacheExpiry.get(userId)!;
+      if (now < expiry) {
+        return this.avatarCache.get(userId)!;
+      }
+    }
+    return null;
   }
 }
 

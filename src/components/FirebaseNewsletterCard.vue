@@ -21,6 +21,12 @@
             <div v-else class="thumbnail-fallback" :class="fallbackClasses">
                 <q-icon name="mdi-file-pdf-box" size="3rem" class="text-grey-5" />
                 <div class="text-caption text-center q-mt-xs">PDF</div>
+
+                <!-- Admin: Show regenerate thumbnail button if no thumbnail -->
+                <q-btn v-if="showAdminControls && !newsletter.thumbnailUrl" flat dense size="sm" color="primary"
+                    icon="image" class="q-mt-xs" @click.stop="generateThumbnail" :loading="thumbnailGenerating">
+                    <q-tooltip>Generate Thumbnail</q-tooltip>
+                </q-btn>
             </div>
 
             <!-- Featured Badge -->
@@ -174,6 +180,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// Emits
+const emit = defineEmits<{
+    metadataUpdated: [newsletterId: string, updates: Partial<NewsletterMetadata>];
+    newsletterDeleted: [newsletterId: string];
+    refreshNeeded: [];
+}>();
+
 // Composables
 const $q = useQuasar();
 const siteStore = useSiteStore();
@@ -183,6 +196,7 @@ const loading = ref(false);
 const thumbnailError = ref(false);
 const publishLoading = ref(false);
 const featuredLoading = ref(false);
+const thumbnailGenerating = ref(false);
 
 // Constants
 const maxVisibleTags = 2;
@@ -342,6 +356,33 @@ const onThumbnailError = () => {
     logger.warn('Thumbnail failed to load for:', props.newsletter.title);
 };
 
+// Generate thumbnail for newsletter (admin only)
+const generateThumbnail = () => {
+    try {
+        thumbnailGenerating.value = true;
+
+        $q.notify({
+            type: 'info',
+            message: 'Thumbnail generation not yet implemented',
+            caption: 'This feature will be available in a future update',
+            position: 'top'
+        });
+
+        // TODO: Implement thumbnail generation
+        // This would call a thumbnail generation service
+
+    } catch (error) {
+        logger.error('Error generating thumbnail:', error);
+        $q.notify({
+            type: 'negative',
+            message: 'Failed to generate thumbnail',
+            position: 'top'
+        });
+    } finally {
+        thumbnailGenerating.value = false;
+    }
+};
+
 // Admin toggle methods
 const togglePublishedStatus = async () => {
     try {
@@ -353,13 +394,34 @@ const togglePublishedStatus = async () => {
 
         logger.info(`Toggling publication status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
 
-        await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
-            isPublished: newStatus
-        });
+        // First, ensure the newsletter exists in Firebase by syncing it if needed
+        try {
+            await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
+                isPublished: newStatus
+            });
+        } catch (error) {
+            // If update fails because document doesn't exist, notify parent to handle sync
+            if (error instanceof Error && error.message.includes('No document to update')) {
+                logger.warn('Document does not exist, requesting parent to sync first...');
+                emit('refreshNeeded');
+                $q.notify({
+                    type: 'warning',
+                    message: 'Newsletter needs to be synced to Firebase first',
+                    caption: 'Please use the sync button to create the Firebase record',
+                    position: 'top'
+                });
+                return;
+            } else {
+                throw error; // Re-throw other errors
+            }
+        }
 
         // Update the newsletter object directly to provide immediate feedback
         const mutableNewsletter = props.newsletter as NewsletterMetadata & { isPublished: boolean };
         mutableNewsletter.isPublished = newStatus;
+
+        // Emit event to parent so archive can refresh if needed
+        emit('metadataUpdated', props.newsletter.id, { isPublished: newStatus });
 
         $q.notify({
             type: 'positive',
@@ -374,6 +436,7 @@ const togglePublishedStatus = async () => {
         $q.notify({
             type: 'negative',
             message: 'Failed to update publication status',
+            caption: error instanceof Error ? error.message : 'Unknown error',
             position: 'top'
         });
     } finally {
@@ -391,13 +454,34 @@ const toggleFeaturedStatus = async () => {
 
         logger.info(`Toggling featured status: ${currentStatus} -> ${newStatus} for newsletter ${props.newsletter.id}`);
 
-        await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
-            featured: newStatus
-        });
+        // First, ensure the newsletter exists in Firebase by syncing it if needed
+        try {
+            await firestoreService.updateNewsletterMetadata(props.newsletter.id, {
+                featured: newStatus
+            });
+        } catch (error) {
+            // If update fails because document doesn't exist, notify parent to handle sync
+            if (error instanceof Error && error.message.includes('No document to update')) {
+                logger.warn('Document does not exist, requesting parent to sync first...');
+                emit('refreshNeeded');
+                $q.notify({
+                    type: 'warning',
+                    message: 'Newsletter needs to be synced to Firebase first',
+                    caption: 'Please use the sync button to create the Firebase record',
+                    position: 'top'
+                });
+                return;
+            } else {
+                throw error; // Re-throw other errors
+            }
+        }
 
         // Update the newsletter object directly to provide immediate feedback
         const mutableNewsletter = props.newsletter as NewsletterMetadata & { featured: boolean };
         mutableNewsletter.featured = newStatus;
+
+        // Emit event to parent so archive can refresh if needed
+        emit('metadataUpdated', props.newsletter.id, { featured: newStatus });
 
         $q.notify({
             type: 'positive',

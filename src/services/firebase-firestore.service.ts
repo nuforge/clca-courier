@@ -231,13 +231,19 @@ class FirebaseFirestoreService {
       }
 
       const docRef = doc(firestore, this.COLLECTIONS.NEWSLETTERS, id);
-      await updateDoc(docRef, {
-        ...updates,
-        updatedAt: serverTimestamp(),
-        updatedBy: currentUser.uid,
-      });
 
-      logger.success('Newsletter metadata updated:', id);
+      // Use setDoc with merge to create document if it doesn't exist, or update if it does
+      await setDoc(
+        docRef,
+        {
+          ...updates,
+          updatedAt: serverTimestamp(),
+          updatedBy: currentUser.uid,
+        },
+        { merge: true },
+      );
+
+      logger.success('Newsletter metadata updated/created:', id);
     } catch (error) {
       logger.error('Error updating newsletter metadata:', error);
       throw error;
@@ -311,12 +317,26 @@ class FirebaseFirestoreService {
   async getAllNewslettersForAdmin(): Promise<NewsletterMetadata[]> {
     try {
       logger.info('Admin: Fetching ALL newsletters (including unpublished)...');
+      logger.info('Admin: Firebase project:', firestore.app.options.projectId);
+      logger.info('Admin: Database:', this.COLLECTIONS.NEWSLETTERS);
 
       // Get ALL documents without filtering by isPublished
       const q = query(collection(firestore, this.COLLECTIONS.NEWSLETTERS), limit(100));
 
       const querySnapshot = await getDocs(q);
       logger.info(`Admin: Retrieved ${querySnapshot.docs.length} total documents from Firestore`);
+
+      // Debug: Log document IDs and some metadata
+      if (querySnapshot.docs.length > 0) {
+        logger.info(
+          'Admin: Sample document IDs:',
+          querySnapshot.docs.slice(0, 3).map((doc) => ({
+            id: doc.id,
+            filename: doc.data().filename,
+            createdAt: doc.data().createdAt,
+          })),
+        );
+      }
 
       const results = querySnapshot.docs.map((doc) => {
         const data = doc.data();

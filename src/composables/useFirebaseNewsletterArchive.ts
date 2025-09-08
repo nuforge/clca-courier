@@ -75,7 +75,13 @@ export function useFirebaseNewsletterArchive() {
     if (newsletters.value.length === 0) return null;
 
     try {
-      const allYears = [...new Set(newsletters.value.map((n) => n.year))].sort((a, b) => b - a);
+      const allYears = [
+        ...new Set(
+          newsletters.value
+            .map((n) => n.year)
+            .filter((year): year is number => year !== undefined && year !== null),
+        ),
+      ].sort((a, b) => b - a);
       const allTags = [...new Set(newsletters.value.flatMap((n) => n.tags || []))].sort();
 
       // Get available years and tags
@@ -164,10 +170,12 @@ export function useFirebaseNewsletterArchive() {
 
     sortedNewsletters.value.forEach((newsletter) => {
       const year = newsletter.year;
-      if (!grouped.has(year)) {
+      if (year !== undefined && year !== null && !grouped.has(year)) {
         grouped.set(year, []);
       }
-      grouped.get(year)!.push(newsletter);
+      if (year !== undefined && year !== null) {
+        grouped.get(year)!.push(newsletter);
+      }
     });
 
     return Array.from(grouped.entries())
@@ -187,10 +195,12 @@ export function useFirebaseNewsletterArchive() {
   });
 
   const yearFilterOptions = computed(() => {
-    return availableYears.value.map((year) => ({
-      label: year.toString(),
-      value: year,
-    }));
+    return availableYears.value
+      .filter((year): year is number => year !== undefined && year !== null)
+      .map((year) => ({
+        label: year.toString(),
+        value: year,
+      }));
   });
 
   // Methods
@@ -229,19 +239,30 @@ export function useFirebaseNewsletterArchive() {
     }
   };
 
-  const loadNewsletters = async () => {
+  const loadNewsletters = async (includeUnpublished = false) => {
     try {
       isLoading.value = true;
       error.value = null;
 
-      const loadedNewsletters = await firebaseNewsletterService.loadNewsletters();
+      let loadedNewsletters: NewsletterMetadata[];
+
+      if (includeUnpublished) {
+        // Admin mode: load all newsletters including unpublished
+        loadedNewsletters = await firebaseNewsletterService.loadAllNewslettersForAdmin();
+      } else {
+        // Public mode: load only published newsletters
+        loadedNewsletters = await firebaseNewsletterService.loadNewsletters();
+      }
+
       newsletters.value = loadedNewsletters;
 
       // Apply current filters
       await applyFilters();
       // Stats will be automatically recalculated due to computed property
 
-      logger.success(`Loaded ${loadedNewsletters.length} newsletters`);
+      logger.success(
+        `Loaded ${loadedNewsletters.length} newsletters${includeUnpublished ? ' (including unpublished)' : ''}`,
+      );
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load newsletters';
       logger.error('Error loading newsletters:', err);

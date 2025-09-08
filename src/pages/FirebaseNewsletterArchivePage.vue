@@ -361,7 +361,8 @@
             <div class="row">
               <div v-for="newsletter in sortedNewsletters" :key="newsletter.id"
                 class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-pa-md">
-                <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin" />
+                <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
+                  @metadata-updated="onNewsletterMetadataUpdated" @refresh-needed="onRefreshNeeded" />
               </div>
             </div>
           </div>
@@ -388,7 +389,8 @@
                 <div class="row">
                   <div v-for="newsletter in yearGroup.newsletters" :key="newsletter.id"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-pa-md">
-                    <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin" />
+                    <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
+                      @metadata-updated="onNewsletterMetadataUpdated" @refresh-needed="onRefreshNeeded" />
                   </div>
                 </div>
               </div>
@@ -404,6 +406,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
+import { type NewsletterMetadata } from '../services/firebase-firestore.service';
 import FirebaseNewsletterCard from '../components/FirebaseNewsletterCard.vue';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 
@@ -589,16 +592,43 @@ watch(searchInput, (newValue) => {
 // Load accessibility report on mount (quickFilters is now reactive)
 onMounted(() => {
   accessibilityReport.value = validateAccessibility();
-  void loadNewsletters();
+  // Load newsletters with admin mode if user is authenticated
+  const includeUnpublished = isAdmin.value;
+  void loadNewsletters(includeUnpublished);
 });
 
 const retryLoad = () => {
-  void loadNewsletters();
+  const includeUnpublished = isAdmin.value;
+  void loadNewsletters(includeUnpublished);
+};
+
+// Handle events from newsletter cards
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const onNewsletterMetadataUpdated = async (_newsletterId: string, _updates: Partial<NewsletterMetadata>) => {
+  // When metadata is updated, reload the newsletters to reflect changes
+  // This ensures unpublished newsletters disappear from public view
+  const includeUnpublished = isAdmin.value;
+  await loadNewsletters(includeUnpublished);
+};
+
+const onRefreshNeeded = async () => {
+  // When a card requests refresh (e.g., sync needed), reload newsletters
+  const includeUnpublished = isAdmin.value;
+  await loadNewsletters(includeUnpublished);
 };
 
 // Watch for sort changes
 watch(sortBy, () => {
   onSortChange();
+});
+
+// Watch for authentication changes and reload if needed
+watch(isAdmin, async (newIsAdmin, oldIsAdmin) => {
+  // If admin status changed, reload with appropriate filters
+  if (newIsAdmin !== oldIsAdmin) {
+    const includeUnpublished = newIsAdmin;
+    await loadNewsletters(includeUnpublished);
+  }
 });
 </script>
 

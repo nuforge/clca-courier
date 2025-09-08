@@ -41,6 +41,10 @@ const routes: RouteRecordRaw[] = [
         path: '/admin/content-management',
         component: () => import('pages/CombinedNewsletterManagementPage.vue'),
       },
+      {
+        path: '/admin/simplified',
+        component: () => import('pages/SimplifiedAdminPage.vue'),
+      },
       { path: '/admin/test', component: () => import('pages/LightweightTestPage.vue') },
     ],
   },
