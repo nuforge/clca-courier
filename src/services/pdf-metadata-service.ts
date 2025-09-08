@@ -95,6 +95,7 @@ class PDFMetadataService {
     // Log initialization stats
     const stats = this.getProcessingStats();
     if (stats.blacklisted > 0) {
+      // Use console.log for initialization since logger may not be available yet
       console.log(
         `[PDFMetadataService] Initialized with ${stats.cached} cached, ${stats.blacklisted} blacklisted files`,
       );
@@ -105,19 +106,25 @@ class PDFMetadataService {
    * Extract metadata and generate thumbnail from local PDF
    */
   async extractPDFMetadata(pdfUrl: string, filename: string): Promise<PDFMetadata | null> {
+    // Import logger for proper logging
+    const { logger } = await import('../utils/logger');
+
     // Check if file is blacklisted
     if (this.blacklistedFiles.has(filename)) {
+      logger.warn(`PDF ${filename} is blacklisted, returning fallback metadata`);
       return this.createFallbackMetadata(filename);
     }
 
     // Check cache first
     const cacheKey = `${filename}`;
     if (this.cache.has(cacheKey)) {
+      logger.debug(`Using cached metadata for ${filename}`);
       return this.cache.get(cacheKey)!;
     }
 
     // Prevent duplicate processing
     if (this.processingQueue.has(filename)) {
+      logger.warn(`PDF ${filename} is already being processed`);
       return null;
     }
 
@@ -127,13 +134,12 @@ class PDFMetadataService {
       // Check retry count before processing
       const retryCount = this.failureCount.get(filename) || 0;
       if (retryCount >= this.MAX_RETRY_ATTEMPTS) {
+        logger.error(`PDF ${filename} exceeded retry attempts, blacklisting`);
         this.addToBlacklist(filename);
         return this.createFallbackMetadata(filename);
       }
 
-      console.log(
-        `[PDFMetadataService] Processing PDF: ${filename}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`,
-      );
+      logger.info(`Processing PDF: ${filename}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`);
 
       // Suppress PDF.js warnings during processing
       const warningController = suppressPDFWarnings();
@@ -141,7 +147,9 @@ class PDFMetadataService {
 
       try {
         // Load PDF document with centralized safe configuration
+        logger.debug(`Loading PDF from URL: ${pdfUrl.substring(0, 50)}...`);
         const pdf = await PDF_CONFIG.createSafeLoadingTask(pdfUrl).promise;
+        logger.success(`PDF loaded successfully: ${pdf.numPages} pages`);
 
         // Extract basic metadata
         const info = await pdf.getMetadata();
@@ -154,7 +162,9 @@ class PDFMetadataService {
         const aspectRatio = viewport.width / viewport.height;
 
         // Generate thumbnail from first page (cover-facing)
+        logger.debug('Generating thumbnail from PDF...');
         const thumbnailDataUrl = await this.generateThumbnailFromPDF(pdf);
+        logger.success(`Thumbnail generated: ${thumbnailDataUrl.length} characters`);
 
         // Get file size (approximate from PDF data)
         const fileSize = await this.estimateFileSize(pdfUrl);
@@ -175,7 +185,9 @@ class PDFMetadataService {
         );
 
         // Extract text content for search functionality (limit to first few pages for performance)
+        logger.debug('Extracting text content from PDF...');
         const { textContent, searchableText } = await this.extractTextFromPDF(pdf, numPages);
+        logger.success(`Text extraction complete: ${textContent.length} characters`);
 
         // Create metadata object
         const pdfInfo = info.info as Record<string, unknown>; // PDF info has dynamic properties
@@ -212,14 +224,15 @@ class PDFMetadataService {
         this.failureCount.delete(filename);
         this.saveCacheToStorage();
 
-        console.log(`[PDFMetadataService] Extracted metadata for: ${filename}`);
+        logger.success(`Successfully extracted metadata for: ${filename}`);
         return metadata;
       } finally {
         // Always restore console methods
         warningController.restore();
       }
     } catch (error) {
-      return this.handlePDFError(filename, error);
+      logger.error(`PDF metadata extraction failed for ${filename}:`, error);
+      return await this.handlePDFError(filename, error);
     } finally {
       this.processingQueue.delete(filename);
     }
@@ -641,7 +654,8 @@ class PDFMetadataService {
   /**
    * Handle PDF processing errors with intelligent retry logic
    */
-  private handlePDFError(filename: string, error: unknown): PDFMetadata | null {
+  private async handlePDFError(filename: string, error: unknown): Promise<PDFMetadata | null> {
+    const { logger } = await import('../utils/logger');
     const retryCount = (this.failureCount.get(filename) || 0) + 1;
     this.failureCount.set(filename, retryCount);
 
@@ -664,27 +678,26 @@ class PDFMetadataService {
 
     // For 431 errors, immediately blacklist and don't retry
     if (is431Error) {
-      console.warn(
-        `[PDFMetadataService] 431 error for ${filename}: Header fields too large. Adding to blacklist.`,
-      );
+      logger.warn(`431 error for ${filename}: Header fields too large. Adding to blacklist.`);
       this.addToBlacklist(filename);
       return this.createFallbackMetadata(filename);
     }
 
-    // Log only the first occurrence or critical errors
+    // Log detailed error information
     if (retryCount === 1 || (!isInvalidPDF && !isWorkerError)) {
-      console.error(
-        `[PDFMetadataService] Error processing ${filename} (attempt ${retryCount}):`,
-        isInvalidPDF ? 'Invalid PDF structure' : errorObj.message || error,
-      );
+      logger.error(`Error processing ${filename} (attempt ${retryCount}):`, {
+        error: isInvalidPDF ? 'Invalid PDF structure' : errorObj.message || error,
+        errorName: errorObj.name,
+        isInvalidPDF,
+        isWorkerError,
+        is431Error,
+      });
     }
 
     // Add to blacklist if max retries reached
     if (retryCount >= this.MAX_RETRY_ATTEMPTS) {
       this.addToBlacklist(filename);
-      console.warn(
-        `[PDFMetadataService] Added ${filename} to blacklist after ${retryCount} failed attempts`,
-      );
+      logger.warn(`Added ${filename} to blacklist after ${retryCount} failed attempts`);
       return this.createFallbackMetadata(filename);
     }
 

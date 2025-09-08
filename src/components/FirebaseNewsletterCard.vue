@@ -126,7 +126,7 @@
               :aria-label="(newsletter.featured === true ? 'Remove from featured' : 'Add to featured') + ' newsletter: ' + newsletter.title"
               :tabindex="0" :loading="featuredLoading">
               <q-tooltip>{{ newsletter.featured ? 'Remove from Featured' : 'Add to Featured'
-              }}</q-tooltip>
+                }}</q-tooltip>
             </q-btn>
 
             <q-separator vertical inset class="q-mx-xs" />
@@ -346,49 +346,23 @@ const generateThumbnail = async () => {
   try {
     thumbnailGenerating.value = true;
 
-    // Import the thumbnail service
-    const { enhancedThumbnailService } = await import('../services/enhanced-thumbnail.service');
+    // Use the working usePdfThumbnails composable
+    const { usePdfThumbnails } = await import('../composables/usePdfThumbnails');
+    const { regenerateThumbnail } = usePdfThumbnails();
+    const thumbnailDataUrl = await regenerateThumbnail(props.newsletter.downloadUrl || '');
 
-    // Convert newsletter to ContentManagementNewsletter format
-    const contentNewsletter = {
-      id: props.newsletter.id,
-      filename: props.newsletter.filename,
-      title: props.newsletter.title,
-      downloadUrl: props.newsletter.downloadUrl || '',
-      year: props.newsletter.year || new Date().getFullYear(),
-      season: props.newsletter.season,
-      fileSize: props.newsletter.fileSize || 0,
-      tags: props.newsletter.tags || [],
-      description: props.newsletter.description || '',
-      pageCount: props.newsletter.pageCount || 0,
-      featured: props.newsletter.featured || false,
-      isPublished: props.newsletter.isPublished || false,
-      createdAt: props.newsletter.createdAt || new Date().toISOString(),
-      updatedAt: props.newsletter.updatedAt || new Date().toISOString(),
-      createdBy: props.newsletter.createdBy || 'admin',
-      updatedBy: props.newsletter.updatedBy || 'admin',
-      actions: props.newsletter.actions || { synced: false, hasThumbnail: false },
-      publicationDate: props.newsletter.publicationDate || new Date().toISOString(),
-    };
-
-    // Generate thumbnail and update Firebase
-    const thumbnailBase64 = await enhancedThumbnailService.generateNewsletterThumbnail(contentNewsletter);
-
-    if (thumbnailBase64) {
+    if (thumbnailDataUrl) {
+      // Notify user of success
       $q.notify({
         type: 'positive',
-        message: 'Thumbnail generated successfully',
-        position: 'top'
+        message: 'Thumbnail regenerated successfully',
+        caption: props.newsletter.filename,
       });
 
       // Emit event to parent to refresh data
-      emit('metadataUpdated', props.newsletter.id, { thumbnailUrl: thumbnailBase64 });
+      emit('metadataUpdated', props.newsletter.id, { thumbnailUrl: thumbnailDataUrl });
     } else {
-      $q.notify({
-        type: 'warning',
-        message: 'Thumbnail generation completed but no image was created',
-        position: 'top'
-      });
+      throw new Error('Failed to generate thumbnail');
     }
 
   } catch (error) {
