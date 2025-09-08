@@ -78,9 +78,10 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat label="Cancel" @click="dialogModel = false" :disable="isProcessing" />
+        <q-btn flat label="Cancel" @click="dialogModel = false" v-if="isProcessing" />
+        <q-btn flat label="Close" @click="dialogModel = false" v-if="!isProcessing" />
         <q-btn color="primary" label="Import Files" @click="processAndUploadFiles" :loading="isProcessing"
-          :disable="fileList.length === 0 || fileList.every(f => f.status !== 'ready')" />
+          :disable="fileList.length === 0 || fileList.every(f => f.status !== 'ready')" v-if="fileList.length > 0" />
       </q-card-actions>
     </q-card>
   </q-dialog>

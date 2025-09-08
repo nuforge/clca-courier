@@ -50,16 +50,6 @@
             @generate-descriptions="generateDescriptionsForSelected" @generate-titles="generateTitlesForSelected"
             @toggle-expanded="store.toggleWorkflowToolbar" />
 
-          <!-- Bulk Operations Toolbar Component -->
-          <BulkOperationsToolbar :selected-count="store.selectedNewsletters.length"
-            :is-extracting-text="store.isExtractingText" :is-generating-thumbs="store.isGeneratingThumbs"
-            :is-syncing="store.isSyncing" :is-toggling="store.isToggling" :is-deleting="store.isDeleting"
-            @extract-selected-text="handleExtractSelectedText"
-            @generate-selected-thumbnails="generateSelectedThumbnails" @sync-selected="handleSyncSelected"
-            @bulk-toggle-published="handleBulkTogglePublished" @bulk-toggle-featured="handleBulkToggleFeatured"
-            @bulk-update-word-counts="handleBulkUpdateWordCounts" @bulk-delete="handleBulkDelete"
-            @clear-selection="store.clearSelection" />
-
           <!-- Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="store.filteredNewsletters"
             :selected-newsletters="store.selectedNewsletters" :processing-states="store.processingStates"
@@ -91,8 +81,8 @@
 import { onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
-import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
-import { firestoreService, type NewsletterMetadata } from '../services/firebase-firestore.service';
+import { firestoreService } from '../services/firebase-firestore.service';
+import { EnhancedThumbnailService } from '../services/enhanced-thumbnail.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
 
@@ -100,7 +90,6 @@ import type { ContentManagementNewsletter } from '../types/core/content-manageme
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
 import NewsletterFilters from '../components/newsletter-management/NewsletterFilters.vue';
 import WorkflowToolbar from '../components/newsletter-management/WorkflowToolbar.vue';
-import BulkOperationsToolbar from '../components/newsletter-management/BulkOperationsToolbar.vue';
 import NewsletterManagementTable from '../components/content-management/NewsletterManagementTable.vue';
 import NewsletterImportDialog from '../components/content-management/NewsletterImportDialog.vue';
 import NewsletterEditDialog from '../components/content-management/NewsletterEditDialog.vue';
@@ -112,6 +101,7 @@ import TextExtractionDialog from '../components/content-management/TextExtractio
 
 const store = useNewsletterManagementStore();
 const $q = useQuasar();
+const thumbnailService = new EnhancedThumbnailService();
 
 // =============================================
 // WORKFLOW TOOLBAR HANDLERS
@@ -389,349 +379,6 @@ function generateTitlesForSelected(): void {
 }
 
 // =============================================
-// BULK OPERATIONS HANDLERS
-// =============================================
-
-async function handleExtractSelectedText(): Promise<void> {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isExtractingText = true;
-  try {
-    logger.info(`Extracting text for ${store.selectedNewsletters.length} newsletters...`);
-
-    for (const newsletter of store.selectedNewsletters) {
-      store.extractingText[newsletter.filename] = true;
-
-      try {
-        // REAL PDF TEXT EXTRACTION
-        if (newsletter.downloadUrl && !newsletter.searchableText) {
-          const response = await fetch(newsletter.downloadUrl);
-          const arrayBuffer = await response.arrayBuffer();
-
-          const pdfjsLib = await import('pdfjs-dist');
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-          let fullText = '';
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items
-              .map((item) => ('str' in item ? item.str : ''))
-              .join(' ');
-            fullText += pageText + '\n';
-          }
-
-          newsletter.searchableText = fullText.trim();
-          newsletter.wordCount = fullText.split(/\s+/).length;
-
-          // TODO: Need to implement Firebase update method
-        }
-      } catch (error) {
-        logger.error(`Failed to extract text from ${newsletter.filename}:`, error);
-      }
-
-      store.extractingText[newsletter.filename] = false;
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `Text extracted for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isExtractingText = false;
-  }
-}
-
-async function generateSelectedThumbnails(): Promise<void> {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isGeneratingThumbs = true;
-  try {
-    logger.info(`Generating thumbnails for ${store.selectedNewsletters.length} newsletters...`);
-
-    for (const newsletter of store.selectedNewsletters) {
-      store.thumbnailIndividualStates[newsletter.filename] = true;
-
-      try {
-        // REAL THUMBNAIL GENERATION
-        if (newsletter.downloadUrl && !newsletter.thumbnailUrl) {
-          const response = await fetch(newsletter.downloadUrl);
-          const arrayBuffer = await response.arrayBuffer();
-
-          const pdfjsLib = await import('pdfjs-dist');
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          const page = await pdf.getPage(1);
-
-          const scale = 0.5;
-          const viewport = page.getViewport({ scale });
-
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d')!;
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-
-          await page.render({
-            canvasContext: context,
-            viewport: viewport
-          }).promise;
-
-          // Convert to data URL for now (temporary storage)
-          newsletter.thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
-        }
-      } catch (error) {
-        logger.error(`Failed to generate thumbnail for ${newsletter.filename}:`, error);
-      }
-
-      store.thumbnailIndividualStates[newsletter.filename] = false;
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `Thumbnails generated for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isGeneratingThumbs = false;
-  }
-}
-
-async function handleSyncSelected(): Promise<void> {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isSyncing = true;
-  try {
-    logger.info(`Syncing ${store.selectedNewsletters.length} newsletters...`);
-
-    for (const newsletter of store.selectedNewsletters) {
-      store.syncingIndividual[newsletter.filename] = true;
-      // Simulate sync
-      await new Promise(resolve => setTimeout(resolve, 800));
-      store.syncingIndividual[newsletter.filename] = false;
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `${store.selectedNewsletters.length} newsletters synced`
-    });
-  } finally {
-    store.isSyncing = false;
-  }
-}
-
-async function handleBulkTogglePublished(published: boolean): Promise<void> {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isToggling = true;
-  try {
-    logger.info(`${published ? 'Publishing' : 'Unpublishing'} ${store.selectedNewsletters.length} newsletters...`);
-
-    // Update Firebase for each selected newsletter
-    for (const newsletter of store.selectedNewsletters) {
-      try {
-        if (newsletter.id) {
-          await firestoreService.updateNewsletterMetadata(newsletter.id, {
-            isPublished: published,
-            updatedAt: new Date().toISOString()
-          });
-
-          // Update local state
-          newsletter.isPublished = published;
-          logger.success(`Updated ${newsletter.filename} publication status to ${published}`);
-        }
-      } catch (error) {
-        logger.error(`Failed to update ${newsletter.filename}:`, error);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `${store.selectedNewsletters.length} newsletters ${published ? 'published' : 'unpublished'}`,
-      caption: 'Changes saved to Firebase'
-    });
-
-    // Clear selection after successful operation
-    store.clearSelection();
-
-  } catch (error) {
-    logger.error('Bulk publish operation failed:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to update publication status',
-      caption: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    store.isToggling = false;
-  }
-}
-
-async function handleBulkToggleFeatured(featured: boolean): Promise<void> {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isToggling = true;
-  try {
-    logger.info(`${featured ? 'Featuring' : 'Unfeaturing'} ${store.selectedNewsletters.length} newsletters...`);
-
-    // Update Firebase for each selected newsletter
-    for (const newsletter of store.selectedNewsletters) {
-      try {
-        if (newsletter.id) {
-          await firestoreService.updateNewsletterMetadata(newsletter.id, {
-            featured: featured,
-            updatedAt: new Date().toISOString()
-          });
-
-          // Update local state
-          newsletter.featured = featured;
-          logger.success(`Updated ${newsletter.filename} featured status to ${featured}`);
-        }
-      } catch (error) {
-        logger.error(`Failed to update ${newsletter.filename}:`, error);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `${store.selectedNewsletters.length} newsletters ${featured ? 'featured' : 'unfeatured'}`,
-      caption: 'Changes saved to Firebase'
-    });
-
-    // Clear selection after successful operation
-    store.clearSelection();
-
-  } catch (error) {
-    logger.error('Bulk feature operation failed:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to update featured status',
-      caption: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    store.isToggling = false;
-  }
-}
-
-async function handleBulkUpdateWordCounts(): Promise<void> {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isToggling = true;
-  try {
-    logger.info(`Updating word counts for ${store.selectedNewsletters.length} newsletters...`);
-
-    // Load extracted text data
-    let extractedData: Array<{ filename: string; textContent: string; wordCount?: number }> = [];
-    try {
-      const response = await fetch('/docs/pdf-text-extraction-2025-09-04.json');
-      extractedData = await response.json() as Array<{ filename: string; textContent: string; wordCount?: number }>;
-    } catch (error) {
-      logger.error('Failed to load extracted text data:', error);
-      $q.notify({ type: 'negative', message: 'Failed to load extracted text data' });
-      return;
-    }
-
-    let updatedCount = 0;
-    for (const newsletter of store.selectedNewsletters) {
-      try {
-        if (newsletter.id) {
-          // Find extracted data for this newsletter
-          const extractedEntry = extractedData.find(entry => entry.filename === newsletter.filename);
-
-          if (extractedEntry && extractedEntry.textContent) {
-            // Calculate word count from full extracted text
-            const wordCount = extractedEntry.textContent.trim().split(/\s+/).filter(word => word.length > 0).length;
-
-            if (wordCount > 0) {
-              await firestoreService.updateNewsletterMetadata(newsletter.id, {
-                wordCount: wordCount,
-                updatedAt: new Date().toISOString()
-              } as unknown as Partial<NewsletterMetadata>);
-
-              // Update local state
-              newsletter.wordCount = wordCount;
-              logger.success(`Updated ${newsletter.filename} word count: ${wordCount.toLocaleString()} words`);
-              updatedCount++;
-            } else {
-              logger.warn(`No valid text content found for ${newsletter.filename}`);
-            }
-          } else {
-            logger.warn(`No extracted text data found for ${newsletter.filename}`);
-          }
-        }
-      } catch (error) {
-        logger.error(`Failed to update word count for ${newsletter.filename}:`, error);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: `Updated word counts for ${updatedCount} newsletters`,
-      caption: `Total newsletters selected: ${store.selectedNewsletters.length}`
-    });
-
-    // Refresh data to show updated word counts
-    await store.refreshNewsletters();
-
-  } catch (error) {
-    logger.error('Bulk word count update failed:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to update word counts',
-      caption: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    store.isToggling = false;
-  }
-}
-
-function handleBulkDelete(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  $q.dialog({
-    title: 'Confirm Bulk Delete',
-    message: `Are you sure you want to delete ${store.selectedNewsletters.length} newsletters?`,
-    cancel: true,
-    persistent: true
-  }).onOk(() => {
-    void (async () => {
-      store.isDeleting = true;
-      try {
-        for (const newsletter of store.selectedNewsletters) {
-          try {
-            await firebaseNewsletterService.deleteNewsletter(newsletter.id);
-          } catch (error) {
-            logger.error(`Failed to delete ${newsletter.filename}:`, error);
-          }
-        }
-        store.clearSelection();
-        await store.refreshNewsletters();
-        $q.notify({ type: 'positive', message: 'Selected newsletters deleted' });
-      } finally {
-        store.isDeleting = false;
-      }
-    })();
-  });
-}
-
-// =============================================
 // INDIVIDUAL NEWSLETTER HANDLERS
 // =============================================
 
@@ -875,16 +522,30 @@ function extractText(newsletter: ContentManagementNewsletter): void {
   })();
 }
 
-function generateThumbnail(newsletter: ContentManagementNewsletter): void {
+async function generateThumbnail(newsletter: ContentManagementNewsletter): Promise<void> {
   store.thumbnailIndividualStates[newsletter.filename] = true;
 
-  setTimeout(() => {
-    if (!newsletter.thumbnailUrl) {
-      newsletter.thumbnailUrl = `/thumbnails/${newsletter.filename.replace('.pdf', '.jpg')}`;
+  try {
+    logger.info(`Generating thumbnail for ${newsletter.filename}`);
+
+    // Use the enhanced thumbnail service to generate a proper thumbnail
+    const thumbnailBase64 = await thumbnailService.generateNewsletterThumbnailForUI(newsletter);
+
+    if (thumbnailBase64) {
+      // Update the newsletter with the generated thumbnail
+      newsletter.thumbnailUrl = thumbnailBase64;
+      logger.success(`Thumbnail generated for ${newsletter.filename}`);
+      $q.notify({ type: 'positive', message: `Thumbnail generated for ${newsletter.filename}` });
+    } else {
+      logger.warn(`Failed to generate thumbnail for ${newsletter.filename}`);
+      $q.notify({ type: 'warning', message: `Failed to generate thumbnail for ${newsletter.filename}` });
     }
+  } catch (error) {
+    logger.error(`Error generating thumbnail for ${newsletter.filename}:`, error);
+    $q.notify({ type: 'negative', message: `Error generating thumbnail for ${newsletter.filename}` });
+  } finally {
     store.thumbnailIndividualStates[newsletter.filename] = false;
-    $q.notify({ type: 'positive', message: `Thumbnail generated for ${newsletter.filename}` });
-  }, 2500);
+  }
 }
 
 function syncSingleNewsletter(newsletter: ContentManagementNewsletter): void {

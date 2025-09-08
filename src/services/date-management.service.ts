@@ -4,6 +4,7 @@
  */
 
 import type { NewsletterMetadata } from './firebase-firestore.service';
+import { logger } from '../utils/logger';
 
 export interface ParsedNewsletterDate {
   year: number;
@@ -58,14 +59,16 @@ class DateManagementService {
    * Parse filename to extract date information
    * Supports formats:
    * - YYYY.MM-* (e.g., "2024.03-conashaugh-courier.pdf")
+   * - YYYY.MM.* (e.g., "2025.09.conashaugh-annual-picnic.pdf")
    * - YYYY.SEASON-* (e.g., "2024.summer-conashaugh-courier.pdf")
+   * - YYYY.SEASON.* (e.g., "2024.summer.conashaugh-courier.pdf")
    */
   parseFilenameDate(filename: string): ParsedNewsletterDate | null {
-    // Extract the date portion from filename (everything before the first dash)
-    const dateMatch = filename.match(/^(\d{4})\.(.+?)-/);
+    // Extract the date portion from filename (everything before the first dash or first non-date part)
+    const dateMatch = filename.match(/^(\d{4})\.(.+?)[-.]/);
 
     if (!dateMatch || !dateMatch[1] || !dateMatch[2]) {
-      console.warn(`Could not parse date from filename: ${filename}`);
+      logger.warn(`Could not parse date from filename: ${filename}`);
       return null;
     }
 
@@ -88,7 +91,7 @@ class DateManagementService {
       return this.createSeasonalDate(year, season);
     }
 
-    console.warn(`Unrecognized date format in filename: ${filename}`);
+    logger.warn(`Unrecognized date format in filename: ${filename}`);
     return null;
   }
 
@@ -214,7 +217,7 @@ class DateManagementService {
     const parsedDate = this.parseFilenameDate(filename);
 
     if (!parsedDate) {
-      console.warn(`Could not enhance metadata for ${filename} - date parsing failed`);
+      logger.warn(`Could not enhance metadata for ${filename} - date parsing failed`);
       return existingMetadata;
     }
 
