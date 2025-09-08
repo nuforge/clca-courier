@@ -84,7 +84,6 @@ import { useNewsletterManagementStore } from '../stores/newsletter-management.st
 import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
-import { usePdfThumbnails } from '../composables/usePdfThumbnails';
 
 // Components
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
@@ -101,7 +100,6 @@ import TextExtractionDialog from '../components/content-management/TextExtractio
 
 const store = useNewsletterManagementStore();
 const $q = useQuasar();
-const { regenerateThumbnail } = usePdfThumbnails();
 
 // =============================================
 // WORKFLOW TOOLBAR HANDLERS
