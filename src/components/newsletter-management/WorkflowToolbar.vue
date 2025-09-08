@@ -1,103 +1,115 @@
 <template>
   <q-card class="q-mb-lg">
     <q-card-section>
-      <div class="text-h6 q-mb-md">
-        <q-icon name="mdi-cog" class="q-mr-sm" />
-        Workflow Toolbar
+      <div class="row items-center justify-between">
+        <div class="text-h6">
+          <q-icon name="mdi-cog" class="q-mr-sm" />
+          Workflow Toolbar
+          <small class="text-caption q-ml-sm">({{ expanded ? 'Expanded' : 'Collapsed' }})</small>
+        </div>
+        <q-btn flat round dense :icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" @click="handleToggle"
+          class="text-grey-6">
+          <q-tooltip>{{ expanded ? 'Collapse' : 'Expand' }} Toolbar</q-tooltip>
+        </q-btn>
       </div>
 
-      <q-tabs v-model="activeTab" class="text-primary" align="left">
-        <q-tab name="import" icon="mdi-import" label="Import & Drafts" />
-        <q-tab name="database" icon="mdi-database" label="Database" />
-        <q-tab name="enhance" icon="mdi-magic-staff" label="Content" />
-        <q-tab name="metadata" icon="mdi-tag-multiple" label="Metadata" />
-        <q-tab name="ai" icon="mdi-robot" label="AI Generate" />
-        <q-tab name="stats" icon="mdi-chart-line" label="Stats" />
-      </q-tabs>
+      <q-slide-transition>
+        <div v-show="expanded" class="q-mt-md">
+          <q-tabs v-model="activeTab" class="text-primary" align="left">
+            <q-tab name="import" icon="mdi-import" label="Import & Drafts" />
+            <q-tab name="database" icon="mdi-database" label="Database" />
+            <q-tab name="enhance" icon="mdi-magic-staff" label="Content" />
+            <q-tab name="metadata" icon="mdi-tag-multiple" label="Metadata" />
+            <q-tab name="ai" icon="mdi-robot" label="AI Generate" />
+            <q-tab name="stats" icon="mdi-chart-line" label="Stats" />
+          </q-tabs>
 
-      <q-tab-panels v-model="activeTab" animated>
-        <!-- Import and Draft Management -->
-        <q-tab-panel name="import">
-          <div class="row ">
-            <q-btn color="positive" icon="mdi-file-import" label="Import PDFs" @click="$emit('import-pdfs')" />
-            <q-btn v-if="hasDrafts" color="positive" icon="mdi-upload" :label="`Upload ${draftCount} Drafts to Cloud`"
-              @click="$emit('upload-drafts')" :loading="isUploading" />
-            <q-btn v-if="hasDrafts" color="negative" icon="mdi-delete" label="Clear Drafts"
-              @click="$emit('clear-drafts')" />
-          </div>
-        </q-tab-panel>
+          <q-tab-panels v-model="activeTab" animated>
+            <!-- Import and Draft Management -->
+            <q-tab-panel name="import">
+              <div class="row ">
+                <q-btn color="positive" icon="mdi-file-import" label="Import PDFs" @click="$emit('import-pdfs')" />
+                <q-btn v-if="hasDrafts" color="positive" icon="mdi-upload"
+                  :label="`Upload ${draftCount} Drafts to Cloud`" @click="$emit('upload-drafts')"
+                  :loading="isUploading" />
+                <q-btn v-if="hasDrafts" color="negative" icon="mdi-delete" label="Clear Drafts"
+                  @click="$emit('clear-drafts')" />
+              </div>
+            </q-tab-panel>
 
-        <!-- Database Operations -->
-        <q-tab-panel name="database">
-          <div class="row ">
-            <q-btn color="blue" icon="mdi-refresh" label="Refresh Data" @click="$emit('refresh-data')"
-              :loading="isLoading" />
-            <q-btn color="orange" icon="mdi-database-sync" label="Sync All to Firebase" @click="$emit('sync-all')"
-              :loading="isSyncing" />
-            <q-btn color="red" icon="mdi-backup-restore" label="Backup Data" @click="$emit('backup-data')" />
-          </div>
-        </q-tab-panel>
+            <!-- Database Operations -->
+            <q-tab-panel name="database">
+              <div class="row ">
+                <q-btn color="blue" icon="mdi-refresh" label="Refresh Data" @click="$emit('refresh-data')"
+                  :loading="isLoading" />
+                <q-btn color="orange" icon="mdi-database-sync" label="Sync All to Firebase" @click="$emit('sync-all')"
+                  :loading="isSyncing" />
+                <q-btn color="red" icon="mdi-backup-restore" label="Backup Data" @click="$emit('backup-data')" />
+              </div>
+            </q-tab-panel>
 
-        <!-- Content Enhancement -->
-        <q-tab-panel name="enhance">
-          <div class="row ">
-            <q-btn color="secondary" icon="mdi-text-search" label="Extract All Text" @click="$emit('extract-all-text')"
-              :loading="isExtractingText" />
-            <q-btn color="accent" icon="mdi-image-multiple" label="Generate All Thumbnails"
-              @click="$emit('generate-all-thumbnails')" :loading="isGeneratingThumbs" />
-          </div>
-        </q-tab-panel>
+            <!-- Content Enhancement -->
+            <q-tab-panel name="enhance">
+              <div class="row ">
+                <q-btn color="secondary" icon="mdi-text-search" label="Extract All Text"
+                  @click="$emit('extract-all-text')" :loading="isExtractingText" />
+                <q-btn color="accent" icon="mdi-image-multiple" label="Generate All Thumbnails"
+                  @click="$emit('generate-all-thumbnails')" :loading="isGeneratingThumbs" />
+              </div>
+            </q-tab-panel>
 
-        <!-- Metadata Operations -->
-        <q-tab-panel name="metadata">
-          <div class="row ">
-            <q-btn color="purple" icon="mdi-counter" label="Extract Page Count" @click="$emit('extract-page-count')"
-              :loading="isExtractingPageCount" />
-            <q-btn color="brown" icon="mdi-file-document-outline" label="Extract File Size"
-              @click="$emit('extract-file-size')" :loading="isExtractingFileSize" />
-            <q-btn color="lime" icon="mdi-calendar-search" label="Extract Dates" @click="$emit('extract-dates')"
-              :loading="isExtractingDates" />
-          </div>
-        </q-tab-panel>
+            <!-- Metadata Operations -->
+            <q-tab-panel name="metadata">
+              <div class="row ">
+                <q-btn color="purple" icon="mdi-counter" label="Extract Page Count" @click="$emit('extract-page-count')"
+                  :loading="isExtractingPageCount" />
+                <q-btn color="brown" icon="mdi-file-document-outline" label="Extract File Size"
+                  @click="$emit('extract-file-size')" :loading="isExtractingFileSize" />
+                <q-btn color="lime" icon="mdi-calendar-search" label="Extract Dates" @click="$emit('extract-dates')"
+                  :loading="isExtractingDates" />
+              </div>
+            </q-tab-panel>
 
-        <!-- AI Content Generation -->
-        <q-tab-panel name="ai">
-          <div class="row ">
-            <q-btn color="teal" icon="mdi-tag-plus" label="Generate Keywords" @click="$emit('generate-keywords')"
-              :loading="isGeneratingKeywords" />
-            <q-btn color="indigo" icon="mdi-text-box-plus" label="Generate Descriptions"
-              @click="$emit('generate-descriptions')" :loading="isGeneratingDescriptions" />
-            <q-btn color="blue-5" icon="mdi-format-title" label="Generate Titles" @click="$emit('generate-titles')"
-              :loading="isGeneratingTitles" />
-          </div>
-        </q-tab-panel>
+            <!-- AI Content Generation -->
+            <q-tab-panel name="ai">
+              <div class="row ">
+                <q-btn color="teal" icon="mdi-tag-plus" label="Generate Keywords" @click="$emit('generate-keywords')"
+                  :loading="isGeneratingKeywords" />
+                <q-btn color="indigo" icon="mdi-text-box-plus" label="Generate Descriptions"
+                  @click="$emit('generate-descriptions')" :loading="isGeneratingDescriptions" />
+                <q-btn color="blue-5" icon="mdi-format-title" label="Generate Titles" @click="$emit('generate-titles')"
+                  :loading="isGeneratingTitles" />
+              </div>
+            </q-tab-panel>
 
-        <!-- Quick Stats -->
-        <q-tab-panel name="stats">
-          <div class="row ">
-            <div class="col-auto">
-              <q-chip color="primary" text-color="white" icon="mdi-file-multiple">
-                Total: {{ totalNewsletters }}
-              </q-chip>
-            </div>
-            <div class="col-auto">
-              <q-chip color="green" text-color="white" icon="mdi-text">
-                With Text: {{ newslettersWithText }}
-              </q-chip>
-            </div>
-            <div class="col-auto">
-              <q-chip color="orange" text-color="white" icon="mdi-image">
-                With Thumbnails: {{ newslettersWithThumbnails }}
-              </q-chip>
-            </div>
-            <div class="col-auto">
-              <q-chip color="purple" text-color="white" icon="mdi-harddisk">
-                Size: {{ formatFileSize(totalFileSize) }}
-              </q-chip>
-            </div>
-          </div>
-        </q-tab-panel>
-      </q-tab-panels>
+            <!-- Quick Stats -->
+            <q-tab-panel name="stats">
+              <div class="row ">
+                <div class="col-auto">
+                  <q-chip color="primary" text-color="white" icon="mdi-file-multiple">
+                    Total: {{ totalNewsletters }}
+                  </q-chip>
+                </div>
+                <div class="col-auto">
+                  <q-chip color="green" text-color="white" icon="mdi-text">
+                    With Text: {{ newslettersWithText }}
+                  </q-chip>
+                </div>
+                <div class="col-auto">
+                  <q-chip color="orange" text-color="white" icon="mdi-image">
+                    With Thumbnails: {{ newslettersWithThumbnails }}
+                  </q-chip>
+                </div>
+                <div class="col-auto">
+                  <q-chip color="purple" text-color="white" icon="mdi-harddisk">
+                    Size: {{ formatFileSize(totalFileSize) }}
+                  </q-chip>
+                </div>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </div>
+      </q-slide-transition>
     </q-card-section>
   </q-card>
 </template>
@@ -127,15 +139,16 @@ interface Props {
   newslettersWithText: number;
   newslettersWithThumbnails: number;
   totalFileSize: number;
+  expanded: boolean;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 // =============================================
 // EMITS - ALL ACTIONS
 // =============================================
 
-defineEmits<{
+const emit = defineEmits<{
   'import-pdfs': [];
   'upload-drafts': [];
   'clear-drafts': [];
@@ -150,6 +163,7 @@ defineEmits<{
   'generate-keywords': [];
   'generate-descriptions': [];
   'generate-titles': [];
+  'toggle-expanded': [];
 }>();
 
 // =============================================
@@ -157,6 +171,15 @@ defineEmits<{
 // =============================================
 
 const activeTab = ref('import');
+
+// =============================================
+// METHODS
+// =============================================
+
+function handleToggle(): void {
+  console.log('Toggle clicked, current expanded:', props.expanded);
+  emit('toggle-expanded');
+}
 
 // =============================================
 // UTILITIES

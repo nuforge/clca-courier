@@ -76,6 +76,9 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
   const showTextDialog = ref(false);
   const extractedText = ref('');
 
+  // UI states
+  const workflowToolbarExpanded = ref(true);
+
   // =============================================
   // COMPUTED - DERIVED STATE
   // =============================================
@@ -238,6 +241,10 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
     };
   }
 
+  function toggleWorkflowToolbar(): void {
+    workflowToolbarExpanded.value = !workflowToolbarExpanded.value;
+  }
+
   // =============================================
   // EXPORT EVERYTHING NEEDED
   // =============================================
@@ -271,6 +278,7 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
     showEditDialog,
     showTextDialog,
     extractedText,
+    workflowToolbarExpanded,
 
     // Computed
     filteredNewsletters,
@@ -296,5 +304,6 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
     setCurrentNewsletter,
     updateFilters,
     resetFilters,
+    toggleWorkflowToolbar,
   };
 });

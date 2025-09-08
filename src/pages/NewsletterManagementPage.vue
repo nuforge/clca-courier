@@ -20,24 +20,6 @@
             </q-card-section>
           </q-card>
 
-          <!-- Big Red Button for Complete Processing -->
-          <q-card class="q-mb-md bg-negative text-white">
-            <q-card-section>
-              <div class="text-center">
-                <div class="text-h5 q-mb-sm">
-                  <q-icon name="mdi-rocket-launch" class="q-mr-sm" />
-                  PROCESS ALL NEWSLETTERS
-                </div>
-                <p class="text-body1 q-mb-md">
-                  Extract text, parse dates, generate metadata, and upload everything to Firebase database
-                </p>
-                <q-btn color="white" text-color="negative" icon="mdi-database-plus" label="MAKE IT ALL SEARCHABLE NOW"
-                  size="xl" @click="processEverything" :loading="isProcessingEverything" unelevated
-                  class="text-weight-bold q-px-xl" />
-              </div>
-            </q-card-section>
-          </q-card>
-
           <!-- Statistics Cards -->
           <StatisticsCards :total-newsletters="store.totalNewsletters"
             :newsletters-with-text="store.newslettersWithText"
@@ -59,12 +41,14 @@
             :is-generating-titles="store.isGeneratingTitles" :total-newsletters="store.totalNewsletters"
             :newsletters-with-text="store.newslettersWithText"
             :newsletters-with-thumbnails="store.newslettersWithThumbnails" :total-file-size="store.totalFileSizeBytes"
-            @import-pdfs="handleImportPdfs" @upload-drafts="uploadDraftsToCloud" @clear-drafts="clearLocalDrafts"
+            :expanded="store.workflowToolbarExpanded" @import-pdfs="handleImportPdfs"
+            @upload-drafts="uploadDraftsToCloud" @clear-drafts="clearLocalDrafts"
             @refresh-data="store.refreshNewsletters" @sync-all="syncAllToFirebase" @backup-data="backupData"
             @extract-all-text="extractAllTextToFirebase" @generate-all-thumbnails="generateAllThumbnails"
             @extract-page-count="extractPageCountForSelected" @extract-file-size="extractFileSizeForSelected"
             @extract-dates="extractDatesForSelected" @generate-keywords="generateKeywordsForSelected"
-            @generate-descriptions="generateDescriptionsForSelected" @generate-titles="generateTitlesForSelected" />
+            @generate-descriptions="generateDescriptionsForSelected" @generate-titles="generateTitlesForSelected"
+            @toggle-expanded="store.toggleWorkflowToolbar" />
 
           <!-- Bulk Operations Toolbar Component -->
           <BulkOperationsToolbar :selected-count="store.selectedNewsletters.length"
@@ -104,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
@@ -128,181 +112,6 @@ import TextExtractionDialog from '../components/content-management/TextExtractio
 
 const store = useNewsletterManagementStore();
 const $q = useQuasar();
-const isProcessingEverything = ref(false);
-
-// =============================================
-// MASTER PROCESS EVERYTHING FUNCTION
-// =============================================
-
-async function processEverything(): Promise<void> {
-  isProcessingEverything.value = true;
-
-  try {
-    logger.info('🚀 Starting complete newsletter processing...');
-
-    // Step 1: Get all PDF files from manifest
-    const response = await fetch('/data/pdf-manifest.json');
-    const manifest = await response.json() as { files: Array<{ filename: string }> };
-    const pdfFiles = manifest.files.map(f => f.filename);
-
-    $q.notify({
-      type: 'info',
-      message: `Found ${pdfFiles.length} PDF files to process`,
-      timeout: 2000
-    });
-
-    // Step 2: Process each PDF with real extraction
-    const processed: ContentManagementNewsletter[] = [];
-
-    for (let i = 0; i < pdfFiles.length; i++) {
-      const filename = pdfFiles[i];
-      if (!filename) continue;
-
-      $q.notify({
-        type: 'ongoing',
-        message: `Processing ${i + 1}/${pdfFiles.length}: ${filename}`,
-        timeout: 1000
-      });
-
-      try {
-        // Extract text from PDF using PDF.js
-        const pdfUrl = `/issues/${filename}`;
-        const response = await fetch(pdfUrl);
-        const arrayBuffer = await response.arrayBuffer();
-
-        const pdfjsLib = await import('pdfjs-dist');
-
-        // Configure PDF.js worker
-        if (typeof window !== 'undefined') {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-        }
-
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-        let fullText = '';
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item) => ('str' in item ? item.str : ''))
-            .join(' ');
-          fullText += pageText + '\n';
-        }
-
-        // Parse date from filename
-        const dateMatch = filename.match(/(\d{4})\.?(spring|summer|fall|winter|(\d{1,2}))?/i);
-        const year = dateMatch?.[1] ? parseInt(dateMatch[1]) : new Date().getFullYear();
-        const seasonOrMonth = dateMatch?.[2]?.toLowerCase();
-
-        let month: number | undefined;
-        let season: 'spring' | 'summer' | 'fall' | 'winter' | undefined;
-
-        if (seasonOrMonth && ['spring', 'summer', 'fall', 'winter'].includes(seasonOrMonth)) {
-          season = seasonOrMonth as 'spring' | 'summer' | 'fall' | 'winter';
-        } else if (seasonOrMonth && /^\d+$/.test(seasonOrMonth)) {
-          month = parseInt(seasonOrMonth);
-        }
-
-        const displayDate = season ? `${season.charAt(0).toUpperCase() + season.slice(1)} ${year}` :
-          month ? `${new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` :
-            `${year}`;
-
-        // Create newsletter object
-        const newsletter = {
-          filename,
-          title: `Conashaugh Courier - ${displayDate}`,
-          description: `Newsletter from ${displayDate} containing community updates and announcements.`,
-          publicationDate: new Date(year, month ? month - 1 : 0, 1).toISOString(),
-          year,
-          ...(month && { month }),
-          ...(season && { season }),
-          displayDate,
-          sortValue: year * 100 + (month || 0),
-          pageCount: pdf.numPages,
-          fileSize: arrayBuffer.byteLength,
-          searchableText: fullText.trim(),
-          tags: extractKeywords(fullText),
-          downloadUrl: pdfUrl,
-          storageRef: `newsletters/${filename}`,
-          isPublished: true,
-          featured: false,
-          wordCount: fullText.split(/\s+/).filter(word => word.length > 0).length,
-          actions: {
-            canView: true,
-            canDownload: true,
-            canSearch: true,
-            hasThumbnail: false
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          createdBy: '',
-          updatedBy: ''
-        };
-
-        // Save to Firebase
-        const firebaseId = await firestoreService.saveNewsletterMetadata(newsletter);
-
-        processed.push({ ...newsletter, id: firebaseId } as ContentManagementNewsletter);
-
-        logger.success(`✅ Processed ${filename} (${newsletter.wordCount} words, ${newsletter.pageCount} pages)`);
-
-      } catch (error) {
-        logger.error(`❌ Failed to process ${filename}:`, error);
-      }
-
-      // Small delay to prevent overwhelming
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    // Final success notification
-    $q.notify({
-      type: 'positive',
-      message: `🎉 Successfully processed ${processed.length}/${pdfFiles.length} newsletters!`,
-      caption: `All data is now searchable in Firebase`,
-      timeout: 5000
-    });
-
-    // Refresh the store
-    await store.refreshNewsletters();
-
-    logger.success(`🎉 Complete processing finished: ${processed.length} newsletters in database`);
-
-  } catch (error) {
-    logger.error('❌ Master processing failed:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Processing failed',
-      caption: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    isProcessingEverything.value = false;
-  }
-}
-
-// Helper function to extract keywords from text
-function extractKeywords(text: string): string[] {
-  const keywords: string[] = [];
-  const lowerText = text.toLowerCase();
-
-  // Common newsletter topics
-  const topics = [
-    'board meeting', 'annual meeting', 'election', 'budget', 'finances',
-    'lake', 'beach', 'swimming', 'fishing', 'boating', 'dam', 'water',
-    'community', 'resident', 'member', 'volunteer', 'committee',
-    'maintenance', 'repair', 'construction', 'improvement', 'project',
-    'event', 'party', 'celebration', 'picnic', 'barbecue', 'social',
-    'rules', 'regulations', 'policy', 'bylaw', 'covenant',
-    'dues', 'fee', 'assessment', 'payment', 'billing'
-  ];
-
-  topics.forEach(topic => {
-    if (lowerText.includes(topic)) {
-      keywords.push(topic);
-    }
-  });
-
-  return keywords.slice(0, 8); // Limit to 8 keywords
-}
 
 // =============================================
 // WORKFLOW TOOLBAR HANDLERS
