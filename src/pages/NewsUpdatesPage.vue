@@ -32,15 +32,23 @@ const greyTextClass = computed(() =>
         <div class="col-12 col-md-10 col-lg-8">
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
-              <div class="text-h4 q-mb-md">
-                <q-icon name="mdi-newspaper" class="q-mr-sm" />
-                News & Updates
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-h4 q-mb-md">
+                    <q-icon name="mdi-newspaper" class="q-mr-sm" />
+                    News & Updates
+                  </div>
+                  <p class="text-body1">
+                    Stay informed with the latest news and updates from the Conashaugh Lakes community.
+                    This section features important announcements, community events, and relevant news
+                    that affects our residents.
+                  </p>
+                </div>
+                <div class="col-auto">
+                  <q-btn color="primary" icon="create" label="Submit Article"
+                    @click="$router.push('/contribute/submit?type=article')" class="q-ml-md" />
+                </div>
               </div>
-              <p class="text-body1">
-                Stay informed with the latest news and updates from the Conashaugh Lakes community.
-                This section features important announcements, community events, and relevant news
-                that affects our residents.
-              </p>
             </q-card-section>
           </q-card>
 
