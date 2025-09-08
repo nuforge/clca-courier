@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import NavigationItem from './NavigationItem.vue';
-import LatestIssueCard from './LatestIssueCard.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useFirebase } from '../composables/useFirebase';
@@ -80,10 +79,7 @@ const isOpen = computed({
 
       <q-space class="q-mt-lg" />
 
-      <!-- Latest Issue Card -->
-      <div class="latest-issue-section">
-        <LatestIssueCard :mini="isMini" />
-      </div>
+      <!-- Latest Issue Card removed - PDF processing disabled -->
 
       <q-space class="q-mtlg" />
       <!-- Bottom section with Auth and Account -->

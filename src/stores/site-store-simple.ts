@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { ClassifiedAd, NewsItem, Event, CommunityStats } from '../types';
-import type { PdfDocument } from '../composables/usePdfViewer';
 import { useUserSettings } from '../composables/useUserSettings';
-import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
 import { logger } from '../utils/logger';
 
 // Import JSON data directly
@@ -24,7 +22,7 @@ export const useSiteStore = defineStore('site', () => {
   const isLoading = ref(true);
 
   // Data state
-  const archivedIssues = ref<PdfDocument[]>([]);
+  const archivedIssues = ref<Record<string, unknown>[]>([]);
   const newsItems = ref<NewsItem[]>([]);
   const classifieds = ref<ClassifiedAd[]>([]);
   const events = ref<Event[]>([]);
@@ -99,29 +97,10 @@ export const useSiteStore = defineStore('site', () => {
     }
   }
 
-  async function loadArchivedIssues() {
-    try {
-      const newsletters = await lightweightNewsletterService.getNewsletters();
-      // Transform UnifiedNewsletter to PdfDocument format
-      archivedIssues.value = newsletters.map((newsletter) => ({
-        id: parseInt(newsletter.id, 10),
-        title: newsletter.title,
-        date: newsletter.publicationDate,
-        pages: newsletter.pageCount,
-        url: newsletter.downloadUrl,
-        filename: newsletter.filename,
-        status: 'local' as const,
-        syncStatus: 'synced' as const,
-        description: newsletter.description || '',
-        fileSize: String(newsletter.fileSize),
-        thumbnailUrl: newsletter.thumbnailUrl || '',
-        tags: newsletter.tags,
-        category: newsletter.categories?.[0] || '',
-      }));
-    } catch (error) {
-      logger.error('Error loading archived issues:', error);
-      archivedIssues.value = [];
-    }
+  function loadArchivedIssues() {
+    // Archived issues loading removed - no PDF processing
+    archivedIssues.value = [];
+    logger.debug('Archived issues loading skipped - PDF processing removed');
   }
 
   async function loadNewsItems() {
@@ -170,8 +149,8 @@ export const useSiteStore = defineStore('site', () => {
   }
 
   // Refresh functions
-  async function refreshArchivedIssues() {
-    await loadArchivedIssues();
+  function refreshArchivedIssues() {
+    loadArchivedIssues();
   }
 
   async function refreshNewsItems() {

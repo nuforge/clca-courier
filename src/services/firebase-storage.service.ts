@@ -348,7 +348,8 @@ class FirebaseStorageService {
     },
     onProgress?: (progress: FileUploadProgress) => void,
   ): Promise<{ downloadUrl: string; storagePath: string }> {
-    const filename = this.generateSafeFilename(file.name, 'newsletter');
+    // PRESERVE ORIGINAL FILENAME - DO NOT MODIFY IT!
+    const filename = file.name;
 
     const uploadConfig: UploadConfig = {
       folder: this.STORAGE_PATHS.NEWSLETTERS,

@@ -22,7 +22,7 @@ export * from './core/user.types';
 export * from './core/api.types';
 
 // Service types
-export * from './services/pdf.types';
+// PDF types removed
 
 // Component types
 export * from './components/navigation.types';

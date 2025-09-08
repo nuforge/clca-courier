@@ -13,9 +13,8 @@
 
       <q-card-section>
         <div class="q-mb-md">
-          <p class="text-body2">
-            Select PDF files to import. Each file will be processed for text extraction,
-            thumbnail generation, and uploaded to Firebase.
+          <p class="text-grey-7 q-mb-md">
+            Select PDF files to upload. Files will be processed and uploaded to Firebase.
           </p>
         </div>
 
@@ -78,9 +77,10 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat label="Cancel" @click="dialogModel = false" :disable="isProcessing" />
+        <q-btn flat label="Cancel" @click="dialogModel = false" v-if="isProcessing" />
+        <q-btn flat label="Close" @click="dialogModel = false" v-if="!isProcessing" />
         <q-btn color="primary" label="Import Files" @click="processAndUploadFiles" :loading="isProcessing"
-          :disable="fileList.length === 0 || fileList.every(f => f.status !== 'ready')" />
+          :disable="fileList.length === 0 || fileList.every(f => f.status !== 'ready')" v-if="fileList.length > 0" />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -89,12 +89,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
-import { firebaseNewsletterService } from '../../services/firebase-newsletter.service';
-import { firestoreService, type NewsletterMetadata } from '../../services/firebase-firestore.service';
-import { firebaseStorageService } from '../../services/firebase-storage.service';
-import { dateManagementService } from '../../services/date-management.service';
-import { pdfMetadataService } from '../../services/pdf-metadata-service';
 import { logger } from '../../utils/logger';
+import { firebaseNewsletterService } from '../../services/firebase-newsletter.service';
+import type { FileUploadProgress } from '../../services/firebase-storage.service';
 
 interface FileItem {
   id: string;
@@ -240,228 +237,47 @@ async function processAndUploadFiles(): Promise<void> {
 
 async function processFile(fileItem: FileItem): Promise<void> {
   try {
-    // Step 1: Extract comprehensive metadata using the full PDF metadata service
+    fileItem.status = 'processing';
     fileItem.progress = 10;
-    logger.info(`Starting comprehensive processing for ${fileItem.name}`);
 
-    // Create blob URL for the PDF metadata service
-    const blobUrl = URL.createObjectURL(fileItem.file);
-    let comprehensiveMetadata;
+    logger.info(`Processing file: ${fileItem.name}`);
 
-    try {
-      comprehensiveMetadata = await pdfMetadataService.extractPDFMetadata(blobUrl, fileItem.name);
-    } finally {
-      // Clean up blob URL
-      URL.revokeObjectURL(blobUrl);
-    }
+    // Extract basic metadata from filename
+    const filename = fileItem.name.replace('.pdf', '');
+    const currentYear = new Date().getFullYear();
 
-    // If comprehensive extraction fails, fall back to basic extraction
-    if (!comprehensiveMetadata) {
-      logger.warn(`Comprehensive metadata extraction failed for ${fileItem.name}, using basic extraction`);
-      comprehensiveMetadata = {
-        filename: fileItem.name,
-        title: fileItem.name.replace(/\.pdf$/i, ''),
-        description: '',
-        textContent: await extractTextFromPDF(fileItem.file),
-        searchableText: '', // Will be derived from textContent
-        pageCount: 0, // Will be extracted
-        keywords: [],
-        thumbnailDataUrl: '', // Will be generated
-        year: new Date().getFullYear(),
-        displayDate: new Date().getFullYear().toString(),
-        fileSize: fileItem.size
-      };
-
-      // Extract page count manually
-      try {
-        const pdfjsLib = await import('pdfjs-dist');
-        const arrayBuffer = await fileItem.file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        comprehensiveMetadata.pageCount = pdf.numPages;
-      } catch (error) {
-        logger.warn(`Could not extract page count for ${fileItem.name}:`, error);
-      }
-
-      // Generate searchable text from content
-      if (comprehensiveMetadata.textContent) {
-        comprehensiveMetadata.searchableText = comprehensiveMetadata.textContent
-          .toLowerCase()
-          .replace(/[^\w\s]/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-      }
-
-      // Generate thumbnail
-      const thumbnailBlob = await generateThumbnailFromPDF(fileItem.file);
-      if (thumbnailBlob) {
-        comprehensiveMetadata.thumbnailDataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(thumbnailBlob);
-        });
-      }
-    }
+    // Basic metadata for upload
+    const metadata = {
+      title: filename.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      publicationDate: new Date().toISOString(),
+      year: currentYear,
+      tags: [],
+      featured: false,
+    };
 
     fileItem.progress = 30;
 
-    // Step 2: Parse and format dates (handle season-to-month conversion)
-    const parsedDate = dateManagementService.parseFilenameDate(fileItem.name);
-    if (parsedDate) {
-      logger.info(`Parsed date for ${fileItem.name}:`, parsedDate);
-    }
-    fileItem.progress = 40;
-
-    // Step 3: Check if PDF already exists in Firebase (both Firestore AND Storage)
-    const existingId = await firestoreService.findNewsletterIdByFilename(fileItem.name);
-    const isUpdate = !!existingId;
-
-    // Check if file exists in Storage
-    const storagePath = `newsletters/${fileItem.name}`;
-    const fileExistsInStorage = await firebaseStorageService.fileExists(storagePath);
-
-    if (isUpdate) {
-      logger.info(`Found existing newsletter in Firebase: ${existingId}, will update metadata only`);
-    } else {
-      logger.info(`Newsletter ${fileItem.name} not found in Firebase, will create new`);
-    }
-
-    if (fileExistsInStorage) {
-      logger.info(`File ${fileItem.name} already exists in Storage, will not re-upload`);
-    } else {
-      logger.info(`File ${fileItem.name} not found in Storage, will upload`);
-    }
-    fileItem.progress = 50;
-
-    // Step 4: Prepare comprehensive metadata for Firebase
-    const firebaseMetadata = {
-      filename: fileItem.name,
-      title: comprehensiveMetadata.title || fileItem.name.replace(/\.pdf$/i, ''),
-      description: '', // PDFMetadata doesn't have description, using empty
-
-      // Date information (with season-to-month conversion)
-      year: parsedDate?.year || new Date().getFullYear(),
-      ...(parsedDate?.month && { month: parsedDate.month }),
-      ...(parsedDate?.season && { season: parsedDate.season }),
-      publicationDate: parsedDate?.publicationDate || new Date().toISOString(),
-      displayDate: parsedDate?.displayDate || `${parsedDate?.year || new Date().getFullYear()}`,
-      sortValue: parsedDate?.sortValue || 0,
-
-      // Extracted content and metadata (map PDFMetadata properties correctly)
-      pageCount: comprehensiveMetadata.pages || 0, // PDFMetadata uses 'pages', not 'pageCount'
-      fileSize: fileItem.size,
-      searchableText: comprehensiveMetadata.searchableText || '',
-      wordCount: comprehensiveMetadata.textContent ?
-        comprehensiveMetadata.textContent.trim().split(/\s+/).filter(word => word.length > 0).length : 0,
-
-      // Storage information (will be updated by upload)
-      downloadUrl: '', // Will be set by Firebase upload
-      storageRef: '', // Will be set by Firebase upload
-      ...(comprehensiveMetadata.thumbnailDataUrl && { thumbnailUrl: comprehensiveMetadata.thumbnailDataUrl }),
-
-      // Publication settings
-      isPublished: true,
-      featured: false,
-      tags: ['imported', 'pdf', ...(comprehensiveMetadata.searchableText ? ['searchable'] : []), ...(comprehensiveMetadata.keywords || [])],
-
-      // System fields will be set by Firebase service automatically
-    };
-
-    fileItem.progress = 70;
-
-    // Step 5: Upload/Update in Firebase
-    if (isUpdate) {
-      // UPDATE existing newsletter
-      logger.info(`Updating existing newsletter ${existingId} with comprehensive metadata`);
-
-      // Get existing data to check if we have a downloadUrl
-      const existingData = await firestoreService.getNewsletterMetadata(existingId);
-
-      // Only upload file if it doesn't exist in Storage
-      if (!fileExistsInStorage) {
-        logger.info(`File ${fileItem.name} not in Storage, uploading...`);
-        const progressCallback = (progress: { percentage: number }): void => {
-          fileItem.progress = 70 + (progress.percentage * 0.25); // 70-95% for upload
-        };
-
-        const uploadResult = await firebaseNewsletterService.uploadNewsletter(
-          fileItem.file,
-          {
-            title: firebaseMetadata.title,
-            publicationDate: firebaseMetadata.publicationDate,
-            year: firebaseMetadata.year,
-            ...(firebaseMetadata.season && { season: firebaseMetadata.season }),
-            tags: firebaseMetadata.tags || [],
-            featured: firebaseMetadata.featured || false
-          },
-          progressCallback
-        );
-
-        // Update metadata with storage information
-        firebaseMetadata.downloadUrl = uploadResult;
-      } else {
-        // File exists in storage, just use existing downloadUrl or generate it
-        if (existingData?.downloadUrl) {
-          firebaseMetadata.downloadUrl = existingData.downloadUrl;
-          logger.info(`Using existing downloadUrl for ${fileItem.name}`);
-        } else {
-          // Generate downloadUrl from storage path
-          firebaseMetadata.downloadUrl = await firebaseStorageService.getDownloadUrl(storagePath);
-          logger.info(`Generated downloadUrl from storage path for ${fileItem.name}`);
-        }
-        fileItem.progress = 95; // Skip upload progress
+    // Upload to Firebase using the newsletter service
+    await firebaseNewsletterService.uploadNewsletter(
+      fileItem.file,
+      metadata,
+      (progress: FileUploadProgress) => {
+        // Update progress based on upload progress
+        fileItem.progress = 30 + (progress.percentage * 0.7); // Use 30-100% range for upload
       }
-
-      // Update with comprehensive metadata
-      await firestoreService.updateNewsletterMetadata(existingId, firebaseMetadata as unknown as Partial<NewsletterMetadata>);
-      logger.success(`Successfully updated newsletter ${existingId} with comprehensive metadata`);
-
-    } else {
-      // CREATE new newsletter
-      logger.info(`Creating new newsletter with comprehensive metadata`);
-
-      // Only upload file if it doesn't exist in Storage
-      if (!fileExistsInStorage) {
-        logger.info(`File ${fileItem.name} not in Storage, uploading...`);
-        const progressCallback = (progress: { percentage: number }): void => {
-          fileItem.progress = 70 + (progress.percentage * 0.25); // 70-95% for upload
-        };
-
-        await firebaseNewsletterService.uploadNewsletter(
-          fileItem.file,
-          {
-            title: firebaseMetadata.title,
-            publicationDate: firebaseMetadata.publicationDate,
-            year: firebaseMetadata.year,
-            ...(firebaseMetadata.season && { season: firebaseMetadata.season }),
-            tags: firebaseMetadata.tags || [],
-            featured: firebaseMetadata.featured || false
-          },
-          progressCallback
-        );
-      } else {
-        // File exists in storage, create Firestore entry with existing file
-        logger.info(`File ${fileItem.name} already in Storage, creating Firestore entry only`);
-        firebaseMetadata.downloadUrl = await firebaseStorageService.getDownloadUrl(storagePath);
-        firebaseMetadata.storageRef = storagePath;
-
-        // Create new Firestore document
-        await firestoreService.saveNewsletterMetadata(firebaseMetadata as unknown as Omit<NewsletterMetadata, 'id'>);
-        fileItem.progress = 95; // Skip upload progress
-      }
-
-      logger.success(`Successfully created new newsletter with comprehensive metadata`);
-    }
+    );
 
     fileItem.progress = 100;
-    logger.success(`Comprehensive processing completed for ${fileItem.name}`);
+    fileItem.status = 'completed';
+
+    logger.success(`File processed: ${fileItem.name}`);
 
   } catch (error) {
-    logger.error(`Comprehensive processing failed for ${fileItem.name}:`, error);
+    logger.error(`Processing failed for ${fileItem.name}:`, error);
+    fileItem.status = 'error';
     throw error;
   }
-}
-
-// UI helper functions
+}// UI helper functions
 function getFileStatusIcon(file: FileItem): string {
   switch (file.status) {
     case 'ready': return 'mdi-file-document';
@@ -488,73 +304,6 @@ function formatFileSize(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Fallback functions for when comprehensive extraction fails
-async function extractTextFromPDF(file: File): Promise<string> {
-  try {
-    // Use PDF.js to extract text
-    const pdfjsLib = await import('pdfjs-dist');
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-    let fullText = '';
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-
-      const pageText = textContent.items
-        .map((item: Record<string, unknown>) => {
-          if ('str' in item && typeof item.str === 'string') {
-            return item.str;
-          }
-          return '';
-        })
-        .join(' ');
-
-      fullText += pageText + '\n';
-    }
-
-    return fullText.trim();
-
-  } catch (error) {
-    logger.error('Error extracting text from PDF:', error);
-    return '';
-  }
-}
-
-async function generateThumbnailFromPDF(file: File): Promise<Blob | null> {
-  try {
-    // Use PDF.js to generate thumbnail
-    const pdfjsLib = await import('pdfjs-dist');
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const page = await pdf.getPage(1); // First page
-
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (!context) return null;
-
-    const viewport = page.getViewport({ scale: 0.5 });
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-
-    await page.render({
-      canvasContext: context,
-      viewport: viewport
-    }).promise;
-
-    return new Promise((resolve) => {
-      canvas.toBlob(resolve, 'image/jpeg', 0.8);
-    });
-
-  } catch (error) {
-    logger.error('Error generating thumbnail:', error);
-    return null;
-  }
 }
 </script>
 

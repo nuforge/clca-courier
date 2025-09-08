@@ -5,7 +5,6 @@
 
 import { getPublicPath } from '../utils/path-utils';
 import { logger } from '../utils/logger';
-import { pdfMetadataStorageService } from './pdf-metadata-storage-service';
 import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
 class LightweightNewsletterService {
@@ -51,11 +50,11 @@ class LightweightNewsletterService {
       const newsletters = this.createBaseNewsletters(discoveredPDFs);
 
       // Step 3: Enhance with cached metadata (instant if available)
-      this.enhanceWithCachedMetadata(newsletters);
+      this.enhanceWithCachedMetadata();
 
       // Step 4: Queue remaining PDFs for background processing (if enabled)
       if (LightweightNewsletterService.shouldProcessPDFs) {
-        this.queueUnprocessedPDFs(newsletters);
+        this.queueUnprocessedPDFs();
       } else {
         logger.info('PDF processing disabled - skipping background processing');
       }
@@ -141,60 +140,17 @@ class LightweightNewsletterService {
   /**
    * Enhance newsletters with cached metadata (instant)
    */
-  private enhanceWithCachedMetadata(newsletters: UnifiedNewsletter[]): void {
-    let enhancedCount = 0;
-
-    for (const newsletter of newsletters) {
-      const cachedMetadata = pdfMetadataStorageService.getQuickMetadata(newsletter.filename);
-
-      if (cachedMetadata) {
-        newsletter.pageCount = cachedMetadata.pages;
-        newsletter.fileSize = parseInt(String(cachedMetadata.fileSize), 10) || 0;
-        newsletter.tags = cachedMetadata.topics || [];
-        if (cachedMetadata.thumbnailDataUrl) {
-          newsletter.thumbnailUrl = cachedMetadata.thumbnailDataUrl;
-        }
-        newsletter.isProcessed = true;
-        enhancedCount++;
-      }
-    }
-
-    if (enhancedCount > 0) {
-      logger.info(
-        `Enhanced ${enhancedCount}/${newsletters.length} newsletters with cached metadata`,
-      );
-    }
+  private enhanceWithCachedMetadata(): void {
+    // Metadata enhancement removed - no PDF processing
+    logger.debug('Metadata enhancement skipped - PDF processing removed');
   }
 
   /**
    * Queue unprocessed PDFs for background processing
    */
-  private queueUnprocessedPDFs(newsletters: UnifiedNewsletter[]): void {
-    const unprocessed = newsletters.filter((n) => !n.isProcessed);
-
-    if (unprocessed.length === 0) {
-      logger.info('All newsletters already have cached metadata');
-      return;
-    }
-
-    // Assign priorities (recent = higher priority)
-    const queueItems = unprocessed.map((newsletter) => {
-      const year = parseInt(newsletter.filename.substring(0, 4));
-      const currentYear = new Date().getFullYear();
-      const priority = Math.max(1, 10 - (currentYear - year)); // Recent files get higher priority
-
-      newsletter.isProcessing = true;
-
-      return {
-        filename: newsletter.filename,
-        url: newsletter.downloadUrl,
-        priority,
-      };
-    });
-
-    pdfMetadataStorageService.bulkAddToQueue(queueItems);
-
-    logger.info(`Queued ${unprocessed.length} newsletters for background processing`);
+  private queueUnprocessedPDFs(): void {
+    // Background processing removed - no PDF processing
+    logger.debug('Background processing skipped - PDF processing removed');
   }
 
   /**
@@ -360,10 +316,7 @@ class LightweightNewsletterService {
     const newsletters = await this.getNewsletters();
     const queryLower = query.toLowerCase();
 
-    // Use metadata storage service for enhanced search
-    const cachedResults = pdfMetadataStorageService.searchCachedContent(query);
-    const cachedFilenames = new Set(cachedResults.map((r) => r.filename));
-
+    // Simple search without PDF metadata processing
     return newsletters
       .filter((newsletter) => {
         // Basic search in title and filename
@@ -374,24 +327,15 @@ class LightweightNewsletterService {
           return true;
         }
 
-        // Enhanced search if processed
-        if (newsletter.isProcessed && cachedFilenames.has(newsletter.filename)) {
-          return true;
-        }
-
-        // Search in topics if available
-        if (newsletter.topics?.some((topic) => topic.toLowerCase().includes(queryLower))) {
+        // Search in tags if available
+        if (newsletter.tags?.some((tag) => tag.toLowerCase().includes(queryLower))) {
           return true;
         }
 
         return false;
       })
       .sort((a, b) => {
-        // Boost processed newsletters with rich metadata
-        if (a.isProcessed && !b.isProcessed) return -1;
-        if (!a.isProcessed && b.isProcessed) return 1;
-
-        // Then by date
+        // Sort by date
         return (
           new Date(b.publicationDate || '1900-01-01').getTime() -
           new Date(a.publicationDate || '1900-01-01').getTime()

@@ -1,4 +1,5 @@
-# CLCA Courier - Development Guide
+<
+|# CLCA Courier - Development Guide
 
 ## 🚨 CRITICAL RULES (USER-ENFORCED)
 

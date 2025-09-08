@@ -40,6 +40,7 @@
 
 **AI MUST REFUSE TO PROCEED IF ANY OF THESE ARE VIOLATED:**
 
+- **❌ RE-DOWNLOADING PROCESSED FILES**: NEVER download/fetch a PDF file that was just processed during import - USE THE ORIGINAL FILE DATA
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`) - configured in `quasar.config.ts`
 - **❌ Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data - use dynamic discovery only
 - **❌ Path Assumptions**: Always verify file/directory existence using tools like `list_dir`, `file_search`, `grep_search` before implementation
@@ -48,7 +49,8 @@
 - **❌ Background Processes**: NEVER use `isBackground=true` unless explicitly requested by user for servers
 - **❌ ANY TYPES**: FORBIDDEN in ALL contexts - use `Record<string, unknown>`, `string | undefined`, proper interfaces
 - **❌ Floating Promises**: Always handle async calls with `await`, `.catch()`, `.then()`, or explicit `void` operator
-- **❌ Feature Removal Without Understanding**: NEVER remove working functionality without fully understanding the requirements
+- **❌ Floating Promises**: 'npm run type-check' will not work. Nor will 'grep' or 'rm' or any commands for linux?
+- **❌ Feature Removal Without Understanding**: NEVER remove working functionality or 'simplify' a requested feature without fully understanding the requirements
 
 ### MANDATORY PRACTICES
 

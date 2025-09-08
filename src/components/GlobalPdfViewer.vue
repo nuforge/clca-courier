@@ -12,7 +12,7 @@
         <q-btn-dropdown color="white" text-color="primary" label="Switch Document" icon="mdi-swap-horizontal"
           class="q-mr-md" v-if="availableDocuments.length > 1">
           <q-list>
-            <q-item v-for="document in availableDocuments" :key="document.id" clickable v-close-popup
+            <q-item v-for="document in availableDocuments" :key="(document as any)?.id || ''" clickable v-close-popup
               @click="switchDocument(document)" :class="{ 'bg-grey': selectedDocument?.id === document.id }">
               <q-item-section>
                 <q-item-label>{{ document.title }}</q-item-label>
@@ -38,59 +38,61 @@
         </div>
 
         <!-- PDF Viewer - Let PdfViewer handle its own loading state -->
-        <PdfViewer v-if="selectedDocument && !error" :document-url="selectedDocument.url" :key="selectedDocument.id"
-          @ready="onViewerReady" @error="onViewerError" />
+        <PdfViewer v-if="selectedDocument && !error" :document-url="(selectedDocument as any)?.url || ''"
+          :key="(selectedDocument as any)?.id || ''" @ready="onViewerReady" @error="onViewerError" />
       </q-card-section>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useSiteStore } from '../stores/site-store-simple'
-import { usePdfViewer } from '../composables/usePdfViewer'
 import PdfViewer from './PdfViewer.vue'
 
 const $q = useQuasar()
 const siteStore = useSiteStore()
 
-// Use the global PDF viewer composable
-const {
-  showViewer,
-  selectedDocument,
-  error,
-  closeViewer,
-  switchDocument,
-  onViewerReady: handleViewerReady,
-  onViewerError: handleViewerError,
-} = usePdfViewer()
+// Basic PDF viewer state (simplified)
+const showViewer = ref(false)
+const selectedDocument = ref<Record<string, unknown> | null>(null)
+const error = ref<string | null>(null)
 
-// Get available documents from the store
-const availableDocuments = computed(() => siteStore.archivedIssues)
-
-// Handle PDF viewer events
-const onViewerReady = (success: boolean) => {
-  handleViewerReady(success)
+const closeViewer = () => {
+  showViewer.value = false
+  selectedDocument.value = null
+  error.value = null
 }
 
-const onViewerError = (error: string) => {
-  handleViewerError(error)
+const switchDocument = (document: Record<string, unknown>) => {
+  selectedDocument.value = document
+  error.value = null
+}
+
+const onViewerReady = () => {
+  error.value = null
+}
+
+const onViewerError = (errorMessage: string) => {
+  error.value = errorMessage
   $q.notify({
     message: 'Error loading PDF viewer',
-    caption: error,
+    caption: errorMessage,
     type: 'negative',
     icon: 'mdi-alert'
   })
 }
 
-// Retry loading the current document
 const retryLoadDocument = () => {
   if (selectedDocument.value) {
     // Reset error state and try switching to the same document (will trigger reload)
-    void switchDocument(selectedDocument.value)
+    switchDocument(selectedDocument.value)
   }
 }
+
+// Get available documents from the store
+const availableDocuments = computed(() => siteStore.archivedIssues)
 </script>
 
 <style scoped>

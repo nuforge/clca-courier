@@ -11,7 +11,9 @@ import {
   type NewsletterMetadata,
 } from './firebase-firestore.service';
 import { firebaseStorageService, type FileUploadProgress } from './firebase-storage.service';
+import { firebaseAuthService } from './firebase-auth.service';
 import { dateManagementService } from './date-management.service';
+import { generatePdfThumbnail } from '../utils/pdfThumbnailGenerator';
 import { logger } from '../utils/logger';
 
 export interface NewsletterSearchFilters {
@@ -557,22 +559,68 @@ class FirebaseNewsletterService {
     onProgress?: (progress: FileUploadProgress) => void,
   ): Promise<string> {
     try {
-      // Upload to Firebase Storage
+      logger.info(`Starting upload process for: ${file.name}`);
+
+      // Step 1: Extract enhanced date metadata from filename
+      const enhancedDate = dateManagementService.parseFilenameDate(file.name);
+      logger.debug('Enhanced date metadata:', enhancedDate);
+
+      // Step 2: Process PDF to extract page count and text content
+      let pdfProcessingResult: { pageCount: number; textContent?: string; wordCount?: number } = {
+        pageCount: 0,
+      };
+
+      try {
+        // Import PDF processor dynamically to avoid issues
+        const { processPdfFile } = await import('../utils/pdfProcessor');
+        pdfProcessingResult = await processPdfFile(file);
+        logger.debug('PDF processing result:', {
+          pageCount: pdfProcessingResult.pageCount,
+          wordCount: pdfProcessingResult.wordCount,
+          hasText: !!pdfProcessingResult.textContent,
+        });
+      } catch (processingError) {
+        logger.warn('PDF processing failed, continuing with upload:', processingError);
+      }
+
+      // Step 3: Generate thumbnail from PDF
+      let thumbnailUrl: string | undefined;
+      try {
+        logger.debug('Generating thumbnail for PDF...');
+        const thumbnailResult = await generatePdfThumbnail(file, {
+          maxWidth: 300,
+          maxHeight: 400,
+          quality: 0.8,
+          format: 'jpeg',
+        });
+        thumbnailUrl = thumbnailResult.thumbnailUrl;
+        logger.success(
+          `Thumbnail generated: ${thumbnailResult.width}x${thumbnailResult.height} (${thumbnailResult.size} bytes)`,
+        );
+      } catch (thumbnailError) {
+        logger.warn('Thumbnail generation failed, continuing without thumbnail:', thumbnailError);
+      }
+
+      // Step 4: Upload to Firebase Storage
       const uploadResult = await firebaseStorageService.uploadNewsletterPdf(
         file,
         metadata,
         onProgress,
       );
 
-      // Save metadata to Firestore
+      // Step 5: Get current user for attribution
+      const currentUser = firebaseAuthService.getCurrentUser();
+      const userName = currentUser?.displayName || currentUser?.email || 'System';
+
+      // Step 6: Create comprehensive metadata object
       const newsletterMetadata: Omit<NewsletterMetadata, 'id'> = {
         filename: file.name,
         title: metadata.title,
-        description: '',
-        publicationDate: metadata.publicationDate,
-        year: metadata.year,
+        description: '', // Can be enhanced later
+        publicationDate: enhancedDate?.publicationDate || metadata.publicationDate,
+        year: enhancedDate?.year || metadata.year,
         fileSize: file.size,
-        pageCount: 0, // Will be updated by processing
+        pageCount: pdfProcessingResult.pageCount,
         downloadUrl: uploadResult.downloadUrl,
         storageRef: uploadResult.storagePath,
         tags: metadata.tags || [],
@@ -580,31 +628,194 @@ class FirebaseNewsletterService {
         isPublished: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        createdBy: '', // Will be set by service
-        updatedBy: '', // Will be set by service
+        createdBy: userName,
+        updatedBy: userName,
         actions: {
           canView: true,
           canDownload: true,
-          canSearch: false,
-          hasThumbnail: false,
+          canSearch: !!pdfProcessingResult.textContent,
+          hasThumbnail: !!thumbnailUrl,
         },
       };
 
-      // Add optional fields only if they exist
+      // Add thumbnail if generated
+      if (thumbnailUrl) {
+        newsletterMetadata.thumbnailUrl = thumbnailUrl;
+      }
+
+      // Add enhanced date fields if available
+      if (enhancedDate) {
+        if (enhancedDate.month !== undefined) {
+          newsletterMetadata.month = enhancedDate.month;
+        }
+        if (enhancedDate.season) {
+          newsletterMetadata.season = enhancedDate.season;
+        }
+        if (enhancedDate.displayDate) {
+          newsletterMetadata.displayDate = enhancedDate.displayDate;
+        }
+        if (enhancedDate.sortValue !== undefined) {
+          newsletterMetadata.sortValue = enhancedDate.sortValue;
+        }
+      }
+
+      // Add PDF processing results if available
+      if (pdfProcessingResult.textContent) {
+        newsletterMetadata.searchableText = pdfProcessingResult.textContent;
+      }
+
+      // Add optional fields from input metadata
       if (metadata.issueNumber) {
         newsletterMetadata.issueNumber = metadata.issueNumber;
       }
-      if (metadata.season) {
+      if (metadata.season && !newsletterMetadata.season) {
         newsletterMetadata.season = metadata.season;
       }
 
+      // Step 7: Save to Firestore
       const newsletterId = await firestoreService.saveNewsletterMetadata(newsletterMetadata);
 
-      logger.success('Newsletter uploaded successfully:', newsletterId);
+      // Step 8: Update with word count as separate operation (since it might not be in the base type)
+      if (pdfProcessingResult.wordCount) {
+        try {
+          await firestoreService.updateNewsletterMetadata(newsletterId, {
+            wordCount: pdfProcessingResult.wordCount,
+          } as Partial<NewsletterMetadata>);
+          logger.debug(`Updated word count: ${pdfProcessingResult.wordCount}`);
+        } catch (wordCountError) {
+          logger.warn('Failed to update word count:', wordCountError);
+        }
+      }
+
+      logger.success('Newsletter uploaded successfully:', {
+        id: newsletterId,
+        filename: file.name,
+        pageCount: pdfProcessingResult.pageCount,
+        wordCount: pdfProcessingResult.wordCount,
+        hasSearchableText: !!pdfProcessingResult.textContent,
+      });
+
       return newsletterId;
     } catch (error) {
       logger.error('Error uploading newsletter:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Generate thumbnail for existing newsletter (admin function)
+   */
+  async generateNewsletterThumbnail(newsletterId: string): Promise<void> {
+    try {
+      const newsletter = await this.getNewsletterById(newsletterId);
+      if (!newsletter) {
+        throw new Error('Newsletter not found');
+      }
+
+      // Skip if thumbnail already exists
+      if (newsletter.thumbnailUrl) {
+        logger.info(`Newsletter ${newsletterId} already has thumbnail, skipping`);
+        return;
+      }
+
+      // Download PDF file from Firebase Storage
+      if (!newsletter.downloadUrl) {
+        throw new Error('Newsletter download URL not available');
+      }
+
+      logger.debug(`Downloading PDF for thumbnail generation: ${newsletter.filename}`);
+      const response = await fetch(newsletter.downloadUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download PDF: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const file = new File([blob], newsletter.filename, { type: 'application/pdf' });
+
+      // Generate thumbnail
+      logger.debug(`Generating thumbnail for: ${newsletter.filename}`);
+      const thumbnailResult = await generatePdfThumbnail(file, {
+        maxWidth: 300,
+        maxHeight: 400,
+        quality: 0.8,
+        format: 'jpeg',
+      });
+
+      // Update newsletter metadata with thumbnail
+      await firestoreService.updateNewsletterMetadata(newsletterId, {
+        thumbnailUrl: thumbnailResult.thumbnailUrl,
+        actions: {
+          ...newsletter.actions,
+          hasThumbnail: true,
+        },
+        updatedAt: new Date().toISOString(),
+        updatedBy: firebaseAuthService.getCurrentUser()?.displayName || 'System',
+      } as Partial<NewsletterMetadata>);
+
+      // Update local cache
+      const index = this._newsletters.value.findIndex((n) => n.id === newsletterId);
+      if (index > -1) {
+        const currentNewsletter = this._newsletters.value[index];
+        if (currentNewsletter) {
+          this._newsletters.value[index] = {
+            ...currentNewsletter,
+            thumbnailUrl: thumbnailResult.thumbnailUrl,
+            actions: {
+              ...currentNewsletter.actions,
+              hasThumbnail: true,
+            },
+          };
+        }
+      }
+
+      logger.success(
+        `Thumbnail generated for ${newsletter.filename}: ${thumbnailResult.width}x${thumbnailResult.height} (${thumbnailResult.size} bytes)`,
+      );
+    } catch (error) {
+      logger.error(`Error generating thumbnail for newsletter ${newsletterId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate thumbnails for multiple newsletters (admin function)
+   */
+  async generateMultipleThumbnails(
+    newsletterIds: string[],
+    onProgress?: (completed: number, total: number, current: string) => void,
+  ): Promise<void> {
+    logger.info(`Starting batch thumbnail generation for ${newsletterIds.length} newsletters`);
+
+    let completed = 0;
+    const errors: Array<{ id: string; error: string }> = [];
+
+    for (const newsletterId of newsletterIds) {
+      try {
+        const newsletter = await this.getNewsletterById(newsletterId);
+        const filename = newsletter?.filename || newsletterId;
+
+        onProgress?.(completed, newsletterIds.length, filename);
+
+        await this.generateNewsletterThumbnail(newsletterId);
+        completed++;
+
+        logger.debug(`Thumbnail ${completed}/${newsletterIds.length} completed: ${filename}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        errors.push({ id: newsletterId, error: errorMessage });
+        logger.error(`Thumbnail generation failed for ${newsletterId}:`, error);
+        // Continue with other newsletters
+      }
+    }
+
+    onProgress?.(newsletterIds.length, newsletterIds.length, 'Completed');
+
+    logger.success(
+      `Batch thumbnail generation completed: ${completed}/${newsletterIds.length} successful`,
+    );
+
+    if (errors.length > 0) {
+      logger.warn(`${errors.length} thumbnails failed to generate:`, errors);
     }
   }
 
