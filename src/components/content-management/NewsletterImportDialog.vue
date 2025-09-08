@@ -362,7 +362,18 @@ async function processFile(fileItem: FileItem): Promise<void> {
       // Publication settings
       isPublished: true,
       featured: false,
-      tags: ['imported', 'pdf', ...(comprehensiveMetadata.searchableText ? ['searchable'] : []), ...(comprehensiveMetadata.keywords || [])],
+      tags: [
+        'imported',
+        'pdf',
+        ...(comprehensiveMetadata.searchableText ? ['searchable'] : []),
+        // Filter out garbage keywords - only include real words
+        ...(comprehensiveMetadata.keywords || []).filter(keyword =>
+          keyword &&
+          keyword.length >= 3 &&
+          keyword.length <= 20 &&
+          /^[a-zA-Z\s-]+$/.test(keyword) // Only letters, spaces, and hyphens
+        )
+      ],
 
       // System fields will be set by Firebase service automatically
     };

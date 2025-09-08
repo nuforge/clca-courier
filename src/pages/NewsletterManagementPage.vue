@@ -82,7 +82,6 @@ import { onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
 import { firestoreService } from '../services/firebase-firestore.service';
-import { EnhancedThumbnailService } from '../services/enhanced-thumbnail.service';
 import { logger } from '../utils/logger';
 import type { ContentManagementNewsletter } from '../types/core/content-management.types';
 
@@ -101,7 +100,6 @@ import TextExtractionDialog from '../components/content-management/TextExtractio
 
 const store = useNewsletterManagementStore();
 const $q = useQuasar();
-const thumbnailService = new EnhancedThumbnailService();
 
 // =============================================
 // WORKFLOW TOOLBAR HANDLERS
@@ -491,12 +489,18 @@ function extractText(newsletter: ContentManagementNewsletter): void {
   // REAL PDF TEXT EXTRACTION
   void (async () => {
     try {
-      if (newsletter.downloadUrl && !newsletter.searchableText) {
+      if (newsletter.downloadUrl) {
         const response = await fetch(newsletter.downloadUrl);
         const arrayBuffer = await response.arrayBuffer();
 
         const pdfjsLib = await import('pdfjs-dist');
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        // Extract page count while we have the PDF loaded
+        if (!newsletter.pageCount) {
+          newsletter.pageCount = pdf.numPages;
+          logger.info(`Extracted page count: ${pdf.numPages} pages for ${newsletter.filename}`);
+        }
 
         let fullText = '';
         for (let i = 1; i <= pdf.numPages; i++) {
@@ -509,11 +513,20 @@ function extractText(newsletter: ContentManagementNewsletter): void {
         }
 
         newsletter.searchableText = fullText.trim();
-        newsletter.wordCount = fullText.split(/\s+/).length;
+
+        // Calculate word count properly - filter out empty strings
+        const words = fullText.trim().split(/\s+/).filter(word => word.length > 0);
+        newsletter.wordCount = words.length;
+
+        logger.info(`Extracted ${newsletter.wordCount} words from ${newsletter.filename}`);
       }
 
       store.extractingText[newsletter.filename] = false;
-      $q.notify({ type: 'positive', message: `Text extracted for ${newsletter.filename}` });
+      $q.notify({
+        type: 'positive',
+        message: `Text extracted for ${newsletter.filename}`,
+        caption: `${newsletter.pageCount} pages, ${newsletter.wordCount?.toLocaleString()} words`
+      });
     } catch (error) {
       store.extractingText[newsletter.filename] = false;
       logger.error(`Failed to extract text from ${newsletter.filename}:`, error);
@@ -528,17 +541,41 @@ async function generateThumbnail(newsletter: ContentManagementNewsletter): Promi
   try {
     logger.info(`Generating thumbnail for ${newsletter.filename}`);
 
-    // Use the enhanced thumbnail service to generate a proper thumbnail
-    const thumbnailBase64 = await thumbnailService.generateNewsletterThumbnailForUI(newsletter);
+    // REAL THUMBNAIL GENERATION using PDF.js directly (same approach as extractText)
+    if (newsletter.downloadUrl) {
+      const response = await fetch(newsletter.downloadUrl);
+      const arrayBuffer = await response.arrayBuffer();
 
-    if (thumbnailBase64) {
-      // Update the newsletter with the generated thumbnail
-      newsletter.thumbnailUrl = thumbnailBase64;
+      const pdfjsLib = await import('pdfjs-dist');
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+
+      // Extract page count while we have the PDF loaded
+      if (!newsletter.pageCount) {
+        newsletter.pageCount = pdf.numPages;
+        logger.info(`Extracted page count: ${pdf.numPages} pages for ${newsletter.filename}`);
+      }
+
+      const scale = 0.5;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d')!;
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      }).promise;
+
+      // Convert to data URL
+      newsletter.thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
       logger.success(`Thumbnail generated for ${newsletter.filename}`);
       $q.notify({ type: 'positive', message: `Thumbnail generated for ${newsletter.filename}` });
     } else {
-      logger.warn(`Failed to generate thumbnail for ${newsletter.filename}`);
-      $q.notify({ type: 'warning', message: `Failed to generate thumbnail for ${newsletter.filename}` });
+      logger.warn(`No download URL available for ${newsletter.filename}`);
+      $q.notify({ type: 'warning', message: `No PDF URL available for ${newsletter.filename}` });
     }
   } catch (error) {
     logger.error(`Error generating thumbnail for ${newsletter.filename}:`, error);

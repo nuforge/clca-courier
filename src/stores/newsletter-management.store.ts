@@ -76,8 +76,15 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
   const showTextDialog = ref(false);
   const extractedText = ref('');
 
-  // UI states
-  const workflowToolbarExpanded = ref(true);
+  // UI states - with localStorage persistence
+  const workflowToolbarExpanded = ref(
+    localStorage.getItem('newsletter-management-toolbar-expanded') !== 'false', // Default to true, but respect saved state
+  );
+
+  // Log initial state for debugging
+  logger.debug(
+    `Workflow toolbar initialized as: ${workflowToolbarExpanded.value ? 'expanded' : 'collapsed'}`,
+  );
 
   // =============================================
   // COMPUTED - DERIVED STATE
@@ -243,6 +250,12 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
 
   function toggleWorkflowToolbar(): void {
     workflowToolbarExpanded.value = !workflowToolbarExpanded.value;
+    // Save to localStorage immediately
+    localStorage.setItem(
+      'newsletter-management-toolbar-expanded',
+      workflowToolbarExpanded.value.toString(),
+    );
+    logger.debug(`Toolbar expanded state saved: ${workflowToolbarExpanded.value}`);
   }
 
   // =============================================
