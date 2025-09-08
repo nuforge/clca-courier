@@ -19,9 +19,7 @@ const routes: RouteRecordRaw[] = [
       // Contribution system
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contribute/submit', component: () => import('pages/SubmitContentPage.vue') },
-      { path: '/contribute/photo', component: () => import('pages/PhotoSubmissionPage.vue') },
-      { path: '/contribute/event', component: () => import('pages/EventAnnouncementPage.vue') },
-      { path: '/contribute/ideas', component: () => import('pages/ShareIdeasPage.vue') },
+      { path: '/contribute/guide', component: () => import('pages/ContributeGuide.vue') },
 
       { path: '/dashboard', component: () => import('pages/DashboardPage.vue') },
 

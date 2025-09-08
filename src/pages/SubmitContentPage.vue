@@ -24,10 +24,26 @@
           <q-icon name="mdi-flash" />
         </template>
         <div class="text-subtitle1">Quick Upload Mode</div>
-        <div class="text-caption">Streamlined submission for quick photo sharing</div>
+        <div class="text-caption">Streamlined submission for quick sharing</div>
       </q-banner>
 
-      <!-- Success State -->
+      <!-- Guided Mode Banner -->
+      <q-banner v-if="isGuidedMode" class="bg-primary text-white q-mb-lg" rounded>
+        <template v-slot:avatar>
+          <q-icon name="mdi-map" />
+        </template>
+        <div class="text-subtitle1">Guided Submission Process</div>
+        <div class="text-caption">You're following our step-by-step guide for the best results</div>
+        <template v-slot:action>
+          <q-btn
+            flat
+            color="white"
+            label="Back to Guide"
+            @click="() => router.push('/contribute')"
+            size="sm"
+          />
+        </template>
+      </q-banner>      <!-- Success State -->
       <div v-if="submissionSuccess" class="success-state text-center q-pa-xl">
         <q-icon name="check_circle" size="4em" color="positive" class="q-mb-md" />
         <h4 class="q-mt-none q-mb-md">Content Submitted Successfully!</h4>
@@ -236,12 +252,14 @@ const initialContentType = computed<ContentType | undefined>(() => {
     case 'article': return 'article';
     case 'photo': return 'photo_story';
     case 'event': return 'event';
-    case 'suggestion': return 'announcement'; // Map suggestions to announcements
+    case 'announcement': return 'announcement';
+    case 'classified': return 'classified';
     default: return undefined;
   }
 });
 
 const isQuickMode = computed(() => route.query.mode === 'quick');
+const isGuidedMode = computed(() => route.query.guided === 'true');
 
 const showDebugPanel = computed(() => {
   // Show debug panel in development or when explicitly requested
@@ -255,34 +273,41 @@ const contentTypeLabel = computed(() => {
     case 'article': return 'Submit Article';
     case 'photo': return isQuickMode.value ? 'Quick Photo Upload' : 'Submit Photos';
     case 'event': return 'Post Event';
-    case 'suggestion': return 'Share Ideas';
+    case 'announcement': return 'Share Community News';
+    case 'classified': return 'Post Classified Ad';
     default: return 'Submit Content';
   }
 });
 
 const pageTitle = computed(() => {
   if (isQuickMode.value) {
-    return 'Quick Photo Upload';
+    return `Quick ${route.query.type === 'photo' ? 'Photo Upload' : 'Submission'}`;
+  }
+  if (isGuidedMode.value) {
+    return `Guided ${contentTypeLabel.value}`;
   }
   return contentTypeLabel.value;
 });
 
 const pageDescription = computed(() => {
   const urlType = route.query.type as string;
-  switch (urlType) {
-    case 'article':
-      return 'Share your stories, experiences, or community insights with detailed articles and rich content.';
-    case 'photo':
-      return isQuickMode.value
-        ? 'Quickly upload and share photos with the community.'
-        : 'Submit curated photo collections with detailed descriptions and context.';
-    case 'event':
-      return 'Promote community events, meetings, or activities to keep everyone informed.';
-    case 'suggestion':
-      return 'Share your ideas for improving The Courier or our community.';
-    default:
-      return 'Share your stories, events, projects, and announcements with the CLCA community. All submissions are reviewed by our editorial team before publication.';
+  const baseDescriptions: Record<string, string> = {
+    article: 'Share your stories, experiences, or community insights with detailed articles and rich content.',
+    photo: isQuickMode.value
+      ? 'Quickly upload and share photos with the community.'
+      : 'Submit curated photo collections with detailed descriptions and context.',
+    event: 'Promote community events, meetings, or activities to keep everyone informed.',
+    announcement: 'Share important community news, updates, or general announcements.',
+    classified: 'Post items for sale, services offered, wanted items, or free giveaways.',
+  };
+
+  const description = baseDescriptions[urlType] || 'Share your content with the CLCA community. All submissions are reviewed by our editorial team before publication.';
+
+  if (isGuidedMode.value) {
+    return `${description} You're using our guided submission process for the best results.`;
   }
+
+  return description;
 });
 
 // Event handlers
