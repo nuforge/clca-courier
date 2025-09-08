@@ -16,7 +16,7 @@ const heroActions = [
     label: 'Latest News',
     icon: 'mdi-newspaper',
     color: 'primary',
-    to: '/news',
+    to: '/community',
     size: 'lg'
   },
   {
@@ -43,14 +43,14 @@ const quickLinks: QuickLink[] = [
     description: 'Stay informed with community news and announcements',
     icon: 'mdi-newspaper',
     color: 'primary',
-    link: '/news'
+    link: '/community'
   },
   {
     title: 'Classifieds & Ads',
     description: 'Browse community marketplace and services',
     icon: 'mdi-bulletin-board',
     color: 'secondary',
-    link: '/classifieds'
+    link: '/community'
   },
   {
     title: 'Issue Archive',
@@ -159,7 +159,7 @@ const quickLinks: QuickLink[] = [
                     </q-item>
                   </q-list>
                   <div class="text-center q-mt-md">
-                    <q-btn color="primary" label="View All Events" size="sm" outline to="/news" />
+                    <q-btn color="primary" label="View All Events" size="sm" outline to="/community" />
                   </div>
                 </q-card-section>
               </q-card>
@@ -183,7 +183,7 @@ const quickLinks: QuickLink[] = [
                     </q-item>
                   </q-list>
                   <div class="text-center q-mt-md">
-                    <q-btn color="secondary" label="Browse Classifieds" size="sm" outline to="/classifieds" />
+                    <q-btn color="secondary" label="Browse Classifieds" size="sm" outline to="/community?type=classifieds" />
                   </div>
                 </q-card-section>
               </q-card>

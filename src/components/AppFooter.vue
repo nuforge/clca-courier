@@ -11,10 +11,10 @@ const footerClasses = computed(() =>
 );
 
 const quickLinks = [
-  { label: 'News & Updates', to: '/news' },
+  { label: 'Community Content', to: '/community' },
   { label: 'Issue Archive', to: '/archive' },
   { label: 'Interactive Map', to: '/map' },
-  { label: 'Classifieds', to: '/classifieds' }
+  { label: 'Classifieds', to: '/community?type=classifieds' }
 ];
 
 const communityLinks = [

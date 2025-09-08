@@ -36,14 +36,9 @@ export const useNavigation = () => {
 
   const baseNavigationItems: NavigationItem[] = [
     {
-      title: 'News & Updates',
+      title: 'Community Content',
       icon: 'mdi-newspaper',
-      link: '/news',
-    },
-    {
-      title: 'Classifieds & Ads',
-      icon: 'mdi-bulletin-board',
-      link: '/classifieds',
+      link: '/community',
     },
     {
       title: 'Issue Archive',
