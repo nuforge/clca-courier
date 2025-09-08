@@ -18,9 +18,12 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Newsletter metadata collection - SIMPLIFIED AND WORKING
+    // Newsletter metadata collection - PUBLIC READ FOR PUBLISHED CONTENT
     match /newsletters/{newsletterId} {
-      // Allow authenticated users to read all newsletters
+      // Allow anyone to read published newsletters (no auth required)
+      allow read: if resource.data.isPublished == true;
+      
+      // Allow authenticated users to read ALL newsletters (including unpublished)
       allow read: if isAuthenticated();
       
       // Allow authenticated users to write (create/update/delete) newsletters
