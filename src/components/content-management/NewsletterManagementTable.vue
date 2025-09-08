@@ -10,7 +10,7 @@
         <div class="row items-center">
           <!-- Selection Info -->
           <div class="col-auto">
-            <q-checkbox v-model="isAllSelected" :indeterminate="isIndeterminate" @update:model-value="handleSelectAll"
+            <q-checkbox :model-value="isAllSelected" :indeterminate="isIndeterminate" @update:model-value="handleSelectAll"
               color="white" keep-color class="q-mr-md" />
             <span class="text-weight-medium">
               {{ selectedCount }} of {{ totalCount }} selected
@@ -83,8 +83,9 @@
     </div>
 
     <!-- Main Table -->
-    <q-table :rows="newsletters" :columns="columns" :pagination="pagination" :loading="processingStates.isLoading" flat
-      bordered class="newsletter-table" row-key="id" @row-click="handleRowClick">
+    <q-table :rows="sortedNewsletters" :columns="columns" v-model:pagination="paginationModel"
+      :loading="processingStates.isLoading" flat bordered class="newsletter-table" row-key="id"
+      @row-click="handleRowClick" @request="onTableRequest">
       <!-- Custom header for selection column -->
       <template v-slot:header-cell-selection="props">
         <q-th :props="props">
@@ -314,16 +315,11 @@
 import { ref, computed } from 'vue';
 import type { UnifiedNewsletter } from 'src/types/core/newsletter.types';
 import type { ProcessingStates } from 'src/types/core/content-management.types';
+import { useTableSettingsStore } from 'src/stores/table-settings.store';
 
 interface Props {
   newsletters: UnifiedNewsletter[];
   selectedNewsletters: UnifiedNewsletter[];
-  pagination: {
-    sortBy: string;
-    descending: boolean;
-    page: number;
-    rowsPerPage: number;
-  };
   processingStates: ProcessingStates;
   extractingText: Record<string, boolean>;
   generatingThumb: Record<string, boolean>;
@@ -333,6 +329,26 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Use table settings store for persistent settings
+const tableStore = useTableSettingsStore();
+
+// Get pagination from store instead of props
+const pagination = computed(() => tableStore.newsletterManagementTable.pagination);
+
+// Create a reactive pagination model for v-model binding
+const paginationModel = computed({
+  get: () => pagination.value,
+  set: (newPagination) => {
+    tableStore.updateNewsletterManagementPagination(newPagination);
+  }
+});
+
+// Handle table requests (sorting, pagination changes)
+const onTableRequest = (requestProps: { pagination: Record<string, unknown> }) => {
+  console.log('🔄 Table request received:', requestProps.pagination);
+  tableStore.updateNewsletterManagementPagination(requestProps.pagination);
+};
 
 const emit = defineEmits<{
   'update:selectedNewsletters': [newsletters: UnifiedNewsletter[]];
@@ -363,26 +379,82 @@ const totalCount = computed(() => props.newsletters.length);
 
 // Gmail-style pagination-aware selection logic
 const sortedNewsletters = computed(() => {
-  const { sortBy, descending } = props.pagination;
+  const { sortBy, descending } = pagination.value;
   if (!sortBy) return props.newsletters;
 
   const sorted = [...props.newsletters].sort((a, b) => {
-    let aVal = a[sortBy as keyof UnifiedNewsletter];
-    let bVal = b[sortBy as keyof UnifiedNewsletter];
+    let aValue: string | number | Date | undefined;
+    let bValue: string | number | Date | undefined;
 
-    // Handle undefined values
-    if (aVal === undefined && bVal === undefined) return 0;
-    if (aVal === undefined) return descending ? -1 : 1;
-    if (bVal === undefined) return descending ? 1 : -1;
+    // Handle specific sort fields
+    switch (sortBy) {
+      case 'year':
+        aValue = a.year;
+        bValue = b.year;
+        break;
+      case 'season':
+        aValue = a.season;
+        bValue = b.season;
+        break;
+      case 'title':
+        aValue = a.title;
+        bValue = b.title;
+        break;
+      case 'date':
+      case 'publicationDate': {
+        // Use the same logic as the column sort function
+        const getDateValue = (newsletter: UnifiedNewsletter): number => {
+          if (newsletter.publicationDate) {
+            const date = new Date(newsletter.publicationDate);
+            if (!isNaN(date.getTime())) {
+              return date.getTime();
+            }
+          }
 
-    // Handle different data types
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      aVal = aVal.toLowerCase();
-      bVal = bVal.toLowerCase();
+          // Fallback to constructed date
+          if (newsletter.month && newsletter.year) {
+            return new Date(newsletter.year, newsletter.month - 1, 1).getTime();
+          }
+
+          if (newsletter.season && newsletter.year) {
+            const seasonMonth = newsletter.season === 'spring' ? 3 :
+              newsletter.season === 'summer' ? 6 :
+                newsletter.season === 'fall' ? 9 : 12;
+            return new Date(newsletter.year, seasonMonth - 1, 1).getTime();
+          }
+
+          return newsletter.year ? new Date(newsletter.year, 0, 1).getTime() : 0;
+        };
+        aValue = getDateValue(a);
+        bValue = getDateValue(b);
+        break;
+      }
+      case 'wordCount':
+        aValue = a.wordCount || 0;
+        bValue = b.wordCount || 0;
+        break;
+      case 'fileSize':
+        aValue = a.fileSize || 0;
+        bValue = b.fileSize || 0;
+        break;
+      case 'featured':
+        aValue = a.featured ? 1 : 0;
+        bValue = b.featured ? 1 : 0;
+        break;
+      case 'published':
+        aValue = a.isPublished ? 1 : 0;
+        bValue = b.isPublished ? 1 : 0;
+        break;
+      default:
+        return 0;
     }
 
-    if (aVal < bVal) return descending ? 1 : -1;
-    if (aVal > bVal) return descending ? -1 : 1;
+    if (aValue === undefined && bValue === undefined) return 0;
+    if (aValue === undefined) return 1;
+    if (bValue === undefined) return -1;
+
+    if (aValue < bValue) return descending ? 1 : -1;
+    if (aValue > bValue) return descending ? -1 : 1;
     return 0;
   });
 
@@ -390,7 +462,7 @@ const sortedNewsletters = computed(() => {
 });
 
 const currentPageItems = computed(() => {
-  const { page, rowsPerPage } = props.pagination;
+  const { page, rowsPerPage } = pagination.value;
   const startIndex = (page - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const pageItems = sortedNewsletters.value.slice(startIndex, endIndex);
@@ -401,18 +473,18 @@ const currentPageItems = computed(() => {
     rowsPerPage,
     startIndex,
     endIndex,
-    sortBy: props.pagination.sortBy,
-    descending: props.pagination.descending,
+    sortBy: pagination.value.sortBy,
+    descending: pagination.value.descending,
     totalNewsletters: props.newsletters.length,
     pageItemsCount: pageItems.length,
-    pageItemTitles: pageItems.map(item => item.title)
+    pageItemTitles: pageItems.map((item: UnifiedNewsletter) => item.title)
   });
 
   return pageItems;
 });
 
 const currentPageSelectedCount = computed(() => {
-  return currentPageItems.value.filter(item =>
+  return currentPageItems.value.filter((item: UnifiedNewsletter) =>
     props.selectedNewsletters.some(selected => selected.id === item.id)
   ).length;
 });
@@ -490,16 +562,37 @@ const columns = [
   {
     name: 'date',
     label: 'Date',
-    field: (row: UnifiedNewsletter) => row.month ? `${row.month}/${row.year}` : `${row.season}/${row.year}`,
+    field: (row: UnifiedNewsletter) => {
+      // Try to use actual publication date first
+      if (row.publicationDate) {
+        const date = new Date(row.publicationDate);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short'
+          });
+        }
+      }
+
+      // Fallback to constructed date from components
+      if (row.month && row.year) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${monthNames[row.month - 1]} ${row.year}`;
+      }
+
+      // Final fallback to season/year
+      if (row.season && row.year) {
+        const seasonName = row.season.charAt(0).toUpperCase() + row.season.slice(1);
+        return `${seasonName} ${row.year}`;
+      }
+
+      // Just year if that's all we have
+      return row.year ? row.year.toString() : '—';
+    },
     align: 'center' as const,
     sortable: true,
-    style: 'width: 120px;',
-    sort: (a: UnifiedNewsletter, b: UnifiedNewsletter) => {
-      // Custom sorting: prioritize months, then seasons, then year
-      const aValue = a.month ? (a.year * 100 + a.month) : (a.year * 100 + (a.season === 'spring' ? 3 : a.season === 'summer' ? 6 : a.season === 'fall' ? 9 : 12));
-      const bValue = b.month ? (b.year * 100 + b.month) : (b.year * 100 + (b.season === 'spring' ? 3 : b.season === 'summer' ? 6 : b.season === 'fall' ? 9 : 12));
-      return bValue - aValue; // Newest first
-    }
+    style: 'width: 120px;'
   },
   {
     name: 'pageCount',
@@ -510,13 +603,47 @@ const columns = [
     style: 'width: 80px;',
   },
   {
+    name: 'fileSize',
+    label: 'Size',
+    field: 'fileSize',
+    align: 'center' as const,
+    sortable: true,
+    style: 'width: 90px;',
+    format: (val: number) => {
+      if (!val || val === 0) return '—';
+
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      if (val === 0) return '0 B';
+
+      const i = Math.floor(Math.log(val) / Math.log(1024));
+      const formattedSize = (val / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1);
+
+      return `${formattedSize} ${sizes[i]}`;
+    }
+  },
+  {
     name: 'wordCount',
-    label: 'Words',
+    label: 'Word Count',
     field: 'wordCount',
     align: 'center' as const,
     sortable: true,
-    style: 'width: 100px;',
-    format: (val: number) => val ? val.toLocaleString() : '—'
+    style: 'width: 120px;',
+    format: (val: number) => {
+      if (!val || val === 0) return '—';
+
+      // Present as estimates for more professional appearance
+      if (val < 1000) {
+        return `~${val}`;
+      } else if (val < 10000) {
+        // Round to nearest 100
+        const rounded = Math.round(val / 100) * 100;
+        return `~${rounded.toLocaleString()}`;
+      } else {
+        // Round to nearest 1000 for very large counts
+        const rounded = Math.round(val / 1000) * 1000;
+        return `~${rounded.toLocaleString()}`;
+      }
+    }
   },
   {
     name: 'keywords',
@@ -554,7 +681,7 @@ function handleSelectCurrentPage(selected: boolean) {
   if (currentState === 'none') {
     // No items selected → Select all items on current page
     const newSelection = [...props.selectedNewsletters];
-    currentPageItems.value.forEach(item => {
+    currentPageItems.value.forEach((item: UnifiedNewsletter) => {
       if (!newSelection.some(s => s.id === item.id)) {
         newSelection.push(item);
       }
@@ -565,7 +692,7 @@ function handleSelectCurrentPage(selected: boolean) {
   } else if (currentState === 'some') {
     // Some items selected → Select remaining items on current page
     const newSelection = [...props.selectedNewsletters];
-    currentPageItems.value.forEach(item => {
+    currentPageItems.value.forEach((item: UnifiedNewsletter) => {
       if (!newSelection.some(s => s.id === item.id)) {
         newSelection.push(item);
       }
@@ -576,7 +703,7 @@ function handleSelectCurrentPage(selected: boolean) {
   } else if (currentState === 'all') {
     // All items selected → Deselect all items on current page
     const newSelection = props.selectedNewsletters.filter(selected =>
-      !currentPageItems.value.some(pageItem => pageItem.id === selected.id)
+      !currentPageItems.value.some((pageItem: UnifiedNewsletter) => pageItem.id === selected.id)
     );
     console.log('📄 State: all → none. New selection:', newSelection.length);
     emit('update:selectedNewsletters', newSelection);

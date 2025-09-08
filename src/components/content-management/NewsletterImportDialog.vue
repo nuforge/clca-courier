@@ -333,7 +333,7 @@ async function processFile(fileItem: FileItem): Promise<void> {
     fileItem.progress = 50;
 
     // Step 4: Prepare comprehensive metadata for Firebase
-    const firebaseMetadata: Partial<NewsletterMetadata> = {
+    const firebaseMetadata = {
       filename: fileItem.name,
       title: comprehensiveMetadata.title || fileItem.name.replace(/\.pdf$/i, ''),
       description: '', // PDFMetadata doesn't have description, using empty
@@ -350,6 +350,8 @@ async function processFile(fileItem: FileItem): Promise<void> {
       pageCount: comprehensiveMetadata.pages || 0, // PDFMetadata uses 'pages', not 'pageCount'
       fileSize: fileItem.size,
       searchableText: comprehensiveMetadata.searchableText || '',
+      wordCount: comprehensiveMetadata.textContent ?
+        comprehensiveMetadata.textContent.trim().split(/\s+/).filter(word => word.length > 0).length : 0,
 
       // Storage information (will be updated by upload)
       downloadUrl: '', // Will be set by Firebase upload
@@ -384,9 +386,9 @@ async function processFile(fileItem: FileItem): Promise<void> {
         const uploadResult = await firebaseNewsletterService.uploadNewsletter(
           fileItem.file,
           {
-            title: firebaseMetadata.title!,
-            publicationDate: firebaseMetadata.publicationDate!,
-            year: firebaseMetadata.year!,
+            title: firebaseMetadata.title,
+            publicationDate: firebaseMetadata.publicationDate,
+            year: firebaseMetadata.year,
             ...(firebaseMetadata.season && { season: firebaseMetadata.season }),
             tags: firebaseMetadata.tags || [],
             featured: firebaseMetadata.featured || false
@@ -410,7 +412,7 @@ async function processFile(fileItem: FileItem): Promise<void> {
       }
 
       // Update with comprehensive metadata
-      await firestoreService.updateNewsletterMetadata(existingId, firebaseMetadata);
+      await firestoreService.updateNewsletterMetadata(existingId, firebaseMetadata as unknown as Partial<NewsletterMetadata>);
       logger.success(`Successfully updated newsletter ${existingId} with comprehensive metadata`);
 
     } else {
@@ -427,9 +429,9 @@ async function processFile(fileItem: FileItem): Promise<void> {
         await firebaseNewsletterService.uploadNewsletter(
           fileItem.file,
           {
-            title: firebaseMetadata.title!,
-            publicationDate: firebaseMetadata.publicationDate!,
-            year: firebaseMetadata.year!,
+            title: firebaseMetadata.title,
+            publicationDate: firebaseMetadata.publicationDate,
+            year: firebaseMetadata.year,
             ...(firebaseMetadata.season && { season: firebaseMetadata.season }),
             tags: firebaseMetadata.tags || [],
             featured: firebaseMetadata.featured || false
@@ -443,7 +445,7 @@ async function processFile(fileItem: FileItem): Promise<void> {
         firebaseMetadata.storageRef = storagePath;
 
         // Create new Firestore document
-        await firestoreService.saveNewsletterMetadata(firebaseMetadata as Omit<NewsletterMetadata, 'id'>);
+        await firestoreService.saveNewsletterMetadata(firebaseMetadata as unknown as Omit<NewsletterMetadata, 'id'>);
         fileItem.progress = 95; // Skip upload progress
       }
 

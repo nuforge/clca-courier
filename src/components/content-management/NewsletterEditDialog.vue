@@ -82,7 +82,7 @@
                   outlined rows="8" readonly hint="Auto-extracted text content (read-only)" />
                 <div class="row ">
                   <div class="col-12 col-md-6">
-                    <q-input v-model="localNewsletter.wordCount" label="Word Count" type="number" outlined dense
+                    <q-input :model-value="calculatedWordCount" label="Word Count" type="number" outlined dense
                       readonly />
                   </div>
                   <div class="col-12 col-md-6">
@@ -211,7 +211,22 @@ const contributorsString = computed({
   }
 });
 
-// Form options
+// Calculate word count from searchable text if not available
+const calculatedWordCount = computed(() => {
+  if (!localNewsletter.value) return 0;
+
+  // If we already have a word count and it's not 0, use it
+  if (localNewsletter.value.wordCount && localNewsletter.value.wordCount > 0) {
+    return localNewsletter.value.wordCount;
+  }
+
+  // Otherwise calculate from searchable text
+  if (localNewsletter.value.searchableText) {
+    return localNewsletter.value.searchableText.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  return 0;
+});// Form options
 const seasonOptions = [
   { label: 'Spring', value: 'spring' },
   { label: 'Summer', value: 'summer' },
@@ -257,6 +272,8 @@ const availableCategories = [
 // Methods
 const saveChanges = (): void => {
   if (localNewsletter.value) {
+    // Ensure the calculated word count is included in the save
+    localNewsletter.value.wordCount = calculatedWordCount.value;
     emit('save-newsletter', localNewsletter.value);
   }
 };

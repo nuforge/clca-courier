@@ -77,14 +77,13 @@
 
           <!-- Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="store.filteredNewsletters"
-            :selected-newsletters="store.selectedNewsletters"
-            :pagination="{ sortBy: 'year', descending: true, page: 1, rowsPerPage: 10 }"
-            :processing-states="store.processingStates" :extracting-text="store.extractingText"
-            :generating-thumb="store.thumbnailIndividualStates" :syncing-individual="store.syncingIndividual"
-            :publishing-states="store.publishingStates" :featured-states="store.featuredStates"
-            @update:selected-newsletters="store.setSelectedNewsletters" @toggle-featured="toggleNewsletterFeatured"
-            @toggle-published="toggleNewsletterPublished" @open-pdf="openPdf" @edit-newsletter="editNewsletter"
-            @extract-text="extractText" @generate-thumbnail="generateThumbnail" @sync-single="syncSingleNewsletter"
+            :selected-newsletters="store.selectedNewsletters" :processing-states="store.processingStates"
+            :extracting-text="store.extractingText" :generating-thumb="store.thumbnailIndividualStates"
+            :syncing-individual="store.syncingIndividual" :publishing-states="store.publishingStates"
+            :featured-states="store.featuredStates" @update:selected-newsletters="store.setSelectedNewsletters"
+            @toggle-featured="toggleNewsletterFeatured" @toggle-published="toggleNewsletterPublished"
+            @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
+            @generate-thumbnail="generateThumbnail" @sync-single="syncSingleNewsletter"
             @show-extracted-content="showExtractedContent" @re-import-file="handleReImportFile"
             @delete-newsletter="deleteNewsletter" />
 
