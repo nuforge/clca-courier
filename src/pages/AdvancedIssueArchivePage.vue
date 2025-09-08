@@ -277,7 +277,7 @@ import { useSiteStore } from '../stores/site-store-simple'
 import { useHybridNewsletters } from '../composables/useHybridNewsletters'
 import { useAdvancedSearch } from '../composables/useAdvancedSearch'
 import AdvancedNewsletterCard from '../components/AdvancedNewsletterCard.vue'
-import type { LightweightNewsletter } from '../services/lightweight-newsletter-service'
+import type { UnifiedNewsletter } from '../types/core/newsletter.types'
 import type { PdfDocument } from '../composables/usePdfViewer'
 
 const siteStore = useSiteStore()
@@ -361,8 +361,8 @@ const error = computed(() => hybridNewsletters.error.value)
 // Year filter options
 const yearFilterOptions = computed(() => {
   const years = new Set<number>()
-  allIssues.value.forEach((issue: LightweightNewsletter) => {
-    const date = new Date(issue.date)
+  allIssues.value.forEach((issue: UnifiedNewsletter) => {
+    const date = new Date(issue.publicationDate)
     const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
     years.add(year)
   })
@@ -377,16 +377,16 @@ const hasActiveFilters = computed(() => {
 })
 
 // Helper functions for filtering
-const hasLocalSource = (issue: LightweightNewsletter) => issue.url && issue.url.includes('/issues/')
-const hasDriveSource = (issue: LightweightNewsletter) => issue.url && issue.url.includes('drive.google.com')
+const hasLocalSource = (issue: UnifiedNewsletter) => issue.downloadUrl && issue.downloadUrl.includes('/issues/')
+const hasDriveSource = (issue: UnifiedNewsletter) => issue.downloadUrl && issue.downloadUrl.includes('drive.google.com')
 
 // Convert newsletter metadata to format expected by advanced search
-const convertNewslettersToIssues = (newsletters: LightweightNewsletter[]): PdfDocument[] => {
+const convertNewslettersToIssues = (newsletters: UnifiedNewsletter[]): PdfDocument[] => {
   return newsletters.map((newsletter, index) => {
     const issue: PdfDocument = {
       id: index + 1,
       title: newsletter.title,
-      date: newsletter.date,
+      date: newsletter.publicationDate || new Date().toISOString(),
       pages: newsletter.pages || 0,
       filename: newsletter.filename,
       url: newsletter.url || '', // Ensure url is always present
@@ -400,20 +400,20 @@ const convertNewslettersToIssues = (newsletters: LightweightNewsletter[]): PdfDo
       issue.description = newsletter.topics.join(', ')
     }
     if (newsletter.fileSize) {
-      issue.fileSize = newsletter.fileSize
+      issue.fileSize = String(newsletter.fileSize || 0)
     }
     if (newsletter.thumbnailUrl) {
       issue.thumbnailUrl = newsletter.thumbnailUrl
     }
-    // Tags and driveId are not available in LightweightNewsletter interface
+    // Tags and driveId are not available in UnifiedNewsletter interface
     if (newsletter.contentType) {
       issue.category = newsletter.contentType
     }
     if (hasLocalSource(newsletter)) {
-      issue.localUrl = newsletter.url
+      issue.localUrl = newsletter.downloadUrl || ''
     }
     if (hasDriveSource(newsletter)) {
-      issue.googleDriveUrl = newsletter.url
+      issue.googleDriveUrl = newsletter.downloadUrl || ''
     }
 
     return issue
@@ -449,21 +449,8 @@ const filteredIssues = computed(() => {
     return searchResults.value.map((result) => {
       // Find the original newsletter from the search result
       const originalNewsletter = allIssues.value.find(n => n.filename === result.filename)
-      return originalNewsletter || {
-        id: result.id,
-        title: result.title,
-        date: result.date,
-        pages: result.pages,
-        filename: result.filename,
-        url: result.url || '',
-        contentType: result.category as 'newsletter' | 'special' | 'annual' | undefined,
-        fileSize: result.fileSize,
-        thumbnailUrl: result.thumbnailUrl,
-        topics: result.description?.split(', ').filter(Boolean) || [],
-        isProcessed: false,
-        isProcessing: false
-      } as LightweightNewsletter
-    })
+      return originalNewsletter // Return the complete UnifiedNewsletter or undefined
+    }).filter((newsletter): newsletter is UnifiedNewsletter => newsletter !== undefined)
   }
 
   // If no search query and in advanced mode, show all issues
@@ -477,7 +464,7 @@ const filteredIssues = computed(() => {
   // Simple text search
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
-    issues = issues.filter((issue: LightweightNewsletter) =>
+    issues = issues.filter((issue: UnifiedNewsletter) =>
       issue.title.toLowerCase().includes(query) ||
       issue.filename.toLowerCase().includes(query) ||
       (issue.topics && issue.topics.some((topic: string) => topic.toLowerCase().includes(query)))
@@ -486,15 +473,15 @@ const filteredIssues = computed(() => {
 
   // Apply other filters (year, availability, etc.)
   if (filters.year) {
-    issues = issues.filter((issue: LightweightNewsletter) => {
-      const date = new Date(issue.date)
+    issues = issues.filter((issue: UnifiedNewsletter) => {
+      const date = new Date(issue.publicationDate)
       const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
       return year === filters.year
     })
   }
 
   if (filters.availability) {
-    issues = issues.filter((issue: LightweightNewsletter) => {
+    issues = issues.filter((issue: UnifiedNewsletter) => {
       const hasLocal = hasLocalSource(issue)
       const hasDrive = hasDriveSource(issue)
 
@@ -516,7 +503,7 @@ const filteredIssues = computed(() => {
   }
 
   if (filters.pageCount) {
-    issues = issues.filter((issue: LightweightNewsletter) => {
+    issues = issues.filter((issue: UnifiedNewsletter) => {
       const pageCount = issue.pages || 0
       switch (filters.pageCount) {
         case '1-5':
@@ -534,7 +521,7 @@ const filteredIssues = computed(() => {
   }
 
   if (filters.actions) {
-    issues = issues.filter((issue: LightweightNewsletter) => {
+    issues = issues.filter((issue: UnifiedNewsletter) => {
       switch (filters.actions) {
         case 'view':
           return hasLocalSource(issue)
@@ -558,13 +545,13 @@ const sortedIssues = computed(() => {
   const issues = [...filteredIssues.value]
   const [field, direction] = quickSort.value.split('-')
 
-  return issues.sort((a: LightweightNewsletter, b: LightweightNewsletter) => {
+  return issues.sort((a: UnifiedNewsletter, b: UnifiedNewsletter) => {
     let comparison = 0
 
     switch (field) {
       case 'date': {
-        const dateA = new Date(a.date)
-        const dateB = new Date(b.date)
+        const dateA = new Date(a.publicationDate || '1900-01-01')
+        const dateB = new Date(b.publicationDate || '1900-01-01')
         const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime()
         const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime()
         comparison = timeA - timeB
@@ -584,10 +571,10 @@ const sortedIssues = computed(() => {
 
 // Grouped by year for alternative view
 const sortedNewslettersByYear = computed(() => {
-  const grouped = new Map<number, LightweightNewsletter[]>()
+  const grouped = new Map<number, UnifiedNewsletter[]>()
 
-  sortedIssues.value.forEach((issue: LightweightNewsletter) => {
-    const date = new Date(issue.date)
+  sortedIssues.value.forEach((issue: UnifiedNewsletter) => {
+    const date = new Date(issue.publicationDate)
     const year = isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear()
 
     if (!grouped.has(year)) {

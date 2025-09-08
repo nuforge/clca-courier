@@ -93,7 +93,22 @@ export const useSiteStore = defineStore('site', () => {
   async function loadArchivedIssues() {
     try {
       const newsletters = await lightweightNewsletterService.getNewsletters();
-      archivedIssues.value = newsletters;
+      // Transform UnifiedNewsletter to PdfDocument format
+      archivedIssues.value = newsletters.map((newsletter) => ({
+        id: parseInt(newsletter.id, 10),
+        title: newsletter.title,
+        date: newsletter.publicationDate,
+        pages: newsletter.pageCount,
+        url: newsletter.downloadUrl,
+        filename: newsletter.filename,
+        status: 'local' as const,
+        syncStatus: 'synced' as const,
+        description: newsletter.description || '',
+        fileSize: String(newsletter.fileSize),
+        thumbnailUrl: newsletter.thumbnailUrl || '',
+        tags: newsletter.tags,
+        category: newsletter.categories?.[0] || '',
+      }));
     } catch (error) {
       console.error('Error loading archived issues:', error);
       archivedIssues.value = [];

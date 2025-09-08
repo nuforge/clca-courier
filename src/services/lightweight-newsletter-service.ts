@@ -6,28 +6,10 @@
 import { getPublicPath } from '../utils/path-utils';
 import { logger } from '../utils/logger';
 import { pdfMetadataStorageService } from './pdf-metadata-storage-service';
-
-export interface LightweightNewsletter {
-  id: number;
-  title: string;
-  filename: string;
-  date: string;
-  pages: number;
-  url: string;
-
-  // Optional metadata (available immediately if cached)
-  fileSize?: string;
-  thumbnailUrl?: string;
-  topics?: string[];
-  contentType?: 'newsletter' | 'special' | 'annual';
-
-  // Processing status
-  isProcessed: boolean; // Whether we have rich metadata
-  isProcessing: boolean; // Currently being processed
-}
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
 class LightweightNewsletterService {
-  private cache = new Map<string, LightweightNewsletter[]>();
+  private cache = new Map<string, UnifiedNewsletter[]>();
   private localBasePath = getPublicPath('issues/');
 
   // Static flag to control PDF processing during sync operations
@@ -49,7 +31,7 @@ class LightweightNewsletterService {
   /**
    * Get newsletters with instant loading (cached metadata when available)
    */
-  async getNewsletters(): Promise<LightweightNewsletter[]> {
+  async getNewsletters(): Promise<UnifiedNewsletter[]> {
     const cacheKey = 'newsletters';
 
     // Check cache first
@@ -79,7 +61,11 @@ class LightweightNewsletterService {
       }
 
       // Sort by date (newest first)
-      newsletters.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      newsletters.sort(
+        (a, b) =>
+          new Date(b.publicationDate || '1900-01-01').getTime() -
+          new Date(a.publicationDate || '1900-01-01').getTime(),
+      );
 
       // Cache the results
       this.cache.set(cacheKey, newsletters);
@@ -128,14 +114,25 @@ class LightweightNewsletterService {
    */
   private createBaseNewsletters(
     pdfs: Array<{ url: string; filename: string }>,
-  ): LightweightNewsletter[] {
+  ): UnifiedNewsletter[] {
     return pdfs.map((pdf) => ({
-      id: this.generateNumericId(pdf.filename),
-      title: this.extractTitleFromFilename(pdf.filename),
+      id: this.generateStringId(pdf.filename),
       filename: pdf.filename,
-      date: this.parsePublishDateFromFilename(pdf.filename),
-      pages: 0, // Will be filled from cache or processing
-      url: pdf.url,
+      title: this.extractTitleFromFilename(pdf.filename),
+      downloadUrl: pdf.url,
+      fileSize: 0, // Will be filled from cache or processing
+      pageCount: 0, // Will be filled from cache or processing
+      isPublished: true, // Default for discovered PDFs
+      featured: false,
+      year: this.extractYearFromFilename(pdf.filename),
+      publicationDate: this.parsePublishDateFromFilename(pdf.filename),
+      tags: [],
+      // Required audit fields
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'system',
+      updatedBy: 'system',
+      // Optional processing status
       isProcessed: false,
       isProcessing: false,
     }));
@@ -144,17 +141,16 @@ class LightweightNewsletterService {
   /**
    * Enhance newsletters with cached metadata (instant)
    */
-  private enhanceWithCachedMetadata(newsletters: LightweightNewsletter[]): void {
+  private enhanceWithCachedMetadata(newsletters: UnifiedNewsletter[]): void {
     let enhancedCount = 0;
 
     for (const newsletter of newsletters) {
       const cachedMetadata = pdfMetadataStorageService.getQuickMetadata(newsletter.filename);
 
       if (cachedMetadata) {
-        newsletter.pages = cachedMetadata.pages;
-        newsletter.fileSize = cachedMetadata.fileSize;
-        newsletter.topics = cachedMetadata.topics;
-        newsletter.contentType = cachedMetadata.contentType;
+        newsletter.pageCount = cachedMetadata.pages;
+        newsletter.fileSize = parseInt(String(cachedMetadata.fileSize), 10) || 0;
+        newsletter.tags = cachedMetadata.topics || [];
         if (cachedMetadata.thumbnailDataUrl) {
           newsletter.thumbnailUrl = cachedMetadata.thumbnailDataUrl;
         }
@@ -173,7 +169,7 @@ class LightweightNewsletterService {
   /**
    * Queue unprocessed PDFs for background processing
    */
-  private queueUnprocessedPDFs(newsletters: LightweightNewsletter[]): void {
+  private queueUnprocessedPDFs(newsletters: UnifiedNewsletter[]): void {
     const unprocessed = newsletters.filter((n) => !n.isProcessed);
 
     if (unprocessed.length === 0) {
@@ -191,7 +187,7 @@ class LightweightNewsletterService {
 
       return {
         filename: newsletter.filename,
-        url: newsletter.url,
+        url: newsletter.downloadUrl,
         priority,
       };
     });
@@ -289,6 +285,19 @@ class LightweightNewsletterService {
   }
 
   /**
+   * Generate unique string ID from filename
+   */
+  private generateStringId(filename: string): string {
+    let hash = 0;
+    for (let i = 0; i < filename.length; i++) {
+      const char = filename.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString();
+  }
+
+  /**
    * Generate unique numeric ID from filename
    */
   private generateNumericId(filename: string): number {
@@ -302,9 +311,17 @@ class LightweightNewsletterService {
   }
 
   /**
+   * Extract year from filename
+   */
+  private extractYearFromFilename(filename: string): number {
+    const yearMatch = filename.match(/(\d{4})/);
+    return yearMatch?.[1] ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+  }
+
+  /**
    * Get newsletter by filename (with up-to-date processing status)
    */
-  async getNewsletterByFilename(filename: string): Promise<LightweightNewsletter | null> {
+  async getNewsletterByFilename(filename: string): Promise<UnifiedNewsletter | null> {
     const newsletters = await this.getNewsletters();
     return newsletters.find((n) => n.filename === filename) || null;
   }
@@ -339,7 +356,7 @@ class LightweightNewsletterService {
   /**
    * Search newsletters (uses cached metadata when available)
    */
-  async searchNewsletters(query: string): Promise<LightweightNewsletter[]> {
+  async searchNewsletters(query: string): Promise<UnifiedNewsletter[]> {
     const newsletters = await this.getNewsletters();
     const queryLower = query.toLowerCase();
 
@@ -375,7 +392,10 @@ class LightweightNewsletterService {
         if (!a.isProcessed && b.isProcessed) return 1;
 
         // Then by date
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return (
+          new Date(b.publicationDate || '1900-01-01').getTime() -
+          new Date(a.publicationDate || '1900-01-01').getTime()
+        );
       });
   }
 }

@@ -4,10 +4,10 @@
  */
 
 import { ref, computed } from 'vue';
-import {
-  lightweightNewsletterService,
-  type LightweightNewsletter,
-} from '../services/lightweight-newsletter-service';
+import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
+
+// No conversion needed anymore - lightweightNewsletterService now returns UnifiedNewsletter directly
 
 interface ServiceStats {
   totalNewsletters: number;
@@ -21,7 +21,7 @@ interface ServiceStats {
 }
 
 export function useHybridNewsletters() {
-  const newsletters = ref<LightweightNewsletter[]>([]);
+  const newsletters = ref<UnifiedNewsletter[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const serviceStats = ref<ServiceStats | null>(null);
@@ -36,7 +36,7 @@ export function useHybridNewsletters() {
 
       console.log('[useHybridNewsletters] Loading newsletters...');
       const data = await lightweightNewsletterService.getNewsletters();
-      newsletters.value = data;
+      newsletters.value = data; // Service now returns UnifiedNewsletter directly
 
       // Load service statistics
       serviceStats.value = {
@@ -63,17 +63,17 @@ export function useHybridNewsletters() {
    * Get sources for a specific newsletter (simplified for lightweight service)
    */
   const getNewsletterSources = (
-    newsletter: LightweightNewsletter,
+    newsletter: UnifiedNewsletter,
   ): Array<{ type: string; url: string; available: boolean }> => {
     // Simplified source detection for lightweight service
     const sources = [];
 
-    if (newsletter.url.includes('/issues/')) {
-      sources.push({ type: 'local', url: newsletter.url, available: true });
+    if (newsletter.downloadUrl?.includes('/issues/')) {
+      sources.push({ type: 'local', url: newsletter.downloadUrl, available: true });
     }
 
-    if (newsletter.url.includes('drive.google.com')) {
-      sources.push({ type: 'drive', url: newsletter.url, available: true });
+    if (newsletter.downloadUrl?.includes('drive.google.com')) {
+      sources.push({ type: 'drive', url: newsletter.downloadUrl, available: true });
     }
 
     return sources;
@@ -82,36 +82,36 @@ export function useHybridNewsletters() {
   /**
    * Get the best URL for web viewing
    */
-  const getWebViewUrl = (newsletter: LightweightNewsletter): string | null => {
-    return newsletter.url; // Direct URL access for lightweight approach
+  const getWebViewUrl = (newsletter: UnifiedNewsletter): string | null => {
+    return newsletter.downloadUrl || null; // Direct URL access with null safety
   };
 
   /**
    * Get the best URL for downloading
    */
-  const getDownloadUrl = (newsletter: LightweightNewsletter): string | null => {
-    return newsletter.url; // Direct URL access for lightweight approach
+  const getDownloadUrl = (newsletter: UnifiedNewsletter): string | null => {
+    return newsletter.downloadUrl || null; // Direct URL access with null safety
   };
 
   /**
    * Check if newsletter has local source available
    */
-  const hasLocalSource = (newsletter: LightweightNewsletter): boolean => {
-    return newsletter.url.includes('/issues/');
+  const hasLocalSource = (newsletter: UnifiedNewsletter): boolean => {
+    return newsletter.downloadUrl?.includes('/issues/') || false;
   };
 
   /**
    * Check if newsletter has Google Drive source available
    */
-  const hasDriveSource = (newsletter: LightweightNewsletter): boolean => {
-    return newsletter.url.includes('drive.google.com');
+  const hasDriveSource = (newsletter: UnifiedNewsletter): boolean => {
+    return newsletter.downloadUrl?.includes('drive.google.com') || false;
   };
 
   /**
    * Check if newsletter has hybrid sources (both local and drive)
    */
-  const hasHybridSources = (newsletter: LightweightNewsletter): boolean => {
-    return newsletter.isProcessed; // For lightweight service, this indicates enhanced metadata
+  const hasHybridSources = (newsletter: UnifiedNewsletter): boolean => {
+    return newsletter.isPublished || false; // Use isPublished instead of isProcessed
   }; /**
    * Refresh newsletter data
    */
@@ -121,7 +121,7 @@ export function useHybridNewsletters() {
 
   // Computed properties for filtered and sorted newsletters
   const newslettersByYear = computed(() => {
-    const groupedByYear: Record<string, LightweightNewsletter[]> = {};
+    const groupedByYear: Record<string, UnifiedNewsletter[]> = {};
 
     newsletters.value.forEach((newsletter) => {
       const year = newsletter.date ? new Date(newsletter.date).getFullYear().toString() : 'Unknown';
@@ -138,7 +138,7 @@ export function useHybridNewsletters() {
       return parseInt(b) - parseInt(a);
     });
 
-    const result: Record<string, LightweightNewsletter[]> = {};
+    const result: Record<string, UnifiedNewsletter[]> = {};
     sortedYears.forEach((year) => {
       // Sort newsletters within each year by date (newest first)
       const yearNewsletters = groupedByYear[year];
@@ -166,7 +166,7 @@ export function useHybridNewsletters() {
   });
 
   const newslettersByContentType = computed(() => {
-    const grouped: Record<string, LightweightNewsletter[]> = {
+    const grouped: Record<string, UnifiedNewsletter[]> = {
       newsletter: [],
       special: [],
       annual: [],

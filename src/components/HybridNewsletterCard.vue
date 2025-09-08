@@ -6,7 +6,7 @@
         <div class="col-12">
           <div class="text-h6 q-mb-xs line-clamp-2 text-break">{{ newsletter.title }}</div>
           <div class="text-subtitle2 text-grey-6">
-            {{ formatDate(newsletter.date) }}
+            {{ formatDate(newsletter.publicationDate) }}
           </div>
         </div>
       </div>
@@ -202,7 +202,7 @@
         <q-card-section>
           <div class="q-gutter-sm">
             <div><strong>Title:</strong> {{ newsletter.title }}</div>
-            <div v-if="validDate"><strong>Date:</strong> {{ formatDate(newsletter.date) }}</div>
+            <div v-if="validDate"><strong>Date:</strong> {{ formatDate(newsletter.publicationDate) }}</div>
             <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>
             <div><strong>Filename:</strong> {{ newsletter.filename }}</div>
             <div v-if="displayFileSize"><strong>File Size:</strong> {{ displayFileSize }}</div>
@@ -223,13 +223,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import type { LightweightNewsletter } from '../services/lightweight-newsletter-service';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 import { useHybridNewsletters } from '../composables/useHybridNewsletters';
 import { usePdfViewer } from '../composables/usePdfViewer';
 import { usePdfMetadata } from '../composables/usePdfMetadata';
 
 interface Props {
-  newsletter: LightweightNewsletter;
+  newsletter: UnifiedNewsletter;
 }
 
 const props = defineProps<Props>();
@@ -295,7 +295,7 @@ const loadLiveMetadata = async () => {
 
   // Fallback to constructing URL from local file
   if (!pdfUrl) {
-    pdfUrl = props.newsletter.url; // Use the direct URL from lightweight newsletter
+    pdfUrl = props.newsletter.downloadUrl; // Use the direct URL from newsletter
   }
 
   // Only proceed if we have a URL and don't already have live data
@@ -353,7 +353,11 @@ const openWebViewer = () => {
     if (webUrl) {
       // Use the existing PDF viewer
       pdfViewer.openDocument({
-        ...props.newsletter,
+        id: parseInt(props.newsletter.id, 10), // Convert string ID to number for PDF viewer
+        title: props.newsletter.title,
+        filename: props.newsletter.filename,
+        date: props.newsletter.publicationDate,
+        pages: props.newsletter.pageCount,
         url: webUrl
       });
     } else {

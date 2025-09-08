@@ -6,7 +6,7 @@
         <div class="col-12">
           <div class="text-h6 q-mb-xs line-clamp-2 text-break">{{ newsletter.title }}</div>
           <div class="text-subtitle2 text-grey-6">
-            {{ formatDate(newsletter.date) }}
+            {{ formatDate(newsletter.publicationDate) }}
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@
           <div v-else class="fallback-thumbnail rounded-borders newsletter-thumbnail flex flex-center column">
             <q-icon name="description" size="3rem" class="text-grey-5" />
             <div class="text-caption text-grey-6 q-mt-sm">{{ newsletter.title }}</div>
-            <div class="text-caption text-grey-7">{{ formatDate(newsletter.date) }}</div>
+            <div class="text-caption text-grey-7">{{ formatDate(newsletter.publicationDate) }}</div>
 
             <!-- Hover overlay -->
             <div class="absolute-full newsletter-overlay flex flex-center">
@@ -154,8 +154,7 @@
           </q-item>
 
           <!-- Check File Availability -->
-          <q-item v-if="hasLocalSource" clickable @click="validateLocalFile"
-            :disable="fileValidation.isValidating">
+          <q-item v-if="hasLocalSource" clickable @click="validateLocalFile" :disable="fileValidation.isValidating">
             <q-item-section avatar>
               <q-icon :name="fileValidation.isValidating ? 'hourglass_empty' : 'refresh'" />
             </q-item-section>
@@ -179,12 +178,12 @@
         <q-card-section>
           <div class="q-gutter-sm">
             <div><strong>Title:</strong> {{ newsletter.title }}</div>
-            <div><strong>Date:</strong> {{ formatDate(newsletter.date) }}</div>
+            <div><strong>Date:</strong> {{ formatDate(newsletter.publicationDate) }}</div>
             <div v-if="validPageCount"><strong>Pages:</strong> {{ validPageCount }}</div>
             <div><strong>Filename:</strong> {{ newsletter.filename }}</div>
             <div v-if="displayFileSize"><strong>File Size:</strong> {{ displayFileSize }}</div>
-            <div v-if="newsletter.date">
-              <strong>Published:</strong> {{ formatDate(newsletter.date) }}
+            <div v-if="newsletter.publicationDate">
+              <strong>Published:</strong> {{ formatDate(newsletter.publicationDate) }}
             </div>
             <div v-if="newsletter.topics?.length">
               <strong>Topics:</strong> {{ newsletter.topics.join(', ') }}
@@ -232,11 +231,11 @@ import { usePdfThumbnails } from '../composables/usePdfThumbnails'
 import { usePdfViewer } from '../composables/usePdfViewer'
 import { getPublicPath } from '../utils/path-utils'
 import { validatePdfFile } from '../utils/pdfValidator'
-import type { LightweightNewsletter } from '../services/lightweight-newsletter-service'
+import type { UnifiedNewsletter } from '../types/core/newsletter.types'
 import { logger } from '../utils/logger'
 
 interface Props {
-  newsletter: LightweightNewsletter
+  newsletter: UnifiedNewsletter
   showSourceIndicators?: boolean
 }
 
@@ -271,12 +270,12 @@ const fileValidation = ref({
 // Computed properties for source detection
 const hasLocalSource = computed(() => {
   // Check if URL is a local file (contains /issues/)
-  return props.newsletter.url && props.newsletter.url.includes('/issues/')
+  return props.newsletter.downloadUrl && props.newsletter.downloadUrl.includes('/issues/')
 })
 
 const hasDriveSource = computed(() => {
   // Check if URL is a Google Drive URL
-  return props.newsletter.url && props.newsletter.url.includes('drive.google.com')
+  return props.newsletter.downloadUrl && props.newsletter.downloadUrl.includes('drive.google.com')
 })
 
 const canGenerateThumbnail = computed(() =>
@@ -309,7 +308,7 @@ const viewTooltipText = computed(() => {
 
 // File size and page validation
 const validPageCount = computed(() => {
-  const pages = props.newsletter.pages
+  const pages = props.newsletter.pageCount
   return pages && pages > 0 ? pages : null
 })
 
@@ -344,7 +343,7 @@ const generateThumbnail = async () => {
     isGeneratingThumbnail.value = true
     logger.debug('Generating thumbnail for:', props.newsletter.title)
 
-    const thumbnail = await regenerateThumbnail(props.newsletter.url)
+    const thumbnail = await regenerateThumbnail(props.newsletter.downloadUrl)
 
     if (thumbnail) {
       generatedThumbnail.value = thumbnail
@@ -363,17 +362,17 @@ const generateThumbnail = async () => {
 
 const openWebViewer = () => {
   // Use the newsletter URL directly (works for both local and drive sources)
-  if (props.newsletter.url) {
-    console.log('Opening PDF with URL:', props.newsletter.url)
+  if (props.newsletter.downloadUrl) {
+    console.log('Opening PDF with URL:', props.newsletter.downloadUrl)
     console.log('Newsletter data:', props.newsletter)
 
     // Use the URL from newsletter (already properly constructed)
     pdfViewer.openDocument({
-      id: props.newsletter.id,
+      id: parseInt(props.newsletter.id, 10), // Convert string ID to number
       title: props.newsletter.title,
-      date: props.newsletter.date,
-      pages: props.newsletter.pages || 0,
-      url: props.newsletter.url,
+      date: props.newsletter.publicationDate,
+      pages: props.newsletter.pageCount || 0,
+      url: props.newsletter.downloadUrl,
       filename: props.newsletter.filename
     })
     return
@@ -399,7 +398,7 @@ const downloadFromDrive = () => {
   }
 
   // Open newsletter URL in new tab (should be Google Drive URL)
-  window.open(props.newsletter.url, '_blank')
+  window.open(props.newsletter.downloadUrl, '_blank')
 }
 
 const downloadLocal = () => {
@@ -410,7 +409,7 @@ const downloadLocal = () => {
 
   // Create download link for local file using newsletter URL
   const link = document.createElement('a')
-  link.href = props.newsletter.url
+  link.href = props.newsletter.downloadUrl
   link.download = props.newsletter.filename
   document.body.appendChild(link)
   link.click()
@@ -421,7 +420,7 @@ const copyLink = async () => {
   try {
     const url = hasLocalSource.value
       ? `${window.location.origin}/archive?view=${props.newsletter.filename}`
-      : props.newsletter.url // Use the newsletter URL directly
+      : props.newsletter.downloadUrl // Use the newsletter URL directly
 
     await navigator.clipboard.writeText(url)
 
@@ -454,7 +453,7 @@ const validateLocalFile = async (): Promise<boolean> => {
   fileValidation.value.isValidating = true
 
   try {
-    const validation = await validatePdfFile(props.newsletter.url)
+    const validation = await validatePdfFile(props.newsletter.downloadUrl)
 
     fileValidation.value.localFileExists = validation.isValid
     fileValidation.value.lastChecked = new Date()
@@ -496,7 +495,7 @@ onMounted(async () => {
 
   if (hasLocalSource.value && !localThumbnailUrl.value) {
     try {
-      const thumbnail = await getThumbnail(props.newsletter.url)
+      const thumbnail = await getThumbnail(props.newsletter.downloadUrl)
       if (thumbnail) {
         generatedThumbnail.value = thumbnail
       }

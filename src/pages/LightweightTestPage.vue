@@ -1,183 +1,86 @@
 <template>
-  <div class="lightweight-test-page q-pa-md">
-    <div class="row q-gutter-md">
-      <div class="col-12">
-        <q-card>
-          <q-card-section>
-            <div class="text-h6">🚀 Lightweight PDF Processing Test</div>
-            <div class="text-subtitle2 text-grey-7">Testing fast loading with smart caching</div>
-          </q-card-section>
+  <div class="q-pa-md">
+    <div class="row justify-center">
+      <q-card class="newsletter-test-card">
+        <q-card-section>
+          <div class="text-h6">Lightweight Newsletter Service Test</div>
+          <div class="text-subtitle2 text-grey-7">Testing fast loading with smart caching</div>
+        </q-card-section>
 
-          <q-card-section>
-            <!-- Search Interface -->
-            <div class="row q-gutter-md items-center q-mb-md">
-              <div class="col-12 col-md-6">
-                <q-input
-                  v-model="searchQuery"
-                  placeholder="Search newsletters (instant results)..."
-                  outlined
-                  clearable
-                  @clear="clearSearch"
-                  @keyup.enter="performSearch"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="search" />
-                  </template>
-                </q-input>
-              </div>
-
-              <div class="col-12 col-md-3">
-                <q-btn-toggle
-                  v-model="searchMode"
-                  no-caps
-                  unelevated
-                  toggle-color="primary"
-                  :options="[
-                    { label: 'Fast', value: 'lightweight' },
-                    { label: 'Content', value: 'content' }
-                  ]"
-                  @update:model-value="onSearchModeChange"
-                />
-              </div>
-
-              <div class="col-12 col-md-3">
-                <q-btn
-                  color="primary"
-                  label="Search"
-                  @click="performSearch"
-                  :loading="isSearching"
-                  :disable="!searchQuery || searchQuery.length < 2"
-                />
-              </div>
+        <q-card-section>
+          <!-- Search Interface -->
+          <div class="row q-gutter-md items-center q-mb-md">
+            <div class="col-12 col-md-6">
+              <q-input v-model="searchQuery" placeholder="Search newsletters (instant results)..." outlined clearable
+                @clear="clearSearch" @keyup.enter="performSearch">
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
             </div>
 
-            <!-- Statistics -->
-            <div class="row q-gutter-md q-mb-md">
-              <div class="col">
-                <q-chip color="primary" text-color="white" icon="description">
-                  {{ newsletters.length }} Newsletters
-                </q-chip>
-              </div>
-              <div class="col">
-                <q-chip color="positive" text-color="white" icon="cached">
-                  {{ processingStats.processed }} Processed
-                </q-chip>
-              </div>
-              <div class="col">
-                <q-chip color="orange" text-color="white" icon="hourglass_empty">
-                  {{ processingStats.processing }} Processing
-                </q-chip>
-              </div>
-              <div class="col">
-                <q-chip color="grey" text-color="white" icon="pending">
-                  {{ processingStats.pending }} Pending
-                </q-chip>
-              </div>
+            <div class="col-12 col-md-3">
+              <q-btn-toggle v-model="searchMode" no-caps unelevated toggle-color="primary" :options="[
+                { label: 'Fast', value: 'lightweight' },
+                { label: 'Content', value: 'content' }
+              ]" @update:model-value="onSearchModeChange" />
             </div>
 
-            <!-- Search Results -->
-            <div v-if="searchResults.length > 0" class="q-mb-md">
-              <div class="text-subtitle1 q-mb-sm">
-                Search Results ({{ searchResults.length }})
-                <q-chip v-if="searchStats.searchTime > 0" size="sm" color="grey-3">
-                  {{ searchStats.searchTime }}ms
-                </q-chip>
-              </div>
+            <div class="col-12 col-md-3">
+              <q-btn color="primary" label="Search" @click="performSearch" :loading="isSearching"
+                :disable="!searchQuery || searchQuery.length < 2" />
+            </div>
+          </div>
 
-              <div class="row q-gutter-sm">
-                <div
-                  v-for="result in searchResults.slice(0, 6)"
-                  :key="result.id"
-                  class="col-12 col-md-6"
-                >
-                  <q-card flat bordered>
-                    <q-card-section class="q-pa-sm">
-                      <div class="text-subtitle2">{{ result.title }}</div>
-                      <div class="text-caption text-grey-6">
-                        {{ result.filename }} • {{ result.pages }} pages
-                        <q-chip
-                          v-if="result.isProcessed"
-                          size="xs"
-                          color="positive"
-                          text-color="white"
-                        >
-                          Rich Data
-                        </q-chip>
-                        <q-chip
-                          v-else-if="result.isProcessing"
-                          size="xs"
-                          color="orange"
-                          text-color="white"
-                        >
-                          Processing
-                        </q-chip>
-                      </div>
-                      <div v-if="result.topics && result.topics.length > 0" class="q-mt-xs">
-                        <q-chip
-                          v-for="topic in result.topics.slice(0, 3)"
-                          :key="topic"
-                          size="xs"
-                          color="grey-3"
-                        >
-                          {{ topic }}
-                        </q-chip>
-                      </div>
-                    </q-card-section>
-                  </q-card>
-                </div>
-              </div>
+          <!-- Statistics -->
+          <div class="row q-gutter-md q-mb-md">
+            <div class="col">
+              <q-chip color="primary" text-color="white" icon="description">
+                {{ newsletters.length }} Newsletters
+              </q-chip>
+            </div>
+            <div class="col">
+              <q-chip color="positive" text-color="white" icon="cached">
+                {{ processingStats.processed }} Processed
+              </q-chip>
+            </div>
+            <div class="col">
+              <q-chip color="orange" text-color="white" icon="hourglass_empty">
+                {{ processingStats.processing }} Processing
+              </q-chip>
+            </div>
+            <div class="col">
+              <q-chip color="grey" text-color="white" icon="pending">
+                {{ processingStats.pending }} Pending
+              </q-chip>
+            </div>
+          </div>
+
+          <!-- Search Results -->
+          <div v-if="searchResults.length > 0" class="q-mb-md">
+            <div class="text-subtitle1 q-mb-sm">
+              Search Results ({{ searchResults.length }})
+              <q-chip v-if="searchStats.searchTime > 0" size="sm" color="grey-3">
+                {{ searchStats.searchTime }}ms
+              </q-chip>
             </div>
 
-            <!-- All Newsletters -->
-            <div class="text-subtitle1 q-mb-sm">All Newsletters</div>
             <div class="row q-gutter-sm">
-              <div
-                v-for="newsletter in newsletters.slice(0, 12)"
-                :key="newsletter.id"
-                class="col-12 col-sm-6 col-md-4 col-lg-3"
-              >
+              <div v-for="result in searchResults.slice(0, 6)" :key="result.id" class="col-12 col-md-6">
                 <q-card flat bordered>
                   <q-card-section class="q-pa-sm">
-                    <div class="text-subtitle2">{{ newsletter.title }}</div>
+                    <div class="text-subtitle2">{{ result.title }}</div>
                     <div class="text-caption text-grey-6">
-                      {{ newsletter.date }} • {{ newsletter.pages }} pages
-                    </div>
-                    <div class="q-mt-xs">
-                      <q-chip
-                        v-if="newsletter.isProcessed"
-                        size="xs"
-                        color="positive"
-                        text-color="white"
-                        icon="check"
-                      >
-                        Processed
+                      {{ result.filename }} • {{ result.pages }} pages
+                      <q-chip v-if="result.isProcessed" size="xs" color="positive" text-color="white">
+                        Rich Data
                       </q-chip>
-                      <q-chip
-                        v-else-if="newsletter.isProcessing"
-                        size="xs"
-                        color="orange"
-                        text-color="white"
-                        icon="hourglass_empty"
-                      >
+                      <q-chip v-else-if="result.isProcessing" size="xs" color="orange" text-color="white">
                         Processing
                       </q-chip>
-                      <q-chip
-                        v-else
-                        size="xs"
-                        color="grey"
-                        text-color="white"
-                        icon="pending"
-                      >
-                        Pending
-                      </q-chip>
                     </div>
-                    <div v-if="newsletter.topics && newsletter.topics.length > 0" class="q-mt-xs">
-                      <q-chip
-                        v-for="topic in newsletter.topics.slice(0, 2)"
-                        :key="topic"
-                        size="xs"
-                        color="grey-3"
-                      >
+                    <div v-if="result.topics && result.topics.length > 0" class="q-mt-xs">
+                      <q-chip v-for="topic in result.topics.slice(0, 3)" :key="topic" size="xs" color="grey-3">
                         {{ topic }}
                       </q-chip>
                     </div>
@@ -185,9 +88,42 @@
                 </q-card>
               </div>
             </div>
-          </q-card-section>
-        </q-card>
-      </div>
+          </div>
+
+          <!-- All Newsletters -->
+          <div class="text-subtitle1 q-mb-sm">All Newsletters</div>
+          <div class="row q-gutter-sm">
+            <div v-for="newsletter in newsletters.slice(0, 12)" :key="newsletter.id"
+              class="col-12 col-sm-6 col-md-4 col-lg-3">
+              <q-card flat bordered>
+                <q-card-section class="q-pa-sm">
+                  <div class="text-subtitle2">{{ newsletter.title }}</div>
+                  <div class="text-caption text-grey-6">
+                    {{ newsletter.publicationDate }} • {{ newsletter.pageCount }} pages
+                  </div>
+                  <div class="q-mt-xs">
+                    <q-chip v-if="newsletter.isProcessed" size="xs" color="positive" text-color="white" icon="check">
+                      Processed
+                    </q-chip>
+                    <q-chip v-else-if="newsletter.isProcessing" size="xs" color="orange" text-color="white"
+                      icon="hourglass_empty">
+                      Processing
+                    </q-chip>
+                    <q-chip v-else size="xs" color="grey" text-color="white" icon="pending">
+                      Pending
+                    </q-chip>
+                  </div>
+                  <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mt-xs">
+                    <q-chip v-for="topic in newsletter.tags.slice(0, 2)" :key="topic" size="xs" color="grey-3">
+                      {{ topic }}
+                    </q-chip>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
     </div>
   </div>
 </template>
@@ -196,21 +132,9 @@
 import { ref, onMounted, watch } from 'vue';
 import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
 import { useAdvancedSearch } from '../composables/useAdvancedSearch';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
-interface LightweightNewsletter {
-  id: number;
-  title: string;
-  filename: string;
-  date: string;
-  pages: number;
-  url: string;
-  isProcessed: boolean;
-  isProcessing: boolean;
-  fileSize?: string;
-  thumbnailUrl?: string;
-  topics?: string[];
-  contentType?: string;
-}
+// Use UnifiedNewsletter instead of local interface
 
 interface SearchResultItem {
   id: number;
@@ -236,7 +160,7 @@ const {
 } = useAdvancedSearch();
 
 // Local state
-const newsletters = ref<LightweightNewsletter[]>([]);
+const newsletters = ref<UnifiedNewsletter[]>([]);
 const searchQuery = ref('');
 const searchMode = ref<'lightweight' | 'content'>('lightweight');
 const searchResults = ref<SearchResultItem[]>([]);
@@ -294,15 +218,15 @@ const performSearch = async () => {
 
       // Transform to SearchResultItem format
       searchResults.value = lightweightResults.map(newsletter => ({
-        id: newsletter.id,
+        id: parseInt(newsletter.id, 10), // Convert string ID to number
         title: newsletter.title,
-        date: newsletter.date,
+        date: newsletter.publicationDate || new Date().toISOString(),
         filename: newsletter.filename,
-        pages: newsletter.pages,
+        pages: newsletter.pageCount,
         score: 1.0, // Default score for lightweight results
-        isProcessed: newsletter.isProcessed,
-        isProcessing: newsletter.isProcessing,
-        topics: newsletter.topics ?? undefined,
+        isProcessed: newsletter.isProcessed || false,
+        isProcessing: newsletter.isProcessing || false,
+        topics: newsletter.tags || undefined
       }));
 
       console.log(`[LightweightTest] Lightweight search completed: ${searchResults.value.length} results`);
@@ -312,19 +236,19 @@ const performSearch = async () => {
 
       // Convert newsletters to format expected by advanced search
       const searchableIssues = newsletters.value.map((newsletter) => ({
-        id: newsletter.id,
+        id: parseInt(newsletter.id, 10), // Convert string ID to number
         title: newsletter.title,
-        date: newsletter.date,
-        pages: newsletter.pages,
+        date: newsletter.publicationDate || new Date().toISOString(),
+        pages: newsletter.pageCount || 0,
         filename: newsletter.filename,
         status: 'local' as const,
         syncStatus: 'synced' as const,
-        url: newsletter.url ?? '',
-        description: newsletter.title ?? '',
-        fileSize: newsletter.fileSize ?? '',
-        thumbnailUrl: newsletter.thumbnailUrl ?? '',
-        tags: newsletter.topics ?? [],
-        category: newsletter.contentType ?? '',
+        url: newsletter.downloadUrl || '',
+        description: newsletter.title || '',
+        fileSize: String(newsletter.fileSize || 0),
+        thumbnailUrl: newsletter.thumbnailUrl || '',
+        tags: newsletter.tags || [],
+        category: newsletter.categories?.[0] || '',
       }));
 
       await performAdvancedSearch(searchableIssues, searchQuery.value);
@@ -377,3 +301,10 @@ watch(searchQuery, (newQuery) => {
   }, 300);
 });
 </script>
+
+<style scoped>
+.newsletter-test-card {
+  width: 100%;
+  max-width: 1200px;
+}
+</style>

@@ -423,7 +423,7 @@ const allNewslettersIncludingDrafts = computed(() => {
       title: draft.title,
       description: draft.description || '',
       year: draft.year,
-      season: undefined, // Drafts don't have season initially
+      // season property omitted - will be undefined by TypeScript
       // Omit month since it's optional and we don't have it
       fileSize: draft.fileSize,
       pageCount: draft.pageCount || 0,

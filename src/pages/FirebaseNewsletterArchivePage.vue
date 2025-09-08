@@ -65,7 +65,7 @@
                     outlined dense :class="{ 'bg-grey-1': !isDarkMode, 'bg-grey-9': isDarkMode }" clearable
                     :loading="isSearching" @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
                     :aria-label="'Search through ' + (stats?.totalNewsletters || 0) + ' newsletters'" role="searchbox"
-                    aria-expanded="false" :aria-describedby="searchInput ? 'search-suggestions' : undefined">
+                    aria-expanded="false" :aria-describedby="searchInput ? 'search-suggestions' : null">
                     <template v-slot:prepend>
                       <q-icon name="find_in_page" />
                     </template>
@@ -230,17 +230,17 @@
                         Featured
                       </q-chip>
                       <q-chip v-if="filters.hasDescription" removable
-                        @remove="filters.hasDescription = undefined; onFilterChange()" color="purple" text-color="white"
+                        @remove="filters.hasDescription = null; onFilterChange()" color="purple" text-color="white"
                         dense role="listitem">
                         With Descriptions
                       </q-chip>
                       <q-chip v-if="filters.hasSearchableText" removable
-                        @remove="filters.hasSearchableText = undefined; onFilterChange()" color="orange"
+                        @remove="filters.hasSearchableText = null; onFilterChange()" color="orange"
                         text-color="white" dense role="listitem">
                         Text Searchable
                       </q-chip>
                       <q-chip v-if="filters.hasThumbnail" removable
-                        @remove="filters.hasThumbnail = undefined; onFilterChange()" color="teal" text-color="white"
+                        @remove="filters.hasThumbnail = null; onFilterChange()" color="teal" text-color="white"
                         dense role="listitem">
                         With Thumbnails
                       </q-chip>
@@ -459,9 +459,10 @@ const filters = ref({
   season: null as string | null,
   pageCount: null as string | null,
   featured: false,
-  hasDescription: undefined as boolean | undefined,
-  hasSearchableText: undefined as boolean | undefined,
-  hasThumbnail: undefined as boolean | undefined
+  // Boolean filters will default to null if not set
+  hasDescription: null as boolean | null,
+  hasSearchableText: null as boolean | null,
+  hasThumbnail: null as boolean | null
 });
 
 // Theme computed properties
@@ -537,9 +538,9 @@ const clearAllFilters = () => {
     season: null,
     pageCount: null,
     featured: false,
-    hasDescription: undefined,
-    hasSearchableText: undefined,
-    hasThumbnail: undefined
+    hasDescription: null,
+    hasSearchableText: null,
+    hasThumbnail: null
   };
   searchInput.value = '';
   sortBy.value = 'date-desc';
