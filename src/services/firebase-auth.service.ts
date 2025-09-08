@@ -80,6 +80,18 @@ class FirebaseAuthService {
       const now = Date.now();
       this.avatarCache.set(cacheKey, dataUrl);
       this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+
+      // Update the current user's photoURL with cached version
+      if (this.authState.user && this.authState.user.uid === cacheKey) {
+        this.authState = {
+          ...this.authState,
+          user: {
+            ...this.authState.user,
+            photoURL: dataUrl
+          }
+        };
+        this.notifyListeners();
+      }
     } catch (error) {
       logger.warn('Failed to cache avatar image:', error);
       // Fallback to original URL if caching fails
@@ -136,8 +148,8 @@ class FirebaseAuthService {
           void this.cacheAvatarImage(originalPhotoURL, cacheKey);
         }
       } else {
-        // No cache entry, use default avatar while caching
-        cachedPhotoURL = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>')}`;
+        // No cache entry, use original URL initially while caching in background
+        // This prevents showing a default avatar when Google URL is available
         void this.cacheAvatarImage(originalPhotoURL, cacheKey);
       }
     }

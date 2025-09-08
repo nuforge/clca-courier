@@ -87,6 +87,10 @@ export function useFirebaseAuth() {
     return firebaseAuthService.isEditor();
   };
 
+  const clearAvatarCache = () => {
+    firebaseAuthService.clearAvatarCache();
+  };
+
   return {
     // State
     authState: authState.value,
@@ -101,6 +105,7 @@ export function useFirebaseAuth() {
     signOut,
     hasPermission,
     isEditor,
+    clearAvatarCache,
   };
 }
 
