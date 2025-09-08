@@ -49,7 +49,8 @@
 - **❌ Background Processes**: NEVER use `isBackground=true` unless explicitly requested by user for servers
 - **❌ ANY TYPES**: FORBIDDEN in ALL contexts - use `Record<string, unknown>`, `string | undefined`, proper interfaces
 - **❌ Floating Promises**: Always handle async calls with `await`, `.catch()`, `.then()`, or explicit `void` operator
-- **❌ Feature Removal Without Understanding**: NEVER remove working functionality without fully understanding the requirements
+- **❌ Floating Promises**: 'npm run type-check' will not work. Nor will 'grep' or 'rm' or any commands for linux?
+- **❌ Feature Removal Without Understanding**: NEVER remove working functionality or 'simplify' a requested feature without fully understanding the requirements
 
 ### MANDATORY PRACTICES
 

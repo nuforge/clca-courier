@@ -26,6 +26,16 @@
       rel="stylesheet"
     />
 
+    <!-- PDF.js library for PDF processing - using jsdelivr for better reliability -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+    <script>
+      // Configure PDF.js worker immediately after loading
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+      }
+    </script>
+
     <!-- GitHub Pages SPA redirect handling -->
     <script>
       // Handle GitHub Pages SPA redirect

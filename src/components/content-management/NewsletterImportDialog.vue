@@ -90,6 +90,8 @@
 import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { logger } from '../../utils/logger';
+import { firebaseNewsletterService } from '../../services/firebase-newsletter.service';
+import type { FileUploadProgress } from '../../services/firebase-storage.service';
 
 interface FileItem {
   id: string;
@@ -236,13 +238,34 @@ async function processAndUploadFiles(): Promise<void> {
 async function processFile(fileItem: FileItem): Promise<void> {
   try {
     fileItem.status = 'processing';
-    fileItem.progress = 50;
+    fileItem.progress = 10;
 
-    // Simple file upload - no PDF processing, no thumbnails, no metadata extraction
     logger.info(`Processing file: ${fileItem.name}`);
 
-    // TODO: Add actual file upload logic here when ready
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload
+    // Extract basic metadata from filename
+    const filename = fileItem.name.replace('.pdf', '');
+    const currentYear = new Date().getFullYear();
+
+    // Basic metadata for upload
+    const metadata = {
+      title: filename.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      publicationDate: new Date().toISOString(),
+      year: currentYear,
+      tags: [],
+      featured: false,
+    };
+
+    fileItem.progress = 30;
+
+    // Upload to Firebase using the newsletter service
+    await firebaseNewsletterService.uploadNewsletter(
+      fileItem.file,
+      metadata,
+      (progress: FileUploadProgress) => {
+        // Update progress based on upload progress
+        fileItem.progress = 30 + (progress.percentage * 0.7); // Use 30-100% range for upload
+      }
+    );
 
     fileItem.progress = 100;
     fileItem.status = 'completed';

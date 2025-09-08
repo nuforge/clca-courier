@@ -11,6 +11,7 @@ import {
   type NewsletterMetadata,
 } from './firebase-firestore.service';
 import { firebaseStorageService, type FileUploadProgress } from './firebase-storage.service';
+import { firebaseAuthService } from './firebase-auth.service';
 import { dateManagementService } from './date-management.service';
 import { logger } from '../utils/logger';
 
@@ -557,22 +558,50 @@ class FirebaseNewsletterService {
     onProgress?: (progress: FileUploadProgress) => void,
   ): Promise<string> {
     try {
-      // Upload to Firebase Storage
+      logger.info(`Starting upload process for: ${file.name}`);
+
+      // Step 1: Extract enhanced date metadata from filename
+      const enhancedDate = dateManagementService.parseFilenameDate(file.name);
+      logger.debug('Enhanced date metadata:', enhancedDate);
+
+      // Step 2: Process PDF to extract page count and text content
+      let pdfProcessingResult: { pageCount: number; textContent?: string; wordCount?: number } = {
+        pageCount: 0,
+      };
+
+      try {
+        // Import PDF processor dynamically to avoid issues
+        const { processPdfFile } = await import('../utils/pdfProcessor');
+        pdfProcessingResult = await processPdfFile(file);
+        logger.debug('PDF processing result:', {
+          pageCount: pdfProcessingResult.pageCount,
+          wordCount: pdfProcessingResult.wordCount,
+          hasText: !!pdfProcessingResult.textContent,
+        });
+      } catch (processingError) {
+        logger.warn('PDF processing failed, continuing with upload:', processingError);
+      }
+
+      // Step 3: Upload to Firebase Storage
       const uploadResult = await firebaseStorageService.uploadNewsletterPdf(
         file,
         metadata,
         onProgress,
       );
 
-      // Save metadata to Firestore
+      // Step 4: Get current user for attribution
+      const currentUser = firebaseAuthService.getCurrentUser();
+      const userName = currentUser?.displayName || currentUser?.email || 'System';
+
+      // Step 5: Create comprehensive metadata object
       const newsletterMetadata: Omit<NewsletterMetadata, 'id'> = {
         filename: file.name,
         title: metadata.title,
-        description: '',
-        publicationDate: metadata.publicationDate,
-        year: metadata.year,
+        description: '', // Can be enhanced later
+        publicationDate: enhancedDate?.publicationDate || metadata.publicationDate,
+        year: enhancedDate?.year || metadata.year,
         fileSize: file.size,
-        pageCount: 0, // Will be updated by processing
+        pageCount: pdfProcessingResult.pageCount,
         downloadUrl: uploadResult.downloadUrl,
         storageRef: uploadResult.storagePath,
         tags: metadata.tags || [],
@@ -580,27 +609,68 @@ class FirebaseNewsletterService {
         isPublished: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        createdBy: '', // Will be set by service
-        updatedBy: '', // Will be set by service
+        createdBy: userName,
+        updatedBy: userName,
         actions: {
           canView: true,
           canDownload: true,
-          canSearch: false,
-          hasThumbnail: false,
+          canSearch: !!pdfProcessingResult.textContent,
+          hasThumbnail: false, // Will be updated when thumbnail is generated
         },
       };
 
-      // Add optional fields only if they exist
+      // Add enhanced date fields if available
+      if (enhancedDate) {
+        if (enhancedDate.month !== undefined) {
+          newsletterMetadata.month = enhancedDate.month;
+        }
+        if (enhancedDate.season) {
+          newsletterMetadata.season = enhancedDate.season;
+        }
+        if (enhancedDate.displayDate) {
+          newsletterMetadata.displayDate = enhancedDate.displayDate;
+        }
+        if (enhancedDate.sortValue !== undefined) {
+          newsletterMetadata.sortValue = enhancedDate.sortValue;
+        }
+      }
+
+      // Add PDF processing results if available
+      if (pdfProcessingResult.textContent) {
+        newsletterMetadata.searchableText = pdfProcessingResult.textContent;
+      }
+
+      // Add optional fields from input metadata
       if (metadata.issueNumber) {
         newsletterMetadata.issueNumber = metadata.issueNumber;
       }
-      if (metadata.season) {
+      if (metadata.season && !newsletterMetadata.season) {
         newsletterMetadata.season = metadata.season;
       }
 
+      // Step 6: Save to Firestore
       const newsletterId = await firestoreService.saveNewsletterMetadata(newsletterMetadata);
 
-      logger.success('Newsletter uploaded successfully:', newsletterId);
+      // Step 7: Update with word count as separate operation (since it might not be in the base type)
+      if (pdfProcessingResult.wordCount) {
+        try {
+          await firestoreService.updateNewsletterMetadata(newsletterId, {
+            wordCount: pdfProcessingResult.wordCount,
+          } as Partial<NewsletterMetadata>);
+          logger.debug(`Updated word count: ${pdfProcessingResult.wordCount}`);
+        } catch (wordCountError) {
+          logger.warn('Failed to update word count:', wordCountError);
+        }
+      }
+
+      logger.success('Newsletter uploaded successfully:', {
+        id: newsletterId,
+        filename: file.name,
+        pageCount: pdfProcessingResult.pageCount,
+        wordCount: pdfProcessingResult.wordCount,
+        hasSearchableText: !!pdfProcessingResult.textContent,
+      });
+
       return newsletterId;
     } catch (error) {
       logger.error('Error uploading newsletter:', error);
