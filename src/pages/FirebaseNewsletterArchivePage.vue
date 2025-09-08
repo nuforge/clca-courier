@@ -62,8 +62,8 @@
               <div class="row q-mb-md">
                 <div class="col-12 col-md-8 q-pa-md">
                   <q-input v-model="searchInput" label="Search newsletters by title, content, tags, year, or season..."
-                    outlined dense :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }" clearable
-                    :loading="isSearching" @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
+                    outlined dense :class="{ 'bg-grey': !isDarkMode }" clearable :loading="isSearching"
+                    @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
                     :aria-label="'Search through ' + (stats?.totalNewsletters || 0) + ' newsletters'" role="searchbox"
                     aria-expanded="false" :aria-describedby="searchInput ? 'search-suggestions' : null">
                     <template v-slot:prepend>
@@ -111,8 +111,8 @@
                   </div>
 
                   <q-select v-model="sortBy" :options="sortOptions" label="Sort By" outlined dense emit-value
-                    map-options :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
-                    @update:model-value="onSortChange" aria-label="Sort newsletters by different criteria">
+                    map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onSortChange"
+                    aria-label="Sort newsletters by different criteria">
                     <template v-slot:prepend>
                       <q-icon name="sort" />
                     </template>
@@ -134,7 +134,7 @@
                     <!-- Year Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.year" :options="yearFilterOptions" label="Year" outlined dense
-                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
+                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="event" />
@@ -145,7 +145,7 @@
                     <!-- Season Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.season" :options="seasonOptions" label="Season" outlined dense
-                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
+                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="wb_sunny" />
@@ -156,8 +156,7 @@
                     <!-- Page Count Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.pageCount" :options="pageCountOptions" label="Page Count" outlined
-                        dense clearable emit-value map-options
-                        :class="{ 'bg-grey': !isDarkMode, 'bg-grey': isDarkMode }"
+                        dense clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="description" />
@@ -235,13 +234,13 @@
                         With Descriptions
                       </q-chip>
                       <q-chip v-if="filters.hasSearchableText" removable
-                        @remove="filters.hasSearchableText = null; onFilterChange()" color="orange"
-                        text-color="white" dense role="listitem">
+                        @remove="filters.hasSearchableText = null; onFilterChange()" color="orange" text-color="white"
+                        dense role="listitem">
                         Text Searchable
                       </q-chip>
                       <q-chip v-if="filters.hasThumbnail" removable
-                        @remove="filters.hasThumbnail = null; onFilterChange()" color="teal" text-color="white"
-                        dense role="listitem">
+                        @remove="filters.hasThumbnail = null; onFilterChange()" color="teal" text-color="white" dense
+                        role="listitem">
                         With Thumbnails
                       </q-chip>
                       <q-chip v-if="searchInput" removable @remove="searchInput = ''; onSearchInput()" color="accent"

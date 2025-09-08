@@ -126,7 +126,7 @@
               :aria-label="(newsletter.featured === true ? 'Remove from featured' : 'Add to featured') + ' newsletter: ' + newsletter.title"
               :tabindex="0" :loading="featuredLoading">
               <q-tooltip>{{ newsletter.featured ? 'Remove from Featured' : 'Add to Featured'
-                }}</q-tooltip>
+              }}</q-tooltip>
             </q-btn>
 
             <q-separator vertical inset class="q-mx-xs" />
@@ -216,8 +216,7 @@ const fallbackClasses = computed(() => ({
   'flex-center': true,
   'column': true,
   'full-height': true,
-  'bg-grey': !isDarkMode.value,
-  'bg-grey': isDarkMode.value
+  'bg-grey': !isDarkMode.value
 }));
 
 const formattedDate = computed(() => {
