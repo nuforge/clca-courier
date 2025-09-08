@@ -2,9 +2,17 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { ClassifiedAd, NewsItem, Event, CommunityStats } from '../types';
 import type { PdfDocument } from '../composables/usePdfViewer';
-import { dataService } from '../services/data-service';
 import { useUserSettings } from '../composables/useUserSettings';
 import { lightweightNewsletterService } from '../services/lightweight-newsletter-service';
+
+// Import JSON data directly
+import newsData from '../data/news.json';
+import classifiedsData from '../data/classifieds.json';
+import eventsData from '../data/events.json';
+import communityStatsData from '../data/community-stats.json';
+
+// Simulate API delay
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const useSiteStore = defineStore('site', () => {
   // Initialize user settings
@@ -117,8 +125,8 @@ export const useSiteStore = defineStore('site', () => {
 
   async function loadNewsItems() {
     try {
-      const data = await dataService.getNewsItems();
-      newsItems.value = data;
+      await delay(100); // Simulate network delay
+      newsItems.value = newsData as NewsItem[];
     } catch (error) {
       console.error('Error loading news items:', error);
       newsItems.value = [];
@@ -127,8 +135,8 @@ export const useSiteStore = defineStore('site', () => {
 
   async function loadClassifieds() {
     try {
-      const data = await dataService.getClassifieds();
-      classifieds.value = data;
+      await delay(100);
+      classifieds.value = classifiedsData as ClassifiedAd[];
     } catch (error) {
       console.error('Error loading classifieds:', error);
       classifieds.value = [];
@@ -137,8 +145,8 @@ export const useSiteStore = defineStore('site', () => {
 
   async function loadEvents() {
     try {
-      const data = await dataService.getEvents();
-      events.value = data;
+      await delay(100);
+      events.value = eventsData as Event[];
     } catch (error) {
       console.error('Error loading events:', error);
       events.value = [];
@@ -147,8 +155,8 @@ export const useSiteStore = defineStore('site', () => {
 
   async function loadStats() {
     try {
-      const data = await dataService.getCommunityStats();
-      stats.value = data;
+      await delay(100);
+      stats.value = communityStatsData as CommunityStats;
     } catch (error) {
       console.error('Error loading stats:', error);
       stats.value = {

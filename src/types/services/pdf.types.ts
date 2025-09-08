@@ -57,28 +57,6 @@ export interface PdfValidationResult {
 }
 
 /**
- * PDF cache configuration
- */
-export interface PdfCacheConfig {
-  maxSizeBytes: number;
-  maxAgeMs: number;
-  compressionQuality: number;
-  enablePersistence: boolean;
-}
-
-/**
- * Cached PDF data structure
- */
-export interface CachedPdf {
-  url: string;
-  filename: string;
-  size: number;
-  cachedAt: number;
-  expiresAt: number;
-  blobUrl?: string;
-}
-
-/**
  * PDF processing queue item
  */
 export interface PdfProcessingQueueItem {
