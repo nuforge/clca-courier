@@ -129,9 +129,6 @@
                 }}</q-tooltip>
             </q-btn>
 
-            <q-separator vertical inset class="q-mx-xs" />
-          </template>
-
           <!-- View/Download Actions -->
           <q-btn flat dense round size="sm" color="primary" icon="open_in_new" @click.stop="viewNewsletter"
             :aria-label="'View newsletter: ' + newsletter.title" :tabindex="0">
@@ -142,6 +139,8 @@
             @click.stop="downloadNewsletter" :aria-label="'Download newsletter: ' + newsletter.title" :tabindex="0">
             <q-tooltip>Download PDF</q-tooltip>
           </q-btn>
+          </template>
+
         </div>
       </div>
     </q-card-section>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import NavigationItem from './NavigationItem.vue';
+import LatestIssueNavigation from './LatestIssueNavigation.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useFirebase } from '../composables/useFirebase';
@@ -92,6 +93,9 @@ const isOpen = computed({
       <q-list class="q-mt-sm">
         <NavigationItem v-for="item in navigationItems" :key="item.title" :item="item" :mini="isMini" />
       </q-list>
+
+      <!-- Latest Issue Section -->
+      <LatestIssueNavigation :mini="isMini" />
 
       <!-- Spacer to push bottom content down -->
       <q-space />
