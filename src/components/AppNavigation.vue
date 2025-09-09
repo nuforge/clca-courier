@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import NavigationItem from './NavigationItem.vue';
-import LatestIssueNavigation from './LatestIssueNavigation.vue';
+import LatestIssueNavigation from './CurrentProject.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useFirebase } from '../composables/useFirebase';

@@ -16,6 +16,7 @@ defineProps<Props>();
 const router = useRouter();
 const $q = useQuasar();
 const { latestNewsletter, isLoading, error, hasLatestIssue, formattedDate, thumbnailUrl } = useLatestNewsletter();
+const canvaUrl = 'https://www.canva.com/design/DAGvRIZSh5E/BceK20Jwt5tDRtCOFr_tfA/edit?utm_content=DAGvRIZSh5E&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton';
 
 // Methods
 const openNewsletter = () => {
@@ -39,6 +40,27 @@ const openNewsletter = () => {
   } else {
     // Navigate to archive page with the newsletter
     void router.push(`/archive/${latestNewsletter.value.id}`);
+  }
+};
+const openProject = () => {
+  if (!canvaUrl) return;
+
+  // Use PDF URL if available
+  if (canvaUrl) {
+    try {
+      logger.info('Opening latest project:', canvaUrl);
+
+      window.open(canvaUrl, '_blank');
+    } catch (error) {
+      logger.error('Error opening project:', error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to open project'
+      });
+    }
+  } else {
+    // Navigate to archive page with the newsletter
+    openNewsletter();
   }
 };
 </script>
@@ -68,12 +90,11 @@ const openNewsletter = () => {
         v-if="!mini"
         flat
         class="bg-primary cursor-pointer latest-issue-expanded-card"
-        @click="openNewsletter"
       >
         <div class="text-center q-pa-sm">
     <!-- Section Header -->
           <div v-if="!mini" class="text-caption text-grey-4 q-px-md q-pb-sm text-weight-medium">
-            CURRENT ISSUE
+            CURRENT PROJECT
           </div>
 
           <!-- Centered Thumbnail -->
@@ -97,15 +118,13 @@ const openNewsletter = () => {
               <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
             </div>
           </div>
-          <!-- Date -->
+
           <div class="text-caption text-white q-mb-xs">
-            {{ formattedDate }}
+            <q-btn @click.stop="openProject" color="accent" class="full-width line-clamp-2 " size="xs" >
+              <q-icon name="mdi-tools" class="q-mr-sm" />Canva
+            </q-btn>
           </div>
 
-          <!-- Page Count -->
-          <div v-if="latestNewsletter?.pageCount" class="text-caption text-white q-mt-xs">
-            {{ latestNewsletter.pageCount }} pages
-          </div>
         </div>
       </q-card>
 

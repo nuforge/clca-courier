@@ -16,13 +16,10 @@ const route = useRoute();
 const router = useRouter();
 
 // Theme system for consistent icons and colors
-const { getContentIcon, getCategoryIcon, theme } = useSiteTheme();
+const { getContentIcon, getCategoryIcon } = useSiteTheme();
 
-// Helper function to get the right icon based on item type (made reactive by accessing theme)
+// Helper function to get the right icon based on item type
 const getItemIcon = (item: NewsItem | ClassifiedAd) => {
-  // Access theme to ensure reactivity
-  const currentTheme = theme;
-
   if (isClassifiedAd(item)) {
     // For classified ads, get the specific category icon
     const categoryIcon = getCategoryIcon('classified', item.category);
@@ -40,11 +37,11 @@ const getItemIcon = (item: NewsItem | ClassifiedAd) => {
       'community': 'article',
       'recreation': 'article',
 
-      // Announcement categories
+      // Announcement categories (use announcement, not article)
       'announcement': 'announcement'
     };
 
-    const contentType = categoryToContentType[item.category] || 'article';
+    const contentType = categoryToContentType[item.category] || 'announcement';  // Default to announcement for news items
     const categoryIcon = getCategoryIcon(contentType, item.category);
     return categoryIcon.icon ? categoryIcon : getContentIcon(contentType);
   }

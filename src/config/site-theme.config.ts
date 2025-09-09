@@ -359,6 +359,8 @@ export function resolveColor(colorRef: string, theme: ThemeConfig = DEFAULT_SITE
     }
   }
 
+  // If no direct match found, log the issue and return fallback
+  // Note: Using console.warn here since this is a config file and logger may cause circular imports
   console.warn(`Color reference not found: ${colorRef}`);
   return '#9e9e9e'; // Fallback grey
 }/**

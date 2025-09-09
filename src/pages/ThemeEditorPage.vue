@@ -19,7 +19,7 @@
         <div class="col-auto">
           <div class="q-gutter-sm">
             <q-chip
-              v-if="isDirty"
+              v-if="hasUnsavedChanges"
               color="warning"
               text-color="black"
               icon="mdi-content-save-alert"
@@ -39,7 +39,7 @@
               label="Save Theme"
               @click="saveTheme"
               :loading="isSaving"
-              :disable="!isDirty"
+              :disable="!hasUnsavedChanges"
             />
           </div>
         </div>
@@ -79,7 +79,6 @@
                           label="Display Label"
                           outlined
                           dense
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                       <div class="col-12 col-md-6">
@@ -87,7 +86,6 @@
                           v-model="config.icon"
                           label="Icon"
                           hint="Click to open icon picker"
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                       <div class="col-12 col-md-6">
@@ -101,7 +99,6 @@
                           option-label="label"
                           emit-value
                           map-options
-                          @update:model-value="onThemeChange"
                         >
                           <template v-slot:append>
                             <ColorPreview
@@ -136,7 +133,6 @@
                           outlined
                           dense
                           rows="2"
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                     </div>
@@ -209,7 +205,6 @@
                               outlined
                               dense
                               class="q-mb-sm"
-                              @update:model-value="onThemeChange"
                             />
 
                             <IconPicker
@@ -217,7 +212,6 @@
                               label="Icon"
                               dense
                               class="q-mb-sm"
-                              @update:model-value="onThemeChange"
                             />
 
                             <q-select
@@ -230,7 +224,6 @@
                               option-label="label"
                               emit-value
                               map-options
-                              @update:model-value="onThemeChange"
                             >
                               <template v-slot:append>
                                 <ColorPreview
@@ -278,7 +271,6 @@
                           v-model="editableTheme.colors.primary"
                           label="Primary"
                           :default-value="DEFAULT_SITE_THEME.colors.primary"
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                       <div class="col-12 col-md-4">
@@ -286,7 +278,6 @@
                           v-model="editableTheme.colors.secondary"
                           label="Secondary"
                           :default-value="DEFAULT_SITE_THEME.colors.secondary"
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                       <div class="col-12 col-md-4">
@@ -294,7 +285,6 @@
                           v-model="editableTheme.colors.accent"
                           label="Accent"
                           :default-value="DEFAULT_SITE_THEME.colors.accent"
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                     </div>
@@ -315,7 +305,6 @@
                           v-model="editableTheme.colors.contentTypes[type]"
                           :label="formatLabel(String(type))"
                           :default-value="getDefaultColorForContentType(String(type))"
-                          @update:model-value="onThemeChange"
                         />
                       </div>
                     </div>
@@ -362,7 +351,6 @@
                           outlined
                           dense
                           class="q-mb-sm"
-                          @update:model-value="onThemeChange"
                         />
 
                         <IconPicker
@@ -370,7 +358,6 @@
                           label="Icon"
                           dense
                           class="q-mb-sm"
-                          @update:model-value="onThemeChange"
                         />
 
                         <q-select
@@ -384,7 +371,6 @@
                           option-label="label"
                           emit-value
                           map-options
-                          @update:model-value="onThemeChange"
                         >
                           <template v-slot:append>
                             <ColorPreview
@@ -416,7 +402,6 @@
                           label="Description"
                           outlined
                           dense
-                          @update:model-value="onThemeChange"
                         />
                       </q-card>
                     </q-expansion-item>
@@ -597,7 +582,7 @@
                     <div class="row items-center">
                       <q-icon
                         :name="getPreviewCategoryIcon('event', 'social')"
-                        :color="resolvePreviewColor(editableTheme.categoryMappings.event?.social?.color || 'accent')"
+                        :color="resolvePreviewColor(getCategoryTheme('event', 'social', editableTheme).color)"
                         size="md"
                         class="q-mr-md"
                       />
@@ -606,11 +591,11 @@
                         <div class="text-body2 text-grey-6">This shows how social events will appear</div>
                       </div>
                       <q-badge
-                        :icon="editableTheme.statusMappings.published?.icon || 'mdi-earth'"
-                        :color="resolvePreviewColor(editableTheme.statusMappings.published?.color || 'positive')"
+                        :icon="getStatusTheme('published', editableTheme).icon"
+                        :color="resolvePreviewColor(getStatusTheme('published', editableTheme).color)"
                         text-color="white"
                       >
-                        {{ editableTheme.statusMappings.published?.label || 'Published' }}
+                        {{ getStatusTheme('published', editableTheme).label }}
                       </q-badge>
                     </div>
                   </q-card-section>
@@ -628,7 +613,7 @@
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSiteTheme } from '../composables/useSiteTheme';
-import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme } from '../config/site-theme.config';
+import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme, getStatusTheme } from '../config/site-theme.config';
 import { logger } from '../utils/logger';
 import ColorPicker from '../components/theme/ColorPicker.vue';
 import IconPicker from '../components/theme/IconPicker.vue';
@@ -637,7 +622,6 @@ import ColorPreview from '../components/theme/ColorPreview.vue';
 const $q = useQuasar();
 const {
   theme,
-  isDirty,
   getThemeForEditing,
   updateTheme,
   resetTheme,
@@ -647,7 +631,14 @@ const {
 // State
 const activeTab = ref('contentTypes');
 const isSaving = ref(false);
+
+// Use a local editable copy that syncs with the store
 const editableTheme = ref(getThemeForEditing());
+
+// Check if editable theme has changes
+const hasUnsavedChanges = computed(() => {
+  return JSON.stringify(editableTheme.value) !== JSON.stringify(theme);
+});
 
 // Computed
 const colorOptions = computed(() => [
@@ -688,7 +679,7 @@ const resolvePreviewColor = (colorRef: string): string => {
   }
 };
 
-// Preview icon resolution functions that use editableTheme instead of published theme
+// Preview icon resolution functions that use editable theme for live preview
 const getPreviewCategoryIcon = (contentType: string, category: string): string => {
   const categoryTheme = getCategoryTheme(contentType, category, editableTheme.value);
   return categoryTheme.icon;
@@ -699,15 +690,13 @@ const getDefaultColorForContentType = (type: string): string => {
   return defaultColors[type] || '#1976d2'; // fallback to primary blue
 };
 
-const onThemeChange = () => {
-  // Update the store with the current editable theme
-  updateTheme(editableTheme.value);
-  logger.debug('Theme updated from editor');
-};
-
 const saveTheme = () => {
   isSaving.value = true;
   try {
+    // First apply the editable theme to the store
+    updateTheme(editableTheme.value);
+
+    // Then save to persistent storage
     saveThemeToStore();
 
     $q.notify({
@@ -751,8 +740,23 @@ const confirmReset = () => {
 watch(
   () => JSON.stringify(theme),
   () => {
-    editableTheme.value = getThemeForEditing();
+    // Only sync if store was updated externally (not from our edits)
+    if (!hasUnsavedChanges.value) {
+      editableTheme.value = getThemeForEditing();
+      logger.debug('Synced editable theme from external store change');
+    }
   }
+);
+
+// Don't auto-sync to store - only save on explicit save action
+// This allows the isDirty flag to work properly
+watch(
+  editableTheme,
+  () => {
+    // Just log that changes were made
+    logger.debug('Editable theme changed - changes ready to save');
+  },
+  { deep: true }
 );
 </script>
 
@@ -803,3 +807,4 @@ watch(
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
 }
 </style>
+

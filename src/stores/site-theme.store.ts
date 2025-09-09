@@ -55,7 +55,39 @@ export const useSiteThemeStore = defineStore('siteTheme', () => {
 
   // Actions
   const updateTheme = (newTheme: Partial<ThemeConfig>) => {
-    currentTheme.value = { ...currentTheme.value, ...newTheme };
+    // Deep merge to preserve nested objects properly
+    currentTheme.value = {
+      ...currentTheme.value,
+      ...newTheme,
+      colors: {
+        ...currentTheme.value.colors,
+        ...(newTheme.colors || {}),
+        contentTypes: {
+          ...currentTheme.value.colors.contentTypes,
+          ...(newTheme.colors?.contentTypes || {})
+        },
+        status: {
+          ...currentTheme.value.colors.status,
+          ...(newTheme.colors?.status || {})
+        },
+        categories: {
+          ...currentTheme.value.colors.categories,
+          ...(newTheme.colors?.categories || {})
+        }
+      },
+      contentTypes: {
+        ...currentTheme.value.contentTypes,
+        ...(newTheme.contentTypes || {})
+      },
+      categoryMappings: {
+        ...currentTheme.value.categoryMappings,
+        ...(newTheme.categoryMappings || {})
+      },
+      statusMappings: {
+        ...currentTheme.value.statusMappings,
+        ...(newTheme.statusMappings || {})
+      }
+    };
     isDirty.value = true;
     logger.info('Theme updated in store', { isDirty: isDirty.value });
   };
