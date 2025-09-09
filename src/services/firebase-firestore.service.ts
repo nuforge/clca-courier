@@ -26,6 +26,7 @@ import { firebaseAuthService } from './firebase-auth.service';
 import { newsletterVersioningService } from './newsletter-versioning.service';
 import { logger } from '../utils/logger';
 import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
+import { sortByDateDesc, sortByDateAsc, normalizeDate } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
 import type { NewsItem } from '../types/core/content.types';
 
@@ -392,9 +393,7 @@ class FirebaseFirestoreService {
           } as NewsletterMetadata;
         })
         // Sort by publication date (no need to filter isPublished since query already does it)
-        .sort(
-          (a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime(),
-        );
+        .sort((a, b) => sortByDateDesc(a.publicationDate, b.publicationDate));
 
       logger.success(`Successfully processed ${results.length} published newsletters`);
       return results;
@@ -583,11 +582,7 @@ class FirebaseFirestoreService {
             }) as UserContent,
         );
         // Sort in memory as fallback
-        return results.sort((a, b) => {
-          const aDate = new Date(a.submissionDate);
-          const bDate = new Date(b.submissionDate);
-          return bDate.getTime() - aDate.getTime();
-        });
+        return results.sort((a, b) => sortByDateDesc(a.submissionDate, b.submissionDate));
       }
     } catch (error) {
       logger.error('Error getting pending content:', error);
@@ -633,11 +628,7 @@ class FirebaseFirestoreService {
             }) as UserContent,
         );
         // Sort in memory as fallback
-        return results.sort((a, b) => {
-          const aDate = new Date(a.submissionDate);
-          const bDate = new Date(b.submissionDate);
-          return bDate.getTime() - aDate.getTime();
-        });
+        return results.sort((a, b) => sortByDateDesc(a.submissionDate, b.submissionDate));
       }
     } catch (error) {
       logger.error('Error getting published content:', error);
@@ -679,11 +670,7 @@ class FirebaseFirestoreService {
             }) as UserContent,
         );
         // Sort in memory as fallback
-        return results.sort((a, b) => {
-          const aDate = new Date(a.submissionDate);
-          const bDate = new Date(b.submissionDate);
-          return bDate.getTime() - aDate.getTime();
-        });
+        return results.sort((a, b) => sortByDateDesc(a.submissionDate, b.submissionDate));
       }
     } catch (error) {
       logger.error('Error getting approved content:', error);
@@ -703,20 +690,7 @@ class FirebaseFirestoreService {
     };
 
     // Convert Firestore Timestamp to ISO string for NewsItem
-    let dateString: string;
-    if (
-      userContent.submissionDate &&
-      typeof userContent.submissionDate === 'object' &&
-      'seconds' in userContent.submissionDate
-    ) {
-      // Handle Firestore Timestamp
-      const timestamp = userContent.submissionDate as { seconds: number; nanoseconds: number };
-      dateString = new Date(timestamp.seconds * 1000).toISOString();
-    } else if (typeof userContent.submissionDate === 'string') {
-      dateString = userContent.submissionDate;
-    } else {
-      dateString = new Date().toISOString(); // Fallback to current date
-    }
+    const dateString = normalizeDate(userContent.submissionDate)?.toISOString() || new Date().toISOString();
 
     return {
       id: userContent.id,
@@ -895,10 +869,7 @@ class FirebaseFirestoreService {
               }
               return isPublished;
             })
-            .sort(
-              (a, b) =>
-                new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime(),
-            );
+            .sort((a, b) => sortByDateDesc(a.publicationDate, b.publicationDate));
 
           logger.success(
             `Newsletter subscription processed ${newsletters.length} published newsletters`,
@@ -957,10 +928,7 @@ class FirebaseFirestoreService {
               } as NewsletterMetadata;
             })
             // NO client-side filtering for admin - show ALL newsletters
-            .sort(
-              (a, b) =>
-                new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime(),
-            );
+            .sort((a, b) => sortByDateDesc(a.publicationDate, b.publicationDate));
 
           logger.success(
             `Admin newsletter subscription processed ${newsletters.length} newsletters (including unpublished)`,
@@ -1003,9 +971,7 @@ class FirebaseFirestoreService {
             )
             // Client-side filtering and sorting until indexes are created
             .filter((item) => item.status === 'pending')
-            .sort(
-              (a, b) => new Date(a.submissionDate).getTime() - new Date(b.submissionDate).getTime(),
-            );
+            .sort((a, b) => sortByDateAsc(a.submissionDate, b.submissionDate));
 
           logger.success(`Pending content subscription processed ${content.length} items`);
           callback(content);

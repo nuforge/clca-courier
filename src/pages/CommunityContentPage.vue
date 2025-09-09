@@ -7,6 +7,7 @@ import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import UnifiedContentList from '../components/UnifiedContentList.vue';
 import { getContentIcon, formatCategoryName } from '../utils/content-icons';
+import { formatDate as formatDateUtil, sortByDateDesc } from '../utils/date-formatter';
 
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
 const siteStore = useSiteStore();
@@ -102,14 +103,14 @@ const filteredContent = computed(() => {
     let comparison = 0;
 
     if (sortBy.value === 'date') {
-      const dateA = new Date('date' in a ? a.date : 'datePosted' in a ? a.datePosted : '');
-      const dateB = new Date('date' in b ? b.date : 'datePosted' in b ? b.datePosted : '');
-      comparison = dateA.getTime() - dateB.getTime();
+      const dateA = 'date' in a ? a.date : 'datePosted' in a ? a.datePosted : '';
+      const dateB = 'date' in b ? b.date : 'datePosted' in b ? b.datePosted : '';
+      comparison = sortByDateDesc(dateA, dateB);
     } else if (sortBy.value === 'title') {
       comparison = a.title.localeCompare(b.title);
     }
 
-    return sortOrder.value === 'desc' ? -comparison : comparison;
+    return sortOrder.value === 'desc' ? comparison : -comparison;
   });
 
   logger.debug('Filtered content result:', { filteredItems: sorted.length });
@@ -162,16 +163,7 @@ function isClassifiedAd(item: NewsItem | ClassifiedAd): item is ClassifiedAd {
 
 // Format date helper - following copilot instructions: Centralized date management patterns
 function formatDate(dateString: string): string {
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  } catch (error) {
-    logger.warn('Date formatting error:', error);
-    return dateString;
-  }
+  return formatDateUtil(dateString, 'LONG');
 }
 
 // Initialize content - following copilot instructions: Async promise handling

@@ -6,6 +6,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { calendarEventsService, type CalendarEvent, type CalendarEventFilters } from '../services/calendar-events.service';
 import { logger } from '../utils/logger';
+import { getCurrentYear, getCurrentMonth } from '../utils/date-formatter';
 import type { Unsubscribe } from 'firebase/firestore';
 
 export interface CalendarState {
@@ -23,8 +24,8 @@ export const useCalendar = () => {
 
   // Calendar state
   const calendarState = ref<CalendarState>({
-    currentMonth: new Date().getMonth() + 1, // 1-12
-    currentYear: new Date().getFullYear(),
+    currentMonth: getCurrentMonth(), // 1-12
+    currentYear: getCurrentYear(),
     selectedDate: null,
     viewMode: 'month',
   });

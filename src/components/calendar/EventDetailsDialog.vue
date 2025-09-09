@@ -248,6 +248,7 @@ import { computed } from 'vue';
 import { useQuasar } from 'quasar';
 import type { CalendarEvent } from '../../services/calendar-events.service';
 import { calendarEventsService } from '../../services/calendar-events.service';
+import { formatDate } from '../../utils/date-formatter';
 
 interface Props {
   modelValue: boolean;
@@ -271,13 +272,7 @@ const dialogVisible = computed({
 
 // Methods
 const formatEventDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatDate(dateStr, 'FULL');
 };
 
 const formatEventTime = (event: CalendarEvent): string => {

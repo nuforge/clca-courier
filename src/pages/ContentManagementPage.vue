@@ -164,7 +164,7 @@
           <div class="text-body2 q-mb-md">
             <strong>Author:</strong> {{ selectedContentItem.authorName }} ({{
               selectedContentItem.authorEmail }})<br>
-            <strong>Submitted:</strong> {{ formatDate(selectedContentItem.submissionDate) }}<br>
+            <strong>Submitted:</strong> {{ formatDateTime(selectedContentItem.submissionDate, 'LONG_WITH_TIME') }}<br>
             <strong>Tags:</strong> {{ selectedContentItem.tags.join(', ') || 'None' }}
           </div>
 
@@ -243,6 +243,7 @@ import { useRoleAuth } from '../composables/useRoleAuth';
 import { firestoreService } from '../services/firebase-firestore.service';
 import type { UserContent } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
+import { formatDateTime } from '../utils/date-formatter';
 import ContentTable from '../components/content-management/ContentTable.vue';
 
 const $q = useQuasar();
@@ -493,16 +494,6 @@ const getStatusColor = (status: string) => {
     case 'rejected': return 'red';
     default: return 'grey';
   }
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 const formatFileSize = (bytes: number) => {

@@ -1,0 +1,426 @@
+/**
+ * Centralized Date Formatting Utility
+ * Provides consistent date handling across the entire application
+ *
+ * Following copilot instructions: Centralized date management patterns
+ *
+ * ⚠️ CRITICAL: ALL date operations MUST use these functions
+ * NO MORE: new Date(), .getTime(), .getFullYear(), .getMonth(), etc.
+ */
+
+import { type Timestamp } from 'firebase/firestore';
+import { logger } from './logger';
+
+export type DateInput = string | number | Date | Timestamp | Record<string, unknown> | null | undefined;
+
+/**
+ * MANDATORY: Parse date-only strings (YYYY-MM-DD) safely without timezone issues
+ * Use this instead of: new Date("2025-09-26")
+ */
+export function parseDateOnly(dateString: string): Date | null {
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateOnlyPattern.test(dateString.trim())) {
+    return null;
+  }
+
+  const parts = dateString.trim().split('-').map(Number);
+  if (parts.length === 3 && !parts.some(p => isNaN(p))) {
+    // Create date in local timezone to avoid UTC offset issues
+    const year = parts[0] as number;
+    const month = parts[1] as number;
+    const day = parts[2] as number;
+    return new Date(year, month - 1, day); // month is 0-indexed
+  }
+  return null;
+}
+
+/**
+ * MANDATORY: Get current timestamp consistently
+ * Use this instead of: Date.now()
+ */
+export function getCurrentTimestamp(): number {
+  return Date.now();
+}
+
+/**
+ * MANDATORY: Get current year consistently
+ * Use this instead of: new Date().getFullYear()
+ */
+export function getCurrentYear(): number {
+  return new Date().getFullYear();
+}
+
+/**
+ * MANDATORY: Get current month (1-12) consistently
+ * Use this instead of: new Date().getMonth() + 1
+ */
+export function getCurrentMonth(): number {
+  return new Date().getMonth() + 1;
+}
+
+/**
+ * MANDATORY: Compare dates safely
+ * Use this instead of: new Date(a).getTime() - new Date(b).getTime()
+ */
+export function compareDates(dateA: DateInput, dateB: DateInput): number {
+  const a = normalizeDate(dateA);
+  const b = normalizeDate(dateB);
+  if (!a || !b) return 0;
+  return a.getTime() - b.getTime();
+}
+
+/**
+ * Date format configurations for consistent styling
+ */
+export const DATE_FORMATS = {
+  // Standard formats
+  SHORT: { month: 'short', day: 'numeric', year: 'numeric' } as const,
+  LONG: { month: 'long', day: 'numeric', year: 'numeric' } as const,
+  FULL: { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' } as const,
+
+  // With time
+  SHORT_WITH_TIME: { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' } as const,
+  LONG_WITH_TIME: { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' } as const,
+
+  // Time only
+  TIME_12H: { hour: 'numeric', minute: '2-digit', hour12: true } as const,
+  TIME_24H: { hour: '2-digit', minute: '2-digit', hour12: false } as const,
+
+  // Relative
+  RELATIVE_SHORT: { dateStyle: 'short' } as const,
+  RELATIVE_MEDIUM: { dateStyle: 'medium' } as const,
+
+  // Newsletter specific
+  NEWSLETTER_DISPLAY: { month: 'long', year: 'numeric' } as const,
+  NEWSLETTER_SEASON: { year: 'numeric' } as const,
+} as const;
+
+/**
+ * Normalize various date inputs to a consistent Date object
+ */
+export function normalizeDate(input: DateInput): Date | null {
+  if (!input) {
+    return null;
+  }
+
+  try {
+    // Handle Date objects
+    if (input instanceof Date) {
+      return isNaN(input.getTime()) ? null : input;
+    }
+
+    // Handle ISO strings
+    if (typeof input === 'string') {
+      // Handle various string formats
+      if (input === 'Invalid Date' || input.trim() === '') {
+        return null;
+      }
+
+      // Handle date-only strings (YYYY-MM-DD) to avoid timezone issues
+      const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateOnlyPattern.test(input.trim())) {
+        const parts = input.trim().split('-').map(Number);
+        if (parts.length === 3 && !parts.some(p => isNaN(p))) {
+          // Create date in local timezone to avoid UTC offset issues
+          const year = parts[0] as number;
+          const month = parts[1] as number;
+          const day = parts[2] as number;
+          return new Date(year, month - 1, day); // month is 0-indexed
+        }
+      }
+
+      const date = new Date(input);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    // Handle Unix timestamps (number)
+    if (typeof input === 'number') {
+      // Assume milliseconds if > 1e10, otherwise seconds
+      const timestamp = input > 1e10 ? input : input * 1000;
+      const date = new Date(timestamp);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    // Handle Firebase Timestamp and Timestamp-like objects
+    if (input && typeof input === 'object') {
+      // Check if it's a Timestamp object with toDate method
+      if ('toDate' in input && typeof input.toDate === 'function') {
+        const timestamp = input as Timestamp;
+        return timestamp.toDate();
+      }
+
+      // Check if it's a Timestamp object with seconds property
+      if ('seconds' in input && typeof input.seconds === 'number') {
+        const timestamp = input as { seconds: number; nanoseconds?: number };
+        return new Date(timestamp.seconds * 1000);
+      }
+
+      // Check if it's a Timestamp-like object with _seconds property
+      if ('_seconds' in input && typeof input._seconds === 'number') {
+        const timestampLike = input as { _seconds: number };
+        return new Date(timestampLike._seconds * 1000);
+      }
+    }
+
+    logger.warn('Unknown date format in normalizeDate:', { input, type: typeof input });
+    return null;
+  } catch (error) {
+    logger.error('Error normalizing date:', { input, error });
+    return null;
+  }
+}
+
+/**
+ * Format date with consistent locale and error handling
+ */
+export function formatDate(input: DateInput, format: keyof typeof DATE_FORMATS = 'LONG', locale = 'en-US'): string {
+  const date = normalizeDate(input);
+
+  if (!date) {
+    logger.warn('Invalid date input in formatDate:', input);
+    return 'Invalid Date';
+  }
+
+  try {
+    const options = DATE_FORMATS[format];
+    return date.toLocaleDateString(locale, options);
+  } catch (error) {
+    logger.error('Error formatting date:', { input, format, error });
+    return date.toLocaleDateString(); // Fallback to default format
+  }
+}
+
+/**
+ * Format time from various inputs
+ */
+export function formatTime(input: DateInput, use24Hour = false, locale = 'en-US'): string {
+  const date = normalizeDate(input);
+
+  if (!date) {
+    return '';
+  }
+
+  try {
+    const options = use24Hour ? DATE_FORMATS.TIME_24H : DATE_FORMATS.TIME_12H;
+    return date.toLocaleTimeString(locale, options);
+  } catch (error) {
+    logger.error('Error formatting time:', { input, error });
+    return date.toLocaleTimeString(); // Fallback
+  }
+}
+
+/**
+ * Format date and time together
+ */
+export function formatDateTime(input: DateInput, format: 'SHORT_WITH_TIME' | 'LONG_WITH_TIME' = 'LONG_WITH_TIME', locale = 'en-US'): string {
+  const date = normalizeDate(input);
+
+  if (!date) {
+    return 'Invalid Date';
+  }
+
+  try {
+    const options = DATE_FORMATS[format];
+    return date.toLocaleDateString(locale, options);
+  } catch (error) {
+    logger.error('Error formatting datetime:', { input, format, error });
+    return date.toLocaleDateString(); // Fallback
+  }
+}
+
+/**
+ * Convert various date inputs to ISO 8601 string
+ */
+export function toISOString(input: DateInput): string | null {
+  const date = normalizeDate(input);
+  return date ? date.toISOString() : null;
+}
+
+/**
+ * Convert various date inputs to ISO date string (YYYY-MM-DD)
+ */
+export function toISODateString(input: DateInput): string | null {
+  const date = normalizeDate(input);
+  return date ? date.toISOString().split('T')[0] ?? null : null;
+}
+
+/**
+ * Get relative time description (e.g., "2 hours ago", "in 3 days")
+ */
+export function getRelativeTime(input: DateInput, locale = 'en-US'): string {
+  const date = normalizeDate(input);
+
+  if (!date) {
+    return '';
+  }
+
+  try {
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffMinutes = Math.round(diffMs / (1000 * 60));
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    // Use Intl.RelativeTimeFormat for proper localization
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+    if (Math.abs(diffMinutes) < 60) {
+      return rtf.format(diffMinutes, 'minute');
+    } else if (Math.abs(diffHours) < 24) {
+      return rtf.format(diffHours, 'hour');
+    } else if (Math.abs(diffDays) < 30) {
+      return rtf.format(diffDays, 'day');
+    } else {
+      // For longer periods, just use formatted date
+      return formatDate(date, 'SHORT');
+    }
+  } catch (error) {
+    logger.error('Error getting relative time:', { input, error });
+    return formatDate(date, 'SHORT'); // Fallback
+  }
+}
+
+/**
+ * Newsletter-specific date formatting
+ */
+export function formatNewsletterDate(input: DateInput, season?: string): string {
+  const date = normalizeDate(input);
+
+  if (!date) {
+    return season ? `${season} ${new Date().getFullYear()}` : 'Unknown Date';
+  }
+
+  try {
+    // If we have a season, use it with the year
+    if (season) {
+      const year = date.getFullYear();
+      return `${season.charAt(0).toUpperCase() + season.slice(1)} ${year}`;
+    }
+
+    // Otherwise use month and year
+    return formatDate(date, 'NEWSLETTER_DISPLAY');
+  } catch (error) {
+    logger.error('Error formatting newsletter date:', { input, season, error });
+    return `${season || 'Unknown'} ${new Date().getFullYear()}`;
+  }
+}
+
+/**
+ * Event-specific date/time formatting
+ */
+export function formatEventDateTime(
+  eventDate: DateInput,
+  eventTime?: string,
+  eventEndTime?: string,
+  allDay = false
+): string {
+  const date = normalizeDate(eventDate);
+
+  if (!date) {
+    return 'TBD';
+  }
+
+  try {
+    const dateStr = formatDate(date, 'FULL');
+
+    if (allDay) {
+      return `${dateStr} (All Day)`;
+    }
+
+    if (eventTime) {
+      let timeStr = eventTime;
+      if (eventEndTime && eventEndTime !== eventTime) {
+        timeStr += ` - ${eventEndTime}`;
+      }
+      return `${dateStr} at ${timeStr}`;
+    }
+
+    return dateStr;
+  } catch (error) {
+    logger.error('Error formatting event datetime:', { eventDate, eventTime, eventEndTime, allDay, error });
+    return formatDate(date, 'LONG');
+  }
+}
+
+/**
+ * Check if a date is today
+ */
+export function isToday(input: DateInput): boolean {
+  const date = normalizeDate(input);
+  if (!date) return false;
+
+  const today = new Date();
+  return date.toDateString() === today.toDateString();
+}
+
+/**
+ * Check if a date is in the past
+ */
+export function isPast(input: DateInput): boolean {
+  const date = normalizeDate(input);
+  if (!date) return false;
+
+  return date.getTime() < new Date().getTime();
+}
+
+/**
+ * Check if a date is in the future
+ */
+export function isFuture(input: DateInput): boolean {
+  const date = normalizeDate(input);
+  if (!date) return false;
+
+  return date.getTime() > new Date().getTime();
+}
+
+/**
+ * Get the start of day for a date
+ */
+export function startOfDay(input: DateInput): Date | null {
+  const date = normalizeDate(input);
+  if (!date) return null;
+
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+/**
+ * Get the end of day for a date
+ */
+export function endOfDay(input: DateInput): Date | null {
+  const date = normalizeDate(input);
+  if (!date) return null;
+
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+/**
+ * Sort function for dates (newest first)
+ */
+export function sortByDateDesc(a: DateInput, b: DateInput): number {
+  const dateA = normalizeDate(a);
+  const dateB = normalizeDate(b);
+
+  if (!dateA && !dateB) return 0;
+  if (!dateA) return 1;
+  if (!dateB) return -1;
+
+  return dateB.getTime() - dateA.getTime();
+}
+
+/**
+ * Sort function for dates (oldest first)
+ */
+export function sortByDateAsc(a: DateInput, b: DateInput): number {
+  const dateA = normalizeDate(a);
+  const dateB = normalizeDate(b);
+
+  if (!dateA && !dateB) return 0;
+  if (!dateA) return 1;
+  if (!dateB) return -1;
+
+  return dateA.getTime() - dateB.getTime();
+}

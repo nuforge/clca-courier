@@ -13,17 +13,6 @@
             Stay up to date with community events and activities
           </p>
         </div>
-
-        <!-- View Mode Toggle -->
-        <q-btn-toggle
-          v-model="calendarState.viewMode"
-          toggle-color="primary"
-          :options="[
-            { label: 'Month', value: 'month', icon: 'mdi-calendar-month' },
-            { label: 'Day', value: 'day', icon: 'mdi-calendar-today' },
-          ]"
-          @update:model-value="setViewMode"
-        />
       </div>
 
       <!-- Calendar Toolbar -->
@@ -129,19 +118,24 @@
         </template>
       </q-banner>
 
-      <!-- Calendar Grid (Month View) -->
-      <q-card v-if="calendarState.viewMode === 'month'" flat class="calendar-grid">
+      <!-- Calendar Grid -->
+      <q-card flat class="calendar-grid">
         <q-card-section class="q-pa-none">
           <!-- Calendar Component -->
           <q-date
+            :key="calendarKey"
             v-model="selectedDateModel"
             :events="calendarEvents"
             event-color="primary"
             today-btn
             class="full-width"
             @update:model-value="onDateSelect"
+            @navigation="onCalendarNavigation"
             landscape
-            :default-year-month="`${calendarState.currentYear}/${calendarState.currentMonth.toString().padStart(2, '0')}`"
+            :default-year-month="defaultYearMonth"
+            :navigation-min-year-month="`2020/01`"
+            :navigation-max-year-month="`2030/12`"
+            flat
           />
 
           <!-- Events list for selected date -->
@@ -162,34 +156,30 @@
         </q-card-section>
       </q-card>
 
-      <!-- Day View -->
-      <div v-if="calendarState.viewMode === 'day' && calendarState.selectedDate">
-        <q-card flat>
-          <q-card-section>
-            <div class="text-h6 q-mb-md">
-              Events for {{ formatSelectedDate(calendarState.selectedDate) }}
-            </div>
-
-            <div v-if="selectedDateEvents.length === 0" class="text-center q-pa-lg">
-              <q-icon name="mdi-calendar-blank" size="64px" color="grey-4" />
-              <div class="text-h6 text-grey-6 q-mt-md">No events scheduled</div>
-              <div class="text-body2 text-grey-5">Check other dates for upcoming events</div>
-            </div>
-
-            <div v-else class="q-gutter-md">
+      <!-- Selected Date Events Panel -->
+      <q-card v-if="selectedDateModel && getEventsForSelectedDate().length > 0" flat class="q-mt-md">
+        <q-card-section>
+          <div class="text-h6 q-mb-md">
+            <q-icon name="mdi-calendar-check" class="q-mr-sm" />
+            Events on {{ formatSelectedDate(selectedDateModel.replace(/\//g, '-')) }}
+          </div>
+          <div class="row q-col-gutter-md">
+            <div
+              v-for="event in getEventsForSelectedDate()"
+              :key="event.id"
+              class="col-12 col-md-6"
+            >
               <CalendarEventCard
-                v-for="event in selectedDateEvents"
-                :key="event.id"
                 :event="event"
                 @click="onEventClick(event)"
               />
             </div>
-          </q-card-section>
-        </q-card>
-      </div>
+          </div>
+        </q-card-section>
+      </q-card>
 
-      <!-- Upcoming Events Sidebar (Month View) -->
-      <q-card v-if="calendarState.viewMode === 'month' && upcomingEvents.length > 0" flat class="q-mt-md">
+      <!-- Upcoming Events Sidebar -->
+      <q-card v-if="upcomingEvents.length > 0" flat class="q-mt-md">
         <q-card-section>
           <div class="text-h6 q-mb-md">
             <q-icon name="mdi-calendar-clock" class="q-mr-sm" />
@@ -217,10 +207,72 @@
       </q-card>
 
       <!-- Event Details Dialog -->
-      <EventDetailsDialog
-        v-model="showEventDialog"
-        :event="selectedEvent"
-      />
+      <q-dialog v-model="showEventDialog" position="right" full-height>
+        <q-card style="width: 500px; max-width: 90vw;">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">{{ selectedEvent?.title }}</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section v-if="selectedEvent">
+            <!-- Event Category -->
+            <div class="text-overline q-mb-sm" :class="`text-${getEventColor(selectedEvent.type)}`">
+              <q-icon :name="getEventIcon(selectedEvent.type)" size="sm" class="q-mr-xs" />
+              {{ formatCategoryName(selectedEvent.type) }}
+            </div>
+
+            <!-- Event Date & Time -->
+            <div class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs">
+                <q-icon name="mdi-calendar" class="q-mr-xs" />
+                {{ formatSelectedDate(selectedEvent.eventDate) }}
+              </div>
+              <div v-if="selectedEvent.eventTime || selectedEvent.eventEndTime" class="text-body2">
+                <q-icon name="mdi-clock" class="q-mr-xs" />
+                <span v-if="selectedEvent.allDay">All Day</span>
+                <span v-else>
+                  {{ selectedEvent.eventTime || 'TBD' }}
+                  <span v-if="selectedEvent.eventEndTime"> - {{ selectedEvent.eventEndTime }}</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Event Location -->
+            <div v-if="selectedEvent.eventLocation" class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs">
+                <q-icon name="mdi-map-marker" class="q-mr-xs" />
+                Location
+              </div>
+              <div class="text-body2">{{ selectedEvent.eventLocation }}</div>
+            </div>
+
+            <!-- Event Content -->
+            <div class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs">
+                <q-icon name="mdi-text" class="q-mr-xs" />
+                Description
+              </div>
+              <div class="text-body1" style="white-space: pre-line;">
+                {{ selectedEvent.content }}
+              </div>
+            </div>
+
+            <!-- Event Author -->
+            <div class="q-mb-md">
+              <div class="text-caption text-grey-6">
+                By {{ selectedEvent.authorName }} • {{ selectedEvent.authorEmail }}
+              </div>
+            </div>
+
+            <!-- Featured Badge -->
+            <q-badge v-if="selectedEvent.featured" color="amber" text-color="black" class="q-mt-sm">
+              <q-icon name="star" size="xs" class="q-mr-xs" />
+              Featured Event
+            </q-badge>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
 
       <!-- All Upcoming Events Dialog -->
       <q-dialog v-model="showAllUpcoming">
@@ -254,8 +306,9 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useCalendar } from '../composables/useCalendar';
 import type { CalendarEvent } from '../services/calendar-events.service';
 import CalendarEventCard from '../components/calendar/CalendarEventCard.vue';
-import EventDetailsDialog from '../components/calendar/EventDetailsDialog.vue';
 import { logger } from '../utils/logger';
+import { formatCategoryName } from '../utils/content-icons';
+import { formatDate } from '../utils/date-formatter';
 
 // Use calendar composable
 const {
@@ -270,8 +323,6 @@ const {
   goToNextMonth,
   goToPreviousMonth,
   goToToday,
-  selectDate,
-  setViewMode,
   loadEventsForMonth,
   getEventsForDate,
   getEventIcon,
@@ -303,21 +354,14 @@ const calendarEvents = computed(() => {
   });
 });
 
-const selectedDateEvents = computed(() => {
-  if (!calendarState.value.selectedDate) {
-    logger.debug('🗓️ No selectedDate in calendarState');
-    return [];
-  }
+// Computed for calendar view to force updates
+const calendarKey = computed(() =>
+  `${calendarState.value.currentYear}-${calendarState.value.currentMonth}`
+);
 
-  const events = getEventsForDate(calendarState.value.selectedDate);
-  logger.debug('🗓️ selectedDateEvents computed:', {
-    selectedDate: calendarState.value.selectedDate,
-    eventsFound: events.length,
-    events
-  });
-
-  return events;
-});
+const defaultYearMonth = computed(() =>
+  `${calendarState.value.currentYear}/${calendarState.value.currentMonth.toString().padStart(2, '0')}`
+);
 
 // Debug computed properties
 // const debugCalendarHeader = computed(() => {
@@ -333,6 +377,26 @@ const selectedDateEvents = computed(() => {
 // });
 
 // Methods
+const onCalendarNavigation = (view: { year: number; month: number }) => {
+  logger.debug('🗓️ Calendar navigation triggered:', view);
+  logger.debug('🗓️ Current calendar state before update:', {
+    currentYear: calendarState.value.currentYear,
+    currentMonth: calendarState.value.currentMonth
+  });
+
+  // Update calendar state when user navigates in the q-date component
+  calendarState.value.currentYear = view.year;
+  calendarState.value.currentMonth = view.month;
+
+  logger.debug('🗓️ Calendar state after update:', {
+    currentYear: calendarState.value.currentYear,
+    currentMonth: calendarState.value.currentMonth
+  });
+
+  // Load events for the new month
+  void loadEventsForMonth(view.year, view.month);
+};
+
 const onDateSelect = (date: string | string[] | null) => {
   logger.debug('🗓️ Date selected:', { date, type: typeof date });
 
@@ -349,7 +413,8 @@ const onDateSelect = (date: string | string[] | null) => {
   logger.debug('🗓️ Converted selectedDate:', selectedDate);
 
   if (selectedDate) {
-    selectDate(selectedDate);
+    // Don't switch to day view - keep in month view and just show selected date events
+    calendarState.value.selectedDate = selectedDate;
     selectedDateModel.value = date as string;
 
     // Debug the events for this date
@@ -376,9 +441,7 @@ const getEventsForSelectedDate = (): CalendarEvent[] => {
   // Convert from YYYY/MM/DD to YYYY-MM-DD
   const dateKey = selectedDateModel.value.replace(/\//g, '-');
   return getEventsForDate(dateKey);
-};
-
-const applyFilters = () => {
+};const applyFilters = () => {
   const newFilters: typeof filters.value = {};
 
   if (filters.value.types && filters.value.types.length > 0) {
@@ -394,22 +457,26 @@ const applyFilters = () => {
 };
 
 const formatSelectedDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
+  // Handle date-only strings (YYYY-MM-DD) to avoid timezone issues
+  const cleanDateStr = dateStr.includes('/') ? dateStr.replace(/\//g, '-') : dateStr;
 
-// Watch for view mode changes
-watch(() => calendarState.value.viewMode, (newMode: string) => {
-  if (newMode === 'month') {
-    calendarState.value.selectedDate = null;
-    selectedDateModel.value = null;
+  // Parse date components to create timezone-neutral date
+  const parts = cleanDateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(p => isNaN(p))) {
+    logger.warn('🗓️ Invalid date format:', dateStr);
+    return 'Invalid Date';
   }
-});
+
+  // Since we validated the parts array, we know these exist and are valid numbers
+  const year = parts[0] as number;
+  const month = parts[1] as number;
+  const day = parts[2] as number;
+
+  // Create date in local timezone to avoid UTC offset issues
+  const date = new Date(year, month - 1, day); // month is 0-indexed
+
+  return formatDate(date, 'FULL');
+};
 
 // Watch calendar state changes for debugging
 watch(() => calendarState.value, (newState) => {

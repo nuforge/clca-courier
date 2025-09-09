@@ -14,6 +14,8 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 import { logger } from '../utils/logger';
+import { parseDateOnly } from '../utils/date-formatter';
+import { toISODateString, formatEventDateTime } from '../utils/date-formatter';
 import type { UserContent } from './firebase-firestore.service';
 
 export interface CalendarEvent {
@@ -49,30 +51,7 @@ class CalendarEventsService {
    * Convert Firebase Timestamp or string to ISO date string
    */
   private normalizeEventDate(eventDate: string | Timestamp | Record<string, unknown>): string | null {
-    if (!eventDate) return null;
-
-    // Handle string dates
-    if (typeof eventDate === 'string') {
-      return eventDate;
-    }
-
-    // Handle Firebase Timestamp objects
-    if (eventDate && typeof eventDate === 'object') {
-      // Check if it's a Timestamp object with seconds property
-      if ('seconds' in eventDate && typeof eventDate.seconds === 'number') {
-        const timestamp = eventDate as Timestamp;
-        return timestamp.toDate().toISOString().split('T')[0] ?? null;
-      }
-
-      // Check if it's a Timestamp-like object with _seconds property
-      if ('_seconds' in eventDate && typeof eventDate._seconds === 'number') {
-        const date = new Date(eventDate._seconds * 1000);
-        return date.toISOString().split('T')[0] ?? null;
-      }
-    }
-
-    logger.warn('Unknown eventDate format:', { eventDate, type: typeof eventDate });
-    return null;
+    return toISODateString(eventDate);
   }
 
   /**
@@ -231,8 +210,11 @@ class CalendarEventsService {
    * Get events for a specific month
    */
   async getEventsForMonth(year: number, month: number): Promise<CalendarEvent[]> {
-    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0] ?? '';
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0] ?? '';
+    // Use timezone-safe date creation for month boundaries
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const startDate = firstDay.toISOString().split('T')[0] ?? '';
+    const endDate = lastDay.toISOString().split('T')[0] ?? '';
 
     logger.debug(`🗓️ getEventsForMonth called for ${month}/${year}:`);
     logger.debug(`🗓️ Calculated date range: ${startDate} to ${endDate}`);
@@ -384,10 +366,16 @@ class CalendarEventsService {
 
     const events: CalendarEvent[] = [];
     const recurrence = baseEvent.eventRecurrence;
-    const eventStart = new Date(baseEvent.eventDate);
+
+    // 🚨 CRITICAL FIX: Use parseDateOnly to avoid UTC timezone issues
+    const eventStart = parseDateOnly(baseEvent.eventDate);
+    if (!eventStart) {
+      logger.warn('Invalid event date for recurrence generation:', baseEvent.eventDate);
+      return [baseEvent];
+    }
 
     let currentDate = new Date(Math.max(eventStart.getTime(), startDate.getTime()));
-    const recurEndDate = recurrence.endDate ? new Date(recurrence.endDate) : endDate;
+    const recurEndDate = recurrence.endDate ? parseDateOnly(recurrence.endDate) || endDate : endDate;
 
     while (currentDate <= endDate && currentDate <= recurEndDate) {
       // Create event instance for this occurrence
@@ -420,9 +408,12 @@ class CalendarEventsService {
 
       // Calculate end date if original event has one
       if (baseEvent.eventEndDate !== undefined) {
-        const originalDuration = new Date(baseEvent.eventEndDate).getTime() - eventStart.getTime();
-        const newEndDate = new Date(currentDate.getTime() + originalDuration);
-        eventInstance.eventEndDate = newEndDate.toISOString().split('T')[0] ?? '';
+        const originalEndDate = parseDateOnly(baseEvent.eventEndDate);
+        if (originalEndDate) {
+          const originalDuration = originalEndDate.getTime() - eventStart.getTime();
+          const newEndDate = new Date(currentDate.getTime() + originalDuration);
+          eventInstance.eventEndDate = newEndDate.toISOString().split('T')[0] ?? '';
+        }
       }
 
       events.push(eventInstance);
@@ -459,20 +450,12 @@ class CalendarEventsService {
    * Format event time for display
    */
   formatEventTime(event: CalendarEvent): string {
-    if (event.allDay) {
-      return 'All Day';
-    }
-
-    if (!event.eventTime) {
-      return '';
-    }
-
-    let timeStr = event.eventTime;
-    if (event.eventEndTime) {
-      timeStr += ` - ${event.eventEndTime}`;
-    }
-
-    return timeStr;
+    return formatEventDateTime(
+      event.eventDate,
+      event.eventTime,
+      event.eventEndTime,
+      event.allDay
+    );
   }
 
   /**

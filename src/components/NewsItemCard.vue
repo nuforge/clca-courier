@@ -2,8 +2,8 @@
 import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { NewsItem } from '../types/core/content.types';
-import { logger } from '../utils/logger';
 import { getNewsCategoryIcon, formatCategoryName } from '../utils/content-icons';
+import { formatDate } from '../utils/date-formatter';
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
 interface Props {
@@ -40,20 +40,6 @@ const cardClasses = computed(() => {
 const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 );
-
-// Date formatting helper - following copilot instructions: Centralized date management patterns
-function formatDate(dateString: string): string {
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  } catch (error) {
-    logger.warn('Date formatting error:', error);
-    return dateString;
-  }
-}
 
 // Category icon and color configuration - using centralized content icons system
 const getCategoryConfig = () => getNewsCategoryIcon(props.item.category);

@@ -142,6 +142,9 @@ import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import type { CalendarEvent } from '../../services/calendar-events.service';
 import { calendarEventsService } from '../../services/calendar-events.service';
+import { formatEventDateTime as formatEventDateTimeUtil } from '../../utils/date-formatter';
+import { parseDateOnly } from '../../utils/date-formatter';
+import { logger } from '../../utils/logger';
 
 interface Props {
   event: CalendarEvent;
@@ -194,22 +197,12 @@ const getEventColor = (type: CalendarEvent['type']): string => {
 };
 
 const formatEventDateTime = (event: CalendarEvent): string => {
-  const date = new Date(event.eventDate);
-  const dateStr = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-
-  if (event.allDay) {
-    return `${dateStr} (All Day)`;
-  }
-
-  const timeStr = calendarEventsService.formatEventTime(event);
-  if (timeStr) {
-    return `${dateStr} at ${timeStr}`;
-  }
-
-  return dateStr;
+  return formatEventDateTimeUtil(
+    event.eventDate,
+    event.eventTime,
+    event.eventEndTime,
+    event.allDay
+  );
 };
 
 const formatRecurrence = (recurrence: NonNullable<CalendarEvent['eventRecurrence']>): string => {
@@ -238,7 +231,13 @@ const exportToCalendar = () => {
   // Generate ICS file for calendar export
   const event = props.event;
 
-  const startDate = new Date(event.eventDate);
+  // Use centralized date parsing to avoid timezone issues
+  const startDate = parseDateOnly(event.eventDate);
+  if (!startDate) {
+    logger.warn('Invalid event date for calendar export:', event.eventDate);
+    return;
+  }
+
   if (event.eventTime && !event.allDay) {
     const timeParts = event.eventTime.split(':');
     const hours = parseInt(timeParts[0] || '0', 10);
