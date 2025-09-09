@@ -1,9 +1,5 @@
 <template>
   <div class="latest-issue-section q-mt-md">
-    <!-- Section Header -->
-    <div v-if="!mini" class="text-caption text-grey-4 q-px-md q-pb-sm text-weight-medium">
-      LATEST ISSUE
-    </div>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="q-pa-md text-center">
@@ -20,74 +16,63 @@
     </div>
 
     <!-- Latest Issue Card -->
-    <div v-else-if="hasLatestIssue" class="latest-issue-card q-ml-md">
+    <div v-else-if="hasLatestIssue" class="latest-issue-card">
       <!-- Full mode (expanded navigation) -->
       <q-card
         v-if="!mini"
         flat
-        class="bg-primary cursor-pointer"
+        class="bg-primary cursor-pointer latest-issue-expanded-card"
         @click="openNewsletter"
       >
-        <div class="text-center no-wrap">
-          <!-- Thumbnail -->
-          <div class="col">
-            <div class="text-caption text-grey-4 q-mt-xs">
-              {{ formattedDate }}
-            </div>
-
-            <div class="thumbnail-container">
-              <q-img
-                v-if="thumbnailUrl"
-                :src="thumbnailUrl"
-                :alt="`${latestNewsletter?.title} thumbnail`"
-                class="thumbnail-image"
-                :ratio="0.75"
-                fit="cover"
-                loading="lazy"
-              >
-                <template #error>
-                  <div class="thumbnail-placeholder">
-                    <q-icon name="mdi-file-pdf-box" color="red" size="24px" />
-                  </div>
-                </template>
-              </q-img>
-              <div v-else class="thumbnail-placeholder">
-                <q-icon name="mdi-file-pdf-box" color="red" size="24px" />
-              </div>
-            </div>
+        <div class="text-center q-pa-sm">
+    <!-- Section Header -->
+          <div v-if="!mini" class="text-caption text-grey-4 q-px-md q-pb-sm text-weight-medium">
+            CURRENT ISSUE
           </div>
-            <div v-if="latestNewsletter?.pageCount" class="text-caption text-grey-5 q-mt-xs">
-              {{ latestNewsletter.pageCount }} pages
-            </div>
 
-          <!-- Content -->
-        </div>
-      </q-card>
-
-      <!-- Mini mode (collapsed navigation) -->
-      <div v-else class="text-center">
-        <q-btn
-          round
-          flat
-          size="sm"
-          @click="openNewsletter"
-          class="latest-issue-mini-btn"
-        >
-          <q-avatar size="32px" class="newsletter-avatar">
+          <!-- Centered Thumbnail -->
+          <div class="thumbnail-container">
             <q-img
               v-if="thumbnailUrl"
               :src="thumbnailUrl"
               :alt="`${latestNewsletter?.title} thumbnail`"
+              class="thumbnail-image"
+              :ratio="0.75"
               fit="cover"
               loading="lazy"
             >
               <template #error>
-                <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+                <div class="thumbnail-placeholder">
+                  <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+                </div>
               </template>
             </q-img>
-            <q-icon v-else name="mdi-file-pdf-box" color="red" size="20px" />
-          </q-avatar>
+            <div v-else class="thumbnail-placeholder">
+              <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+            </div>
+          </div>
+          <!-- Date -->
+          <div class="text-caption text-white q-mb-xs">
+            {{ formattedDate }}
+          </div>
 
+          <!-- Page Count -->
+          <div v-if="latestNewsletter?.pageCount" class="text-caption text-white q-mt-xs">
+            {{ latestNewsletter.pageCount }} pages
+          </div>
+        </div>
+      </q-card>
+
+      <!-- Mini mode (collapsed navigation) -->
+      <div v-else class="mini-mode-container">
+        <q-btn
+          color="primary"
+          icon="mdi-newspaper-variant"
+          round
+          size="sm"
+          @click="openNewsletter"
+          class="latest-issue-mini-btn"
+        >
           <!-- Tooltip for mini mode -->
           <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
             <div class="text-weight-medium">{{ latestNewsletter?.title }}</div>
@@ -156,10 +141,28 @@ const openNewsletter = () => {
 <style lang="scss" scoped>
 .latest-issue-section {
   .latest-issue-card {
+    // Make card flush with right edge
+    margin-right: 0;
+    margin-left: 16px; // Standard spacing from left edge
+
+    .latest-issue-expanded-card {
+      width: auto;
+      max-width: 200px; // Limit max width to prevent overflow
+      margin-left:auto;
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
     .thumbnail-container {
-      max-width: 150px;
-      border-radius: 4px;
+      display: inline-block;
+      width: 100px;  // Reduced from 120px
+      height: 133px; // Reduced proportionally to maintain ~0.75 aspect ratio
+      border-radius: 6px; // Slightly smaller radius
       overflow: hidden;
+      margin: 0 auto; // Center horizontally
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 
       .thumbnail-image {
         width: 100%;
@@ -173,15 +176,30 @@ const openNewsletter = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 4px;
+        border-radius: 6px;
       }
     }
   }
 
+  // Mini mode container - ensure proper centering within nav width
+  .mini-mode-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 60px; // Match mini navigation width
+    margin: 0 auto;
+    padding: 8px 4px; // Minimal padding to prevent overflow
+  }
+
   .latest-issue-mini-btn {
-    .newsletter-avatar {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px !important; // Override Quasar's circular avatar
+    // Ensure button fits within mini nav width
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+
+    &.q-btn {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
   }
 
@@ -197,12 +215,14 @@ const openNewsletter = () => {
 }
 
 // Hover effects
-.latest-issue-card .q-card {
-  transition: all 0.2s ease;
+.latest-issue-card {
+  .latest-issue-expanded-card {
+    transition: all 0.2s ease;
 
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    transform: translateY(-1px);
+    &:hover {
+      transform: translateX(-2px); // Slide slightly left on hover
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
   }
 }
 
@@ -210,7 +230,8 @@ const openNewsletter = () => {
   transition: all 0.2s ease;
 
   &:hover {
-    transform: scale(1.05);
+    transform: scale(1.05); // Reduced scale to prevent overflow
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
   }
 }
 </style>

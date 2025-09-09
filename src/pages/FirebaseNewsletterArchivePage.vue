@@ -17,12 +17,12 @@
 
               <!-- Service Statistics -->
               <div v-if="stats" class="q-mt-md">
-                <div class="row text-center">
-                  <div class="col q-pa-md">
+                <div class="row text-center q-col-gutter-sm">
+                  <div class="col">
                     <div class="text-h6 text-primary">{{ stats.totalNewsletters }}</div>
                     <div class="text-caption">Total Issues</div>
                   </div>
-                  <div class="col q-pa-md">
+                  <div class="col">
                     <div class="text-h6 text-positive">{{ stats.sourceCounts.firebase }}</div>
                     <div class="text-caption">Firebase Storage</div>
                   </div>
@@ -44,8 +44,8 @@
             <q-card-section>
               <!-- Search Mode Information -->
               <div class="row items-center q-mb-md">
-                <div class="text-subtitle2 text-weight-medium q-mr-md">Firebase Search:</div>
-                <q-chip color="primary" text-color="white" icon="cloud">
+                <div class="text-subtitle2 text-weight-medium q-mr-md">Newsletter search:</div>
+                <q-chip color="primary" text-color="white" icon="cloud" size="sm">
                   Real-time Cloud Database
                 </q-chip>
                 <q-space />
@@ -107,14 +107,14 @@
                     </template>
                   </q-select>
                   <!-- Quick Filter Buttons -->
-                  <div class="row q-my-xs q-gutter-sm">
-                    <q-btn outline dense color="primary" size="sm" @click="applyQuickFilter('featured')"
+                  <div class="row q-my-xs space-between q-gutter-sm">
+                    <q-btn outline  color="primary" size="sm" @click="applyQuickFilter('featured')"
                       :label="'Featured (' + (quickFilterOptions?.featured?.length || 0) + ')'"
                       :aria-label="'Show only featured newsletters, ' + (quickFilterOptions?.featured?.length || 0) + ' available'" />
-                    <q-btn outline dense color="secondary" size="sm" @click="applyQuickFilter('currentYear')"
+                    <q-btn outline  color="secondary" size="sm" @click="applyQuickFilter('currentYear')"
                       :label="'This Year (' + (quickFilterOptions?.currentYear?.length || 0) + ')'"
                       :aria-label="'Show current year newsletters, ' + (quickFilterOptions?.currentYear?.length || 0) + ' available'" />
-                    <q-btn outline dense color="accent" size="sm" @click="applyQuickFilter('recentlyAdded')"
+                    <q-btn outline  color="accent" size="sm" @click="applyQuickFilter('recentlyAdded')"
                       label="Recent" aria-label="Show recently added newsletters" />
                   </div>
                 </div>
@@ -264,7 +264,7 @@
                 <q-space />
 
                 <!-- Enhanced Results Summary -->
-                <div class="col-auto">
+                <div class="col-auto q-mt-sm">
                   <div class="text-body2" :class="greyTextClass">
                     <q-icon name="library_books" class="q-mr-xs" />
                     <span class="text-weight-medium">{{ filteredNewsletters.length }}</span>

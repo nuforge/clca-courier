@@ -1,5 +1,5 @@
 <template>
-  <q-header>
+  <q-header reveal>
     <q-toolbar class="bg-clcablue" style="height:80px">
       <q-btn v-if="showMenuButton" flat round dense icon="menu" @click="toggleDrawer" class="lt-lg" />
 
