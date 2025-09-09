@@ -117,7 +117,6 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
   <!-- List Layout -->
   <q-card v-else :class="cardClasses">
     <q-card-section v-if="items.length === 0" class="text-center q-py-xl">
-      <q-icon :name="emptyIcon" size="48px" :class="greyTextClass" />
       <div class="text-h6 q-mt-md" :class="greyTextClass">{{ emptyMessage }}</div>
       <div class="text-body2" :class="greyTextClass">
         Try adjusting your search or filter criteria

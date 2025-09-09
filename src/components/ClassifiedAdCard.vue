@@ -177,8 +177,8 @@ function handleDelete(): void {
   >
     <q-item-section avatar>
       <q-avatar
-        :color="getCategoryConfig().color"
-        text-color="white"
+        color="transparent"
+        :text-color="getCategoryConfig().color"
         :icon="getCategoryConfig().icon"
       />
     </q-item-section>
@@ -186,7 +186,7 @@ function handleDelete(): void {
     <q-item-section>
       <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
       <q-item-label caption class="q-mt-xs">
-        {{ categoryDisplayName }} • {{ formatDate(item.datePosted) }}
+        {{ formatDate(item.datePosted) }}
         <span v-if="item.price"> • {{ item.price }}</span>
         <q-badge v-if="item.featured" color="amber" text-color="black" class="q-ml-xs">
           <q-icon name="star" size="xs" class="q-mr-xs" />

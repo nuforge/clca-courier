@@ -159,8 +159,8 @@ function handleDelete(): void {
   >
     <q-item-section avatar>
       <q-avatar
-        :color="getCategoryConfig().color"
-        text-color="white"
+        color="transparent"
+        :text-color="getCategoryConfig().color"
         :icon="getCategoryConfig().icon"
       />
     </q-item-section>
@@ -168,8 +168,7 @@ function handleDelete(): void {
     <q-item-section>
       <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
       <q-item-label caption class="q-mt-xs">
-        <q-icon :name="getCategoryConfig().icon" size="xs" class="q-mr-xs" />
-        {{ categoryDisplayName }} • {{ formatDate(item.date) }} • By {{ item.author }}
+        {{ formatDate(item.date) }} • By {{ item.author }}
         <q-badge v-if="item.featured" color="amber" text-color="black" class="q-ml-xs">
           <q-icon name="star" size="xs" class="q-mr-xs" />
           Featured

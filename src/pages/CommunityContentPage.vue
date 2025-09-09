@@ -14,6 +14,9 @@ const { isEditor } = useRoleAuth();
 const route = useRoute();
 const router = useRouter();
 
+// Loading state from store
+const isLoading = computed(() => siteStore.isLoading);
+
 // State for filters, search, and sorting - following copilot instructions: STRICT TYPESCRIPT
 const searchQuery = ref<string>('');
 const selectedCategory = ref<string>('all');
@@ -28,6 +31,11 @@ const contentType = ref<'all' | 'news' | 'classifieds'>('all');
 // View toggle - following copilot instructions: Enhanced UI patterns
 const viewMode = ref<'list' | 'card'>('list');
 
+// Debug viewMode changes
+watch(viewMode, (newMode, oldMode) => {
+  logger.debug('View mode changed:', { from: oldMode, to: newMode });
+}, { immediate: true });
+
 // Categories for filtering - following copilot instructions: Dynamic content discovery
 const allCategories = computed(() => {
   const newsCategories = ['news', 'announcement', 'event'];
@@ -38,6 +46,12 @@ const allCategories = computed(() => {
 // Unified content items - following copilot instructions: Unified Newsletter types (adapting pattern)
 const unifiedContent = computed(() => {
   const content: Array<(NewsItem | ClassifiedAd) & { contentType: 'news' | 'classifieds' }> = [];
+
+  logger.debug('Building unified content:', {
+    newsItemsCount: siteStore.newsItems.length,
+    classifiedsCount: siteStore.classifieds.length,
+    contentTypeFilter: contentType.value
+  });
 
   // Add news items with content type marker
   if (contentType.value === 'all' || contentType.value === 'news') {
@@ -53,12 +67,19 @@ const unifiedContent = computed(() => {
     });
   }
 
+  logger.debug('Unified content result:', { totalItems: content.length });
   return content;
 });
 
 // Filtered and sorted content - following copilot instructions: Boolean filter logic patterns
 const filteredContent = computed(() => {
   let filtered = unifiedContent.value;
+
+  logger.debug('Starting content filtering:', {
+    totalItems: filtered.length,
+    searchQuery: searchQuery.value,
+    selectedCategory: selectedCategory.value
+  });
 
   // Search filter
   if (searchQuery.value.trim()) {
@@ -77,7 +98,7 @@ const filteredContent = computed(() => {
   }
 
   // Sort content - following copilot instructions: Custom sort function patterns
-  return filtered.sort((a, b) => {
+  const sorted = filtered.sort((a, b) => {
     let comparison = 0;
 
     if (sortBy.value === 'date') {
@@ -90,6 +111,9 @@ const filteredContent = computed(() => {
 
     return sortOrder.value === 'desc' ? -comparison : comparison;
   });
+
+  logger.debug('Filtered content result:', { filteredItems: sorted.length });
+  return sorted;
 });
 
 // Featured content - following copilot instructions: Boolean filter logic for featured items
@@ -332,7 +356,7 @@ watch(contentType, (newType: string) => {
           </q-card>
 
           <!-- Featured Content Section -->
-          <div v-if="featuredContent.length > 0" class="q-mb-xl">
+          <div v-if="!isLoading && featuredContent.length > 0" class="q-mb-xl">
             <div class="text-h5 q-mb-md">Featured Content</div>
             <UnifiedContentList
               :items="featuredContent"
@@ -341,69 +365,32 @@ watch(contentType, (newType: string) => {
             />
           </div>
 
+          <!-- Loading State -->
+          <div v-if="isLoading" class="text-center q-py-xl">
+            <q-spinner-dots size="50px" color="primary" />
+            <div class="text-h6 q-mt-md">Loading content...</div>
+          </div>
+
           <!-- All Content List -->
-          <div class="text-h5 q-mb-md">
-            {{ contentType === 'news' ? 'News & Updates' :
-               contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
+          <div v-else>
+            <div class="text-h5 q-mb-md">
+              {{ contentType === 'news' ? 'News & Updates' :
+                 contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
+            </div>
+
+            <UnifiedContentList
+              :items="filteredContent"
+              :variant="viewMode"
+              empty-message="No content found"
+              empty-icon="search_off"
+              @item-click="showItemDetail"
+            />
+
+            <!-- Debug info -->
+            <div class="q-mt-md text-caption text-grey">
+              Debug: {{ filteredContent.length }} items, viewMode: {{ viewMode }}
+            </div>
           </div>
-
-          <UnifiedContentList
-            :items="filteredContent"
-            :variant="viewMode"
-            empty-message="No content found"
-            empty-icon="search_off"
-            @item-click="showItemDetail"
-          />          <!-- All Content List -->
-          <div class="text-h5 q-mb-md">
-            {{ contentType === 'news' ? 'News & Updates' :
-               contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
-          </div>
-
-          <q-card :class="cardClasses">
-            <q-card-section v-if="filteredContent.length === 0" class="text-center">
-              <q-icon name="search_off" size="48px" :class="greyTextClass" />
-              <div class="text-h6 q-mt-md" :class="greyTextClass">No content found</div>
-              <div class="text-body2" :class="greyTextClass">
-                Try adjusting your search or filter criteria
-              </div>
-            </q-card-section>
-
-            <q-card-section v-else>
-              <q-list separator>
-                <q-item
-                  v-for="item in filteredContent"
-                  :key="item.id"
-                  clickable
-                  @click="showItemDetail(item)"
-                >
-                  <q-item-section avatar>
-                    <q-avatar
-                      :text-color="getContentIcon(item.category).color"
-                      :icon="getContentIcon(item.category).icon"
-                      size="xl"
-                    />
-                  </q-item-section>
-
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
-                    <q-item-label caption class="q-mt-xs">
-                      {{ formatCategoryName(item.category) }} •
-                      {{ formatDate(isNewsItem(item) ? item.date : item.datePosted) }}
-                      <span v-if="isNewsItem(item)"> • By {{ item.author }}</span>
-                      <span v-if="isClassifiedAd(item) && item.price"> • {{ item.price }}</span>
-                    </q-item-label>
-                    <q-item-label class="q-mt-sm text-body2">
-                      {{ isNewsItem(item) ? item.summary : item.description }}
-                    </q-item-label>
-                  </q-item-section>
-
-                  <q-item-section side>
-                    <q-icon name="chevron_right" color="grey" />
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card-section>
-          </q-card>
         </div>
       </div>
     </div>

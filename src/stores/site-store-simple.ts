@@ -111,6 +111,7 @@ export const useSiteStore = defineStore('site', () => {
   async function loadNewsItems() {
     try {
       await delay(100); // Simulate network delay
+      logger.debug('Loading news items from Firebase...');
       // Load published content from Firebase for public news page
       newsItems.value = await firestoreService.getPublishedContentAsNewsItems();
       logger.success(`Loaded ${newsItems.value.length} published news items from Firebase`);
@@ -152,7 +153,9 @@ export const useSiteStore = defineStore('site', () => {
   async function loadClassifieds() {
     try {
       await delay(100);
+      logger.debug('Loading classifieds from JSON...');
       classifieds.value = classifiedsData as ClassifiedAd[];
+      logger.success(`Loaded ${classifieds.value.length} classifieds from JSON`);
     } catch (error) {
       logger.error('Error loading classifieds:', error);
       classifieds.value = [];
