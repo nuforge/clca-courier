@@ -23,8 +23,9 @@ const routes: RouteRecordRaw[] = [
 
       { path: '/dashboard', component: () => import('pages/DashboardPage.vue') },
 
-      // User account
-      { path: '/account', component: () => import('pages/AccountPage.vue') },
+      // User settings
+      { path: '/settings', component: () => import('pages/SettingsPage.vue') },
+      { path: '/account', redirect: '/settings' }, // Redirect old account route to settings
 
       // Legal pages
       { path: '/privacy', component: () => import('pages/PrivacyPolicyPage.vue') },

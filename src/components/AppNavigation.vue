@@ -39,12 +39,28 @@ watch(isMini, (mini: boolean) => {
   void setSideMenuCollapsed(mini);
 });
 
-// Account navigation item
-const accountItem: NavigationItemType = {
-  title: 'Account',
-  icon: 'mdi-account-circle',
-  link: '/account'
+// Settings navigation item
+const settingsItem: NavigationItemType = {
+  title: 'Settings',
+  icon: 'mdi-cog',
+  link: '/settings'
 };
+
+// Admin navigation items
+const adminItems = computed(() => {
+  if (!auth.isAuthenticated.value) return [];
+
+  const items: NavigationItemType[] = [];
+
+  // Admin Dashboard
+  items.push({
+    title: 'Admin',
+    icon: 'mdi-shield-crown',
+    link: '/admin'
+  });
+
+  return items;
+});
 
 // Computed properties
 // None needed for navigation-specific functionality
@@ -82,7 +98,7 @@ const isOpen = computed({
       <!-- Latest Issue Card removed - PDF processing disabled -->
 
       <q-space class="q-mtlg" />
-      <!-- Bottom section with Auth and Account -->
+      <!-- Bottom section with Auth, Admin, and Settings -->
       <div class="bottom-section">
         <!-- Authentication Section -->
         <div v-if="!auth.isAuthenticated.value" class="q-pa-sm">
@@ -117,8 +133,18 @@ const isOpen = computed({
           </div>
         </div>
 
-        <!-- Account Link -->
-        <NavigationItem :item="accountItem" :mini="isMini" />
+        <!-- Admin Links (when authenticated) -->
+        <div v-if="auth.isAuthenticated.value">
+          <NavigationItem
+            v-for="item in adminItems"
+            :key="item.title"
+            :item="item"
+            :mini="isMini"
+          />
+        </div>
+
+        <!-- Settings Link -->
+        <NavigationItem :item="settingsItem" :mini="isMini" />
       </div>
     </div>
   </q-drawer>

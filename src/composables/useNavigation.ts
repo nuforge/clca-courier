@@ -62,29 +62,10 @@ export const useNavigation = () => {
     },
   ];
 
-  // Computed navigation items that include admin if user is authenticated
+  // Navigation items without admin items (admin items are now in bottom section)
   const navigationItems = computed(() => {
     const items = [...baseNavigationItems];
-
-    // Add admin item if user is authenticated
-    if (isAuthenticatedUser.value) {
-      if (hasAdminProfile.value) {
-        // User has admin profile - show admin dashboard
-        items.push({
-          title: 'Admin Dashboard',
-          icon: 'mdi-shield-crown',
-          link: '/admin',
-        });
-      } else {
-        // User is authenticated but no admin profile - show setup
-        items.push({
-          title: 'Admin Setup',
-          icon: 'mdi-shield-plus',
-          link: '/admin/setup',
-        });
-      }
-    }
-
+    // Admin items moved to bottom section in AppNavigation.vue
     return items;
   });
 

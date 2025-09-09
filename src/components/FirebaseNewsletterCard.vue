@@ -9,7 +9,7 @@
       :aria-label="newsletter.thumbnailUrl ? 'Newsletter thumbnail' : 'PDF document icon'">
       <q-img v-if="newsletter.thumbnailUrl" :src="newsletter.thumbnailUrl"
         :alt="'Thumbnail preview for ' + newsletter.title" class="thumbnail-image" loading="lazy"
-        @error="onThumbnailError">
+        @error="onThumbnailError" position="top">
         <template v-slot:loading>
           <div class="absolute-center">
             <q-spinner color="primary" size="2em" />

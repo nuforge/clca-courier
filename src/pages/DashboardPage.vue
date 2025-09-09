@@ -64,7 +64,7 @@ const goToSubmit = () => {
                                 Sign In Required
                             </div>
                             <p>Please sign in to view your dashboard and manage your submissions.</p>
-                            <q-btn color="primary" label="Sign In" @click="$router.push('/account')" />
+                            <q-btn color="primary" label="Sign In" @click="$router.push('/settings')" />
                         </q-card-section>
                     </q-card>
                 </div>

@@ -141,8 +141,8 @@ function importSettings() {
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
           <div class="text-h4 q-mb-md">
-            <q-icon name="mdi-account-circle" class="q-mr-sm" />
-            Account Settings
+            <q-icon name="mdi-cog" class="q-mr-sm" />
+            Settings
           </div>
 
           <!-- Theme Settings -->
