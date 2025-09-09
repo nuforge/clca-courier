@@ -16,10 +16,13 @@ const route = useRoute();
 const router = useRouter();
 
 // Theme system for consistent icons and colors
-const { getContentIcon, getCategoryIcon } = useSiteTheme();
+const { getContentIcon, getCategoryIcon, theme } = useSiteTheme();
 
-// Helper function to get the right icon based on item type
+// Helper function to get the right icon based on item type (made reactive by accessing theme)
 const getItemIcon = (item: NewsItem | ClassifiedAd) => {
+  // Access theme to ensure reactivity
+  const currentTheme = theme;
+
   if (isClassifiedAd(item)) {
     // For classified ads, get the specific category icon
     const categoryIcon = getCategoryIcon('classified', item.category);

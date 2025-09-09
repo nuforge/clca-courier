@@ -81,7 +81,8 @@ function formatDate(dateString: string): string {
 }
 
 // Category color and icon mapping - using centralized content icons system
-const getCategoryConfig = () => getClassifiedCategoryIcon(props.item.category);
+// Category icon and color configuration - using centralized content icons system (reactive)
+const getCategoryConfig = computed(() => getClassifiedCategoryIcon(props.item.category));
 
 // Category display name - using centralized formatting
 const categoryDisplayName = computed(() =>
@@ -111,7 +112,7 @@ function handleDelete(): void {
     @click="handleClick"
   >
     <q-card-section>
-      <div class="text-overline" :class="`text-${getCategoryConfig().color}`">
+      <div class="text-overline" :class="`text-${getCategoryConfig.color}`">
         {{ categoryDisplayName }}
       </div>
       <div class="text-h6 q-mb-sm line-clamp-2">{{ item.title }}</div>
@@ -152,14 +153,14 @@ function handleDelete(): void {
     <q-card-section>
       <div class="row items-start">
         <q-avatar
-          :color="getCategoryConfig().color"
+          :color="getCategoryConfig.color"
           text-color="white"
-          :icon="getCategoryConfig().icon"
+          :icon="getCategoryConfig.icon"
           size="md"
           class="q-mr-md"
         />
         <div class="col">
-          <div class="text-overline" :class="`text-${getCategoryConfig().color}`">
+          <div class="text-overline" :class="`text-${getCategoryConfig.color}`">
             {{ categoryDisplayName }}
           </div>
           <div class="text-h6 q-mb-sm">{{ item.title }}</div>
@@ -203,8 +204,8 @@ function handleDelete(): void {
     <q-item-section avatar>
       <q-avatar
         color="transparent"
-        :text-color="getCategoryConfig().color"
-        :icon="getCategoryConfig().icon"
+        :text-color="getCategoryConfig.color"
+        :icon="getCategoryConfig.icon"
       />
     </q-item-section>
 
