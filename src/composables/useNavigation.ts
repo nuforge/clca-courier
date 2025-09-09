@@ -46,18 +46,13 @@ export const useNavigation = () => {
       link: '/archive',
     },
     {
-      title: 'Interactive Map',
-      icon: 'mdi-map',
-      link: '/map',
-    },
-    {
       title: 'Contribute',
       icon: 'mdi-pencil',
       link: '/contribute',
     },
     {
       title: 'About & Contact',
-      icon: 'mdi-information',
+      icon: 'mdi-comment-question',
       link: '/about',
     },
   ];

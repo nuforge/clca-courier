@@ -87,20 +87,25 @@ async function onSubmit() {
     <div class="q-pa-md">
       <div class="row justify-center">
         <div class="col-12 col-md-10 col-lg-8">
+
+
+          
           <!-- About Header -->
           <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
+            <q-card-section class="row q-col-gutter-md">
+              <div class="col">
               <div class="text-h4 q-mb-md">
-                <q-icon name="mdi-information" class="q-mr-sm" />
-                About The Courier
+                <q-icon name="mdi-help-circle" class="q-mr-sm" />
+                The Courier
               </div>
               <p class="text-body1">
                 The Courier is the official newsletter of the Conashaugh Lakes community,
                 dedicated to keeping residents informed and connected.
               </p>
+              </div>
 
               <!-- Quick Contact Button -->
-              <div class="text-center q-mt-md">
+              <div class="col-auto text-center q-mt-md">
                 <q-btn
                   color="primary"
                   icon="mdi-message"
