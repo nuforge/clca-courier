@@ -76,8 +76,8 @@
         <q-separator class="q-mb-lg" />
         <h5 class="q-mt-none q-mb-md">Need Help?</h5>
 
-        <div class="row">
-          <div class="col-12 col-md-4 q-pa-lg">
+        <div class="row q-col-gutter-sm">
+          <div class="col-12 col-md-4 q-pa-md">
             <q-card flat bordered class="help-card">
               <q-card-section>
                 <div class="text-center">
@@ -92,7 +92,7 @@
             </q-card>
           </div>
 
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-4 q-pa-md">
             <q-card flat bordered class="help-card">
               <q-card-section>
                 <div class="text-center">
@@ -107,7 +107,7 @@
             </q-card>
           </div>
 
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-4 q-pa-md">
             <q-card flat bordered class="help-card">
               <q-card-section>
                 <div class="text-center">
