@@ -211,7 +211,7 @@ watch(contentType, (newType: string) => {
           <!-- Header Section -->
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
-              <div class="row items-center">
+              <div class="row items-center q-gutter-md">
                 <div class="col">
                   <div class="text-h4 q-mb-md">
                     <q-icon name="mdi-newspaper" class="q-mr-sm" />
