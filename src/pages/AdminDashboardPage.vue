@@ -217,7 +217,7 @@
               <p class="text-body2 text-grey-6">
                 Manage user accounts and permissions
               </p>
-              <div class="q-gutter-sm">
+              <div class="q-col-gutter-sm">
                 <q-btn
                   color="info"
                   icon="mdi-account-cog"
@@ -225,7 +225,7 @@
                   @click="showUserManagement = true"
                   class="full-width"
                 />
-                <div class="row q-gutter-xs">
+                <div class="row q-col-gutter-xs">
                   <div class="col">
                     <q-btn
                       color="green"
