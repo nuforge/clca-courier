@@ -80,25 +80,23 @@ const isOpen = computed({
 <template>
   <q-drawer v-model="isOpen" show-if-above class="bg-dark navigation-drawer" :mini="isMini" :width="280"
     :mini-width="60">
-    <!-- Toggle button -->
-    <div class="flex justify-end q-pa-sm">
-      <q-btn flat round dense :icon="isMini ? 'mdi-chevron-right' : 'mdi-chevron-left'" @click="toggleMini"
-        class="text-grey-6" size="sm" />
-    </div>
+    <!-- Flexbox container that fills the drawer height -->
+    <div class="column no-wrap full-height">
+      <!-- Top section with toggle button -->
+      <div class="flex justify-end q-pa-sm">
+        <q-btn flat round dense :icon="isMini ? 'mdi-chevron-right' : 'mdi-chevron-left'" @click="toggleMini"
+          class="text-grey-6" size="sm" />
+      </div>
 
-    <!-- Scrollable navigation area -->
-    <div class="navigation-content justify-between">
       <!-- Main navigation items -->
       <q-list class="q-mt-sm">
         <NavigationItem v-for="item in navigationItems" :key="item.title" :item="item" :mini="isMini" />
       </q-list>
 
-      <q-space class="q-mt-lg" />
+      <!-- Spacer to push bottom content down -->
+      <q-space />
 
-      <!-- Latest Issue Card removed - PDF processing disabled -->
-
-      <q-space class="q-mtlg" />
-      <!-- Bottom section with Auth, Admin, and Settings -->
+      <!-- Bottom section with Auth, Admin, and Settings - Always at bottom -->
       <div class="bottom-section">
         <!-- Authentication Section -->
         <div v-if="!auth.isAuthenticated.value" class="q-pa-sm">
@@ -180,18 +178,11 @@ const isOpen = computed({
     margin-left: 0.5rem;
     margin-right: 0.5rem;
   }
-
-  .latest-issue-section {
-    margin-left: 0.5rem !important;
-    margin-right: 0.5rem;
-    display: flex;
-    justify-content: center;
-  }
 }
 
-// Ensure right alignment for full mode
-.latest-issue-section {
-  display: flex;
-  justify-content: flex-end;
+// Bottom section styling
+.bottom-section {
+  // Ensure bottom section stays at bottom with proper spacing
+  flex-shrink: 0;
 }
 </style>

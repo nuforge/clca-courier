@@ -98,8 +98,16 @@
                   </div>
                 </div>
                 <div class="col-12 col-md-4 q-pa-md">
+
+                  <q-select v-model="sortBy" :options="sortOptions" label="Sort By" outlined dense emit-value
+                    map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onSortChange"
+                    aria-label="Sort newsletters by different criteria">
+                    <template v-slot:prepend>
+                      <q-icon name="sort" />
+                    </template>
+                  </q-select>
                   <!-- Quick Filter Buttons -->
-                  <div class="row  q-mb-md">
+                  <div class="row q-my-xs q-gutter-sm">
                     <q-btn outline dense color="primary" size="sm" @click="applyQuickFilter('featured')"
                       :label="'Featured (' + (quickFilterOptions?.featured?.length || 0) + ')'"
                       :aria-label="'Show only featured newsletters, ' + (quickFilterOptions?.featured?.length || 0) + ' available'" />
@@ -109,14 +117,6 @@
                     <q-btn outline dense color="accent" size="sm" @click="applyQuickFilter('recentlyAdded')"
                       label="Recent" aria-label="Show recently added newsletters" />
                   </div>
-
-                  <q-select v-model="sortBy" :options="sortOptions" label="Sort By" outlined dense emit-value
-                    map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onSortChange"
-                    aria-label="Sort newsletters by different criteria">
-                    <template v-slot:prepend>
-                      <q-icon name="sort" />
-                    </template>
-                  </q-select>
                 </div>
               </div>
 
