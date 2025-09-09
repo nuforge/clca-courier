@@ -236,6 +236,57 @@ const demoStats = computed(() => ({
       </q-card-section>
     </q-card>
 
+    <!-- About & Contact Demo -->
+    <q-card flat bordered class="q-mb-lg">
+      <q-card-section>
+        <div class="text-h6 q-mb-md">{{ t('about.title') || 'About & Contact Page' }}</div>
+        <div class="row q-gutter-sm">
+          <q-chip color="primary" text-color="white">{{ t('about.ourMission') || 'Our Mission' }}</q-chip>
+          <q-chip color="secondary" text-color="white">{{ t('about.whatWeDo') || 'What We Do' }}</q-chip>
+          <q-chip color="accent" text-color="white">{{ t('about.contactSection') || 'Contact Section' }}</q-chip>
+          <q-chip color="positive" text-color="white">{{ t('about.volunteer') || 'Volunteer' }}</q-chip>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <!-- Contribute Page Demo -->
+    <q-card flat bordered class="q-mb-lg">
+      <q-card-section>
+        <div class="text-h6 q-mb-md">{{ t('contribute.title') || 'Contribute Page' }}</div>
+        <div class="row q-gutter-sm">
+          <q-chip color="blue" text-color="white">{{ t('contribute.contentTypes.news.title') || 'Community News' }}</q-chip>
+          <q-chip color="purple" text-color="white">{{ t('contribute.contentTypes.photos.title') || 'Photos & Media' }}</q-chip>
+          <q-chip color="green" text-color="white">{{ t('contribute.contentTypes.events.title') || 'Events' }}</q-chip>
+          <q-chip color="orange" text-color="white">{{ t('contribute.contentTypes.announcements.title') || 'Announcements' }}</q-chip>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <!-- Settings Page Demo -->
+    <q-card flat bordered class="q-mb-lg">
+      <q-card-section>
+        <div class="text-h6 q-mb-md">{{ t('settingsPage.title') || 'Settings Page' }}</div>
+        <div class="row q-gutter-sm">
+          <q-chip color="indigo" text-color="white">{{ t('settingsPage.themeSettings') || 'Theme Settings' }}</q-chip>
+          <q-chip color="pink" text-color="white">{{ t('settingsPage.notificationSettings') || 'Notifications' }}</q-chip>
+          <q-chip color="teal" text-color="white">{{ t('settingsPage.pdfSettings') || 'PDF Settings' }}</q-chip>
+          <q-chip color="brown" text-color="white">{{ t('settingsPage.resetAll') || 'Reset All' }}</q-chip>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <!-- Legal Pages Demo -->
+    <q-card flat bordered class="q-mb-lg">
+      <q-card-section>
+        <div class="text-h6 q-mb-md">Legal & Policy Pages</div>
+        <div class="row q-gutter-sm">
+          <q-chip color="grey" text-color="white">{{ t('privacy.title') || 'Privacy Policy' }}</q-chip>
+          <q-chip color="grey-7" text-color="white">{{ t('terms.title') || 'Terms of Service' }}</q-chip>
+          <q-chip color="grey-9" text-color="white">{{ t('accessibility.title') || 'Accessibility' }}</q-chip>
+        </div>
+      </q-card-section>
+    </q-card>
+
     <!-- Newsletter Demo -->
     <q-card flat bordered class="q-mb-lg">
       <q-card-section>

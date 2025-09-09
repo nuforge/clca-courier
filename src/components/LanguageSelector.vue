@@ -127,7 +127,6 @@ const ariaLabel = computed(() =>
     <q-btn-group
       v-else
       rounded
-      class="language-selector__group"
     >
       <q-btn
         v-for="locale in locales"
@@ -137,7 +136,6 @@ const ariaLabel = computed(() =>
         :flat="currentLocale !== locale.value"
         :size="size"
         :aria-label="`${t(TRANSLATION_KEYS.SETTINGS.LANGUAGE)}: ${locale.label}`"
-        class="language-selector__button"
         @click="handleLocaleChange(locale.value)"
       />
     </q-btn-group>

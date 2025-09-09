@@ -3,11 +3,14 @@ import { ref } from 'vue';
 import { useTheme } from '../composables/useTheme';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 // Use the enhanced user settings
 const userSettings = useUserSettings();
 const { isDarkMode, currentTheme, setTheme } = useTheme();
 const $q = useQuasar();
+const { t } = useI18n();
 
 // Local state for UI
 const settingsExpanded = ref({
@@ -21,7 +24,7 @@ const settingsExpanded = ref({
 async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
   await setTheme(theme);
   $q.notify({
-    message: `Theme changed to ${theme}`,
+    message: t('settingsPage.themeSettings'),
     type: 'positive',
     position: 'top',
     timeout: 2000,
@@ -31,7 +34,7 @@ async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
 async function handleNotificationUpdate(key: string, value: boolean) {
   await userSettings.updateNotificationSettings({ [key]: value });
   $q.notify({
-    message: 'Notification settings updated',
+    message: t('settingsPage.notificationSettings'),
     type: 'positive',
     position: 'top',
     timeout: 2000,
@@ -41,7 +44,7 @@ async function handleNotificationUpdate(key: string, value: boolean) {
 async function handleDisplayUpdate(key: string, value: boolean) {
   await userSettings.updateDisplaySettings({ [key]: value });
   $q.notify({
-    message: 'Display settings updated',
+    message: t('settingsPage.displaySettings'),
     type: 'positive',
     position: 'top',
     timeout: 2000,
@@ -52,7 +55,7 @@ async function handlePdfUpdate(key: string, value: number | string | null) {
   if (value !== null) {
     await userSettings.updatePdfSettings({ [key]: value });
     $q.notify({
-      message: 'PDF settings updated',
+      message: t('settingsPage.pdfSettings'),
       type: 'positive',
       position: 'top',
       timeout: 2000,
@@ -62,14 +65,14 @@ async function handlePdfUpdate(key: string, value: number | string | null) {
 
 function resetAllSettings() {
   $q.dialog({
-    title: 'Reset Settings',
-    message: 'Are you sure you want to reset all settings to defaults? This cannot be undone.',
+    title: t(TRANSLATION_KEYS.SETTINGS_PAGE.RESET_CONFIRMATION),
+    message: t(TRANSLATION_KEYS.SETTINGS_PAGE.RESET_WARNING),
     cancel: true,
     persistent: true,
   }).onOk(() => {
     void userSettings.resetSettings().then(() => {
       $q.notify({
-        message: 'All settings have been reset to defaults',
+        message: t('settingsPage.resetAll'),
         type: 'positive',
         position: 'top',
         timeout: 3000,

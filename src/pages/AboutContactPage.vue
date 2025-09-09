@@ -2,11 +2,14 @@
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useSiteStore } from '../stores/site-store-simple'
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys'
 
 const $q = useQuasar()
 const router = useRouter()
 const siteStore = useSiteStore()
+const { t } = useI18n()
 
 // Computed property for card theme classes
 const cardClasses = computed(() => {
@@ -47,14 +50,14 @@ const form = ref({
 const submitting = ref(false)
 
 const subjectOptions = [
-  'General Inquiry',
-  'Article Submission',
-  'Photo Submission',
-  'Event Announcement',
-  'Advertising',
-  'Technical Issue',
-  'Feedback',
-  'Other'
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.GENERAL),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.ARTICLE),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.PHOTO),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.EVENT),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.ADVERTISING),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.TECHNICAL),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.FEEDBACK),
+  t(TRANSLATION_KEYS.ABOUT.SUBJECT_OPTIONS.OTHER)
 ]
 
 async function onSubmit() {
@@ -64,8 +67,8 @@ async function onSubmit() {
   await new Promise(resolve => setTimeout(resolve, 1000))
 
   $q.notify({
-    message: 'Message sent successfully!',
-    caption: 'We\'ll get back to you soon.',
+    message: t(TRANSLATION_KEYS.SUCCESS.SENT),
+    caption: t('about.contactFormDescription'),
     color: 'positive',
     icon: 'mdi-check-circle'
   })
@@ -96,11 +99,10 @@ async function onSubmit() {
               <div class="col">
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-help-circle" class="q-mr-sm" />
-                The Courier
+                {{ t(TRANSLATION_KEYS.ABOUT.TITLE) }}
               </div>
               <p class="text-body1">
-                The Courier is the official newsletter of the Conashaugh Lakes community,
-                dedicated to keeping residents informed and connected.
+                {{ t(TRANSLATION_KEYS.ABOUT.DESCRIPTION) }}
               </p>
               </div>
 
@@ -109,7 +111,7 @@ async function onSubmit() {
                 <q-btn
                   color="primary"
                   icon="mdi-message"
-                  label="Contact Us"
+                  :label="t(TRANSLATION_KEYS.ABOUT.QUICK_CONTACT)"
                   @click="scrollToContact"
                   outline
                   class="q-px-lg"
@@ -125,12 +127,10 @@ async function onSubmit() {
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-target" class="q-mr-sm" />
-                    Our Mission
+                    {{ t(TRANSLATION_KEYS.ABOUT.OUR_MISSION) }}
                   </div>
                   <p class="text-body2">
-                    To foster community spirit and keep residents informed about important
-                    news, events, and updates that affect our beautiful lakeside community.
-                    We strive to be the central hub for community communication and engagement.
+                    {{ t(TRANSLATION_KEYS.ABOUT.MISSION_DESCRIPTION) }}
                   </p>
                 </q-card-section>
               </q-card>
@@ -141,12 +141,10 @@ async function onSubmit() {
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-history" class="q-mr-sm" />
-                    Our History
+                    {{ t(TRANSLATION_KEYS.ABOUT.WHAT_WE_DO) }}
                   </div>
                   <p class="text-body2">
-                    Founded in 1995, The Courier has been serving the Conashaugh Lakes
-                    community for over 25 years. What started as a simple newsletter has
-                    evolved into a comprehensive community communication platform.
+                    {{ t(TRANSLATION_KEYS.ABOUT.WHAT_WE_DO_DESCRIPTION) }}
                   </p>
                 </q-card-section>
               </q-card>
