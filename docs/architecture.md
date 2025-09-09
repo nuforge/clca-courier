@@ -159,11 +159,30 @@ OAuth Provider → Firebase Auth → User Profile Creation → Role Assignment �
 - **Breakpoints**: Quasar's built-in responsive system
 - **Touch-Friendly**: Large touch targets and gestures
 
-### Theme System
+### Theme System (Comprehensive Implementation - Sept 2025)
 - **Dark/Light Modes**: Automatic and manual theme switching
-- **Material Design**: Consistent with Quasar components
+- **Material Design**: Consistent with Quasar components  
 - **Custom Branding**: CLCA-specific colors and typography
 - **Accessibility**: WCAG 2.1 compliance standards
+
+#### Advanced Icon Management System
+- **Content Icons**: User-customizable themed icons via `useSiteTheme` composable
+  - `getContentIcon(type)` - Newsletter, article, event icons
+  - `getStatusIcon(status)` - Pending, published, approved status icons
+  - `getCategoryIcon(type, category)` - Category-specific themed icons
+- **UI Icons**: Consistent interface elements via `UI_ICONS` constants
+  - 45+ standardized icons for actions (save, delete, edit, refresh)
+  - Navigation elements (menu, chevrons, close)
+  - User management (account, login, logout)
+  - Centralized in `src/constants/ui-icons.ts`
+- **Live Theme Preview**: Theme editor shows real-time changes across application
+- **Icon Consistency**: 74+ hardcoded instances replaced with proper theme system
+
+#### Theme Configuration
+- **Centralized Config**: `src/config/site-theme.config.ts` with DEFAULT_SITE_THEME
+- **User Customization**: Live theme editor at `/admin/theme-editor`
+- **Persistent Storage**: Theme preferences saved to Firestore
+- **Component Integration**: All major components use unified theme patterns
 
 ### Navigation Patterns
 - **Single Page App**: Client-side routing with history mode

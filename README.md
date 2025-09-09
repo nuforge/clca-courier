@@ -156,6 +156,7 @@ Complete documentation available in [`docs/`](./docs/):
 - **[� Firebase Setup](docs/firebase-setup.md)** - Backend configuration
 - **[� Content Management](docs/content-management.md)** - Submission and review workflow
 - **[🗺️ Interactive Map](docs/interactive-map.md)** - Community map features
+- **[🎨 Theme System Summary](docs/THEME_SYSTEM_SUMMARY.md)** - Icon and UI consistency guide
 - **[⚙️ Development Guide](docs/development/README.md)** - Developer documentation
 
 ## 🚦 Project Status

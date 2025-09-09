@@ -30,6 +30,7 @@ New to the project? Start here:
 - **[📝 Content Management](content-management.md)** - Community content submission and review system
 - **[🗺️ Interactive Map](interactive-map.md)** - Community property map and navigation
 - **[📰 Newsletter Archive](../README.md#newsletter-management)** - PDF newsletter management and search
+- **[🎨 Theme System Summary](THEME_SYSTEM_SUMMARY.md)** - Icon consistency and UI theme documentation
 
 ### Development
 - **[⚙️ Development Guide](development/README.md)** - Developer workflow and best practices
@@ -48,6 +49,11 @@ New to the project? Start here:
 - **Modern Stack**: Vue 3 + Quasar + Firebase + TypeScript
 - **Mobile Optimized**: Responsive design for all devices
 - **Security Implemented**: Role-based access with Firebase rules
+- **🎨 Theme System Overhaul** (Sept 2025): Complete icon consistency implementation
+  - 74+ hardcoded icons replaced with proper theme system
+  - Centralized UI_ICONS constants for consistent interface elements
+  - User-customizable content icons via live theme editor
+  - Unified preview/live display logic across application
 
 ## 🛠️ Technical Overview
 
