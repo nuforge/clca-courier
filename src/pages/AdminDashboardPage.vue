@@ -87,7 +87,7 @@
                   to="/admin/content"
                   class="full-width"
                 />
-                <div class="row q-col-gutter-xs">
+                <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
                       color="orange"
@@ -133,7 +133,7 @@
                   to="/admin/newsletters"
                   class="full-width"
                 />
-                <div class="row q-col-gutter-xs">
+                <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
                       color="info"
@@ -179,7 +179,7 @@
                   @click="showThemeDialog = true"
                   class="full-width"
                 />
-                <div class="row q-col-gutter-xs">
+                <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
                       color="brown"
@@ -225,7 +225,7 @@
                   @click="showUserManagement = true"
                   class="full-width"
                 />
-                <div class="row q-col-gutter-xs">
+                <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
                       color="green"
