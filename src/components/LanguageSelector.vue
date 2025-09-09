@@ -55,7 +55,7 @@ const {
 // Compute display options based on props
 const buttonLabel = computed(() => {
   if (props.mini) {
-    return currentLocaleInfo.value.flag;
+    return ''; // No label in mini mode to prevent stretching
   }
   return `${currentLocaleInfo.value.flag} ${currentLocaleInfo.value.nativeName}`;
 });
@@ -73,9 +73,66 @@ const ariaLabel = computed(() =>
 
 <template>
   <div class="language-selector">
-    <!-- Dropdown Version (Default) -->
+    <!-- Mini Mode: Icon Button with Dropdown -->
+    <q-btn
+      v-if="dropdown && mini"
+      :color="color"
+      :size="size"
+      flat
+      round
+      dense
+      :aria-label="ariaLabel"
+      class="language-selector__mini-button"
+    >
+      <span class="language-selector__flag-icon">{{ currentLocaleInfo.flag }}</span>
+
+      <q-menu
+        anchor="top middle"
+        self="bottom middle"
+        class="language-selector__mini-menu"
+      >
+        <q-list class="language-selector__list">
+          <q-item
+            v-for="locale in locales"
+            :key="locale.value"
+            clickable
+            v-close-popup
+            :active="currentLocale === locale.value"
+            active-class="text-primary bg-primary-alpha"
+            class="language-selector__item"
+            @click="handleLocaleChange(locale.value)"
+          >
+            <q-item-section avatar class="language-selector__flag">
+              <span class="text-h6">{{ locale.flag }}</span>
+            </q-item-section>
+
+            <q-item-section class="language-selector__text">
+              <q-item-label class="language-selector__native">
+                {{ locale.nativeLabel }}
+              </q-item-label>
+              <q-item-label
+                caption
+                class="language-selector__display"
+              >
+                {{ locale.label }}
+              </q-item-label>
+            </q-item-section>
+
+            <q-item-section
+              side
+              v-if="currentLocale === locale.value"
+              class="language-selector__check"
+            >
+              <q-icon :name="UI_ICONS.checkCircle" color="primary" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-btn>
+
+    <!-- Regular Mode: Dropdown Button -->
     <q-btn-dropdown
-      v-if="dropdown"
+      v-else-if="dropdown"
       :label="buttonLabel"
       :color="color"
       :size="size"
@@ -146,6 +203,21 @@ const ariaLabel = computed(() =>
 .language-selector {
   &__dropdown {
     min-width: 120px;
+  }
+
+  &__mini-button {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+
+    .language-selector__flag-icon {
+      font-size: 16px;
+      line-height: 1;
+    }
+  }
+
+  &__mini-menu {
+    margin-top: 4px;
   }
 
   &__list {

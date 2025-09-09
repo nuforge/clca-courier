@@ -177,7 +177,11 @@ export default {
     importSettings: 'Import Settings',
     resetAll: 'Reset All Settings',
     resetConfirmation: 'Reset Settings',
-    resetWarning: 'Are you sure you want to reset all settings to defaults? This cannot be undone.'
+    resetWarning: 'Are you sure you want to reset all settings to defaults? This cannot be undone.',
+    languageSettings: 'Language & Region',
+    languageDescription: 'Choose your preferred language for the interface',
+    currentLanguage: 'Current Language',
+    selectLanguage: 'Select Language'
   },
 
   // Privacy Policy Page

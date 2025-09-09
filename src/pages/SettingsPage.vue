@@ -2,18 +2,22 @@
 import { ref } from 'vue';
 import { useTheme } from '../composables/useTheme';
 import { useUserSettings } from '../composables/useUserSettings';
+import { useLocale } from '../composables/useLocale';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
+import type { SupportedLocale } from '../i18n/utils/locale-detector';
 
 // Use the enhanced user settings
 const userSettings = useUserSettings();
 const { isDarkMode, currentTheme, setTheme } = useTheme();
+const { currentLocale, currentLocaleInfo, locales, switchLocale } = useLocale();
 const $q = useQuasar();
 const { t } = useI18n();
 
 // Local state for UI
 const settingsExpanded = ref({
+  language: true,
   theme: true,
   notifications: false,
   display: false,
@@ -21,6 +25,17 @@ const settingsExpanded = ref({
 });
 
 // Methods
+async function handleLanguageChange(language: SupportedLocale) {
+  switchLocale(language); // switchLocale is synchronous, no await needed
+  await userSettings.setLanguage(language);
+  $q.notify({
+    message: t(TRANSLATION_KEYS.SETTINGS_PAGE.LANGUAGE_SETTINGS),
+    type: 'positive',
+    position: 'top',
+    timeout: 2000,
+  });
+}
+
 async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
   await setTheme(theme);
   $q.notify({
@@ -147,6 +162,58 @@ function importSettings() {
             <q-icon name="mdi-cog" class="q-mr-sm" />
             Settings
           </div>
+
+          <!-- Language Settings -->
+          <q-expansion-item v-model="settingsExpanded.language" icon="mdi-translate"
+            :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.LANGUAGE_SETTINGS)"
+            default-opened class="q-mb-md">
+            <q-card>
+              <q-card-section>
+                <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.SELECT_LANGUAGE) }}</div>
+
+                <div class="row items-center q-mb-md">
+                  <div class="col-12 col-md-6">
+                    <div class="text-body1 q-mb-sm">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.CURRENT_LANGUAGE) }}:</div>
+                    <div class="row items-center">
+                      <q-chip
+                        color="primary"
+                        text-color="white"
+                        size="lg"
+                        class="q-mr-md"
+                      >
+                        <span class="q-mr-xs">{{ currentLocaleInfo.flag }}</span>
+                        {{ currentLocaleInfo.nativeName }}
+                      </q-chip>
+                      <div class="text-caption text-grey-6">
+                        {{ currentLocaleInfo.displayName }}
+                      </div>
+                    </div>
+                  </div>                  <div class="col-12 col-md-6 q-mt-md q-mt-md-none">
+                    <div class="text-body1 q-mb-sm">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.SELECT_LANGUAGE) }}:</div>
+                    <div class="row q-gutter-sm">
+                      <q-btn
+                        v-for="locale in locales"
+                        :key="locale.value"
+                        :label="`${locale.flag} ${locale.nativeLabel}`"
+                        :color="currentLocale === locale.value ? 'primary' : 'grey-6'"
+                        :flat="currentLocale !== locale.value"
+                        size="md"
+                        :aria-label="`${t(TRANSLATION_KEYS.SETTINGS.LANGUAGE)}: ${locale.label}`"
+                        @click="handleLanguageChange(locale.value)"
+                        class="language-option-button"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <q-separator class="q-my-md" />
+
+                <div class="text-body2 text-grey-6">
+                  {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.LANGUAGE_DESCRIPTION) }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
 
           <!-- Theme Settings -->
           <q-expansion-item v-model="settingsExpanded.theme" icon="mdi-palette" label="Theme & Appearance"
@@ -323,6 +390,15 @@ function importSettings() {
   }
 }
 
+.language-option-button {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
 @media (max-width: 599px) {
   .setting-item .row {
     flex-direction: column;
@@ -332,6 +408,10 @@ function importSettings() {
     .col-auto {
       width: 100%;
     }
+  }
+
+  .language-option-button {
+    min-width: 120px;
   }
 }
 </style>

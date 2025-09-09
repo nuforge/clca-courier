@@ -421,7 +421,11 @@ export const TRANSLATION_KEYS = {
     IMPORT_SETTINGS: 'settingsPage.importSettings',
     RESET_ALL: 'settingsPage.resetAll',
     RESET_CONFIRMATION: 'settingsPage.resetConfirmation',
-    RESET_WARNING: 'settingsPage.resetWarning'
+    RESET_WARNING: 'settingsPage.resetWarning',
+    LANGUAGE_SETTINGS: 'settingsPage.languageSettings',
+    LANGUAGE_DESCRIPTION: 'settingsPage.languageDescription',
+    CURRENT_LANGUAGE: 'settingsPage.currentLanguage',
+    SELECT_LANGUAGE: 'settingsPage.selectLanguage'
   },
 
   // Pages - Privacy Policy

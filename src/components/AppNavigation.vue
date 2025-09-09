@@ -181,7 +181,6 @@ const isOpen = computed({
           <LanguageSelector
             :mini="isMini"
             :dropdown="true"
-            color="white"
             size="sm"
           />
         </div>

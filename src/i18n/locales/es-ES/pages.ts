@@ -177,7 +177,11 @@ export default {
     importSettings: 'Importar Configuración',
     resetAll: 'Restablecer Toda la Configuración',
     resetConfirmation: 'Restablecer Configuración',
-    resetWarning: '¿Estás seguro de que quieres restablecer toda la configuración a los valores predeterminados? Esto no se puede deshacer.'
+    resetWarning: '¿Estás seguro de que quieres restablecer toda la configuración a los valores predeterminados? Esto no se puede deshacer.',
+    languageSettings: 'Idioma y Región',
+    languageDescription: 'Elige tu idioma preferido para la interfaz',
+    currentLanguage: 'Idioma Actual',
+    selectLanguage: 'Seleccionar Idioma'
   },
 
   // Privacy Policy Page

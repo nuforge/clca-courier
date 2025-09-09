@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { storageService, type UserSettings, DEFAULT_SETTINGS } from '../services/storage-service';
+import type { SupportedLocale } from '../i18n/utils/locale-detector';
 
 // Helper function to convert reactive objects to plain objects for storage
 function toPlainObject<T>(obj: T): T {
@@ -114,9 +115,9 @@ export const useUserSettings = () => {
   }
 
   // Language setting
-  const currentLanguage = computed(() => userSettings.value.language);
+  const currentLanguage = computed(() => userSettings.value.language as SupportedLocale);
 
-  async function setLanguage(language: string) {
+  async function setLanguage(language: SupportedLocale) {
     userSettings.value.language = language;
     await storageService.saveUserSettings({ language });
   }
