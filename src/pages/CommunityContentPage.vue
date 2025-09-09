@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 import UnifiedContentList from '../components/UnifiedContentList.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { formatDate as formatDateUtil, sortByDateDesc } from '../utils/date-formatter';
+import { UI_ICONS } from '../constants/ui-icons';
 
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
 const siteStore = useSiteStore();
@@ -16,7 +17,7 @@ const route = useRoute();
 const router = useRouter();
 
 // Theme system for consistent icons and colors
-const { getContentIcon, getCategoryIcon } = useSiteTheme();
+const { getContentIcon, getCategoryIcon, colors } = useSiteTheme();
 
 // Helper function to get the right icon based on item type
 const getItemIcon = (item: NewsItem | ClassifiedAd) => {
@@ -250,7 +251,7 @@ watch(contentType, (newType: string) => {
               <div class="row items-center q-gutter-md">
                 <div class="col">
                   <div class="text-h4 q-mb-md">
-                    <q-icon name="mdi-newspaper" class="q-mr-sm" />
+                    <q-icon :name="getContentIcon('article').icon" :color="getContentIcon('article').color" class="q-mr-sm" />
                     Community Content
                   </div>
                   <p class="text-body1">
@@ -259,9 +260,9 @@ watch(contentType, (newType: string) => {
                   </p>
                 </div>
                 <div class="col-auto">
-                  <q-btn color="primary" icon="create" label="Submit Content"
+                  <q-btn :color="colors.primary" icon="create" label="Submit Content"
                     @click="$router.push('/contribute/submit')" class="q-mr-sm" />
-                  <q-btn v-if="isAdmin" color="secondary" icon="mdi-cog" label="Manage Content"
+                  <q-btn v-if="isAdmin" :color="colors.secondary" :icon="getContentIcon('announcement').icon" label="Manage Content"
                     @click="$router.push('/admin/content')" outline />
                 </div>
               </div>
@@ -282,7 +283,7 @@ watch(contentType, (newType: string) => {
                     clearable
                   >
                     <template v-slot:prepend>
-                      <q-icon name="search" />
+                      <q-icon :name="UI_ICONS.search" />
                     </template>
                   </q-input>
                 </div>
@@ -362,7 +363,7 @@ watch(contentType, (newType: string) => {
                   <q-btn
                     flat
                     color="primary"
-                    icon="clear"
+                    :icon="UI_ICONS.clear"
                     label="Clear All Filters"
                     @click="clearFilters"
                     size="sm"
@@ -418,7 +419,7 @@ watch(contentType, (newType: string) => {
               :items="filteredContent"
               :variant="viewMode"
               empty-message="No content found"
-              empty-icon="search_off"
+              :empty-icon="UI_ICONS.searchOff"
               @item-click="showItemDetail"
             />
 
@@ -437,7 +438,7 @@ watch(contentType, (newType: string) => {
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ selectedItem?.title }}</div>
           <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn :icon="UI_ICONS.close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-card-section v-if="selectedItem && isNewsItem(selectedItem)">
@@ -478,11 +479,11 @@ watch(contentType, (newType: string) => {
               <strong>{{ selectedItem.contact.name }}</strong>
             </div>
             <div v-if="selectedItem.contact.phone" class="q-mb-xs">
-              <q-icon name="phone" class="q-mr-xs" />
+              <q-icon :name="UI_ICONS.phone" class="q-mr-xs" />
               <a :href="`tel:${selectedItem.contact.phone}`">{{ selectedItem.contact.phone }}</a>
             </div>
             <div v-if="selectedItem.contact.email" class="q-mb-xs">
-              <q-icon name="email" class="q-mr-xs" />
+              <q-icon :name="UI_ICONS.email" class="q-mr-xs" />
               <a :href="`mailto:${selectedItem.contact.email}`">{{ selectedItem.contact.email }}</a>
             </div>
           </div>

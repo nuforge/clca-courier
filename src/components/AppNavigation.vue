@@ -5,6 +5,7 @@ import LatestIssueNavigation from './CurrentProject.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useFirebase } from '../composables/useFirebase';
+import { UI_ICONS } from '../constants/ui-icons';
 import type { NavigationItem as NavigationItemType } from '../types/navigation';
 
 interface Props {
@@ -43,7 +44,7 @@ watch(isMini, (mini: boolean) => {
 // Settings navigation item
 const settingsItem: NavigationItemType = {
   title: 'Settings',
-  icon: 'mdi-cog',
+  icon: UI_ICONS.cog,
   link: '/settings'
 };
 
@@ -56,7 +57,7 @@ const adminItems = computed(() => {
   // Admin Dashboard
   items.push({
     title: 'Admin',
-    icon: 'mdi-shield-crown',
+    icon: UI_ICONS.shield,
     link: '/admin'
   });
 
@@ -85,7 +86,7 @@ const isOpen = computed({
     <div class="column no-wrap full-height">
       <!-- Top section with toggle button -->
       <div class="flex justify-end q-pa-sm">
-        <q-btn flat round dense :icon="isMini ? 'mdi-chevron-right' : 'mdi-chevron-left'" @click="toggleMini"
+        <q-btn flat round dense :icon="isMini ? UI_ICONS.chevronRight : UI_ICONS.chevronLeft" @click="toggleMini"
           class="text-grey-6" size="sm" />
       </div>
 
@@ -104,9 +105,9 @@ const isOpen = computed({
       <div class="bottom-section">
         <!-- Authentication Section -->
         <div v-if="!auth.isAuthenticated.value" class="q-pa-sm">
-          <q-btn v-if="!isMini" @click="() => auth.signIn('google')" color="primary" icon="mdi-google" label="Sign In"
+          <q-btn v-if="!isMini" @click="() => auth.signIn('google')" color="primary" :icon="UI_ICONS.login" label="Sign In"
             :loading="auth.isLoading.value" class="full-width" size="sm" />
-          <q-btn v-else @click="() => auth.signIn('google')" color="primary" icon="mdi-google"
+          <q-btn v-else @click="() => auth.signIn('google')" color="primary" :icon="UI_ICONS.login"
             :loading="auth.isLoading.value" round size="sm" />
         </div>
 
@@ -116,22 +117,22 @@ const isOpen = computed({
             <div class="row items-center">
               <q-avatar size="24px" class="q-mr-sm">
                 <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
-                <q-icon v-else name="mdi-account" />
+                <q-icon v-else :name="UI_ICONS.account" />
               </q-avatar>
               <div class="col">
                 <div class="text-caption text-weight-bold">{{ auth.currentUser.value?.displayName || 'User' }}</div>
                 <div class="text-caption text-grey-4">{{ auth.currentUser.value?.email }}</div>
               </div>
             </div>
-            <q-btn @click="auth.signOut" flat icon="mdi-logout" label="Sign Out" size="xs"
+            <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" label="Sign Out" size="xs"
               class="full-width q-mt-xs text-grey-4" />
           </div>
           <div v-else class="text-center">
             <q-avatar size="32px" class="q-mb-xs">
               <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
-              <q-icon v-else name="mdi-account" />
+              <q-icon v-else :name="UI_ICONS.account" />
             </q-avatar>
-            <q-btn @click="auth.signOut" flat icon="mdi-logout" round size="xs" class="text-grey-4" />
+            <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" round size="xs" class="text-grey-4" />
           </div>
         </div>
 

@@ -11,7 +11,7 @@
           <q-card flat class="q-mb-lg">
             <q-card-section>
               <div class="text-h4 text-center q-mb-md">
-                <q-icon name="mdi-content-paste" class="q-mr-sm text-primary" />
+                <q-icon :name="getContentIcon('announcement').icon" class="q-mr-sm text-primary" />
                 Content Management
               </div>
               <p class="text-center text-body1">
@@ -65,15 +65,15 @@
             <q-card-section>
               <div class="row items-center q-col-gutter-md">
                 <div class="col-auto">
-                  <q-btn color="primary" icon="mdi-reload" label="Refresh" @click="loadAllContent"
+                  <q-btn color="primary" :icon="UI_ICONS.refresh" label="Refresh" @click="loadAllContent"
                     :loading="isLoading" />
                 </div>
                 <div class="col-auto">
-                  <q-btn color="positive" icon="mdi-check-all" label="Bulk Approve" @click="showBulkApproveDialog"
+                  <q-btn color="positive" :icon="UI_ICONS.checkAll" label="Bulk Approve" @click="showBulkApproveDialog"
                     :disable="selectedContent.length === 0" />
                 </div>
                 <div class="col-auto">
-                  <q-btn color="negative" icon="mdi-close-box-multiple" label="Bulk Reject"
+                  <q-btn color="negative" :icon="UI_ICONS.rejectAll" label="Bulk Reject"
                     @click="showBulkRejectDialog" :disable="selectedContent.length === 0" outline />
                 </div>
                 <div class="col">
@@ -150,7 +150,7 @@
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ selectedContentItem?.title }}</div>
           <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn :icon="UI_ICONS.close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-card-section v-if="selectedContentItem">
@@ -186,7 +186,7 @@
                   <q-item-label caption>{{ formatFileSize(attachment.fileSize) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn flat round icon="download" @click="downloadAttachment(attachment)" />
+                  <q-btn flat round :icon="UI_ICONS.download" @click="downloadAttachment(attachment)" />
                 </q-item-section>
               </q-item>
             </q-list>
@@ -246,10 +246,11 @@ import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import ContentTable from '../components/content-management/ContentTable.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
+import { UI_ICONS } from '../constants/ui-icons';
 
 const $q = useQuasar();
 const { requireEditor, isAuthReady } = useRoleAuth();
-const { getStatusIcon } = useSiteTheme();
+const { getStatusIcon, getContentIcon } = useSiteTheme();
 
 // State
 const isLoading = ref(false);

@@ -5,6 +5,8 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useLatestNewsletter } from '../composables/useLatestNewsletter';
 import { logger } from '../utils/logger';
+import { UI_ICONS } from '../constants/ui-icons';
+import { useSiteTheme } from '../composables/useSiteTheme';
 
 interface Props {
   mini: boolean;
@@ -16,6 +18,7 @@ defineProps<Props>();
 const router = useRouter();
 const $q = useQuasar();
 const { latestNewsletter, isLoading, error, hasLatestIssue, formattedDate, thumbnailUrl } = useLatestNewsletter();
+const { getContentIcon } = useSiteTheme();
 
 // Methods
 const openNewsletter = () => {
@@ -55,7 +58,7 @@ const openNewsletter = () => {
 
     <!-- Error State -->
     <div v-else-if="error" class="q-pa-md text-center">
-      <q-icon name="mdi-alert-circle" color="warning" size="20px" />
+      <q-icon :name="UI_ICONS.warning" color="warning" size="20px" />
       <div v-if="!mini" class="text-caption text-warning q-mt-xs">
         Error loading latest issue
       </div>
@@ -89,12 +92,12 @@ const openNewsletter = () => {
             >
               <template #error>
                 <div class="thumbnail-placeholder">
-                  <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+                  <q-icon :name="UI_ICONS.filePdf" color="red" size="20px" />
                 </div>
               </template>
             </q-img>
             <div v-else class="thumbnail-placeholder">
-              <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+              <q-icon :name="UI_ICONS.filePdf" color="red" size="20px" />
             </div>
           </div>
           <!-- Date -->
@@ -113,7 +116,7 @@ const openNewsletter = () => {
       <div v-else class="mini-mode-container">
         <q-btn
           color="primary"
-          icon="mdi-newspaper-variant"
+          :icon="getContentIcon('newsletter').icon"
           round
           size="sm"
           @click="openNewsletter"
@@ -133,7 +136,7 @@ const openNewsletter = () => {
 
     <!-- No Issue Available -->
     <div v-else class="q-pa-md text-center">
-      <q-icon name="mdi-newspaper" color="grey-6" size="20px" />
+      <q-icon :name="getContentIcon('newsletter').icon" color="grey-6" size="20px" />
       <div v-if="!mini" class="text-caption text-grey-6 q-mt-xs">
         No issues available
       </div>

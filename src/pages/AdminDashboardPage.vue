@@ -8,7 +8,7 @@
       <div class="row items-center q-mb-lg">
         <div class="col">
           <h4 class="q-my-none">
-            <q-icon name="mdi-view-dashboard" class="q-mr-sm" />
+            <q-icon :name="UI_ICONS.cog" class="q-mr-sm" />
             Admin Dashboard
           </h4>
           <p class="text-body2 text-grey-6 q-my-none">
@@ -18,7 +18,7 @@
         <div class="col-auto">
           <q-btn
             color="primary"
-            icon="mdi-refresh"
+            :icon="UI_ICONS.refresh"
             label="Refresh Stats"
             @click="refreshStats"
             :loading="isLoadingStats"
@@ -31,7 +31,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon name="mdi-file-document-multiple" size="2rem" color="primary" />
+              <q-icon :name="getContentIcon('article').icon" size="2rem" color="primary" />
               <div class="text-h5 q-mt-sm">{{ stats.totalContent }}</div>
               <div class="text-caption text-grey-6">Total Content</div>
             </q-card-section>
@@ -40,7 +40,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon name="mdi-clock-outline" size="2rem" color="orange" />
+              <q-icon :name="getStatusIcon('pending').icon" size="2rem" color="orange" />
               <div class="text-h5 q-mt-sm">{{ stats.pendingReviews }}</div>
               <div class="text-caption text-grey-6">Pending Reviews</div>
             </q-card-section>
@@ -49,7 +49,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon name="mdi-earth" size="2rem" color="positive" />
+              <q-icon :name="getStatusIcon('published').icon" size="2rem" color="positive" />
               <div class="text-h5 q-mt-sm">{{ stats.publishedContent }}</div>
               <div class="text-caption text-grey-6">Published</div>
             </q-card-section>
@@ -58,7 +58,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon name="mdi-book-open-page-variant" size="2rem" color="secondary" />
+              <q-icon :name="getContentIcon('newsletter').icon" size="2rem" color="secondary" />
               <div class="text-h5 q-mt-sm">{{ stats.newsletters }}</div>
               <div class="text-caption text-grey-6">Newsletters</div>
             </q-card-section>
@@ -73,7 +73,7 @@
           <q-card class="full-height">
             <q-card-section>
               <div class="text-h6 q-mb-md">
-                <q-icon name="mdi-file-document-edit" class="q-mr-sm" />
+                <q-icon :name="getContentIcon('announcement').icon" class="q-mr-sm" />
                 Content Management
               </div>
               <p class="text-body2 text-grey-6">
@@ -82,7 +82,7 @@
               <div class="q-col-gutter-sm">
                 <q-btn
                   color="primary"
-                  icon="mdi-eye-check"
+                  :icon="UI_ICONS.eye"
                   label="Review Content"
                   to="/admin/content"
                   class="full-width"
@@ -91,7 +91,7 @@
                   <div class="col">
                     <q-btn
                       color="orange"
-                      icon="mdi-clock"
+                      :icon="getStatusIcon('pending').icon"
                       :label="`${stats.pendingReviews} Pending`"
                       size="sm"
                       to="/admin/content?tab=pending"
@@ -101,7 +101,7 @@
                   <div class="col">
                     <q-btn
                       color="positive"
-                      icon="mdi-earth"
+                      :icon="getStatusIcon('published').icon"
                       :label="`${stats.publishedContent} Published`"
                       size="sm"
                       to="/admin/content?tab=published"
@@ -119,7 +119,7 @@
           <q-card class="full-height">
             <q-card-section>
               <div class="text-h6 q-mb-md">
-                <q-icon name="mdi-book-open-page-variant" class="q-mr-sm" />
+                <q-icon :name="getContentIcon('newsletter').icon" class="q-mr-sm" />
                 Newsletter Management
               </div>
               <p class="text-body2 text-grey-6">
@@ -128,7 +128,7 @@
               <div class="q-col-gutter-sm">
                 <q-btn
                   color="secondary"
-                  icon="mdi-book-edit"
+                  :icon="UI_ICONS.edit"
                   label="Manage Newsletters"
                   to="/admin/newsletters"
                   class="full-width"
@@ -137,7 +137,7 @@
                   <div class="col">
                     <q-btn
                       color="info"
-                      icon="mdi-upload"
+                      :icon="UI_ICONS.upload"
                       label="Upload PDF"
                       size="sm"
                       @click="showUploadDialog = true"
@@ -147,7 +147,7 @@
                   <div class="col">
                     <q-btn
                       color="accent"
-                      icon="mdi-cog"
+                      :icon="UI_ICONS.cog"
                       label="Settings"
                       size="sm"
                       @click="showNewsletterSettings = true"
@@ -165,7 +165,7 @@
           <q-card class="full-height">
             <q-card-section>
               <div class="text-h6 q-mb-md">
-                <q-icon name="mdi-palette" class="q-mr-sm" />
+                <q-icon :name="UI_ICONS.palette" class="q-mr-sm" />
                 Site Configuration
               </div>
               <p class="text-body2 text-grey-6">
@@ -174,7 +174,7 @@
                             <div class="q-col-gutter-sm">
                 <q-btn
                   color="accent"
-                  icon="mdi-palette-outline"
+                  :icon="UI_ICONS.paletteOutline"
                   label="Theme Editor"
                   to="/admin/theme"
                   class="full-width"
@@ -183,7 +183,7 @@
                   <div class="col">
                     <q-btn
                       color="brown"
-                      icon="mdi-tag-multiple"
+                      :icon="UI_ICONS.tagMultiple"
                       label="Quick Categories"
                       size="sm"
                       @click="showCategoriesDialog = true"
@@ -193,7 +193,7 @@
                   <div class="col">
                     <q-btn
                       color="deep-purple"
-                      icon="mdi-format-color-fill"
+                      :icon="UI_ICONS.colorFill"
                       label="Quick Colors"
                       size="sm"
                       @click="showColorsDialog = true"
@@ -211,7 +211,7 @@
           <q-card class="full-height">
             <q-card-section>
               <div class="text-h6 q-mb-md">
-                <q-icon name="mdi-account-group" class="q-mr-sm" />
+                <q-icon :name="UI_ICONS.accountGroup" class="q-mr-sm" />
                 User Management
               </div>
               <p class="text-body2 text-grey-6">
@@ -220,7 +220,7 @@
               <div class="q-col-gutter-sm">
                 <q-btn
                   color="info"
-                  icon="mdi-account-cog"
+                  :icon="UI_ICONS.accountCog"
                   label="Manage Users"
                   @click="showUserManagement = true"
                   class="full-width"
@@ -229,7 +229,7 @@
                   <div class="col">
                     <q-btn
                       color="green"
-                      icon="mdi-account-plus"
+                      :icon="UI_ICONS.accountPlus"
                       label="Add Admin"
                       size="sm"
                       @click="showAddAdminDialog = true"
@@ -239,7 +239,7 @@
                   <div class="col">
                     <q-btn
                       color="purple"
-                      icon="mdi-account-key"
+                      :icon="UI_ICONS.accountKey"
                       label="Roles"
                       size="sm"
                       @click="showRolesDialog = true"
@@ -257,7 +257,7 @@
       <q-card class="q-mt-lg">
         <q-card-section>
           <div class="text-h6 q-mb-md">
-            <q-icon name="mdi-timeline-clock" class="q-mr-sm" />
+            <q-icon :name="UI_ICONS.timeline" class="q-mr-sm" />
             Recent Activity
           </div>
           <q-list>
@@ -391,8 +391,11 @@ import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import CategoriesDialog from '../components/admin/CategoriesDialog.vue';
 import ColorsDialog from '../components/admin/ColorsDialog.vue';
+import { useSiteTheme } from '../composables/useSiteTheme';
+import { UI_ICONS } from '../constants/ui-icons';
 
 const $q = useQuasar();
+const { getContentIcon, getStatusIcon } = useSiteTheme();
 
 // State
 const isLoadingStats = ref(false);
@@ -463,11 +466,11 @@ const refreshStats = async () => {
 
 const getActivityIcon = (type: string): string => {
   switch (type) {
-    case 'content': return 'mdi-file-document-plus';
-    case 'newsletter': return 'mdi-book-plus';
-    case 'user': return 'mdi-account-plus';
-    case 'system': return 'mdi-cog';
-    default: return 'mdi-information';
+    case 'content': return UI_ICONS.documentPlus;
+    case 'newsletter': return UI_ICONS.bookPlus;
+    case 'user': return UI_ICONS.accountPlus;
+    case 'system': return UI_ICONS.cog;
+    default: return UI_ICONS.info;
   }
 };
 

@@ -363,7 +363,9 @@ export function resolveColor(colorRef: string, theme: ThemeConfig = DEFAULT_SITE
   // Note: Using console.warn here since this is a config file and logger may cause circular imports
   console.warn(`Color reference not found: ${colorRef}`);
   return '#9e9e9e'; // Fallback grey
-}/**
+}
+
+/**
  * Get theme configuration for a content type
  */
 export function getContentTypeTheme(type: string, theme: ThemeConfig = DEFAULT_SITE_THEME) {

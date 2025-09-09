@@ -61,15 +61,15 @@
                         <q-card-section>
                             <div class="row q-col-gutter-md q-mb-md">
                                 <div class="col-auto">
-                                    <q-btn color="secondary" icon="mdi-content-paste" label="Manage Content"
+                                    <q-btn color="secondary" :icon="getContentIcon('announcement').icon" label="Manage Content"
                                         @click="$router.push('/admin/content')" unelevated />
                                 </div>
                                 <div class="col-auto">
-                                    <q-btn color="primary" icon="mdi-reload" label="Load from Firebase"
+                                    <q-btn color="primary" :icon="UI_ICONS.refresh" label="Load from Firebase"
                                         @click="loadNewsletters" :loading="isLoading" unelevated />
                                 </div>
                                 <div class="col-auto">
-                                    <q-btn color="positive" icon="mdi-upload" label="Process Local PDFs → Firebase"
+                                    <q-btn color="positive" :icon="UI_ICONS.upload" label="Process Local PDFs → Firebase"
                                         @click="showProcessDialog" :loading="isProcessing" unelevated />
                                 </div>
                                 <div class="col-auto">
@@ -77,7 +77,7 @@
                                         @click="clearAllCaches" outline />
                                 </div>
                                 <div class="col-auto">
-                                    <q-btn color="info" icon="mdi-bug" label="Debug Info" @click="showDebugInfo"
+                                    <q-btn color="info" :icon="UI_ICONS.info" label="Debug Info" @click="showDebugInfo"
                                         outline />
                                 </div>
                             </div>
@@ -100,7 +100,7 @@
                     <q-card>
                         <q-card-section>
                             <div class="text-h6 q-mb-md">
-                                <q-icon name="mdi-newspaper" class="q-mr-sm" />
+                                <q-icon :name="getContentIcon('newsletter').icon" class="q-mr-sm" />
                                 Newsletters in Firebase
                             </div>
 
@@ -127,11 +127,11 @@
                                 <!-- Actions -->
                                 <template v-slot:body-cell-actions="props">
                                     <q-td :props="props">
-                                        <q-btn flat dense icon="mdi-pencil" @click="editNewsletter(props.row)"
+                                        <q-btn flat dense :icon="UI_ICONS.edit" @click="editNewsletter(props.row)"
                                             color="primary">
                                             <q-tooltip>Edit</q-tooltip>
                                         </q-btn>
-                                        <q-btn flat dense icon="mdi-delete" @click="confirmDelete(props.row)"
+                                        <q-btn flat dense :icon="UI_ICONS.delete" @click="confirmDelete(props.row)"
                                             color="negative">
                                             <q-tooltip>Delete</q-tooltip>
                                         </q-btn>
@@ -155,7 +155,7 @@
                     <div v-if="localPdfFiles.length === 0">
                         <q-banner class="bg-orange-1 text-orange-8">
                             <template v-slot:avatar>
-                                <q-icon name="mdi-alert" />
+                                <q-icon :name="UI_ICONS.warning" />
                             </template>
                             No local PDF files found. Make sure PDFs are in <code>public/issues/</code> directory.
                         </q-banner>
@@ -218,9 +218,12 @@ import { ref, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 import { useRoleAuth } from '../composables/useRoleAuth';
+import { UI_ICONS } from '../constants/ui-icons';
+import { useSiteTheme } from '../composables/useSiteTheme';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 
 const $q = useQuasar();
+const { getContentIcon } = useSiteTheme();
 
 // Authorization check - require admin role for admin page access
 const { requireAdmin, isAuthReady } = useRoleAuth();

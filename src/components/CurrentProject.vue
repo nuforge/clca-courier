@@ -5,6 +5,8 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useLatestNewsletter } from '../composables/useLatestNewsletter';
 import { logger } from '../utils/logger';
+import { UI_ICONS } from '../constants/ui-icons';
+import { useSiteTheme } from '../composables/useSiteTheme';
 
 interface Props {
   mini: boolean;
@@ -16,6 +18,7 @@ defineProps<Props>();
 const router = useRouter();
 const $q = useQuasar();
 const { latestNewsletter, isLoading, error, hasLatestIssue, formattedDate, thumbnailUrl } = useLatestNewsletter();
+const { getContentIcon } = useSiteTheme();
 const canvaUrl = 'https://www.canva.com/design/DAGvRIZSh5E/BceK20Jwt5tDRtCOFr_tfA/edit?utm_content=DAGvRIZSh5E&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton';
 
 // Methods
@@ -77,7 +80,7 @@ const openProject = () => {
 
     <!-- Error State -->
     <div v-else-if="error" class="q-pa-md text-center">
-      <q-icon name="mdi-alert-circle" color="warning" size="20px" />
+      <q-icon :name="UI_ICONS.warning" color="warning" size="20px" />
       <div v-if="!mini" class="text-caption text-warning q-mt-xs">
         Error loading latest issue
       </div>
@@ -110,18 +113,18 @@ const openProject = () => {
             >
               <template #error>
                 <div class="thumbnail-placeholder">
-                  <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+                  <q-icon :name="UI_ICONS.filePdf" color="red" size="20px" />
                 </div>
               </template>
             </q-img>
             <div v-else class="thumbnail-placeholder">
-              <q-icon name="mdi-file-pdf-box" color="red" size="20px" />
+              <q-icon :name="UI_ICONS.filePdf" color="red" size="20px" />
             </div>
           </div>
 
           <div class="text-caption text-white q-mb-xs">
             <q-btn @click.stop="openProject" color="accent" class="full-width line-clamp-2 " size="xs" >
-              <q-icon name="mdi-tools" class="q-mr-sm" />Canva
+              <q-icon :name="UI_ICONS.tools" class="q-mr-sm" />Canva
             </q-btn>
           </div>
 
@@ -132,7 +135,7 @@ const openProject = () => {
       <div v-else class="mini-mode-container">
         <q-btn
           color="primary"
-          icon="mdi-newspaper-variant"
+          :icon="getContentIcon('newsletter').icon"
           round
           size="sm"
           @click="openNewsletter"
@@ -152,7 +155,7 @@ const openProject = () => {
 
     <!-- No Issue Available -->
     <div v-else class="q-pa-md text-center">
-      <q-icon name="mdi-newspaper" color="grey-6" size="20px" />
+      <q-icon :name="getContentIcon('newsletter').icon" color="grey-6" size="20px" />
       <div v-if="!mini" class="text-caption text-grey-6 q-mt-xs">
         No issues available
       </div>

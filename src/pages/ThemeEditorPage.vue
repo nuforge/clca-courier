@@ -9,7 +9,7 @@
       <div class="row items-center q-mb-lg">
         <div class="col">
           <h4 class="q-my-none">
-            <q-icon name="mdi-palette" class="q-mr-sm" />
+            <q-icon :name="UI_ICONS.palette" class="q-mr-sm" />
             Site Theme Editor
           </h4>
           <p class="text-body2 text-grey-6 q-my-none">
@@ -22,20 +22,20 @@
               v-if="hasUnsavedChanges"
               color="warning"
               text-color="black"
-              icon="mdi-content-save-alert"
+              :icon="UI_ICONS.saveAlert"
             >
               Unsaved Changes
             </q-chip>
             <q-btn
               color="grey"
-              icon="mdi-restore"
+              :icon="UI_ICONS.restore"
               label="Reset to Defaults"
               @click="confirmReset"
               flat
             />
             <q-btn
               color="primary"
-              icon="mdi-content-save"
+              :icon="UI_ICONS.save"
               label="Save Theme"
               @click="saveTheme"
               :loading="isSaving"
@@ -51,10 +51,10 @@
         <div class="col-12 col-lg-6">
           <q-card>
             <q-tabs v-model="activeTab" class="text-grey-6" dense>
-              <q-tab name="contentTypes" label="Content Types" icon="mdi-file-document-multiple" />
-              <q-tab name="categories" label="Categories" icon="mdi-tag-multiple" />
-              <q-tab name="colors" label="Colors" icon="mdi-palette-outline" />
-              <q-tab name="status" label="Status" icon="mdi-circle-outline" />
+              <q-tab name="contentTypes" label="Content Types" :icon="UI_ICONS.fileMultiple" />
+              <q-tab name="categories" label="Categories" :icon="UI_ICONS.tagMultiple" />
+              <q-tab name="colors" label="Colors" :icon="UI_ICONS.paletteOutline" />
+              <q-tab name="status" label="Status" :icon="UI_ICONS.circleOutline" />
             </q-tabs>
 
             <q-separator />
@@ -417,7 +417,7 @@
           <q-card class="sticky-top">
             <q-card-section>
               <div class="text-h6 q-mb-md">
-                <q-icon name="mdi-eye" class="q-mr-sm" />
+                <q-icon :name="UI_ICONS.eye" class="q-mr-sm" />
                 Live Preview
               </div>
 
@@ -615,6 +615,7 @@ import { useQuasar } from 'quasar';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme, getStatusTheme } from '../config/site-theme.config';
 import { logger } from '../utils/logger';
+import { UI_ICONS } from '../constants/ui-icons';
 import ColorPicker from '../components/theme/ColorPicker.vue';
 import IconPicker from '../components/theme/IconPicker.vue';
 import ColorPreview from '../components/theme/ColorPreview.vue';
