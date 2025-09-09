@@ -14,7 +14,6 @@
       :disable="disable"
       :rules="rules"
       @update:model-value="updateValue"
-      @focus="showPicker = true"
     >
       <!-- Color preview in append slot -->
       <template v-slot:append>
@@ -144,6 +143,17 @@
 
         <q-card-actions align="right">
           <q-btn
+            v-if="defaultValue"
+            label="Reset to Default"
+            color="grey"
+            outline
+            size="sm"
+            icon="mdi-restore"
+            @click="resetToDefault"
+            class="q-mr-sm"
+          />
+          <q-space />
+          <q-btn
             label="Cancel"
             color="grey"
             flat
@@ -174,6 +184,7 @@ interface Props {
   disable?: boolean;
   rules?: Array<(val: string) => boolean | string>;
   showThemeColors?: boolean;
+  defaultValue?: string;
 }
 
 interface Emits {
@@ -285,6 +296,12 @@ const cancelPicker = () => {
   showPicker.value = false;
 };
 
+const resetToDefault = () => {
+  if (props.defaultValue) {
+    tempColor.value = props.defaultValue;
+  }
+};
+
 // Lifecycle
 onMounted(() => {
   // Check if native color picker is supported
@@ -352,7 +369,7 @@ onMounted(() => {
 }
 
 .body--dark .native-color-picker {
-  border-color: #555;
-  background-color: #2d2d2d;
+  border-color: var(--q-color-grey-7);
+  background-color: var(--q-color-dark);
 }
 </style>

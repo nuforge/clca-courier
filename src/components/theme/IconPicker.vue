@@ -14,7 +14,6 @@
       :disable="disable"
       :rules="rules"
       @update:model-value="updateValue"
-      @focus="showPicker = true"
     >
       <!-- Icon preview in prepend slot -->
       <template v-slot:prepend>
@@ -154,7 +153,7 @@
             <span class="text-caption text-grey-6">({{ filteredIcons.length }} found)</span>
           </div>
 
-          <q-scroll-area style="height: 400px" class="bg-grey-1 rounded-borders">
+          <q-scroll-area style="height: 400px" class="rounded-borders">
             <div class="q-pa-md">
               <div v-if="isLoading" class="text-center q-py-lg">
                 <q-spinner color="primary" size="2em" />
@@ -526,7 +525,7 @@ onMounted(() => {
 
 .icon-name {
   font-size: 10px;
-  color: #666;
+  color: var(--q-color-grey-7);
   word-break: break-word;
   line-height: 1.2;
   max-width: 70px;
@@ -543,7 +542,7 @@ onMounted(() => {
 }
 
 .body--dark .icon-name {
-  color: #ccc;
+  color: var(--q-color-grey-4);
 }
 
 @media (max-width: 600px) {

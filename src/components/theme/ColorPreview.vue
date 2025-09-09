@@ -72,9 +72,33 @@ const emit = defineEmits<Emits>();
 const resolvedColor = computed(() => {
   if (!props.colorValue) return '';
 
+  // Handle basic Quasar color names
+  const quasarColors: Record<string, string> = {
+    'primary': '#1976d2',
+    'secondary': '#26a69a',
+    'accent': '#9c27b0',
+    'positive': '#21ba45',
+    'negative': '#c10015',
+    'warning': '#f2c037',
+    'info': '#31ccec',
+  };
+
+  if (quasarColors[props.colorValue]) {
+    return quasarColors[props.colorValue];
+  }
+
   // Try to resolve theme color references
   try {
-    return resolveColor(props.colorValue);
+    const resolved = resolveColor(props.colorValue);
+    // If resolveColor returns the fallback grey, it means it couldn't resolve the reference
+    if (resolved === '#9e9e9e' && props.colorValue !== '#9e9e9e') {
+      // Check if it's a valid color directly
+      if (isValidColor(props.colorValue)) {
+        return props.colorValue;
+      }
+      return '';
+    }
+    return resolved;
   } catch {
     // If it's not a theme reference, check if it's a valid color
     if (isValidColor(props.colorValue)) {
@@ -82,9 +106,7 @@ const resolvedColor = computed(() => {
     }
     return '';
   }
-});
-
-const isValidColorResolved = computed(() => {
+});const isValidColorResolved = computed(() => {
   return !!resolvedColor.value && isValidColor(resolvedColor.value);
 });
 
@@ -116,14 +138,15 @@ const iconSize = computed(() => {
 const previewStyle = computed(() => {
   if (!isValidColorResolved.value) {
     return {
-      backgroundColor: '#f5f5f5',
-      border: '2px dashed #ccc'
+      backgroundColor: 'var(--q-color-grey-3)',
+      border: '2px dashed var(--q-color-grey-6)'
     };
   }
 
+  const color = resolvedColor.value || 'var(--q-color-grey-3)';
   return {
-    backgroundColor: resolvedColor.value,
-    border: `2px solid ${getBorderColor(resolvedColor.value)}`
+    backgroundColor: color,
+    border: `2px solid ${getBorderColor(color)}`
   };
 });
 
@@ -166,16 +189,16 @@ const isValidColor = (color: string): boolean => {
 
 const getBorderColor = (backgroundColor: string): string => {
   // Simple logic to determine border color based on background
-  if (!backgroundColor) return '#ccc';
+  if (!backgroundColor) return 'var(--q-color-grey-6)';
 
   // For very light colors, use a darker border
   if (backgroundColor === '#ffffff' || backgroundColor === '#fff') {
-    return '#e0e0e0';
+    return 'var(--q-color-grey-4)';
   }
 
   // For very dark colors, use a lighter border
   if (backgroundColor === '#000000' || backgroundColor === '#000') {
-    return '#333333';
+    return 'var(--q-color-grey-8)';
   }
 
   // Default to slightly darker version
@@ -262,10 +285,10 @@ const handleClick = () => {
   right: 0;
   bottom: 0;
   background-image:
-    linear-gradient(45deg, #ccc 25%, transparent 25%),
-    linear-gradient(-45deg, #ccc 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #ccc 75%),
-    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    linear-gradient(45deg, var(--q-color-grey-5) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--q-color-grey-5) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--q-color-grey-5) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--q-color-grey-5) 75%);
   background-size: 8px 8px;
   background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
   opacity: 0.3;
@@ -274,7 +297,7 @@ const handleClick = () => {
 /* Labels */
 .color-preview__label {
   font-size: 12px;
-  color: #666;
+  color: var(--q-color-grey-7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -332,14 +355,14 @@ const handleClick = () => {
 
 /* Dark theme support */
 .body--dark .color-preview__label {
-  color: #ccc;
+  color: var(--q-color-grey-4);
 }
 
 .body--dark .color-preview__pattern {
   background-image:
-    linear-gradient(45deg, #555 25%, transparent 25%),
-    linear-gradient(-45deg, #555 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #555 75%),
-    linear-gradient(-45deg, transparent 75%, #555 75%);
+    linear-gradient(45deg, var(--q-color-grey-7) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--q-color-grey-7) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--q-color-grey-7) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--q-color-grey-7) 75%);
 }
 </style>

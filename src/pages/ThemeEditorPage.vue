@@ -149,10 +149,26 @@
                 <q-expansion-item
                   v-for="(mappings, contentType) in editableTheme.categoryMappings"
                   :key="contentType"
-                  :label="formatLabel(String(contentType))"
                   :icon="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
                   class="q-mb-sm"
                 >
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon
+                        :name="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
+                        :color="editableTheme.contentTypes[contentType]?.color || 'grey'"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium">
+                        {{ formatLabel(String(contentType)) }}
+                      </q-item-label>
+                      <q-item-label caption>
+                        {{ Object.keys(mappings).length }} categories
+                      </q-item-label>
+                    </q-item-section>
+                  </template>
+
                   <q-card flat bordered class="q-pa-md">
                     <div class="row q-col-gutter-md">
                       <div
@@ -160,10 +176,30 @@
                         :key="category"
                         class="col-12 col-md-6"
                       >
-                        <q-card outlined>
-                          <q-card-section class="q-pa-sm">
-                            <div class="text-subtitle2 q-mb-sm">{{ config.label }}</div>
+                        <q-expansion-item
+                          :icon="config.icon"
+                          class="category-item"
+                        >
+                          <template v-slot:header>
+                            <q-item-section avatar>
+                              <ColorPreview
+                                :color-value="config.color"
+                                size="sm"
+                                shape="circle"
+                              />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label class="text-weight-medium">
+                                <q-icon :name="config.icon" class="q-mr-xs" />
+                                {{ config.label }}
+                              </q-item-label>
+                              <q-item-label caption>
+                                {{ category }}
+                              </q-item-label>
+                            </q-item-section>
+                          </template>
 
+                          <q-card flat class="q-pa-sm">
                             <q-input
                               v-model="config.label"
                               label="Label"
@@ -215,8 +251,8 @@
                                 </q-item>
                               </template>
                             </q-select>
-                          </q-card-section>
-                        </q-card>
+                          </q-card>
+                        </q-expansion-item>
                       </div>
                     </div>
                   </q-card>
@@ -236,6 +272,7 @@
                         <ColorPicker
                           v-model="editableTheme.colors.primary"
                           label="Primary"
+                          :default-value="DEFAULT_SITE_THEME.colors.primary"
                           @update:model-value="onThemeChange"
                         />
                       </div>
@@ -243,6 +280,7 @@
                         <ColorPicker
                           v-model="editableTheme.colors.secondary"
                           label="Secondary"
+                          :default-value="DEFAULT_SITE_THEME.colors.secondary"
                           @update:model-value="onThemeChange"
                         />
                       </div>
@@ -250,6 +288,7 @@
                         <ColorPicker
                           v-model="editableTheme.colors.accent"
                           label="Accent"
+                          :default-value="DEFAULT_SITE_THEME.colors.accent"
                           @update:model-value="onThemeChange"
                         />
                       </div>
@@ -270,6 +309,7 @@
                         <ColorPicker
                           v-model="editableTheme.colors.contentTypes[type]"
                           :label="formatLabel(String(type))"
+                          :default-value="getDefaultColorForContentType(String(type))"
                           @update:model-value="onThemeChange"
                         />
                       </div>
@@ -288,10 +328,29 @@
                     :key="status"
                     class="col-12 col-md-6"
                   >
-                    <q-card outlined>
-                      <q-card-section>
-                        <div class="text-subtitle2 q-mb-md">{{ config.label }}</div>
+                    <q-expansion-item
+                      class="status-item"
+                    >
+                      <template v-slot:header>
+                        <q-item-section avatar>
+                          <ColorPreview
+                            :color-value="config.color"
+                            size="sm"
+                            shape="circle"
+                          />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label class="text-weight-medium">
+                            <q-icon :name="config.icon" class="q-mr-xs" />
+                            {{ config.label }}
+                          </q-item-label>
+                          <q-item-label caption>
+                            {{ status }}
+                          </q-item-label>
+                        </q-item-section>
+                      </template>
 
+                      <q-card flat class="q-pa-md">
                         <q-input
                           v-model="config.label"
                           label="Label"
@@ -352,8 +411,8 @@
                           dense
                           @update:model-value="onThemeChange"
                         />
-                      </q-card-section>
-                    </q-card>
+                      </q-card>
+                    </q-expansion-item>
                   </div>
                 </div>
               </q-tab-panel>
@@ -373,38 +432,43 @@
               <!-- Color Palette Preview -->
               <div class="q-mb-lg">
                 <div class="text-subtitle1 q-mb-sm">Color Palette</div>
-                <div class="row q-gutter-sm q-mb-sm">
+                <div class="row q-col-gutter-xl">
                   <div class="col-auto">
-                    <ColorPreview
-                      :color-value="editableTheme.colors.primary"
-                      label="Primary"
-                      size="md"
-                      shape="rounded"
-                      show-label
-                    />
+                    <div class="text-body2 text-grey q-mb-sm">Theme Colors</div>
+                    <div class="row q-gutter-sm q-mb-sm">
+                      <div class="col-auto">
+                        <ColorPreview
+                          :color-value="editableTheme.colors.primary"
+                          label="Primary"
+                          size="md"
+                          shape="rounded"
+                          show-label
+                        />
+                      </div>
+                      <div class="col-auto">
+                        <ColorPreview
+                          :color-value="editableTheme.colors.secondary"
+                          label="Secondary"
+                          size="md"
+                          shape="rounded"
+                          show-label
+                        />
+                      </div>
+                      <div class="col-auto">
+                        <ColorPreview
+                          :color-value="editableTheme.colors.accent"
+                          label="Accent"
+                          size="md"
+                          shape="rounded"
+                          show-label
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div class="col-auto">
-                    <ColorPreview
-                      :color-value="editableTheme.colors.secondary"
-                      label="Secondary"
-                      size="md"
-                      shape="rounded"
-                      show-label
-                    />
-                  </div>
-                  <div class="col-auto">
-                    <ColorPreview
-                      :color-value="editableTheme.colors.accent"
-                      label="Accent"
-                      size="md"
-                      shape="rounded"
-                      show-label
-                    />
-                  </div>
-                </div>
 
-                <div class="text-body2 text-grey-6 q-mb-sm">Content Type Colors</div>
-                <div class="row q-gutter-xs">
+                <div class="col">
+
+                <div class="row full-width q-gutter-xs space-between">
                   <div
                     v-for="(color, type) in editableTheme.colors.contentTypes"
                     :key="type"
@@ -419,6 +483,8 @@
                     />
                   </div>
                 </div>
+              </div>
+              </div>
               </div>
 
               <!-- Content Types Preview -->
@@ -514,37 +580,6 @@
                   </q-card-section>
                 </q-card>
               </div>
-
-              <!-- Color Palette Preview -->
-              <div>
-                <div class="text-subtitle1 q-mb-sm">Color Palette</div>
-                <div class="row q-col-gutter-sm">
-                  <div class="col-auto text-center">
-                    <q-icon
-                      name="mdi-circle"
-                      size="2rem"
-                      :style="`color: ${editableTheme.colors.primary}`"
-                    />
-                    <div class="text-caption">Primary</div>
-                  </div>
-                  <div class="col-auto text-center">
-                    <q-icon
-                      name="mdi-circle"
-                      size="2rem"
-                      :style="`color: ${editableTheme.colors.secondary}`"
-                    />
-                    <div class="text-caption">Secondary</div>
-                  </div>
-                  <div class="col-auto text-center">
-                    <q-icon
-                      name="mdi-circle"
-                      size="2rem"
-                      :style="`color: ${editableTheme.colors.accent}`"
-                    />
-                    <div class="text-caption">Accent</div>
-                  </div>
-                </div>
-              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -557,7 +592,7 @@
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSiteTheme } from '../composables/useSiteTheme';
-import { resolveColor } from '../config/site-theme.config';
+import { resolveColor, DEFAULT_SITE_THEME } from '../config/site-theme.config';
 import { logger } from '../utils/logger';
 import ColorPicker from '../components/theme/ColorPicker.vue';
 import IconPicker from '../components/theme/IconPicker.vue';
@@ -615,6 +650,11 @@ const resolvePreviewColor = (colorRef: string): string => {
   } catch {
     return colorRef; // Fallback to original value if resolution fails
   }
+};
+
+const getDefaultColorForContentType = (type: string): string => {
+  const defaultColors = DEFAULT_SITE_THEME.colors.contentTypes as Record<string, string>;
+  return defaultColors[type] || '#1976d2'; // fallback to primary blue
 };
 
 const onThemeChange = () => {
@@ -687,5 +727,37 @@ watch(
 
 :deep(.q-expansion-item__content) {
   padding: 0;
+}
+
+.category-item,
+.status-item {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.category-item:hover,
+.status-item:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.category-item .q-expansion-item__container),
+:deep(.status-item .q-expansion-item__container) {
+  border: none;
+  border-radius: inherit;
+}
+
+/* Dark theme support */
+.body--dark .category-item,
+.body--dark .status-item {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.body--dark .category-item:hover,
+.body--dark .status-item:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
 }
 </style>
