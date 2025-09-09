@@ -19,8 +19,7 @@ const quickLinks = [
 
 const communityLinks = [
   { label: 'About & Contact', to: '/about' },
-  { label: 'Contribute', to: '/contribute' },
-  { label: 'Submit Articles', to: '/article-submission' }
+  { label: 'Contribute', to: '/contribute' }
 ];
 
 const legalLinks = [
