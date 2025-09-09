@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useContentManagement } from './composables/useContentManagement';
+import { calendarEventsService } from './services/calendar-events.service';
 
 const contentManagement = useContentManagement();
 
@@ -18,6 +19,7 @@ interface WindowWithDebugFunctions extends Window {
   syncNewsletterMetadata: (filename: string, direction?: 'upload' | 'download' | 'auto') => Promise<void>;
   inspectLocalStorage: () => void;
   inspectDrafts: () => Array<unknown> | undefined;
+  debugCalendarEvents: () => Promise<void>;
 }
 
 onMounted(() => {
@@ -68,11 +70,15 @@ onMounted(() => {
     return undefined;
   };
 
+  // Add calendar debugging function
+  windowWithDebug.debugCalendarEvents = calendarEventsService.debugCalendarEvents.bind(calendarEventsService);
+
   console.log('🧪 ENHANCED SYNC DEBUG FUNCTIONS AVAILABLE:');
   console.log('📊 Data Analysis:');
   console.log('  - debugDataFlow(): Show data source counts and file matching status');
   console.log('  - inspectLocalStorage(): Show localStorage contents');
   console.log('  - inspectDrafts(): Show draft data structure');
+  console.log('  - debugCalendarEvents(): Show all calendar events in Firebase');
   console.log('');
   console.log('🔄 Data Management:');
   console.log('  - loadNewsletters(): Reload all newsletter data');

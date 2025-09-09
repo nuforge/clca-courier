@@ -140,16 +140,18 @@
             today-btn
             class="full-width"
             @update:model-value="onDateSelect"
+            landscape
+            :default-year-month="`${calendarState.currentYear}/${calendarState.currentMonth.toString().padStart(2, '0')}`"
           />
 
           <!-- Events list for selected date -->
-          <div v-if="selectedDateModel && getEventsForDate(selectedDateModel).length > 0" class="q-pa-md">
+          <div v-if="selectedDateModel && getEventsForSelectedDate().length > 0" class="q-pa-md">
             <div class="text-subtitle1 q-mb-sm">
-              Events on {{ formatSelectedDate(selectedDateModel) }}:
+              Events on {{ formatSelectedDate(selectedDateModel.replace(/\//g, '-')) }}:
             </div>
             <div class="q-gutter-sm">
               <CalendarEventCard
-                v-for="event in getEventsForDate(selectedDateModel)"
+                v-for="event in getEventsForSelectedDate()"
                 :key="event.id"
                 :event="event"
                 compact
@@ -248,11 +250,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useCalendar } from '../composables/useCalendar';
 import type { CalendarEvent } from '../services/calendar-events.service';
 import CalendarEventCard from '../components/calendar/CalendarEventCard.vue';
 import EventDetailsDialog from '../components/calendar/EventDetailsDialog.vue';
+import { logger } from '../utils/logger';
 
 // Use calendar composable
 const {
@@ -293,20 +296,69 @@ const eventTypeOptions = [
 
 // Computed properties
 const calendarEvents = computed(() => {
-  return Object.keys(eventsByDate.value).map(date => date);
+  // q-date expects an array of date strings in YYYY/MM/DD format
+  return Object.keys(eventsByDate.value).map(date => {
+    // Convert from YYYY-MM-DD to YYYY/MM/DD
+    return date.replace(/-/g, '/');
+  });
 });
 
 const selectedDateEvents = computed(() => {
-  if (!calendarState.value.selectedDate) return [];
-  return getEventsForDate(calendarState.value.selectedDate);
+  if (!calendarState.value.selectedDate) {
+    logger.debug('🗓️ No selectedDate in calendarState');
+    return [];
+  }
+
+  const events = getEventsForDate(calendarState.value.selectedDate);
+  logger.debug('🗓️ selectedDateEvents computed:', {
+    selectedDate: calendarState.value.selectedDate,
+    eventsFound: events.length,
+    events
+  });
+
+  return events;
 });
+
+// Debug computed properties
+// const debugCalendarHeader = computed(() => {
+//   const result = {
+//     monthName: monthName.value,
+//     currentYear: calendarState.value.currentYear,
+//     currentMonth: calendarState.value.currentMonth,
+//     selectedDate: calendarState.value.selectedDate,
+//     viewMode: calendarState.value.viewMode
+//   };
+//   logger.debug('🗓️ Calendar header debug:', result);
+//   return result;
+// });
 
 // Methods
 const onDateSelect = (date: string | string[] | null) => {
+  logger.debug('🗓️ Date selected:', { date, type: typeof date });
+
+  let selectedDate: string | null = null;
+
   if (typeof date === 'string') {
-    selectDate(date);
+    // Convert from YYYY/MM/DD to YYYY-MM-DD
+    selectedDate = date.replace(/\//g, '-');
   } else if (Array.isArray(date) && date.length > 0 && date[0]) {
-    selectDate(date[0]);
+    // Convert from YYYY/MM/DD to YYYY-MM-DD
+    selectedDate = date[0].replace(/\//g, '-');
+  }
+
+  logger.debug('🗓️ Converted selectedDate:', selectedDate);
+
+  if (selectedDate) {
+    selectDate(selectedDate);
+    selectedDateModel.value = date as string;
+
+    // Debug the events for this date
+    const eventsForDate = getEventsForDate(selectedDate);
+    logger.debug('🗓️ Events found for date:', {
+      selectedDate,
+      eventsCount: eventsForDate.length,
+      events: eventsForDate
+    });
   }
 };
 
@@ -317,6 +369,13 @@ const onEventClick = (event: CalendarEvent) => {
 
 const refreshEvents = () => {
   void loadEventsForMonth(calendarState.value.currentYear, calendarState.value.currentMonth);
+};
+
+const getEventsForSelectedDate = (): CalendarEvent[] => {
+  if (!selectedDateModel.value) return [];
+  // Convert from YYYY/MM/DD to YYYY-MM-DD
+  const dateKey = selectedDateModel.value.replace(/\//g, '-');
+  return getEventsForDate(dateKey);
 };
 
 const applyFilters = () => {
@@ -351,16 +410,46 @@ watch(() => calendarState.value.viewMode, (newMode: string) => {
     selectedDateModel.value = null;
   }
 });
+
+// Watch calendar state changes for debugging
+watch(() => calendarState.value, (newState) => {
+  logger.debug('🗓️ Calendar state changed:', newState);
+}, { deep: true });
+
+// Watch monthName changes
+watch(() => monthName.value, (newMonthName) => {
+  logger.debug('🗓️ Month name changed:', newMonthName);
+});
+
+// Debug calendar state and events on mount
+onMounted(() => {
+  logger.debug('🗓️ Calendar page mounted with state:', {
+    currentMonth: calendarState.value.currentMonth,
+    currentYear: calendarState.value.currentYear,
+    viewMode: calendarState.value.viewMode,
+    eventsCount: events.value.length
+  });
+
+  logger.debug('🗓️ EventsByDate structure:', eventsByDate.value);
+  logger.debug('🗓️ CalendarEvents array:', calendarEvents.value);
+  logger.debug('🗓️ monthName value:', monthName.value);
+  logger.debug('🗓️ All events:', events.value);
+
+  // Manual debug of calendar header
+  logger.debug('🗓️ Calendar header debug:', {
+    monthName: monthName.value,
+    currentYear: calendarState.value.currentYear,
+    currentMonth: calendarState.value.currentMonth,
+    selectedDate: calendarState.value.selectedDate,
+    viewMode: calendarState.value.viewMode
+  });
+});
 </script>
 
 <style scoped>
 .calendar-page {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.calendar-grid {
-  min-height: 600px;
 }
 
 .calendar-day {

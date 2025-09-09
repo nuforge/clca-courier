@@ -7,10 +7,10 @@ import {
   collection,
   query,
   where,
-  orderBy,
   getDocs,
   onSnapshot,
   type Unsubscribe,
+  type Timestamp,
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 import { logger } from '../utils/logger';
@@ -46,6 +46,46 @@ class CalendarEventsService {
   private readonly COLLECTION = 'userContent';
 
   /**
+   * Convert Firebase Timestamp or string to ISO date string
+   */
+  private normalizeEventDate(eventDate: string | Timestamp | Record<string, unknown>): string | null {
+    if (!eventDate) return null;
+
+    // Handle string dates
+    if (typeof eventDate === 'string') {
+      return eventDate;
+    }
+
+    // Handle Firebase Timestamp objects
+    if (eventDate && typeof eventDate === 'object') {
+      // Check if it's a Timestamp object with seconds property
+      if ('seconds' in eventDate && typeof eventDate.seconds === 'number') {
+        const timestamp = eventDate as Timestamp;
+        return timestamp.toDate().toISOString().split('T')[0] ?? null;
+      }
+
+      // Check if it's a Timestamp-like object with _seconds property
+      if ('_seconds' in eventDate && typeof eventDate._seconds === 'number') {
+        const date = new Date(eventDate._seconds * 1000);
+        return date.toISOString().split('T')[0] ?? null;
+      }
+    }
+
+    logger.warn('Unknown eventDate format:', { eventDate, type: typeof eventDate });
+    return null;
+  }
+
+  /**
+   * Check if a date string falls within the given range
+   */
+  private isDateInRange(dateStr: string, startDate?: string, endDate?: string): boolean {
+    if (!startDate && !endDate) return true;
+    if (startDate && dateStr < startDate) return false;
+    if (endDate && dateStr > endDate) return false;
+    return true;
+  }
+
+  /**
    * Get calendar events for a specific date range
    */
   async getCalendarEvents(filters: CalendarEventFilters = {}): Promise<CalendarEvent[]> {
@@ -58,36 +98,80 @@ class CalendarEventsService {
         where('onCalendar', '==', true)
       );
 
+      logger.debug('Calendar events query filters:', {
+        status: 'published',
+        onCalendar: true,
+        ...filters
+      });
+
       // Add date range filtering if provided
-      if (filters.startDate) {
-        q = query(q, where('eventDate', '>=', filters.startDate));
-      }
-      if (filters.endDate) {
-        q = query(q, where('eventDate', '<=', filters.endDate));
-      }
+      // Note: We'll handle date filtering client-side to support both string and Timestamp formats
+      // if (filters.startDate) {
+      //   q = query(q, where('eventDate', '>=', filters.startDate));
+      // }
+      // if (filters.endDate) {
+      //   q = query(q, where('eventDate', '<=', filters.endDate));
+      // }
 
       // Add type filtering if provided
       if (filters.types && filters.types.length > 0) {
         q = query(q, where('type', 'in', filters.types));
       }
 
-      // Order by event date
-      q = query(q, orderBy('eventDate', 'asc'));
+      // Order by event date - disabled due to mixed Timestamp/string types
+      // q = query(q, orderBy('eventDate', 'asc'));
 
       const querySnapshot = await getDocs(q);
       const events: CalendarEvent[] = [];
 
+      logger.debug(`Found ${querySnapshot.docs.length} potential calendar events`);
+
       querySnapshot.forEach((doc) => {
         const data = doc.data() as UserContent;
 
+        logger.debug('Processing document:', {
+          id: doc.id,
+          title: data.title,
+          type: data.type,
+          status: data.status,
+          onCalendar: data.onCalendar,
+          eventDate: data.eventDate,
+          dateInRange: filters.startDate && filters.endDate ?
+            `${data.eventDate} between ${filters.startDate} and ${filters.endDate}` : 'no date filter'
+        });
+
         // Only include events with valid eventDate
         if (data.eventDate) {
+          // Normalize the eventDate to handle both string and Timestamp formats
+          const normalizedEventDate = this.normalizeEventDate(data.eventDate);
+
+          if (!normalizedEventDate) {
+            logger.warn('Could not normalize eventDate for event:', {
+              id: doc.id,
+              title: data.title,
+              eventDate: data.eventDate
+            });
+            return;
+          }
+
+          // Apply client-side date filtering
+          if (!this.isDateInRange(normalizedEventDate, filters.startDate, filters.endDate)) {
+            logger.debug('Event filtered out by date range:', {
+              id: doc.id,
+              title: data.title,
+              eventDate: normalizedEventDate,
+              startDate: filters.startDate,
+              endDate: filters.endDate
+            });
+            return;
+          }
+
           const event: CalendarEvent = {
             id: doc.id,
             title: data.title,
             content: data.content,
             type: data.type,
-            eventDate: data.eventDate,
+            eventDate: normalizedEventDate, // Use normalized date string
             allDay: data.allDay || false,
             featured: data.featured || false,
             tags: data.tags || [],
@@ -132,6 +216,9 @@ class CalendarEventsService {
         }
       });
 
+      // Sort events client-side since we can't use orderBy with mixed Timestamp/string types
+      events.sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+
       logger.success(`Loaded ${events.length} calendar events`);
       return events;
     } catch (error) {
@@ -146,6 +233,9 @@ class CalendarEventsService {
   async getEventsForMonth(year: number, month: number): Promise<CalendarEvent[]> {
     const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0] ?? '';
     const endDate = new Date(year, month, 0).toISOString().split('T')[0] ?? '';
+
+    logger.debug(`🗓️ getEventsForMonth called for ${month}/${year}:`);
+    logger.debug(`🗓️ Calculated date range: ${startDate} to ${endDate}`);
 
     return this.getCalendarEvents({
       startDate: startDate,
@@ -178,20 +268,21 @@ class CalendarEventsService {
       );
 
       // Add date range filtering if provided
-      if (filters.startDate) {
-        q = query(q, where('eventDate', '>=', filters.startDate));
-      }
-      if (filters.endDate) {
-        q = query(q, where('eventDate', '<=', filters.endDate));
-      }
+      // Note: Commented out server-side date filtering to handle Timestamp/string formats
+      // if (filters.startDate) {
+      //   q = query(q, where('eventDate', '>=', filters.startDate));
+      // }
+      // if (filters.endDate) {
+      //   q = query(q, where('eventDate', '<=', filters.endDate));
+      // }
 
       // Add type filtering if provided
       if (filters.types && filters.types.length > 0) {
         q = query(q, where('type', 'in', filters.types));
       }
 
-      // Order by event date
-      q = query(q, orderBy('eventDate', 'asc'));
+      // Order by event date - this might fail if mixing Timestamp and string types
+      // q = query(q, orderBy('eventDate', 'asc'));
 
       return onSnapshot(q, (querySnapshot) => {
         const events: CalendarEvent[] = [];
@@ -201,12 +292,29 @@ class CalendarEventsService {
 
           // Only include events with valid eventDate
           if (data.eventDate) {
+            // Normalize the eventDate to handle both string and Timestamp formats
+            const normalizedEventDate = this.normalizeEventDate(data.eventDate);
+
+            if (!normalizedEventDate) {
+              logger.warn('Could not normalize eventDate for event in subscription:', {
+                id: doc.id,
+                title: data.title,
+                eventDate: data.eventDate
+              });
+              return;
+            }
+
+            // Apply client-side date filtering
+            if (!this.isDateInRange(normalizedEventDate, filters.startDate, filters.endDate)) {
+              return;
+            }
+
             const event: CalendarEvent = {
               id: doc.id,
               title: data.title,
               content: data.content,
               type: data.type,
-              eventDate: data.eventDate,
+              eventDate: normalizedEventDate, // Use normalized date string
               allDay: data.allDay || false,
               featured: data.featured || false,
               tags: data.tags || [],
@@ -250,6 +358,9 @@ class CalendarEventsService {
             events.push(event);
           }
         });
+
+        // Sort events client-side since we can't use orderBy with mixed Timestamp/string types
+        events.sort((a, b) => a.eventDate.localeCompare(b.eventDate));
 
         callback(events);
       });
@@ -401,6 +512,39 @@ class CalendarEventsService {
         return 'positive';
       default:
         return 'grey-6';
+    }
+  }
+
+  /**
+   * Debug function to check all calendar events in Firebase
+   */
+  async debugCalendarEvents(): Promise<void> {
+    try {
+      logger.debug('🔍 DEBUG: Fetching ALL calendar events from Firebase...');
+
+      const q = query(
+        collection(firestore, this.COLLECTION),
+        where('status', '==', 'published'),
+        where('onCalendar', '==', true)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      logger.debug(`🔍 DEBUG: Found ${querySnapshot.docs.length} total calendar events`);
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as UserContent;
+        logger.debug('🔍 DEBUG: Calendar event found:', {
+          id: doc.id,
+          title: data.title,
+          eventDate: data.eventDate,
+          status: data.status,
+          onCalendar: data.onCalendar,
+          submissionDate: data.submissionDate
+        });
+      });
+    } catch (error) {
+      logger.error('🔍 DEBUG: Error fetching calendar events:', error);
     }
   }
 }

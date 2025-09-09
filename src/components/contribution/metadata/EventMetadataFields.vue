@@ -15,7 +15,7 @@
                             v-model="localMetadata.onCalendar"
                             label="Show this event on the community calendar"
                             color="primary"
-                            @update:model-value="updateMetadata"
+                            @update:model-value="handleToggleChange"
                         />
                         <div class="text-caption text-grey-6 q-mt-xs">
                             When enabled, this event will appear on the community calendar page
@@ -86,12 +86,16 @@
                             label="Start Time"
                             type="time"
                             outlined
+                            clearable
                             @update:model-value="updateMetadata"
                         >
                             <template v-slot:prepend>
                                 <q-icon name="mdi-clock-start" />
                             </template>
                         </q-input>
+                        <div class="text-caption text-grey-6 q-mt-xs" v-if="!localMetadata.eventTime">
+                            Click to set start time
+                        </div>
                     </div>
 
                     <!-- Event End Time -->
@@ -101,12 +105,16 @@
                             label="End Time (Optional)"
                             type="time"
                             outlined
+                            clearable
                             @update:model-value="updateMetadata"
                         >
                             <template v-slot:prepend>
                                 <q-icon name="mdi-clock-end" />
                             </template>
                         </q-input>
+                        <div class="text-caption text-grey-6 q-mt-xs" v-if="!localMetadata.eventEndTime">
+                            Click to set end time (optional)
+                        </div>
                     </div>
                 </div>
             </q-card-section>
@@ -248,10 +256,10 @@ onMounted(() => {
         };
 
         // Handle optional time fields
-        if (props.modelValue.eventTime !== undefined) {
+        if (props.modelValue.eventTime !== undefined && props.modelValue.eventTime !== '') {
             localMetadata.value.eventTime = props.modelValue.eventTime;
         }
-        if (props.modelValue.eventEndTime !== undefined) {
+        if (props.modelValue.eventEndTime !== undefined && props.modelValue.eventEndTime !== '') {
             localMetadata.value.eventEndTime = props.modelValue.eventEndTime;
         }
 
@@ -271,15 +279,38 @@ onMounted(() => {
 
 watch(() => props.modelValue, (newValue) => {
     if (newValue) {
+        // Preserve existing onCalendar, allDay, and time values when updating other fields
+        const currentOnCalendar = localMetadata.value.onCalendar;
+        const currentAllDay = localMetadata.value.allDay;
+        const currentEventTime = localMetadata.value.eventTime;
+        const currentEventEndTime = localMetadata.value.eventEndTime;
+
         localMetadata.value = {
             startDate: newValue.startDate || Date.now(),
             location: newValue.location || '',
             registrationRequired: newValue.registrationRequired || false,
+            onCalendar: newValue.onCalendar !== undefined ? newValue.onCalendar : (currentOnCalendar || false),
+            allDay: newValue.allDay !== undefined ? newValue.allDay : (currentAllDay || false),
             ...(newValue.endDate && { endDate: newValue.endDate }),
             ...(newValue.contactInfo && { contactInfo: newValue.contactInfo }),
             ...(newValue.maxAttendees !== undefined && { maxAttendees: newValue.maxAttendees }),
             ...(newValue.currentAttendees !== undefined && { currentAttendees: newValue.currentAttendees }),
         };
+
+        // Preserve time values
+        if (newValue.eventTime !== undefined) {
+            localMetadata.value.eventTime = newValue.eventTime;
+        } else if (currentEventTime !== undefined) {
+            localMetadata.value.eventTime = currentEventTime;
+        }
+
+        if (newValue.eventEndTime !== undefined) {
+            localMetadata.value.eventEndTime = newValue.eventEndTime;
+        } else if (currentEventEndTime !== undefined) {
+            localMetadata.value.eventEndTime = currentEventEndTime;
+        }
+
+        console.log('👀 Watch triggered, preserved onCalendar:', localMetadata.value.onCalendar);
 
         startDateStr.value = timestampToDateString(localMetadata.value.startDate);
         if (localMetadata.value.endDate) {
@@ -316,7 +347,15 @@ function updateEndDate(value: string | number | null) {
 }
 
 function updateMetadata() {
+    console.log('📊 updateMetadata called, localMetadata.onCalendar:', localMetadata.value.onCalendar);
+    console.log('📊 Full localMetadata:', { ...localMetadata.value });
     emit('update:modelValue', { ...localMetadata.value });
+}
+
+function handleToggleChange(value: boolean) {
+    console.log('🔄 Calendar toggle changed:', value);
+    localMetadata.value.onCalendar = value;
+    updateMetadata();
 }
 </script>
 

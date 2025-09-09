@@ -58,7 +58,10 @@
       <q-separator class="q-mb-md" />
       <h6 class="q-mt-none q-mb-md">{{ getMetadataTitle() }}</h6>
 
-      <component :is="getMetadataComponent()" v-model="formData.metadata" :content-type="formData.type" />
+      <component :is="getMetadataComponent()"
+                 v-model="formData.metadata"
+                 :content-type="formData.type"
+                 @update:model-value="updateFormMetadata" />
     </div>
 
     <!-- Rich Text Content -->
@@ -123,6 +126,7 @@ import type {
   ContentType,
   ContentSubmissionData,
   BaseContentItem,
+  EventMetadata,
 } from '../../types/core/content.types';
 
 // Import components (these will be created next)
@@ -173,7 +177,78 @@ const savingDraft = ref(false);
 const showPreview = ref(false);
 const showTargetIssue = ref(true);
 
-// Categories
+// Update form metadata and handle event-specific calendar fields
+function updateFormMetadata(metadata: Record<string, unknown>) {
+  console.log('📝 updateFormMetadata received:', metadata);
+  formData.value.metadata = { ...metadata };
+
+  // If this is an event, extract calendar fields from metadata
+  if (formData.value.type === 'event') {
+    const eventMeta = metadata as Partial<EventMetadata>;
+    console.log('📅 Processing event metadata:', eventMeta);
+
+    // Convert timestamp to ISO date string for eventDate
+    if (eventMeta.startDate) {
+      const dateStr = new Date(eventMeta.startDate).toISOString().split('T')[0];
+      if (dateStr) {
+        formData.value.eventDate = dateStr;
+      }
+    }
+    if (eventMeta.endDate) {
+      const dateStr = new Date(eventMeta.endDate).toISOString().split('T')[0];
+      if (dateStr) {
+        formData.value.eventEndDate = dateStr;
+      }
+    } else {
+      // Remove end date property when no end date
+      delete (formData.value as Record<string, unknown>).eventEndDate;
+    }
+
+    // Map other event fields - only set if they have actual values
+    // Preserve existing onCalendar value if not explicitly provided
+    if (eventMeta.onCalendar !== undefined) {
+      formData.value.onCalendar = eventMeta.onCalendar;
+    }
+    console.log('🔄 Setting onCalendar to:', formData.value.onCalendar, '(eventMeta.onCalendar was:', eventMeta.onCalendar, ')');
+
+    if (eventMeta.eventTime && eventMeta.eventTime.trim() !== '') {
+      formData.value.eventTime = eventMeta.eventTime;
+      console.log('⏰ Setting eventTime to:', formData.value.eventTime);
+    } else {
+      delete (formData.value as Record<string, unknown>).eventTime;
+      console.log('⏰ Removing eventTime (was empty)');
+    }
+
+    if (eventMeta.eventEndTime && eventMeta.eventEndTime.trim() !== '') {
+      formData.value.eventEndTime = eventMeta.eventEndTime;
+      console.log('⏰ Setting eventEndTime to:', formData.value.eventEndTime);
+    } else {
+      delete (formData.value as Record<string, unknown>).eventEndTime;
+      console.log('⏰ Removing eventEndTime (was empty)');
+    }
+
+    if (eventMeta.location && eventMeta.location.trim() !== '') {
+      formData.value.eventLocation = eventMeta.location;
+    } else {
+      delete (formData.value as Record<string, unknown>).eventLocation;
+    }
+
+    formData.value.allDay = eventMeta.allDay || false;
+
+    if (eventMeta.eventRecurrence) {
+      formData.value.eventRecurrence = eventMeta.eventRecurrence;
+    } else {
+      delete (formData.value as Record<string, unknown>).eventRecurrence;
+    }
+
+    console.log('📋 Final form data after update:', {
+      onCalendar: formData.value.onCalendar,
+      eventTime: formData.value.eventTime,
+      eventEndTime: formData.value.eventEndTime,
+      allDay: formData.value.allDay
+    });
+  }
+}// Categories
 const predefinedCategories = ref<string[]>([]);
 const userDefinedCategories = ref<string[]>([]);
 const filteredCategories = ref<string[]>([]);
@@ -434,6 +509,16 @@ async function onSubmit() {
   submitting.value = true;
   console.log('🚀 Starting content submission...');
   console.log('📝 Form data:', JSON.stringify(formData.value, null, 2));
+
+  // Special logging for calendar events
+  if (formData.value.type === 'event') {
+    console.log('📅 Calendar event submission detected!');
+    console.log('📅 onCalendar:', formData.value.onCalendar);
+    console.log('📅 eventDate:', formData.value.eventDate);
+    console.log('📅 eventTime:', formData.value.eventTime);
+    console.log('📅 eventLocation:', formData.value.eventLocation);
+    console.log('📅 allDay:', formData.value.allDay);
+  }
 
   try {
     console.log('📡 Calling contentSubmissionService.submitContent...');
