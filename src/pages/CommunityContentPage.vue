@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import UnifiedContentList from '../components/UnifiedContentList.vue';
+import { getContentIcon, formatCategoryName } from '../utils/content-icons';
 
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
 const siteStore = useSiteStore();
@@ -377,16 +378,16 @@ watch(contentType, (newType: string) => {
                 >
                   <q-item-section avatar>
                     <q-avatar
-                      :color="isNewsItem(item) ? 'primary' : 'secondary'"
-                      text-color="white"
-                      :icon="isNewsItem(item) ? 'mdi-newspaper' : 'mdi-tag'"
+                      :text-color="getContentIcon(item.category).color"
+                      :icon="getContentIcon(item.category).icon"
+                      size="xl"
                     />
                   </q-item-section>
 
                   <q-item-section>
                     <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
                     <q-item-label caption class="q-mt-xs">
-                      {{ item.category.toUpperCase().replace('-', ' ') }} •
+                      {{ formatCategoryName(item.category) }} •
                       {{ formatDate(isNewsItem(item) ? item.date : item.datePosted) }}
                       <span v-if="isNewsItem(item)"> • By {{ item.author }}</span>
                       <span v-if="isClassifiedAd(item) && item.price"> • {{ item.price }}</span>
@@ -417,8 +418,9 @@ watch(contentType, (newType: string) => {
         </q-card-section>
 
         <q-card-section v-if="selectedItem && isNewsItem(selectedItem)">
-          <div class="text-overline text-primary q-mb-sm">
-            {{ selectedItem.category.toUpperCase() }}
+          <div class="text-overline q-mb-sm" :class="`text-${getContentIcon(selectedItem.category).color}`">
+            <q-icon :name="getContentIcon(selectedItem.category).icon" size="sm" class="q-mr-xs" />
+            {{ formatCategoryName(selectedItem.category) }}
           </div>
           <div class="text-caption q-mb-md" :class="greyTextClass">
             By {{ selectedItem.author }} • {{ formatDate(selectedItem.date) }}
@@ -429,8 +431,9 @@ watch(contentType, (newType: string) => {
         </q-card-section>
 
         <q-card-section v-else-if="selectedItem && isClassifiedAd(selectedItem)">
-          <div class="text-overline text-secondary q-mb-sm">
-            {{ selectedItem.category.toUpperCase().replace('-', ' ') }}
+          <div class="text-overline q-mb-sm" :class="`text-${getContentIcon(selectedItem.category).color}`">
+            <q-icon :name="getContentIcon(selectedItem.category).icon" size="sm" class="q-mr-xs" />
+            {{ formatCategoryName(selectedItem.category) }}
           </div>
           <div class="text-caption q-mb-md" :class="greyTextClass">
             Posted {{ formatDate(selectedItem.datePosted) }}

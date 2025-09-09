@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { NewsItem } from '../types/core/content.types';
 import { logger } from '../utils/logger';
+import { getNewsCategoryIcon, formatCategoryName } from '../utils/content-icons';
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
 interface Props {
@@ -54,12 +55,13 @@ function formatDate(dateString: string): string {
   }
 }
 
-// Category color mapping
-const categoryColors = {
-  news: 'primary',
-  announcement: 'warning',
-  event: 'positive'
-};
+// Category icon and color configuration - using centralized content icons system
+const getCategoryConfig = () => getNewsCategoryIcon(props.item.category);
+
+// Category display name - using centralized formatting
+const categoryDisplayName = computed(() =>
+  formatCategoryName(props.item.category)
+);
 
 // Event handlers - following copilot instructions: Proper TypeScript typing
 function handleClick(): void {
@@ -84,8 +86,9 @@ function handleDelete(): void {
     @click="handleClick"
   >
     <q-card-section>
-      <div class="text-overline" :class="`text-${categoryColors[item.category]}`">
-        {{ item.category.toUpperCase() }}
+      <div class="text-overline" :class="`text-${getCategoryConfig().color}`">
+        <q-icon :name="getCategoryConfig().icon" size="xs" class="q-mr-xs" />
+        {{ categoryDisplayName }}
       </div>
       <div class="text-h6 q-mb-sm line-clamp-2">{{ item.title }}</div>
       <div class="text-body2 q-mb-md line-clamp-3" :class="greyTextClass">
@@ -115,15 +118,16 @@ function handleDelete(): void {
     <q-card-section>
       <div class="row items-start">
         <q-avatar
-          :color="categoryColors[item.category]"
+          :color="getCategoryConfig().color"
           text-color="white"
-          icon="mdi-newspaper"
+          :icon="getCategoryConfig().icon"
           size="md"
           class="q-mr-md"
         />
         <div class="col">
-          <div class="text-overline" :class="`text-${categoryColors[item.category]}`">
-            {{ item.category.toUpperCase() }}
+          <div class="text-overline" :class="`text-${getCategoryConfig().color}`">
+            <q-icon :name="getCategoryConfig().icon" size="xs" class="q-mr-xs" />
+            {{ categoryDisplayName }}
           </div>
           <div class="text-h6 q-mb-sm">{{ item.title }}</div>
           <div class="text-body2 q-mb-md" :class="greyTextClass">
@@ -155,16 +159,17 @@ function handleDelete(): void {
   >
     <q-item-section avatar>
       <q-avatar
-        :color="categoryColors[item.category]"
+        :color="getCategoryConfig().color"
         text-color="white"
-        icon="mdi-newspaper"
+        :icon="getCategoryConfig().icon"
       />
     </q-item-section>
 
     <q-item-section>
       <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
       <q-item-label caption class="q-mt-xs">
-        {{ item.category.toUpperCase() }} • {{ formatDate(item.date) }} • By {{ item.author }}
+        <q-icon :name="getCategoryConfig().icon" size="xs" class="q-mr-xs" />
+        {{ categoryDisplayName }} • {{ formatDate(item.date) }} • By {{ item.author }}
         <q-badge v-if="item.featured" color="amber" text-color="black" class="q-ml-xs">
           <q-icon name="star" size="xs" class="q-mr-xs" />
           Featured
