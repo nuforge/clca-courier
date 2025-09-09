@@ -402,11 +402,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useSiteStore } from '../stores/site-store-simple';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
 import FirebaseNewsletterCard from '../components/FirebaseNewsletterCard.vue';
 import { useRoleAuth } from '../composables/useRoleAuth';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 // Local interfaces for enhanced features
 interface AccessibilityReport {
@@ -417,6 +419,9 @@ interface AccessibilityReport {
 
 // Store
 const siteStore = useSiteStore();
+
+// Translation function
+const { t } = useI18n();
 
 // Archive composable
 const {
@@ -482,37 +487,37 @@ const { isEditor } = useRoleAuth();
 const isAdmin = computed(() => isEditor.value);
 
 // Filter options
-const sortOptions = [
-  { label: 'Relevance', value: 'relevance' },
-  { label: 'Newest First', value: 'date-desc' },
-  { label: 'Oldest First', value: 'date-asc' },
-  { label: 'Title A-Z', value: 'title-asc' },
-  { label: 'Title Z-A', value: 'title-desc' },
-  { label: 'Most Pages', value: 'pages-desc' },
-  { label: 'Fewest Pages', value: 'pages-asc' }
-];
+const sortOptions = computed(() => [
+  { label: t(TRANSLATION_KEYS.SEARCH.SORT_BY), value: 'relevance' },
+  { label: t(TRANSLATION_KEYS.SEARCH.SORT_DATE_DESC), value: 'date-desc' },
+  { label: t(TRANSLATION_KEYS.SEARCH.SORT_DATE_ASC), value: 'date-asc' },
+  { label: t(TRANSLATION_KEYS.SEARCH.SORT_TITLE_ASC), value: 'title-asc' },
+  { label: t(TRANSLATION_KEYS.SEARCH.SORT_TITLE_DESC), value: 'title-desc' },
+  { label: t('newsletter.sortMostPages') || 'Most Pages', value: 'pages-desc' },
+  { label: t('newsletter.sortFewestPages') || 'Fewest Pages', value: 'pages-asc' }
+]);
 
-const monthOptions = [
-  { label: 'January', value: 1 },
-  { label: 'February', value: 2 },
-  { label: 'March', value: 3 },
-  { label: 'April', value: 4 },
-  { label: 'May', value: 5 },
-  { label: 'June', value: 6 },
-  { label: 'July', value: 7 },
-  { label: 'August', value: 8 },
-  { label: 'September', value: 9 },
-  { label: 'October', value: 10 },
-  { label: 'November', value: 11 },
-  { label: 'December', value: 12 }
-];
+const monthOptions = computed(() => [
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.JANUARY), value: 1 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.FEBRUARY), value: 2 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.MARCH), value: 3 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.APRIL), value: 4 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.MAY), value: 5 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.JUNE), value: 6 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.JULY), value: 7 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.AUGUST), value: 8 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.SEPTEMBER), value: 9 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.OCTOBER), value: 10 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.NOVEMBER), value: 11 },
+  { label: t(TRANSLATION_KEYS.DATES.MONTHS.DECEMBER), value: 12 }
+]);
 
-const pageCountOptions = [
-  { label: '1-5 pages', value: '1-5' },
-  { label: '6-10 pages', value: '6-10' },
-  { label: '11-20 pages', value: '11-20' },
-  { label: '20+ pages', value: '20+' }
-];
+const pageCountOptions = computed(() => [
+  { label: t('newsletter.pages1to5') || '1-5 pages', value: '1-5' },
+  { label: t('newsletter.pages6to10') || '6-10 pages', value: '6-10' },
+  { label: t('newsletter.pages11to20') || '11-20 pages', value: '11-20' },
+  { label: t('newsletter.pages20plus') || '20+ pages', value: '20+' }
+]);
 
 // Methods
 const onSearchInput = () => {

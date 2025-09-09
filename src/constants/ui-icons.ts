@@ -41,6 +41,7 @@ export const UI_ICONS = {
   // States & Feedback
   loading: 'mdi-loading',
   check: 'mdi-check',
+  checkCircle: 'mdi-check-circle',
   warning: 'mdi-alert',
   error: 'mdi-close-circle',
   info: 'mdi-information',
@@ -75,6 +76,8 @@ export const UI_ICONS = {
   // Settings
   cog: 'mdi-cog',
   tools: 'mdi-tools',
+  globe: 'mdi-earth',
+  language: 'mdi-translate',
 
   // Misc
   help: 'mdi-help-circle',

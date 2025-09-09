@@ -9,8 +9,25 @@
         </router-link>
       </q-toolbar-title>
 
-      <SearchInput v-model="searchValue" dark dense standout input-class="text-right" container-class="q-ml-md"
-        @update:model-value="updateSearch" />
+      <SearchInput
+        v-model="searchValue"
+        dark
+        dense
+        standout
+        input-class="text-right"
+        container-class="q-ml-md"
+        @update:model-value="updateSearch"
+      />
+
+      <!-- Language Selector in Header -->
+      <div class="q-ml-md">
+        <LanguageSelector
+          :mini="true"
+          :dropdown="true"
+          color="white"
+          size="sm"
+        />
+      </div>
     </q-toolbar>
   </q-header>
 </template>
@@ -18,6 +35,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import SearchInput from './SearchInput.vue';
+import LanguageSelector from './LanguageSelector.vue';
 import { getPublicPath } from '../utils/path-utils';
 
 interface Props {

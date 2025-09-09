@@ -1,9 +1,12 @@
 import type { NavigationItem } from '../types/navigation';
 import { computed, ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 import { firestoreService } from '../services/firebase-firestore.service';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 export const useNavigation = () => {
+  const { t } = useI18n();
   const isAuthenticatedUser = ref(false);
   const hasAdminProfile = ref(false);
 
@@ -34,39 +37,37 @@ export const useNavigation = () => {
     });
   });
 
-  const baseNavigationItems: NavigationItem[] = [
+  const baseNavigationItems = computed((): NavigationItem[] => [
     {
-      title: 'Community Content',
+      title: t(TRANSLATION_KEYS.NAVIGATION.COMMUNITY),
       icon: 'mdi-newspaper',
       link: '/community',
     },
     {
-      title: 'Community Calendar',
+      title: t(TRANSLATION_KEYS.NAVIGATION.CALENDAR),
       icon: 'mdi-calendar-month',
       link: '/calendar',
     },
     {
-      title: 'Issue Archive',
+      title: t(TRANSLATION_KEYS.NAVIGATION.ARCHIVE),
       icon: 'mdi-bookshelf',
       link: '/archive',
     },
     {
-      title: 'Contribute',
+      title: t(TRANSLATION_KEYS.NAVIGATION.CONTRIBUTE),
       icon: 'mdi-pencil',
       link: '/contribute',
     },
     {
-      title: 'About & Contact',
+      title: t(TRANSLATION_KEYS.NAVIGATION.ABOUT),
       icon: 'mdi-comment-question',
       link: '/about',
     },
-  ];
+  ]);
 
   // Navigation items without admin items (admin items are now in bottom section)
   const navigationItems = computed(() => {
-    const items = [...baseNavigationItems];
-    // Admin items moved to bottom section in AppNavigation.vue
-    return items;
+    return baseNavigationItems.value;
   });
 
   return {

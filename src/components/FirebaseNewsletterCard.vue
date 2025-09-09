@@ -31,9 +31,9 @@
 
       <!-- Featured Badge -->
       <q-badge v-if="newsletter.featured" color="accent" floating rounded class="featured-badge"
-        aria-label="Featured newsletter" style="top: 8px; right: 8px;">
+        :aria-label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.FEATURE)" style="top: 8px; right: 8px;">
         <q-icon name="star" size="12px" class="q-mr-xs" />
-        Featured
+        {{ t(TRANSLATION_KEYS.FORMS.FEATURED) }}
       </q-badge>
 
       <!-- Accessibility indicators -->
@@ -71,7 +71,7 @@
       <!-- Issue Number -->
       <div v-if="newsletter.issueNumber" class="text-caption text-grey-6 q-mb-sm">
         <q-icon name="numbers" size="14px" class="q-mr-xs" />
-        Issue {{ newsletter.issueNumber }}
+        {{ t(TRANSLATION_KEYS.NEWSLETTER.ISSUE) }} {{ newsletter.issueNumber }}
       </div>
 
       <!-- Description -->
@@ -99,8 +99,8 @@
         <!-- File Info -->
         <div class="col">
           <q-icon name="description" size="14px" class="q-mr-xs" />
-          <span v-if="newsletter.pageCount" :aria-label="newsletter.pageCount + ' pages'">
-            {{ newsletter.pageCount }} pages
+          <span v-if="newsletter.pageCount" :aria-label="newsletter.pageCount + ' ' + t(TRANSLATION_KEYS.NEWSLETTER.PAGE_COUNT)">
+            {{ newsletter.pageCount }} {{ newsletter.pageCount === 1 ? t(TRANSLATION_KEYS.NEWSLETTER.PAGE_COUNT).slice(0, -1) : t(TRANSLATION_KEYS.NEWSLETTER.PAGE_COUNT) }}
           </span>
           <span v-else>PDF</span>
           <span v-if="formattedFileSize" class="q-ml-sm" :aria-label="'File size: ' + formattedFileSize">
@@ -152,9 +152,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useSiteStore } from '../stores/site-store-simple';
 import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import { logger } from '../utils/logger';
 
 // Props
@@ -173,6 +175,7 @@ const emit = defineEmits<{
 }>();
 
 // Composables
+const { t } = useI18n();
 const $q = useQuasar();
 const siteStore = useSiteStore();
 

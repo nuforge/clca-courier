@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import NavigationItem from './NavigationItem.vue';
 import LatestIssueNavigation from './CurrentProject.vue';
+import LanguageSelector from './LanguageSelector.vue';
 import { useNavigation } from '../composables/useNavigation';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useFirebase } from '../composables/useFirebase';
 import { UI_ICONS } from '../constants/ui-icons';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import type { NavigationItem as NavigationItemType } from '../types/navigation';
 
 interface Props {
@@ -18,6 +21,9 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// Translation function
+const { t } = useI18n();
 
 // Use the navigation composable
 const { navigationItems } = useNavigation();
@@ -42,11 +48,11 @@ watch(isMini, (mini: boolean) => {
 });
 
 // Settings navigation item
-const settingsItem: NavigationItemType = {
-  title: 'Settings',
+const settingsItem = computed((): NavigationItemType => ({
+  title: t(TRANSLATION_KEYS.NAVIGATION.SETTINGS),
   icon: UI_ICONS.cog,
   link: '/settings'
-};
+}));
 
 // Admin navigation items
 const adminItems = computed(() => {
@@ -56,7 +62,7 @@ const adminItems = computed(() => {
 
   // Admin Dashboard
   items.push({
-    title: 'Admin',
+    title: t(TRANSLATION_KEYS.NAVIGATION.ADMIN),
     icon: UI_ICONS.shield,
     link: '/admin'
   });
@@ -105,10 +111,25 @@ const isOpen = computed({
       <div class="bottom-section">
         <!-- Authentication Section -->
         <div v-if="!auth.isAuthenticated.value" class="q-pa-sm">
-          <q-btn v-if="!isMini" @click="() => auth.signIn('google')" color="primary" :icon="UI_ICONS.login" label="Sign In"
-            :loading="auth.isLoading.value" class="full-width" size="sm" />
-          <q-btn v-else @click="() => auth.signIn('google')" color="primary" :icon="UI_ICONS.login"
-            :loading="auth.isLoading.value" round size="sm" />
+          <q-btn
+            v-if="!isMini"
+            @click="() => auth.signIn('google')"
+            color="primary"
+            :icon="UI_ICONS.login"
+            :label="t(TRANSLATION_KEYS.AUTH.SIGN_IN)"
+            :loading="auth.isLoading.value"
+            class="full-width"
+            size="sm"
+          />
+          <q-btn
+            v-else
+            @click="() => auth.signIn('google')"
+            color="primary"
+            :icon="UI_ICONS.login"
+            :loading="auth.isLoading.value"
+            round
+            size="sm"
+          />
         </div>
 
         <!-- User Info (when authenticated) -->
@@ -124,8 +145,14 @@ const isOpen = computed({
                 <div class="text-caption text-grey-4">{{ auth.currentUser.value?.email }}</div>
               </div>
             </div>
-            <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" label="Sign Out" size="xs"
-              class="full-width q-mt-xs text-grey-4" />
+            <q-btn
+              @click="auth.signOut"
+              flat
+              :icon="UI_ICONS.logout"
+              :label="t(TRANSLATION_KEYS.AUTH.SIGN_OUT)"
+              size="xs"
+              class="full-width q-mt-xs text-grey-4"
+            />
           </div>
           <div v-else class="text-center">
             <q-avatar size="32px" class="q-mb-xs">
@@ -148,6 +175,16 @@ const isOpen = computed({
 
         <!-- Settings Link -->
         <NavigationItem :item="settingsItem" :mini="isMini" />
+
+        <!-- Language Selector -->
+        <div class="q-pa-sm">
+          <LanguageSelector
+            :mini="isMini"
+            :dropdown="true"
+            color="white"
+            size="sm"
+          />
+        </div>
       </div>
     </div>
   </q-drawer>

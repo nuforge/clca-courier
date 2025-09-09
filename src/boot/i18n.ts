@@ -2,6 +2,7 @@ import { defineBoot } from '#q-app/wrappers';
 import { createI18n } from 'vue-i18n';
 
 import messages from 'src/i18n';
+import { getInitialLocale } from 'src/i18n/utils/locale-detector';
 
 export type MessageLanguages = keyof typeof messages;
 // Type-define 'en-US' as the master schema for the resource
@@ -23,9 +24,15 @@ declare module 'vue-i18n' {
 
 export default defineBoot(({ app }) => {
   const i18n = createI18n<{ message: MessageSchema }, MessageLanguages>({
-    locale: 'en-US',
+    locale: getInitialLocale(), // Use smart locale detection
+    fallbackLocale: 'en-US',
     legacy: false,
     messages,
+    // Enable better debugging in development
+    missingWarn: process.env.NODE_ENV === 'development',
+    fallbackWarn: process.env.NODE_ENV === 'development',
+    // Enable global injection for easier access
+    globalInjection: true,
   });
 
   // Set i18n instance on app
