@@ -459,18 +459,19 @@ class CalendarEventsService {
   }
 
   /**
-   * Get event type icon
+   * Get event type icon (standardized with site theme)
    */
   getEventTypeIcon(type: UserContent['type']): string {
+    // Matches the DEFAULT_SITE_THEME configuration
     switch (type) {
       case 'event':
         return 'mdi-calendar-star';
       case 'announcement':
         return 'mdi-bullhorn';
       case 'article':
-        return 'mdi-newspaper';
+        return 'mdi-newspaper-variant';
       case 'classified':
-        return 'mdi-store';
+        return 'mdi-tag';
       case 'photo':
         return 'mdi-camera';
       default:
@@ -479,20 +480,21 @@ class CalendarEventsService {
   }
 
   /**
-   * Get event type color
+   * Get event type color (standardized with site theme)
    */
   getEventTypeColor(type: UserContent['type']): string {
+    // Matches the DEFAULT_SITE_THEME configuration
     switch (type) {
       case 'event':
-        return 'primary';
+        return 'accent';    // Purple/accent color for events
       case 'announcement':
-        return 'warning';
+        return 'positive';  // Green for announcements
       case 'article':
-        return 'info';
+        return 'primary';   // Blue for articles
       case 'classified':
-        return 'secondary';
+        return 'orange';    // Orange for classifieds
       case 'photo':
-        return 'positive';
+        return 'secondary'; // Teal for photos
       default:
         return 'grey-6';
     }

@@ -34,8 +34,10 @@ const routes: RouteRecordRaw[] = [
       { path: '/accessibility', component: () => import('pages/AccessibilityPage.vue') },
 
       // Admin routes
-      { path: '/admin', component: () => import('pages/NewsletterManagementPage.vue') },
+      { path: '/admin', component: () => import('pages/AdminDashboardPage.vue') },
+      { path: '/admin/dashboard', redirect: '/admin' },
       { path: '/admin/content', component: () => import('pages/ContentManagementPage.vue') },
+      { path: '/admin/newsletters', component: () => import('pages/NewsletterManagementPage.vue') },
     ],
   },
 
