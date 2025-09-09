@@ -1,0 +1,691 @@
+<!--
+  Theme Editor Page - Dedicated page for comprehensive theme management
+  Features live previews of changes as you edit
+-->
+<template>
+  <q-page padding>
+    <div class="q-pa-md">
+      <!-- Header -->
+      <div class="row items-center q-mb-lg">
+        <div class="col">
+          <h4 class="q-my-none">
+            <q-icon name="mdi-palette" class="q-mr-sm" />
+            Site Theme Editor
+          </h4>
+          <p class="text-body2 text-grey-6 q-my-none">
+            Customize your site's appearance with live preview
+          </p>
+        </div>
+        <div class="col-auto">
+          <div class="q-gutter-sm">
+            <q-chip
+              v-if="isDirty"
+              color="warning"
+              text-color="black"
+              icon="mdi-content-save-alert"
+            >
+              Unsaved Changes
+            </q-chip>
+            <q-btn
+              color="grey"
+              icon="mdi-restore"
+              label="Reset to Defaults"
+              @click="confirmReset"
+              flat
+            />
+            <q-btn
+              color="primary"
+              icon="mdi-content-save"
+              label="Save Theme"
+              @click="saveTheme"
+              :loading="isSaving"
+              :disable="!isDirty"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Editor Layout -->
+      <div class="row q-col-gutter-lg">
+        <!-- Left Panel - Editor -->
+        <div class="col-12 col-lg-6">
+          <q-card>
+            <q-tabs v-model="activeTab" class="text-grey-6" dense>
+              <q-tab name="contentTypes" label="Content Types" icon="mdi-file-document-multiple" />
+              <q-tab name="categories" label="Categories" icon="mdi-tag-multiple" />
+              <q-tab name="colors" label="Colors" icon="mdi-palette-outline" />
+              <q-tab name="status" label="Status" icon="mdi-circle-outline" />
+            </q-tabs>
+
+            <q-separator />
+
+            <q-tab-panels v-model="activeTab" animated>
+              <!-- Content Types Tab -->
+              <q-tab-panel name="contentTypes" class="q-pa-md">
+                <div class="text-subtitle1 q-mb-md">Content Types</div>
+
+                <q-expansion-item
+                  v-for="(config, type) in editableTheme.contentTypes"
+                  :key="type"
+                  :label="config.label"
+                  :icon="config.icon"
+                  class="q-mb-sm"
+                >
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="row q-col-gutter-md">
+                      <div class="col-12 col-md-6">
+                        <q-input
+                          v-model="config.label"
+                          label="Display Label"
+                          outlined
+                          dense
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <IconPicker
+                          v-model="config.icon"
+                          label="Icon"
+                          hint="Click to open icon picker"
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <q-select
+                          v-model="config.color"
+                          :options="colorOptions"
+                          label="Color"
+                          outlined
+                          dense
+                          option-value="value"
+                          option-label="label"
+                          emit-value
+                          map-options
+                          @update:model-value="onThemeChange"
+                        >
+                          <template v-slot:append>
+                            <ColorPreview
+                              :color-value="config.color"
+                              size="sm"
+                              shape="circle"
+                            />
+                          </template>
+                          <template v-slot:option="scope">
+                            <q-item v-bind="scope.itemProps">
+                              <q-item-section avatar>
+                                <ColorPreview
+                                  :color-value="scope.opt.value"
+                                  size="xs"
+                                  shape="circle"
+                                />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label>{{ scope.opt.label }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                        </q-select>
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="config.description"
+                          label="Description"
+                          type="textarea"
+                          outlined
+                          dense
+                          rows="2"
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                    </div>
+                  </q-card>
+                </q-expansion-item>
+              </q-tab-panel>
+
+              <!-- Categories Tab -->
+              <q-tab-panel name="categories" class="q-pa-md">
+                <div class="text-subtitle1 q-mb-md">Category Mappings</div>
+
+                <q-expansion-item
+                  v-for="(mappings, contentType) in editableTheme.categoryMappings"
+                  :key="contentType"
+                  :label="formatLabel(String(contentType))"
+                  :icon="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
+                  class="q-mb-sm"
+                >
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="row q-col-gutter-md">
+                      <div
+                        v-for="(config, category) in mappings"
+                        :key="category"
+                        class="col-12 col-md-6"
+                      >
+                        <q-card outlined>
+                          <q-card-section class="q-pa-sm">
+                            <div class="text-subtitle2 q-mb-sm">{{ config.label }}</div>
+
+                            <q-input
+                              v-model="config.label"
+                              label="Label"
+                              outlined
+                              dense
+                              class="q-mb-sm"
+                              @update:model-value="onThemeChange"
+                            />
+
+                            <IconPicker
+                              v-model="config.icon"
+                              label="Icon"
+                              dense
+                              class="q-mb-sm"
+                              @update:model-value="onThemeChange"
+                            />
+
+                            <q-select
+                              v-model="config.color"
+                              :options="colorOptions"
+                              label="Color"
+                              outlined
+                              dense
+                              option-value="value"
+                              option-label="label"
+                              emit-value
+                              map-options
+                              @update:model-value="onThemeChange"
+                            >
+                              <template v-slot:append>
+                                <ColorPreview
+                                  :color-value="config.color"
+                                  size="sm"
+                                  shape="circle"
+                                />
+                              </template>
+                              <template v-slot:option="scope">
+                                <q-item v-bind="scope.itemProps">
+                                  <q-item-section avatar>
+                                    <ColorPreview
+                                      :color-value="scope.opt.value"
+                                      size="xs"
+                                      shape="circle"
+                                    />
+                                  </q-item-section>
+                                  <q-item-section>
+                                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                                  </q-item-section>
+                                </q-item>
+                              </template>
+                            </q-select>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                    </div>
+                  </q-card>
+                </q-expansion-item>
+              </q-tab-panel>
+
+              <!-- Colors Tab -->
+              <q-tab-panel name="colors" class="q-pa-md">
+                <div class="text-subtitle1 q-mb-md">Color Palette</div>
+
+                <!-- Primary Colors -->
+                <q-card class="q-mb-md">
+                  <q-card-section>
+                    <div class="text-subtitle2 q-mb-md">Primary Colors</div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-12 col-md-4">
+                        <ColorPicker
+                          v-model="editableTheme.colors.primary"
+                          label="Primary"
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <ColorPicker
+                          v-model="editableTheme.colors.secondary"
+                          label="Secondary"
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <ColorPicker
+                          v-model="editableTheme.colors.accent"
+                          label="Accent"
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
+
+                <!-- Content Type Colors -->
+                <q-card>
+                  <q-card-section>
+                    <div class="text-subtitle2 q-mb-md">Content Type Colors</div>
+                    <div class="row q-col-gutter-sm">
+                      <div
+                        v-for="(color, type) in editableTheme.colors.contentTypes"
+                        :key="type"
+                        class="col-12 col-md-6"
+                      >
+                        <ColorPicker
+                          v-model="editableTheme.colors.contentTypes[type]"
+                          :label="formatLabel(String(type))"
+                          @update:model-value="onThemeChange"
+                        />
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </q-tab-panel>
+
+              <!-- Status Tab -->
+              <q-tab-panel name="status" class="q-pa-md">
+                <div class="text-subtitle1 q-mb-md">Status Icons</div>
+
+                <div class="row q-col-gutter-md">
+                  <div
+                    v-for="(config, status) in editableTheme.statusMappings"
+                    :key="status"
+                    class="col-12 col-md-6"
+                  >
+                    <q-card outlined>
+                      <q-card-section>
+                        <div class="text-subtitle2 q-mb-md">{{ config.label }}</div>
+
+                        <q-input
+                          v-model="config.label"
+                          label="Label"
+                          outlined
+                          dense
+                          class="q-mb-sm"
+                          @update:model-value="onThemeChange"
+                        />
+
+                        <IconPicker
+                          v-model="config.icon"
+                          label="Icon"
+                          dense
+                          class="q-mb-sm"
+                          @update:model-value="onThemeChange"
+                        />
+
+                        <q-select
+                          v-model="config.color"
+                          :options="colorOptions"
+                          label="Color"
+                          outlined
+                          dense
+                          class="q-mb-sm"
+                          option-value="value"
+                          option-label="label"
+                          emit-value
+                          map-options
+                          @update:model-value="onThemeChange"
+                        >
+                          <template v-slot:append>
+                            <ColorPreview
+                              :color-value="config.color"
+                              size="sm"
+                              shape="circle"
+                            />
+                          </template>
+                          <template v-slot:option="scope">
+                            <q-item v-bind="scope.itemProps">
+                              <q-item-section avatar>
+                                <ColorPreview
+                                  :color-value="scope.opt.value"
+                                  size="xs"
+                                  shape="circle"
+                                />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label>{{ scope.opt.label }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                        </q-select>
+
+                        <q-input
+                          v-model="config.description"
+                          label="Description"
+                          outlined
+                          dense
+                          @update:model-value="onThemeChange"
+                        />
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+              </q-tab-panel>
+            </q-tab-panels>
+          </q-card>
+        </div>
+
+        <!-- Right Panel - Live Preview -->
+        <div class="col-12 col-lg-6">
+          <q-card class="sticky-top">
+            <q-card-section>
+              <div class="text-h6 q-mb-md">
+                <q-icon name="mdi-eye" class="q-mr-sm" />
+                Live Preview
+              </div>
+
+              <!-- Color Palette Preview -->
+              <div class="q-mb-lg">
+                <div class="text-subtitle1 q-mb-sm">Color Palette</div>
+                <div class="row q-gutter-sm q-mb-sm">
+                  <div class="col-auto">
+                    <ColorPreview
+                      :color-value="editableTheme.colors.primary"
+                      label="Primary"
+                      size="md"
+                      shape="rounded"
+                      show-label
+                    />
+                  </div>
+                  <div class="col-auto">
+                    <ColorPreview
+                      :color-value="editableTheme.colors.secondary"
+                      label="Secondary"
+                      size="md"
+                      shape="rounded"
+                      show-label
+                    />
+                  </div>
+                  <div class="col-auto">
+                    <ColorPreview
+                      :color-value="editableTheme.colors.accent"
+                      label="Accent"
+                      size="md"
+                      shape="rounded"
+                      show-label
+                    />
+                  </div>
+                </div>
+
+                <div class="text-body2 text-grey-6 q-mb-sm">Content Type Colors</div>
+                <div class="row q-gutter-xs">
+                  <div
+                    v-for="(color, type) in editableTheme.colors.contentTypes"
+                    :key="type"
+                    class="col-auto"
+                  >
+                    <ColorPreview
+                      :color-value="color"
+                      :label="formatLabel(String(type))"
+                      size="sm"
+                      shape="circle"
+                      show-label
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Content Types Preview -->
+              <div class="q-mb-lg">
+                <div class="text-subtitle1 q-mb-sm">Content Types</div>
+                <div class="row q-gutter-sm">
+                  <div
+                    v-for="(config, type) in editableTheme.contentTypes"
+                    :key="type"
+                    class="col-auto"
+                  >
+                    <q-btn
+                      :icon="config.icon"
+                      :label="config.label"
+                      :color="resolvePreviewColor(config.color)"
+                      no-caps
+                      size="sm"
+                      class="q-pa-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Categories Preview -->
+              <div class="q-mb-lg">
+                <div class="text-subtitle1 q-mb-sm">Sample Categories</div>
+                <q-expansion-item
+                  v-for="(mappings, contentType) in editableTheme.categoryMappings"
+                  :key="contentType"
+                  :label="formatLabel(String(contentType))"
+                  :icon="editableTheme.contentTypes[contentType]?.icon"
+                  class="q-mb-sm"
+                  dense
+                >
+                  <div class="q-pa-sm">
+                    <div class="row q-gutter-xs">
+                      <q-chip
+                        v-for="(config, category) in mappings"
+                        :key="category"
+                        :icon="config.icon"
+                        :color="resolvePreviewColor(config.color)"
+                        text-color="white"
+                        size="sm"
+                      >
+                        {{ config.label }}
+                      </q-chip>
+                    </div>
+                  </div>
+                </q-expansion-item>
+              </div>
+
+              <!-- Status Preview -->
+              <div class="q-mb-lg">
+                <div class="text-subtitle1 q-mb-sm">Status Indicators</div>
+                <div class="row q-gutter-sm">
+                  <q-badge
+                    v-for="(config, status) in editableTheme.statusMappings"
+                    :key="status"
+                    :icon="config.icon"
+                    :color="resolvePreviewColor(config.color)"
+                    text-color="white"
+                    class="q-pa-sm"
+                  >
+                    {{ config.label }}
+                  </q-badge>
+                </div>
+              </div>
+
+              <!-- Sample Content Card -->
+              <div class="q-mb-lg">
+                <div class="text-subtitle1 q-mb-sm">Sample Content Card</div>
+                <q-card bordered>
+                  <q-card-section>
+                    <div class="row items-center">
+                      <q-icon
+                        :name="editableTheme.contentTypes.event?.icon || 'mdi-calendar'"
+                        :color="resolvePreviewColor(editableTheme.contentTypes.event?.color || 'primary')"
+                        size="md"
+                        class="q-mr-md"
+                      />
+                      <div class="col">
+                        <div class="text-h6">Sample Event</div>
+                        <div class="text-body2 text-grey-6">This is how events will appear with your theme</div>
+                      </div>
+                      <q-badge
+                        :icon="editableTheme.statusMappings.published?.icon || 'mdi-earth'"
+                        :color="resolvePreviewColor(editableTheme.statusMappings.published?.color || 'positive')"
+                        text-color="white"
+                      >
+                        {{ editableTheme.statusMappings.published?.label || 'Published' }}
+                      </q-badge>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
+
+              <!-- Color Palette Preview -->
+              <div>
+                <div class="text-subtitle1 q-mb-sm">Color Palette</div>
+                <div class="row q-col-gutter-sm">
+                  <div class="col-auto text-center">
+                    <q-icon
+                      name="mdi-circle"
+                      size="2rem"
+                      :style="`color: ${editableTheme.colors.primary}`"
+                    />
+                    <div class="text-caption">Primary</div>
+                  </div>
+                  <div class="col-auto text-center">
+                    <q-icon
+                      name="mdi-circle"
+                      size="2rem"
+                      :style="`color: ${editableTheme.colors.secondary}`"
+                    />
+                    <div class="text-caption">Secondary</div>
+                  </div>
+                  <div class="col-auto text-center">
+                    <q-icon
+                      name="mdi-circle"
+                      size="2rem"
+                      :style="`color: ${editableTheme.colors.accent}`"
+                    />
+                    <div class="text-caption">Accent</div>
+                  </div>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+    </div>
+  </q-page>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import { useQuasar } from 'quasar';
+import { useSiteTheme } from '../composables/useSiteTheme';
+import { resolveColor } from '../config/site-theme.config';
+import { logger } from '../utils/logger';
+import ColorPicker from '../components/theme/ColorPicker.vue';
+import IconPicker from '../components/theme/IconPicker.vue';
+import ColorPreview from '../components/theme/ColorPreview.vue';
+
+const $q = useQuasar();
+const {
+  theme,
+  isDirty,
+  getThemeForEditing,
+  updateTheme,
+  resetTheme,
+  saveTheme: saveThemeToStore
+} = useSiteTheme();
+
+// State
+const activeTab = ref('contentTypes');
+const isSaving = ref(false);
+const editableTheme = ref(getThemeForEditing());
+
+// Computed
+const colorOptions = computed(() => [
+  // Direct Quasar colors
+  { label: 'Primary', value: 'primary' },
+  { label: 'Secondary', value: 'secondary' },
+  { label: 'Accent', value: 'accent' },
+  { label: 'Positive', value: 'positive' },
+  { label: 'Negative', value: 'negative' },
+  { label: 'Warning', value: 'warning' },
+  { label: 'Info', value: 'info' },
+
+  // Content type color references
+  { label: 'Article Color', value: 'contentTypes.article' },
+  { label: 'Event Color', value: 'contentTypes.event' },
+  { label: 'Announcement Color', value: 'contentTypes.announcement' },
+  { label: 'Classified Color', value: 'contentTypes.classified' },
+  { label: 'Photo Color', value: 'contentTypes.photo' },
+
+  // Status color references
+  { label: 'Draft Color', value: 'status.draft' },
+  { label: 'Pending Color', value: 'status.pending' },
+  { label: 'Approved Color', value: 'status.approved' },
+  { label: 'Published Color', value: 'status.published' },
+  { label: 'Featured Color', value: 'status.featured' },
+]);
+
+// Methods
+const formatLabel = (text: string): string => {
+  return text.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+};
+
+const resolvePreviewColor = (colorRef: string): string => {
+  try {
+    return resolveColor(colorRef, editableTheme.value);
+  } catch {
+    return colorRef; // Fallback to original value if resolution fails
+  }
+};
+
+const onThemeChange = () => {
+  // Update the store with the current editable theme
+  updateTheme(editableTheme.value);
+  logger.debug('Theme updated from editor');
+};
+
+const saveTheme = () => {
+  isSaving.value = true;
+  try {
+    saveThemeToStore();
+
+    $q.notify({
+      type: 'positive',
+      message: 'Theme saved successfully',
+      position: 'top',
+    });
+
+    logger.success('Theme saved from editor');
+  } catch (error) {
+    logger.error('Failed to save theme', { error });
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to save theme',
+      position: 'top',
+    });
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const confirmReset = () => {
+  $q.dialog({
+    title: 'Reset Theme',
+    message: 'Are you sure you want to reset all theme settings to defaults? This will lose all your current changes.',
+    cancel: true,
+    persistent: true,
+  }).onOk(() => {
+    resetTheme();
+    editableTheme.value = getThemeForEditing();
+
+    $q.notify({
+      type: 'info',
+      message: 'Theme reset to defaults',
+      position: 'top',
+    });
+  });
+};
+
+// Watch for external theme changes and sync with editable theme
+watch(
+  () => JSON.stringify(theme),
+  () => {
+    editableTheme.value = getThemeForEditing();
+  }
+);
+</script>
+
+<style scoped>
+.sticky-top {
+  position: sticky;
+  top: 20px;
+}
+
+:deep(.q-expansion-item__container) {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+
+:deep(.q-expansion-item__content) {
+  padding: 0;
+}
+</style>

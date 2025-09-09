@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import UnifiedContentList from '../components/UnifiedContentList.vue';
-import { getContentIcon, formatCategoryName } from '../utils/content-icons';
+import { useSiteTheme } from '../composables/useSiteTheme';
 import { formatDate as formatDateUtil, sortByDateDesc } from '../utils/date-formatter';
 
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
@@ -14,6 +14,37 @@ const siteStore = useSiteStore();
 const { isEditor } = useRoleAuth();
 const route = useRoute();
 const router = useRouter();
+
+// Theme system for consistent icons and colors
+const { getContentIcon, getCategoryIcon } = useSiteTheme();
+
+// Helper function to get the right icon based on item type
+const getItemIcon = (item: NewsItem | ClassifiedAd) => {
+  if (isClassifiedAd(item)) {
+    // For classified ads, try to get category icon first, fallback to content type
+    const categoryIcon = getCategoryIcon('classified', item.category);
+    return categoryIcon.icon ? categoryIcon : getContentIcon('classified');
+  } else {
+    // For news items, map categories to appropriate content types
+    if (item.category === 'announcement') {
+      return getContentIcon('announcement');
+    } else if (item.category === 'event') {
+      return getContentIcon('event');
+    } else {
+      return getContentIcon('article'); // Default for news
+    }
+  }
+};
+
+// Helper function to get the right color based on item type
+const getItemColor = (item: NewsItem | ClassifiedAd) => {
+  return getItemIcon(item).color;
+};
+
+// Helper function for formatting category names
+const formatCategoryName = (category: string): string => {
+  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
+};
 
 // Loading state from store
 const isLoading = computed(() => siteStore.isLoading);
@@ -399,8 +430,8 @@ watch(contentType, (newType: string) => {
         </q-card-section>
 
         <q-card-section v-if="selectedItem && isNewsItem(selectedItem)">
-          <div class="text-overline q-mb-sm" :class="`text-${getContentIcon(selectedItem.category).color}`">
-            <q-icon :name="getContentIcon(selectedItem.category).icon" size="sm" class="q-mr-xs" />
+          <div class="text-overline q-mb-sm" :class="`text-${getItemColor(selectedItem)}`">
+            <q-icon :name="getItemIcon(selectedItem).icon" size="sm" class="q-mr-xs" />
             {{ formatCategoryName(selectedItem.category) }}
           </div>
           <div class="text-caption q-mb-md" :class="greyTextClass">
@@ -412,8 +443,8 @@ watch(contentType, (newType: string) => {
         </q-card-section>
 
         <q-card-section v-else-if="selectedItem && isClassifiedAd(selectedItem)">
-          <div class="text-overline q-mb-sm" :class="`text-${getContentIcon(selectedItem.category).color}`">
-            <q-icon :name="getContentIcon(selectedItem.category).icon" size="sm" class="q-mr-xs" />
+          <div class="text-overline q-mb-sm" :class="`text-${getItemColor(selectedItem)}`">
+            <q-icon :name="getItemIcon(selectedItem).icon" size="sm" class="q-mr-xs" />
             {{ formatCategoryName(selectedItem.category) }}
           </div>
           <div class="text-caption q-mb-md" :class="greyTextClass">

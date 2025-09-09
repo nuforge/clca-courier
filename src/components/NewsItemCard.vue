@@ -2,8 +2,33 @@
 import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { NewsItem } from '../types/core/content.types';
-import { getNewsCategoryIcon, formatCategoryName } from '../utils/content-icons';
 import { formatDate } from '../utils/date-formatter';
+import { useSiteTheme } from '../composables/useSiteTheme';
+
+// Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
+interface Props {
+  item: NewsItem;
+  variant?: 'card' | 'list' | 'featured';
+  showActions?: boolean;
+}
+
+interface Emits {
+  (e: 'click', item: NewsItem): void;
+  (e: 'edit', item: NewsItem): void;
+  (e: 'delete', item: NewsItem): void;
+}
+
+const { getCategoryIcon } = useSiteTheme();
+
+// Helper function for formatting category names
+const formatCategoryName = (category: string): string => {
+  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
+};
+
+// Get news category icon
+const getNewsCategoryIcon = (category: string) => {
+  return getCategoryIcon('news', category);
+};
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
 interface Props {

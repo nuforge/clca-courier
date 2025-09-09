@@ -3,7 +3,32 @@ import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { ClassifiedAd } from '../types/core/content.types';
 import { logger } from '../utils/logger';
-import { getClassifiedCategoryIcon, formatCategoryName } from '../utils/content-icons';
+import { useSiteTheme } from '../composables/useSiteTheme';
+
+// Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
+interface Props {
+  item: ClassifiedAd;
+  variant?: 'card' | 'list' | 'featured';
+  showActions?: boolean;
+}
+
+interface Emits {
+  (e: 'click', item: ClassifiedAd): void;
+  (e: 'edit', item: ClassifiedAd): void;
+  (e: 'delete', item: ClassifiedAd): void;
+}
+
+const { getCategoryIcon } = useSiteTheme();
+
+// Helper function for formatting category names
+const formatCategoryName = (category: string): string => {
+  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
+};
+
+// Get classified category icon
+const getClassifiedCategoryIcon = (category: string) => {
+  return getCategoryIcon('classified', category);
+};
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
 interface Props {

@@ -425,10 +425,16 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSiteStore } from '../stores/site-store-simple'
-import { getContentTypeIcon } from '../utils/content-icons'
+import { useSiteTheme } from '../composables/useSiteTheme'
 
 const router = useRouter()
 const siteStore = useSiteStore()
+const { getContentIcon } = useSiteTheme()
+
+// Helper function to match old API
+const getContentTypeIcon = (type: string) => {
+  return getContentIcon(type);
+};
 
 // State for content selection and process guidance
 const selectedContentType = ref<string | null>(null)

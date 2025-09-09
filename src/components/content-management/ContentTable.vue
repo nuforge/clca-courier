@@ -10,8 +10,8 @@
       <!-- Status column -->
       <template v-slot:body-cell-status="props">
         <q-td :props="props">
-          <q-badge :color="getStatusColor(props.value)">
-            <q-icon :name="getStatusIcon(props.value)" class="q-mr-xs" />
+          <q-badge :color="getStatusIcon(props.value).color">
+            <q-icon :name="getStatusIcon(props.value).icon" class="q-mr-xs" />
             {{ props.value.toUpperCase() }}
           </q-badge>
         </q-td>
@@ -108,6 +108,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { UserContent } from '../../services/firebase-firestore.service';
+import { useSiteTheme } from '../../composables/useSiteTheme';
+
+const { getStatusIcon } = useSiteTheme();
 
 interface Props {
   content: UserContent[];
@@ -139,17 +142,6 @@ const emit = defineEmits<{
 // Helper method to handle toggle featured
 const handleToggleFeatured = (id: string, featured: boolean) => {
   emit('toggle-featured', id, featured);
-};
-
-// Status icon mapping
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'pending': return 'schedule';
-    case 'approved': return 'check_circle';
-    case 'published': return 'publish';
-    case 'rejected': return 'cancel';
-    default: return 'help';
-  }
 };
 
 // Computed for selected content items (convert IDs back to objects for table)
@@ -212,16 +204,6 @@ const tableColumns = computed(() => [
 ]);
 
 // Utility functions
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'pending': return 'orange';
-    case 'approved': return 'green';
-    case 'published': return 'blue';
-    case 'rejected': return 'red';
-    default: return 'grey';
-  }
-};
-
 const formatDate = (dateValue: string | Date | { seconds: number; nanoseconds: number }) => {
   let date: Date;
 

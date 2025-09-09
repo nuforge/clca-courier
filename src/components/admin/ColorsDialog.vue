@@ -32,10 +32,10 @@
                 <q-icon
                   name="mdi-circle"
                   size="3rem"
-                  :style="`color: ${theme.colors.primary}`"
+                  :style="`color: ${colors.primary}`"
                 />
                 <div class="text-caption">Primary</div>
-                <div class="text-caption text-grey-6">{{ theme.colors.primary }}</div>
+                <div class="text-caption text-grey-6">{{ colors.primary }}</div>
               </q-card-section>
             </q-card>
           </div>
@@ -46,10 +46,10 @@
                 <q-icon
                   name="mdi-circle"
                   size="3rem"
-                  :style="`color: ${theme.colors.secondary}`"
+                  :style="`color: ${colors.secondary}`"
                 />
                 <div class="text-caption">Secondary</div>
-                <div class="text-caption text-grey-6">{{ theme.colors.secondary }}</div>
+                <div class="text-caption text-grey-6">{{ colors.secondary }}</div>
               </q-card-section>
             </q-card>
           </div>
@@ -60,10 +60,10 @@
                 <q-icon
                   name="mdi-circle"
                   size="3rem"
-                  :style="`color: ${theme.colors.accent}`"
+                  :style="`color: ${colors.accent}`"
                 />
                 <div class="text-caption">Accent</div>
-                <div class="text-caption text-grey-6">{{ theme.colors.accent }}</div>
+                <div class="text-caption text-grey-6">{{ colors.accent }}</div>
               </q-card-section>
             </q-card>
           </div>
@@ -73,7 +73,7 @@
         <div class="text-subtitle1 q-mb-sm">Content Type Colors</div>
         <div class="row q-gutter-sm q-mb-lg">
           <div
-            v-for="(color, type) in theme.colors.contentTypes"
+            v-for="(color, type) in colors.contentTypes"
             :key="type"
             class="col-auto"
           >
@@ -95,7 +95,7 @@
         <div class="text-subtitle1 q-mb-sm">Status Colors</div>
         <div class="row q-gutter-sm">
           <div
-            v-for="(color, status) in theme.colors.status"
+            v-for="(color, status) in colors.status"
             :key="status"
             class="col-auto"
           >
@@ -139,7 +139,7 @@ defineProps<{
   modelValue: boolean;
 }>();
 
-const { theme, getContentIcon, getStatusIcon: getStatusIconConfig } = useSiteTheme();
+const { colors, getContentIcon, getStatusIcon: getStatusIconConfig } = useSiteTheme();
 
 // Methods
 const formatTypeName = (type: string): string => {

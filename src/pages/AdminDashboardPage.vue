@@ -171,20 +171,20 @@
               <p class="text-body2 text-grey-6">
                 Manage themes, categories, and site-wide settings
               </p>
-              <div class="q-col-gutter-sm">
+                            <div class="q-gutter-sm">
                 <q-btn
                   color="accent"
                   icon="mdi-palette-outline"
-                  label="Theme & Categories"
-                  @click="showThemeDialog = true"
+                  label="Theme Editor"
+                  to="/admin/theme"
                   class="full-width"
                 />
-                <div class="row q-gutter-sm q-px-none">
+                <div class="row q-gutter-xs">
                   <div class="col">
                     <q-btn
                       color="brown"
                       icon="mdi-tag-multiple"
-                      label="Categories"
+                      label="Quick Categories"
                       size="sm"
                       @click="showCategoriesDialog = true"
                       class="full-width"
@@ -194,7 +194,7 @@
                     <q-btn
                       color="deep-purple"
                       icon="mdi-format-color-fill"
-                      label="Colors"
+                      label="Quick Colors"
                       size="sm"
                       @click="showColorsDialog = true"
                       class="full-width"
@@ -294,24 +294,18 @@
       </q-card>
     </div>
 
-    <!-- Theme Configuration Dialog -->
-    <ThemeConfigDialog
-      v-model="showThemeDialog"
-      @updated="refreshStats"
-    />
-
     <!-- Categories Management Dialog -->
     <CategoriesDialog
       v-model="showCategoriesDialog"
       @updated="refreshStats"
-      @open-theme-editor="showThemeDialog = true"
+      @openThemeEditor="$router.push('/admin/theme')"
     />
 
     <!-- Colors Management Dialog -->
     <ColorsDialog
       v-model="showColorsDialog"
       @updated="refreshStats"
-      @open-theme-editor="showThemeDialog = true"
+      @openThemeEditor="$router.push('/admin/theme')"
     />
 
     <!-- Upload Dialog -->
@@ -395,7 +389,6 @@ import { useQuasar } from 'quasar';
 import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
-import ThemeConfigDialog from '../components/admin/ThemeConfigDialog.vue';
 import CategoriesDialog from '../components/admin/CategoriesDialog.vue';
 import ColorsDialog from '../components/admin/ColorsDialog.vue';
 
@@ -418,7 +411,6 @@ const recentActivity = ref<Array<{
 }>>([]);
 
 // Dialog states
-const showThemeDialog = ref(false);
 const showCategoriesDialog = ref(false);
 const showColorsDialog = ref(false);
 const showUploadDialog = ref(false);

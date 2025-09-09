@@ -38,6 +38,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/admin/dashboard', redirect: '/admin' },
       { path: '/admin/content', component: () => import('pages/ContentManagementPage.vue') },
       { path: '/admin/newsletters', component: () => import('pages/NewsletterManagementPage.vue') },
+      { path: '/admin/theme', component: () => import('pages/ThemeEditorPage.vue') },
     ],
   },
 

@@ -307,8 +307,12 @@ import { useCalendar } from '../composables/useCalendar';
 import type { CalendarEvent } from '../services/calendar-events.service';
 import CalendarEventCard from '../components/calendar/CalendarEventCard.vue';
 import { logger } from '../utils/logger';
-import { formatCategoryName } from '../utils/content-icons';
 import { formatDate } from '../utils/date-formatter';
+
+// Helper function for formatting category names
+const formatCategoryName = (category: string): string => {
+  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
+};
 
 // Use calendar composable
 const {

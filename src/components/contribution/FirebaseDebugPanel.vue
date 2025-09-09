@@ -43,7 +43,7 @@
                         <q-list bordered separator>
                             <q-item v-for="item in content" :key="item.id" clickable v-ripple>
                                 <q-item-section avatar>
-                                    <q-icon :name="getContentIcon(item.type)" />
+                                    <q-icon :name="getContentIcon(item.type).icon" />
                                 </q-item-section>
 
                                 <q-item-section>
@@ -58,7 +58,7 @@
                                 </q-item-section>
 
                                 <q-item-section side>
-                                    <q-badge :color="getStatusColor(item.status)" :label="item.status" />
+                                    <q-badge :color="getStatusIcon(item.status).color" :label="item.status" />
                                 </q-item-section>
 
                                 <q-item-section side>
@@ -129,10 +129,11 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '../../config/firebase.config';
 import { firebaseAuthService } from '../../services/firebase-auth.service';
-import type { BaseContentItem, ContentType } from '../../types/core/content.types';
-import { getContentTypeIcon, getContentStatusIcon } from '../../utils/content-icons';
+import type { BaseContentItem } from '../../types/core/content.types';
+import { useSiteTheme } from '../../composables/useSiteTheme';
 
 const $q = useQuasar();
+const { getContentIcon, getStatusIcon } = useSiteTheme();
 
 const loading = ref(false);
 const testing = ref(false);
@@ -288,14 +289,6 @@ async function testSubmission() {
     } finally {
         testing.value = false;
     }
-}
-
-function getContentIcon(type: ContentType): string {
-    return getContentTypeIcon(type).icon;
-}
-
-function getStatusColor(status: string): string {
-    return getContentStatusIcon(status).color;
 }
 
 function formatDate(timestamp: number): string {

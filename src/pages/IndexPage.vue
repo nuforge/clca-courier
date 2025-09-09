@@ -53,6 +53,13 @@ const quickLinks: QuickLink[] = [
     link: '/community'
   },
   {
+    title: 'Community Calendar',
+    description: 'Stay updated on community events and activities',
+    icon: 'mdi-calendar',
+    color: 'yellow-9',
+    link: '/calendar'
+  },
+  {
     title: 'Issue Archive',
     description: 'Access past issues and historical content',
     icon: 'mdi-bookshelf',
@@ -69,7 +76,7 @@ const quickLinks: QuickLink[] = [
   {
     title: 'About & Contact',
     description: 'Learn about our mission and get in touch',
-    icon: 'mdi-information',
+    icon: 'mdi-comment-question',
     color: 'info',
     link: '/about'
   }

@@ -25,7 +25,7 @@
 
         <q-list>
           <q-expansion-item
-            v-for="(config, contentType) in theme.contentTypes"
+            v-for="(config, contentType) in contentTypes"
             :key="contentType"
             :label="config.label"
             :icon="config.icon"
@@ -80,7 +80,7 @@ defineProps<{
   modelValue: boolean;
 }>();
 
-const { theme } = useSiteTheme();
+const { categoryMappings, contentTypes } = useSiteTheme();
 
 // Methods
 const formatCategoryName = (category: string): string => {
@@ -96,12 +96,12 @@ const resolveColorName = (colorRef: string): string => {
 };
 
 const getCategoryColor = (contentType: string, category: string): string => {
-  const categoryConfig = theme.value.categoryMappings[contentType]?.[category];
+  const categoryConfig = categoryMappings[contentType]?.[category];
   return resolveColorName(categoryConfig?.color || 'grey');
 };
 
 const getCategoryIcon = (contentType: string, category: string): string => {
-  const categoryConfig = theme.value.categoryMappings[contentType]?.[category];
+  const categoryConfig = categoryMappings[contentType]?.[category];
   return categoryConfig?.icon || 'mdi-tag';
 };
 

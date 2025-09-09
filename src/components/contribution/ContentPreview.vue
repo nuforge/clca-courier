@@ -128,10 +128,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { BaseContentItem } from '../../types/core/content.types';
-import { getContentTypeIcon } from '../../utils/content-icons';
+import { useSiteTheme } from '../../composables/useSiteTheme';
 
 // Placeholder for MetadataPreview component
 import MetadataPreview from './MetadataPreview.vue';
+
+const { getContentIcon } = useSiteTheme();
+
+// Helper function to match old API
+const getContentTypeIcon = (type: string) => {
+  return getContentIcon(type);
+};
 
 interface Props {
   modelValue: boolean;

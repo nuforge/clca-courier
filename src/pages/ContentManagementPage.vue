@@ -25,7 +25,7 @@
             <div class="col-12 col-md-3">
               <q-card class="text-center">
                 <q-card-section>
-                  <q-icon :name="getStatusIcon('pending')" :color="getStatusColor('pending')" size="md" class="q-mb-sm" />
+                  <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-orange">{{ pendingContent.length }}</div>
                   <div class="text-caption">Pending Review</div>
                 </q-card-section>
@@ -34,7 +34,7 @@
             <div class="col-12 col-md-3">
               <q-card class="text-center">
                 <q-card-section>
-                  <q-icon :name="getStatusIcon('approved')" :color="getStatusColor('approved')" size="md" class="q-mb-sm" />
+                  <q-icon :name="getStatusIcon('approved').icon" :color="getStatusIcon('approved').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-green">{{ approvedContent.length }}</div>
                   <div class="text-caption">Approved</div>
                 </q-card-section>
@@ -43,7 +43,7 @@
             <div class="col-12 col-md-3">
               <q-card class="text-center">
                 <q-card-section>
-                  <q-icon :name="getStatusIcon('published')" :color="getStatusColor('published')" size="md" class="q-mb-sm" />
+                  <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-blue">{{ publishedContent.length }}</div>
                   <div class="text-caption">Published</div>
                 </q-card-section>
@@ -52,7 +52,7 @@
             <div class="col-12 col-md-3">
               <q-card class="text-center">
                 <q-card-section>
-                  <q-icon :name="getStatusIcon('rejected')" :color="getStatusColor('rejected')" size="md" class="q-mb-sm" />
+                  <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-red">{{ rejectedContent.length }}</div>
                   <div class="text-caption">Rejected</div>
                 </q-card-section>
@@ -91,19 +91,19 @@
             <q-tabs v-model="activeTab" dense class="text-grey" active-color="primary" indicator-color="primary"
               align="justify" narrow-indicator>
               <q-tab name="pending">
-                <q-icon :name="getStatusIcon('pending')" :color="getStatusColor('pending')" class="q-mr-sm" />
+                <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" class="q-mr-sm" />
                 Pending ({{ pendingContent.length }})
               </q-tab>
               <q-tab name="approved">
-                <q-icon :name="getStatusIcon('approved')" :color="getStatusColor('approved')" class="q-mr-sm" />
+                <q-icon :name="getStatusIcon('approved').icon" :color="getStatusIcon('approved').color" class="q-mr-sm" />
                 Approved ({{ approvedContent.length }})
               </q-tab>
               <q-tab name="published">
-                <q-icon :name="getStatusIcon('published')" :color="getStatusColor('published')" class="q-mr-sm" />
+                <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" class="q-mr-sm" />
                 Published ({{ publishedContent.length }})
               </q-tab>
               <q-tab name="rejected">
-                <q-icon :name="getStatusIcon('rejected')" :color="getStatusColor('rejected')" class="q-mr-sm" />
+                <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" class="q-mr-sm" />
                 Rejected ({{ rejectedContent.length }})
               </q-tab>
             </q-tabs>
@@ -155,7 +155,7 @@
 
         <q-card-section v-if="selectedContentItem">
           <div class="q-mb-md">
-            <q-badge :color="getStatusColor(selectedContentItem.status)"
+            <q-badge :color="getStatusIcon(selectedContentItem.status).color"
               :label="selectedContentItem.status.toUpperCase()" />
             <q-badge color="grey" :label="selectedContentItem.type.toUpperCase()" class="q-ml-sm" />
             <q-badge v-if="selectedContentItem.featured" color="orange" label="FEATURED" class="q-ml-sm" />
@@ -245,9 +245,11 @@ import type { UserContent } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import ContentTable from '../components/content-management/ContentTable.vue';
+import { useSiteTheme } from '../composables/useSiteTheme';
 
 const $q = useQuasar();
 const { requireEditor, isAuthReady } = useRoleAuth();
+const { getStatusIcon } = useSiteTheme();
 
 // State
 const isLoading = ref(false);
@@ -289,17 +291,6 @@ const publishedContent = computed(() =>
 const rejectedContent = computed(() =>
   allContent.value.filter(item => item.status === 'rejected')
 );
-
-// Status icon mapping
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'pending': return 'schedule';
-    case 'approved': return 'check_circle';
-    case 'published': return 'publish';
-    case 'rejected': return 'cancel';
-    default: return 'help';
-  }
-};
 
 // Methods
 const loadAllContent = async () => {
@@ -485,17 +476,9 @@ const showBulkRejectDialog = () => {
         selectedContent.value = [];
       });
   });
-};// Utility functions
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'pending': return 'orange';
-    case 'approved': return 'green';
-    case 'published': return 'blue';
-    case 'rejected': return 'red';
-    default: return 'grey';
-  }
 };
 
+// Utility functions
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
