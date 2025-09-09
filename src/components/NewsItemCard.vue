@@ -27,7 +27,24 @@ const formatCategoryName = (category: string): string => {
 
 // Get news category icon
 const getNewsCategoryIcon = (category: string) => {
-  return getCategoryIcon('news', category);
+  // Map categories to their parent content types based on theme configuration
+  const categoryToContentType: Record<string, string> = {
+    // Event categories
+    'meeting': 'event',
+    'social': 'event',
+    'maintenance': 'event',
+
+    // Article categories
+    'news': 'article',
+    'community': 'article',
+    'recreation': 'article',
+
+    // Announcement categories
+    'announcement': 'announcement'
+  };
+
+  const contentType = categoryToContentType[category] || 'article';
+  return getCategoryIcon(contentType, category);
 };
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging

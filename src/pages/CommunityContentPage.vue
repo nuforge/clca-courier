@@ -21,18 +21,29 @@ const { getContentIcon, getCategoryIcon } = useSiteTheme();
 // Helper function to get the right icon based on item type
 const getItemIcon = (item: NewsItem | ClassifiedAd) => {
   if (isClassifiedAd(item)) {
-    // For classified ads, try to get category icon first, fallback to content type
+    // For classified ads, get the specific category icon
     const categoryIcon = getCategoryIcon('classified', item.category);
     return categoryIcon.icon ? categoryIcon : getContentIcon('classified');
   } else {
-    // For news items, map categories to appropriate content types
-    if (item.category === 'announcement') {
-      return getContentIcon('announcement');
-    } else if (item.category === 'event') {
-      return getContentIcon('event');
-    } else {
-      return getContentIcon('article'); // Default for news
-    }
+    // For news items, map categories to their parent content types
+    const categoryToContentType: Record<string, string> = {
+      // Event categories
+      'meeting': 'event',
+      'social': 'event',
+      'maintenance': 'event',
+
+      // Article categories
+      'news': 'article',
+      'community': 'article',
+      'recreation': 'article',
+
+      // Announcement categories
+      'announcement': 'announcement'
+    };
+
+    const contentType = categoryToContentType[item.category] || 'article';
+    const categoryIcon = getCategoryIcon(contentType, item.category);
+    return categoryIcon.icon ? categoryIcon : getContentIcon(contentType);
   }
 };
 

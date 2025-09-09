@@ -42,7 +42,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { resolveColor } from '../../config/site-theme.config';
 
 interface Props {
   colorValue: string;
@@ -72,40 +71,11 @@ const emit = defineEmits<Emits>();
 const resolvedColor = computed(() => {
   if (!props.colorValue) return '';
 
-  // Handle basic Quasar color names
-  const quasarColors: Record<string, string> = {
-    'primary': '#1976d2',
-    'secondary': '#26a69a',
-    'accent': '#9c27b0',
-    'positive': '#21ba45',
-    'negative': '#c10015',
-    'warning': '#f2c037',
-    'info': '#31ccec',
-  };
+  // ColorPreview should be a pure display component
+  // It displays whatever color value it receives, without any resolution
+  // The parent component is responsible for passing the resolved color
 
-  if (quasarColors[props.colorValue]) {
-    return quasarColors[props.colorValue];
-  }
-
-  // Try to resolve theme color references
-  try {
-    const resolved = resolveColor(props.colorValue);
-    // If resolveColor returns the fallback grey, it means it couldn't resolve the reference
-    if (resolved === '#9e9e9e' && props.colorValue !== '#9e9e9e') {
-      // Check if it's a valid color directly
-      if (isValidColor(props.colorValue)) {
-        return props.colorValue;
-      }
-      return '';
-    }
-    return resolved;
-  } catch {
-    // If it's not a theme reference, check if it's a valid color
-    if (isValidColor(props.colorValue)) {
-      return props.colorValue;
-    }
-    return '';
-  }
+  return props.colorValue;
 });const isValidColorResolved = computed(() => {
   return !!resolvedColor.value && isValidColor(resolvedColor.value);
 });

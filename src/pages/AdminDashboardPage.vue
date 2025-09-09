@@ -171,7 +171,7 @@
               <p class="text-body2 text-grey-6">
                 Manage themes, categories, and site-wide settings
               </p>
-                            <div class="q-gutter-sm">
+                            <div class="q-col-gutter-sm">
                 <q-btn
                   color="accent"
                   icon="mdi-palette-outline"
@@ -179,7 +179,7 @@
                   to="/admin/theme"
                   class="full-width"
                 />
-                <div class="row q-gutter-xs">
+                <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
                       color="brown"

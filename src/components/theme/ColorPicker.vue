@@ -76,7 +76,7 @@
             outlined
             dense
             placeholder="#000000"
-            :rules="[validateHexColor]"
+            :rules="[validateColor]"
             class="q-mb-md"
           >
             <template v-slot:prepend>
@@ -130,13 +130,24 @@
 
           <!-- Native Color Picker (if supported) -->
           <div v-if="supportsNativeColorPicker">
-            <div class="text-subtitle2 q-mb-sm">Color Picker</div>
+            <div class="text-subtitle2 q-mb-sm">Browser Color Picker</div>
             <input
               ref="nativeColorPicker"
               type="color"
               :value="tempColor"
               @input="onNativeColorChange"
               class="native-color-picker"
+            />
+          </div>
+
+          <!-- Quasar Color Picker -->
+          <div class="q-mb-md">
+            <div class="text-subtitle2 q-mb-sm">Advanced Color Picker</div>
+            <q-color
+              v-model="tempColor"
+              format-model="hex"
+              class="q-mb-sm"
+              :disable="!isValidHexColor(tempColor)"
             />
           </div>
         </q-card-section>
@@ -163,7 +174,7 @@
             label="Apply"
             color="primary"
             @click="applyColor"
-            :disable="!isValidHexColor(tempColor)"
+            :disable="!isValidHexColor(tempColor) && !isThemeColorReference(tempColor)"
           />
         </q-card-actions>
       </q-card>
@@ -257,16 +268,21 @@ const isValidHexColor = (color: string): boolean => {
   return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
 };
 
-const validateHexColor = (val: string): boolean | string => {
+const isThemeColorReference = (color: string): boolean => {
+  const themeColors = ['primary', 'secondary', 'accent', 'positive', 'negative', 'warning', 'info'];
+  return themeColors.includes(color) || color.startsWith('contentTypes.') || color.startsWith('status.') || color.startsWith('categories.');
+};
+
+const validateColor = (val: string): boolean | string => {
   if (!val) return 'Color is required';
-  if (!isValidHexColor(val)) return 'Please enter a valid HEX color (e.g., #FF0000)';
-  return true;
+  if (isValidHexColor(val) || isThemeColorReference(val)) return true;
+  return 'Please enter a valid HEX color (e.g., #FF0000) or theme color reference';
 };
 
 const updateValue = (value: string | number | null) => {
   const stringValue = String(value || '');
   tempColor.value = stringValue;
-  if (isValidHexColor(stringValue)) {
+  if (isValidHexColor(stringValue) || isThemeColorReference(stringValue)) {
     emit('update:modelValue', stringValue);
   }
 };
@@ -285,7 +301,7 @@ const onNativeColorChange = (event: Event) => {
 };
 
 const applyColor = () => {
-  if (isValidHexColor(tempColor.value) || tempColor.value.startsWith('#') === false) {
+  if (isValidHexColor(tempColor.value) || isThemeColorReference(tempColor.value)) {
     emit('update:modelValue', tempColor.value);
     showPicker.value = false;
   }

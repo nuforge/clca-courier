@@ -105,7 +105,8 @@
                         >
                           <template v-slot:append>
                             <ColorPreview
-                              :color-value="config.color"
+                              :color-value="resolvePreviewColor(config.color)"
+
                               size="sm"
                               shape="circle"
                             />
@@ -114,7 +115,8 @@
                             <q-item v-bind="scope.itemProps">
                               <q-item-section avatar>
                                 <ColorPreview
-                                  :color-value="scope.opt.value"
+                                  :color-value="resolvePreviewColor(scope.opt.value)"
+
                                   size="xs"
                                   shape="circle"
                                 />
@@ -183,7 +185,8 @@
                           <template v-slot:header>
                             <q-item-section avatar>
                               <ColorPreview
-                                :color-value="config.color"
+                                :color-value="resolvePreviewColor(config.color)"
+
                                 size="sm"
                                 shape="circle"
                               />
@@ -231,7 +234,8 @@
                             >
                               <template v-slot:append>
                                 <ColorPreview
-                                  :color-value="config.color"
+                                  :color-value="resolvePreviewColor(config.color)"
+
                                   size="sm"
                                   shape="circle"
                                 />
@@ -240,7 +244,8 @@
                                 <q-item v-bind="scope.itemProps">
                                   <q-item-section avatar>
                                     <ColorPreview
-                                      :color-value="scope.opt.value"
+                                      :color-value="resolvePreviewColor(scope.opt.value)"
+
                                       size="xs"
                                       shape="circle"
                                     />
@@ -334,7 +339,7 @@
                       <template v-slot:header>
                         <q-item-section avatar>
                           <ColorPreview
-                            :color-value="config.color"
+                            :color-value="resolvePreviewColor(config.color)"
                             size="sm"
                             shape="circle"
                           />
@@ -383,7 +388,8 @@
                         >
                           <template v-slot:append>
                             <ColorPreview
-                              :color-value="config.color"
+                              :color-value="resolvePreviewColor(config.color)"
+
                               size="sm"
                               shape="circle"
                             />
@@ -392,7 +398,8 @@
                             <q-item v-bind="scope.itemProps">
                               <q-item-section avatar>
                                 <ColorPreview
-                                  :color-value="scope.opt.value"
+                                  :color-value="resolvePreviewColor(scope.opt.value)"
+
                                   size="xs"
                                   shape="circle"
                                 />
@@ -432,13 +439,16 @@
               <!-- Color Palette Preview -->
               <div class="q-mb-lg">
                 <div class="text-subtitle1 q-mb-sm">Color Palette</div>
-                <div class="row q-col-gutter-xl">
-                  <div class="col-auto">
-                    <div class="text-body2 text-grey q-mb-sm">Theme Colors</div>
-                    <div class="row q-gutter-sm q-mb-sm">
+
+                <!-- Theme Colors and Content Type Colors in same row -->
+                <div class="row q-col-gutter-lg">
+                  <!-- Theme Colors Column -->
+                  <div class="col-12 col-md-6">
+                    <div class="text-body2 text-grey-6 q-mb-sm">Theme Colors</div>
+                    <div class="row q-gutter-sm">
                       <div class="col-auto">
                         <ColorPreview
-                          :color-value="editableTheme.colors.primary"
+                          :color-value="resolvePreviewColor(editableTheme.colors.primary)"
                           label="Primary"
                           size="md"
                           shape="rounded"
@@ -447,7 +457,7 @@
                       </div>
                       <div class="col-auto">
                         <ColorPreview
-                          :color-value="editableTheme.colors.secondary"
+                          :color-value="resolvePreviewColor(editableTheme.colors.secondary)"
                           label="Secondary"
                           size="md"
                           shape="rounded"
@@ -456,7 +466,7 @@
                       </div>
                       <div class="col-auto">
                         <ColorPreview
-                          :color-value="editableTheme.colors.accent"
+                          :color-value="resolvePreviewColor(editableTheme.colors.accent)"
                           label="Accent"
                           size="md"
                           shape="rounded"
@@ -466,25 +476,26 @@
                     </div>
                   </div>
 
-                <div class="col">
-
-                <div class="row full-width q-gutter-xs space-between">
-                  <div
-                    v-for="(color, type) in editableTheme.colors.contentTypes"
-                    :key="type"
-                    class="col-auto"
-                  >
-                    <ColorPreview
-                      :color-value="color"
-                      :label="formatLabel(String(type))"
-                      size="sm"
-                      shape="circle"
-                      show-label
-                    />
+                  <!-- Content Type Colors Column -->
+                  <div class="col-12 col-md-6">
+                    <div class="text-body2 text-grey-6 q-mb-sm">Content Type Colors</div>
+                    <div class="row q-gutter-xs">
+                      <div
+                        v-for="(color, type) in editableTheme.colors.contentTypes"
+                        :key="type"
+                        class="col-auto"
+                      >
+                        <ColorPreview
+                          :color-value="resolvePreviewColor(color)"
+                          :label="formatLabel(String(type))"
+                          size="sm"
+                          shape="circle"
+                          show-label
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              </div>
               </div>
 
               <!-- Content Types Preview -->
@@ -560,14 +571,39 @@
                   <q-card-section>
                     <div class="row items-center">
                       <q-icon
-                        :name="editableTheme.contentTypes.event?.icon || 'mdi-calendar'"
-                        :color="resolvePreviewColor(editableTheme.contentTypes.event?.color || 'primary')"
+                        :name="getPreviewCategoryIcon('event', 'meeting')"
+                        :color="resolvePreviewColor(editableTheme.categoryMappings.event?.meeting?.color || 'primary')"
                         size="md"
                         class="q-mr-md"
                       />
                       <div class="col">
-                        <div class="text-h6">Sample Event</div>
-                        <div class="text-body2 text-grey-6">This is how events will appear with your theme</div>
+                        <div class="text-h6">Sample Meeting</div>
+                        <div class="text-body2 text-grey-6">This shows how meeting events will appear</div>
+                      </div>
+                      <q-badge
+                        :icon="editableTheme.statusMappings.published?.icon || 'mdi-earth'"
+                        :color="resolvePreviewColor(editableTheme.statusMappings.published?.color || 'positive')"
+                        text-color="white"
+                      >
+                        {{ editableTheme.statusMappings.published?.label || 'Published' }}
+                      </q-badge>
+                    </div>
+                  </q-card-section>
+                </q-card>
+
+                <!-- Additional sample showing social event -->
+                <q-card bordered class="q-mt-md">
+                  <q-card-section>
+                    <div class="row items-center">
+                      <q-icon
+                        :name="getPreviewCategoryIcon('event', 'social')"
+                        :color="resolvePreviewColor(editableTheme.categoryMappings.event?.social?.color || 'accent')"
+                        size="md"
+                        class="q-mr-md"
+                      />
+                      <div class="col">
+                        <div class="text-h6">Sample Social Event</div>
+                        <div class="text-body2 text-grey-6">This shows how social events will appear</div>
                       </div>
                       <q-badge
                         :icon="editableTheme.statusMappings.published?.icon || 'mdi-earth'"
@@ -592,7 +628,7 @@
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSiteTheme } from '../composables/useSiteTheme';
-import { resolveColor, DEFAULT_SITE_THEME } from '../config/site-theme.config';
+import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme } from '../config/site-theme.config';
 import { logger } from '../utils/logger';
 import ColorPicker from '../components/theme/ColorPicker.vue';
 import IconPicker from '../components/theme/IconPicker.vue';
@@ -650,6 +686,12 @@ const resolvePreviewColor = (colorRef: string): string => {
   } catch {
     return colorRef; // Fallback to original value if resolution fails
   }
+};
+
+// Preview icon resolution functions that use editableTheme instead of published theme
+const getPreviewCategoryIcon = (contentType: string, category: string): string => {
+  const categoryTheme = getCategoryTheme(contentType, category, editableTheme.value);
+  return categoryTheme.icon;
 };
 
 const getDefaultColorForContentType = (type: string): string => {
