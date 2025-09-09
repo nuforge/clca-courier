@@ -6,8 +6,7 @@ import { logger } from '../utils/logger';
 import { firestoreService } from '../services/firebase-firestore.service';
 import type { Unsubscribe } from 'firebase/firestore';
 
-// Import JSON data directly (keeping for non-news content)
-import classifiedsData from '../data/classifieds.json';
+// Import JSON data directly (keeping for events and stats only)
 import eventsData from '../data/events.json';
 import communityStatsData from '../data/community-stats.json';
 
@@ -153,9 +152,10 @@ export const useSiteStore = defineStore('site', () => {
   async function loadClassifieds() {
     try {
       await delay(100);
-      logger.debug('Loading classifieds from JSON...');
-      classifieds.value = classifiedsData as ClassifiedAd[];
-      logger.success(`Loaded ${classifieds.value.length} classifieds from JSON`);
+      logger.debug('Classifieds loading disabled - using Firebase only');
+      // Test data disabled - rely only on Firebase data
+      classifieds.value = [];
+      logger.success('Classifieds set to empty - Firebase-only mode');
     } catch (error) {
       logger.error('Error loading classifieds:', error);
       classifieds.value = [];
