@@ -56,12 +56,7 @@ export const useNavigation = () => {
       link: '/contribute',
     },
     {
-      title: 'Contact',
-      icon: 'mdi-phone',
-      link: '/contact',
-    },
-    {
-      title: 'About',
+      title: 'About & Contact',
       icon: 'mdi-information',
       link: '/about',
     },

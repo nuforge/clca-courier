@@ -67,17 +67,10 @@ const quickLinks: QuickLink[] = [
     link: '/contribute'
   },
   {
-    title: 'Contact Us',
-    description: 'Get in touch with our editorial team',
-    icon: 'mdi-phone',
-    color: 'info',
-    link: '/contact'
-  },
-  {
-    title: 'About',
-    description: 'Learn more about The Courier and our mission',
+    title: 'About & Contact',
+    description: 'Learn about our mission and get in touch',
     icon: 'mdi-information',
-    color: 'warning',
+    color: 'info',
     link: '/about'
   }
 ];

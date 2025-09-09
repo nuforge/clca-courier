@@ -8,8 +8,8 @@ const routes: RouteRecordRaw[] = [
       // Main public pages
       { path: '', component: () => import('pages/IndexPage.vue') },
       { path: '/community', component: () => import('pages/CommunityContentPage.vue') },
-      { path: '/contact', component: () => import('pages/ContactPage.vue') },
-      { path: '/about', component: () => import('pages/AboutPage.vue') },
+      { path: '/about', component: () => import('pages/AboutContactPage.vue') },
+      { path: '/contact', redirect: '/about' }, // Redirect old contact route to about page
       { path: '/map', component: () => import('pages/MapRefactoredPage.vue') },
 
       // Newsletter archive (Firebase-powered)

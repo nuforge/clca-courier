@@ -18,8 +18,7 @@ const quickLinks = [
 ];
 
 const communityLinks = [
-  { label: 'About Us', to: '/about' },
-  { label: 'Contact Us', to: '/contact' },
+  { label: 'About & Contact', to: '/about' },
   { label: 'Contribute', to: '/contribute' },
   { label: 'Submit Articles', to: '/article-submission' }
 ];
@@ -42,7 +41,7 @@ const socialLinks = [
   <footer :class="footerClasses" class="footer-container">
     <div class="q-pa-lg">
       <!-- Main Footer Content -->
-      <div class="row ">
+      <div class="row  q-col-gutter-lg">
         <!-- Brand Section -->
         <div class="col-12 col-md-3">
           <div class="text-h6 q-mb-md">
