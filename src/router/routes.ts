@@ -28,9 +28,6 @@ const routes: RouteRecordRaw[] = [
       { path: '/settings', component: () => import('pages/SettingsPage.vue') },
       { path: '/account', redirect: '/settings' }, // Redirect old account route to settings
 
-      // Localization demo (development)
-      { path: '/localization-demo', component: () => import('pages/LocalizationDemoPage.vue') },
-
       // Legal pages
       { path: '/privacy', component: () => import('pages/PrivacyPolicyPage.vue') },
       { path: '/terms', component: () => import('pages/TermsOfServicePage.vue') },
