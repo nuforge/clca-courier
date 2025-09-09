@@ -2,7 +2,7 @@
   <q-page padding>
     <div class="q-pa-md">
       <div class="row justify-center">
-        <div class="col-12">
+        <div class="col-12 col-md-10 col-lg-8">
           <!-- Header Card -->
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
