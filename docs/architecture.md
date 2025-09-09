@@ -17,6 +17,7 @@ The CLCA Courier is a production-ready community content management platform bui
 - **Language**: TypeScript (strict mode)
 - **State Management**: Pinia stores
 - **Router**: Vue Router 4 (history mode)
+- **Internationalization**: Vue i18n v11.0.0 with bilingual support
 
 ### Backend Services
 - **Authentication**: Firebase Auth (Multi-provider OAuth)
@@ -76,6 +77,17 @@ interface UserProfile {
   role: 'reader' | 'contributor' | 'editor' | 'admin';
   preferences: UserPreferences;
   lastLoginAt: Timestamp;
+  locale?: 'en-US' | 'es-ES'; // User language preference
+}
+```
+
+#### User Preferences
+```typescript
+interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto';
+  locale: 'en-US' | 'es-ES';
+  notifications: NotificationPreferences;
+  accessibility: AccessibilityPreferences;
 }
 ```
 
@@ -115,6 +127,8 @@ interface UserProfile {
 - **`logger.ts`** - Centralized logging system
 - **`date-utils.ts`** - Date parsing and formatting
 - **`image-utils.ts`** - Avatar caching and optimization
+- **`translation-utils.ts`** - i18n utilities and locale management
+- **`locale-detector.ts`** - Browser language detection
 
 ### Component Architecture
 
@@ -133,6 +147,7 @@ interface UserProfile {
 - **`NewsletterFilters.vue`** - Advanced filtering interface
 - **`UnifiedContentList.vue`** - Multi-type content display
 - **`WorkflowToolbar.vue`** - Admin workflow management
+- **`LanguageSelector.vue`** - Locale switching interface
 
 ## 🔄 Data Flow Patterns
 
@@ -164,6 +179,7 @@ OAuth Provider → Firebase Auth → User Profile Creation → Role Assignment �
 - **Material Design**: Consistent with Quasar components  
 - **Custom Branding**: CLCA-specific colors and typography
 - **Accessibility**: WCAG 2.1 compliance standards
+- **Localization Support**: RTL-ready architecture and locale-aware formatting
 
 #### Advanced Icon Management System
 - **Content Icons**: User-customizable themed icons via `useSiteTheme` composable
@@ -189,6 +205,51 @@ OAuth Provider → Firebase Auth → User Profile Creation → Role Assignment �
 - **Deep Linking**: Direct URLs for all content
 - **Breadcrumbs**: Clear navigation hierarchy
 - **Search Integration**: Global search accessible from all pages
+- **Locale-Aware Routing**: URL patterns supporting multiple languages
+
+## 🌐 Internationalization Architecture
+
+### Localization Framework
+- **Vue i18n v11.0.0**: Modern composition API-based internationalization
+- **TypeScript Integration**: Fully typed translation keys and message schema
+- **Locale Detection**: Automatic browser language detection with fallbacks
+- **Persistent Preferences**: User locale selection stored in localStorage and Firestore
+
+### Supported Locales
+- **English (en-US)**: Primary language with comprehensive coverage
+- **Spanish (es-ES)**: Full translation with cultural adaptation
+- **Future Ready**: Architecture supports unlimited additional languages
+
+### Translation Management
+```typescript
+// Structured translation organization
+src/i18n/
+├── locales/
+│   ├── en-US/
+│   │   ├── common.ts      # UI elements, buttons, labels
+│   │   ├── navigation.ts  # Menu items, routes
+│   │   ├── forms.ts       # Form labels, validation
+│   │   ├── content.ts     # Content types, statuses
+│   │   └── errors.ts      # Error messages
+│   └── es-ES/
+│       └── [same structure as en-US]
+└── utils/
+    ├── translation-keys.ts  # Type-safe key constants
+    └── locale-detector.ts   # Browser locale detection
+```
+
+### Localized Features
+- **Date Formatting**: Locale-aware date display using Intl API
+- **Number Formatting**: Currency and numeric formatting per locale
+- **Content Direction**: RTL-ready architecture for future expansion
+- **Cultural Adaptation**: Community-specific terminology and conventions
+- **Accessibility**: Screen reader support in both languages
+
+### Performance Optimization
+- **Lazy Loading**: Translation files loaded only when needed
+- **Bundle Splitting**: Separate chunks per locale (≤20KB additional per language)
+- **Caching**: Aggressive caching of translation resources
+- **Fallback Strategy**: Graceful degradation to English for missing translations
 
 ## 🔍 Search Architecture
 
@@ -231,6 +292,7 @@ OAuth Provider → Firebase Auth → User Profile Creation → Role Assignment �
 - **Tree Shaking**: Unused code elimination
 - **Bundle Analysis**: 2.4MB JS, 540KB CSS (optimized)
 - **Asset Optimization**: Image compression and lazy loading
+- **Locale Splitting**: Dynamic i18n bundle loading per language
 
 ### Runtime Performance
 - **Virtual Scrolling**: Large list performance
@@ -277,6 +339,7 @@ OAuth Provider → Firebase Auth → User Profile Creation → Role Assignment �
 - **API Expansion**: RESTful API for external integrations
 - **Third-party Integrations**: Calendar, email, payment systems
 - **Mobile Apps**: React Native or Flutter mobile applications
+- **Localization Expansion**: Framework supports unlimited language additions
 
 ### Data Growth Management
 - **Data Archiving**: Automated archiving of old content

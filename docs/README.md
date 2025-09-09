@@ -31,6 +31,7 @@ New to the project? Start here:
 - **[🗺️ Interactive Map](interactive-map.md)** - Community property map and navigation
 - **[📰 Newsletter Archive](../README.md#newsletter-management)** - PDF newsletter management and search
 - **[🎨 Theme System Summary](THEME_SYSTEM_SUMMARY.md)** - Icon consistency and UI theme documentation
+- **[🌐 Localization Plan](localization-analysis-report.md)** - Comprehensive bilingual implementation strategy
 
 ### Development
 - **[⚙️ Development Guide](development/README.md)** - Developer workflow and best practices
@@ -48,6 +49,7 @@ New to the project? Start here:
 - **Production Ready**: Zero build errors, optimized performance
 - **Modern Stack**: Vue 3 + Quasar + Firebase + TypeScript
 - **Mobile Optimized**: Responsive design for all devices
+- **Internationalization Ready**: Comprehensive bilingual implementation plan approved
 - **Security Implemented**: Role-based access with Firebase rules
 - **🎨 Theme System Overhaul** (Sept 2025): Complete icon consistency implementation
   - 74+ hardcoded icons replaced with proper theme system

@@ -60,6 +60,8 @@
 
 **PRODUCTION STATUS**: Comprehensive community content management platform with advanced features operational
 
+**NEXT PHASE**: Internationalization implementation (English/Spanish bilingual support) - 6-week development plan approved
+
 ### CURRENT ARCHITECTURE OVERVIEW (September 9, 2025)
 
 #### Framework Stack (Production-Ready)
@@ -142,6 +144,7 @@
 - **❌ Floating Promises**: Always handle async calls with `await`, `.catch()`, `.then()`, or explicit `void` operator
 - **❌ Floating Promises**: 'npm run type-check' will not work. Nor will 'grep' or 'rm' or any commands for linux?
 - **❌ Feature Removal Without Understanding**: NEVER remove working functionality or 'simplify' a requested feature without fully understanding the requirements
+- **❌ Hardcoded User-Facing Text**: NEVER use hardcoded strings for user-facing content - use `$t()` translation functions
 
 ### MANDATORY PRACTICES
 
@@ -159,6 +162,8 @@
 - **✅ BOOLEAN FILTER LOGIC**: Check for `!== undefined` when filtering boolean values to handle false/null/undefined properly
 - **✅ INTERFACE CONSISTENCY**: When changing filter interfaces, update ALL related components, services, and composables
 - **✅ DATA URL CACHING**: Cache external resources (like Google avatars) as data URLs to prevent rate limiting
+- **✅ TRANSLATION FUNCTIONS**: ALWAYS use `$t()` or `useI18n()` for user-facing text - NO hardcoded strings in components
+- **✅ TYPE-SAFE TRANSLATIONS**: Use translation key constants from `TRANSLATION_KEYS` for type safety
 
 ### TYPESCRIPT ENFORCEMENT - NON-NEGOTIABLE
 

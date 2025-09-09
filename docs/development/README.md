@@ -42,6 +42,9 @@ src/
 ├── stores/             # Pinia state management
 ├── types/              # TypeScript type definitions
 ├── utils/              # Utility functions
+├── i18n/               # Internationalization files
+│   ├── locales/        # Translation files (en-US, es-ES)
+│   └── utils/          # i18n utilities and helpers
 └── boot/               # Quasar boot files
 ```
 
@@ -65,6 +68,8 @@ src/
 - **Dynamic Content Discovery:** Generate content from actual files using manifest system
 - **Path Verification:** Check existence before referencing any files or directories
 - **Manifest-Based PDF Discovery:** Use `scripts/generate-pdf-manifest.js` for build-time PDF enumeration
+- **Translation Usage:** All user-facing text must use `$t()` translation functions
+- **Type-Safe i18n:** Use defined translation key constants for type safety
 
 ## Code Standards
 
@@ -152,6 +157,67 @@ npm run build:prod   # High-memory production build (if needed)
 node scripts/generate-pdf-manifest.js
 ```
 
+## Internationalization Development
+
+### Translation Development Workflow
+
+```bash
+# 1. Create new translation key
+# Add to src/i18n/locales/en-US/[category].ts
+export default {
+  myNewKey: 'My English text'
+};
+
+# 2. Add Spanish translation
+# Add to src/i18n/locales/es-ES/[category].ts
+export default {
+  myNewKey: 'Mi texto en español'
+};
+
+# 3. Use in component
+<template>
+  <div>{{ $t('category.myNewKey') }}</div>
+</template>
+```
+
+### Translation Key Standards
+
+```typescript
+// Type-safe translation keys
+import { TRANSLATION_KEYS } from 'src/i18n/utils/translation-keys';
+
+// Usage in components
+const { t } = useI18n();
+const buttonText = t(TRANSLATION_KEYS.FORMS.SAVE);
+
+// For conditional translations
+const statusText = computed(() => 
+  t(TRANSLATION_KEYS.CONTENT.STATUS[status.value.toUpperCase()])
+);
+```
+
+### Localization Best Practices
+
+1. **Text Externalization**: Never hardcode user-facing text
+2. **Context Awareness**: Provide context for translators
+3. **Pluralization**: Use Vue i18n pluralization for count-dependent text
+4. **Date/Number Formatting**: Use locale-aware formatters
+5. **Cultural Adaptation**: Consider cultural differences in content
+
+### Development Tools
+
+```bash
+# ESLint rule to catch hardcoded strings
+# Configured in eslint.config.js
+'vue/no-bare-strings-in-template': 'warn'
+
+# Translation completeness check
+npm run i18n:check
+
+# Extract translation keys
+npm run i18n:extract
+```
+
 ## Testing Strategy
 
 ### Manual Testing Checklist
@@ -162,6 +228,10 @@ node scripts/generate-pdf-manifest.js
 - [ ] Mobile responsiveness
 - [ ] Accessibility compliance
 - [ ] Error handling and fallbacks
+- [ ] **Language switching functionality**
+- [ ] **Translation completeness (EN/ES)**
+- [ ] **Locale-specific date/number formatting**
+- [ ] **RTL-ready layout (future-proofing)**
 
 ### Browser Testing
 
