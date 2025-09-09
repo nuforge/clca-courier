@@ -356,7 +356,7 @@
           <div v-else-if="!groupByYear" class="newsletter-grid">
             <div class="row">
               <div v-for="newsletter in sortedNewsletters" :key="newsletter.id"
-                class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-pa-md">
+                class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 q-pa-md">
                 <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
                   @metadata-updated="onNewsletterMetadataUpdated" @refresh-needed="onRefreshNeeded" />
               </div>
@@ -384,7 +384,7 @@
               <div class="newsletter-grid">
                 <div class="row">
                   <div v-for="newsletter in yearGroup.newsletters" :key="newsletter.id"
-                    class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-pa-md">
+                    class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 q-pa-md">
                     <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
                       @metadata-updated="onNewsletterMetadataUpdated" @refresh-needed="onRefreshNeeded" />
                   </div>
