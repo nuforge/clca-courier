@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { BaseContentItem } from '../../types/core/content.types';
+import { getContentTypeIcon } from '../../utils/content-icons';
 
 // Placeholder for MetadataPreview component
 import MetadataPreview from './MetadataPreview.vue';
@@ -154,39 +155,15 @@ const hasMetadata = computed(() => {
 
 // Helper functions
 function getTypeIcon(type: string): string {
-  const icons = {
-    article: 'article',
-    event: 'event',
-    project: 'engineering',
-    announcement: 'campaign',
-    classified: 'local_offer',
-    photo_story: 'photo_library',
-  };
-  return icons[type as keyof typeof icons] || 'description';
+  return getContentTypeIcon(type).icon;
 }
 
 function getTypeLabel(type: string): string {
-  const labels = {
-    article: 'Article',
-    event: 'Event',
-    project: 'Project',
-    announcement: 'Announcement',
-    classified: 'Classified',
-    photo_story: 'Photo Story',
-  };
-  return labels[type as keyof typeof labels] || type;
+  return getContentTypeIcon(type).label;
 }
 
 function getTypeColor(type: string): string {
-  const colors = {
-    article: 'blue',
-    event: 'green',
-    project: 'orange',
-    announcement: 'red',
-    classified: 'purple',
-    photo_story: 'teal',
-  };
-  return colors[type as keyof typeof colors] || 'grey';
+  return getContentTypeIcon(type).color;
 }
 
 function getPriorityColor(priority: string): string {

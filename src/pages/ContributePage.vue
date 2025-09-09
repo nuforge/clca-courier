@@ -425,6 +425,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSiteStore } from '../stores/site-store-simple'
+import { getContentTypeIcon } from '../utils/content-icons'
 
 const router = useRouter()
 const siteStore = useSiteStore()
@@ -450,13 +451,13 @@ const cardClasses = computed(() => {
   }
 });
 
-// Content type definitions with detailed guidance
+// Content type definitions with detailed guidance - using centralized icon system
 const contentTypes = [
   {
     id: 'article',
-    title: 'Articles & Stories',
-    icon: 'mdi-newspaper-variant',
-    color: 'primary',
+    title: getContentTypeIcon('article').label,
+    icon: getContentTypeIcon('article').icon,
+    color: getContentTypeIcon('article').color,
     description: 'Share detailed stories, community insights, resident spotlights, or local history.',
     examples: ['Community member profiles', 'Local history articles', 'Seasonal activities', 'HOA updates'],
     timeEstimate: '15-30 minutes',
@@ -465,9 +466,9 @@ const contentTypes = [
   },
   {
     id: 'photo',
-    title: 'Photo Stories',
-    icon: 'mdi-camera',
-    color: 'secondary',
+    title: getContentTypeIcon('photo').label,
+    icon: getContentTypeIcon('photo').icon,
+    color: getContentTypeIcon('photo').color,
     description: 'Submit curated photo collections with detailed descriptions, captions, and context.',
     examples: ['Event coverage', 'Seasonal highlights', 'Community projects', 'Wildlife spotting'],
     timeEstimate: '10-20 minutes',
@@ -476,9 +477,9 @@ const contentTypes = [
   },
   {
     id: 'event',
-    title: 'Events & Activities',
-    icon: 'mdi-calendar-plus',
-    color: 'accent',
+    title: getContentTypeIcon('event').label,
+    icon: getContentTypeIcon('event').icon,
+    color: getContentTypeIcon('event').color,
     description: 'Promote community events, meetings, or activities to keep everyone informed.',
     examples: ['Community meetings', 'Social events', 'Workshops', 'Volunteer opportunities'],
     timeEstimate: '5-15 minutes',
@@ -487,9 +488,9 @@ const contentTypes = [
   },
   {
     id: 'announcement',
-    title: 'Community News',
-    icon: 'mdi-bullhorn',
-    color: 'positive',
+    title: getContentTypeIcon('announcement').label,
+    icon: getContentTypeIcon('announcement').icon,
+    color: getContentTypeIcon('announcement').color,
     description: 'Share important community announcements, updates, or general news.',
     examples: ['Board updates', 'Policy changes', 'Community achievements', 'General announcements'],
     timeEstimate: '5-20 minutes',
@@ -498,18 +499,16 @@ const contentTypes = [
   },
   {
     id: 'classified',
-    title: 'Classifieds',
-    icon: 'mdi-tag',
-    color: 'orange',
+    title: getContentTypeIcon('classified').label,
+    icon: getContentTypeIcon('classified').icon,
+    color: getContentTypeIcon('classified').color,
     description: 'Post items for sale, services offered, wanted items, or free giveaways.',
     examples: ['Items for sale', 'Services offered', 'Items wanted', 'Free items'],
     timeEstimate: '5-10 minutes',
     difficulty: 'Easy',
     requirements: ['Clear description', 'Price (if selling)', 'Contact information']
   }
-]
-
-// Process steps for guidance
+]// Process steps for guidance
 const processSteps = [
   {
     number: 1,

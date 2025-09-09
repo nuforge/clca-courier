@@ -130,6 +130,7 @@ import {
 import { firestore } from '../../config/firebase.config';
 import { firebaseAuthService } from '../../services/firebase-auth.service';
 import type { BaseContentItem, ContentType } from '../../types/core/content.types';
+import { getContentTypeIcon, getContentStatusIcon } from '../../utils/content-icons';
 
 const $q = useQuasar();
 
@@ -290,26 +291,11 @@ async function testSubmission() {
 }
 
 function getContentIcon(type: ContentType): string {
-    const icons = {
-        article: 'article',
-        event: 'event',
-        project: 'engineering',
-        announcement: 'campaign',
-        classified: 'local_offer',
-        photo_story: 'photo_library'
-    };
-    return icons[type] || 'description';
+    return getContentTypeIcon(type).icon;
 }
 
 function getStatusColor(status: string): string {
-    const colors: Record<string, string> = {
-        submitted: 'blue',
-        pending: 'orange',
-        approved: 'green',
-        rejected: 'red',
-        draft: 'grey'
-    };
-    return colors[status] || 'grey';
+    return getContentStatusIcon(status).color;
 }
 
 function formatDate(timestamp: number): string {

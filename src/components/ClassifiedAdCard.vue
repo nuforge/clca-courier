@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { ClassifiedAd } from '../types/core/content.types';
 import { logger } from '../utils/logger';
+import { getClassifiedCategoryIcon, formatCategoryName } from '../utils/content-icons';
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
 interface Props {
@@ -54,17 +55,12 @@ function formatDate(dateString: string): string {
   }
 }
 
-// Category color and icon mapping
-const categoryConfig = {
-  'for-sale': { color: 'green', icon: 'mdi-tag' },
-  'services': { color: 'blue', icon: 'mdi-tools' },
-  'wanted': { color: 'orange', icon: 'mdi-magnify' },
-  'free': { color: 'purple', icon: 'mdi-gift' }
-};
+// Category color and icon mapping - using centralized content icons system
+const getCategoryConfig = () => getClassifiedCategoryIcon(props.item.category);
 
-// Category display name
+// Category display name - using centralized formatting
 const categoryDisplayName = computed(() =>
-  props.item.category.replace('-', ' ').toUpperCase()
+  formatCategoryName(props.item.category)
 );
 
 // Event handlers - following copilot instructions: Proper TypeScript typing
@@ -90,7 +86,7 @@ function handleDelete(): void {
     @click="handleClick"
   >
     <q-card-section>
-      <div class="text-overline" :class="`text-${categoryConfig[item.category].color}`">
+      <div class="text-overline" :class="`text-${getCategoryConfig().color}`">
         {{ categoryDisplayName }}
       </div>
       <div class="text-h6 q-mb-sm line-clamp-2">{{ item.title }}</div>
@@ -131,14 +127,14 @@ function handleDelete(): void {
     <q-card-section>
       <div class="row items-start">
         <q-avatar
-          :color="categoryConfig[item.category].color"
+          :color="getCategoryConfig().color"
           text-color="white"
-          :icon="categoryConfig[item.category].icon"
+          :icon="getCategoryConfig().icon"
           size="md"
           class="q-mr-md"
         />
         <div class="col">
-          <div class="text-overline" :class="`text-${categoryConfig[item.category].color}`">
+          <div class="text-overline" :class="`text-${getCategoryConfig().color}`">
             {{ categoryDisplayName }}
           </div>
           <div class="text-h6 q-mb-sm">{{ item.title }}</div>
@@ -181,9 +177,9 @@ function handleDelete(): void {
   >
     <q-item-section avatar>
       <q-avatar
-        :color="categoryConfig[item.category].color"
+        :color="getCategoryConfig().color"
         text-color="white"
-        :icon="categoryConfig[item.category].icon"
+        :icon="getCategoryConfig().icon"
       />
     </q-item-section>
 
