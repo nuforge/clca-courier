@@ -34,6 +34,7 @@ export const TRANSLATION_KEYS = {
     CLOSE: 'common.close',
     OPEN: 'common.open',
     REFRESH: 'common.refresh',
+    AUTO_REFRESH: 'common.autoRefresh',
     SEARCH: 'common.search',
     FILTER: 'common.filter',
     CLEAR: 'common.clear',
@@ -47,6 +48,7 @@ export const TRANSLATION_KEYS = {
     YES: 'common.yes',
     NO: 'common.no',
     OK: 'common.ok',
+    NONE: 'common.none',
     BACK: 'common.back',
     NEXT: 'common.next',
     PREVIOUS: 'common.previous',
@@ -70,6 +72,7 @@ export const TRANSLATION_KEYS = {
     CONTENT: 'forms.content',
     EMAIL: 'forms.email',
     NAME: 'forms.name',
+    AUTHOR: 'forms.author',
     SUBJECT: 'forms.subject',
     MESSAGE: 'forms.message',
     CATEGORY: 'forms.category',
@@ -122,6 +125,20 @@ export const TRANSLATION_KEYS = {
       SERVICES: 'content.categories.services',
       FREE: 'content.categories.free'
     },
+    SUBMITTED: 'content.submitted',
+    ATTACHMENTS: 'content.attachments',
+    REVIEW_NOTES: 'content.reviewNotes',
+    REJECT_CONTENT: 'content.rejectContent',
+    REJECTION_REASON: 'content.rejectionReason',
+    NEED_HELP: 'content.needHelp',
+    CONTENT_GUIDELINES: 'content.contentGuidelines',
+    GUIDELINES_DESCRIPTION: 'content.guidelinesDescription',
+    VIEW_GUIDELINES: 'content.viewGuidelines',
+    IMAGE_HOSTING: 'content.imageHosting',
+    IMAGE_HOSTING_DESCRIPTION: 'content.imageHostingDescription',
+    IMAGE_GUIDE: 'content.imageGuide',
+    GET_SUPPORT: 'content.getSupport',
+    SUPPORT_DESCRIPTION: 'content.supportDescription',
     ACTIONS: {
       APPROVE: 'content.actions.approve',
       REJECT: 'content.actions.reject',
@@ -233,7 +250,8 @@ export const TRANSLATION_KEYS = {
     UPLOADED: 'success.uploaded',
     SENT: 'success.sent',
     PUBLISHED: 'success.published',
-    APPROVED: 'success.approved'
+    APPROVED: 'success.approved',
+    CONTENT_SUBMITTED: 'success.contentSubmitted'
   },
 
   // Settings and Preferences

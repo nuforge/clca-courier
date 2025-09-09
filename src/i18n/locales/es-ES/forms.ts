@@ -13,6 +13,7 @@ export default {
   content: 'Contenido',
   email: 'Correo Electrónico',
   name: 'Nombre',
+  author: 'Autor',
   subject: 'Asunto',
   message: 'Mensaje',
   category: 'Categoría',
@@ -22,6 +23,8 @@ export default {
   tags: 'Etiquetas',
   featured: 'Destacado',
   published: 'Publicado',
+  year: 'Año',
+  month: 'Mes',
 
   validation: {
     required: '{field} es requerido',

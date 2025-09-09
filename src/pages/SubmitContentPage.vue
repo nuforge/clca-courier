@@ -12,8 +12,8 @@
 
         <!-- Breadcrumb Navigation -->
         <q-breadcrumbs class="q-mt-md">
-          <q-breadcrumbs-el label="Home" to="/" />
-          <q-breadcrumbs-el label="Contribute" to="/contribute" />
+          <q-breadcrumbs-el :label="t(TRANSLATION_KEYS.NAVIGATION.HOME)" to="/" />
+          <q-breadcrumbs-el :label="t(TRANSLATION_KEYS.NAVIGATION.CONTRIBUTE)" to="/contribute" />
           <q-breadcrumbs-el :label="contentTypeLabel" />
         </q-breadcrumbs>
       </div>
@@ -23,8 +23,8 @@
         <template v-slot:avatar>
           <q-icon name="mdi-flash" />
         </template>
-        <div class="text-subtitle1">Quick Upload Mode</div>
-        <div class="text-caption">Streamlined submission for quick sharing</div>
+        <div class="text-subtitle1">{{ t('content.quickUpload') || 'Quick Upload Mode' }}</div>
+        <div class="text-caption">{{ t('content.quickUploadDescription') || 'Streamlined submission for quick sharing' }}</div>
       </q-banner>
 
       <!-- Guided Mode Banner -->
@@ -32,13 +32,13 @@
         <template v-slot:avatar>
           <q-icon name="mdi-map" />
         </template>
-        <div class="text-subtitle1">Guided Submission Process</div>
-        <div class="text-caption">You're following our step-by-step guide for the best results</div>
+        <div class="text-subtitle1">{{ t('content.guidedSubmission') || 'Guided Submission Process' }}</div>
+        <div class="text-caption">{{ t('content.guidedSubmissionDescription') || "You're following our step-by-step guide for the best results" }}</div>
         <template v-slot:action>
           <q-btn
             flat
             color="white"
-            label="Back to Guide"
+            :label="t('content.backToGuide') || 'Back to Guide'"
             @click="() => router.push('/contribute')"
             size="sm"
           />
@@ -46,7 +46,7 @@
       </q-banner>      <!-- Success State -->
       <div v-if="submissionSuccess" class="success-state text-center q-pa-xl">
         <q-icon name="check_circle" size="4em" color="positive" class="q-mb-md" />
-        <h4 class="q-mt-none q-mb-md">Content Submitted Successfully!</h4>
+        <h4 class="q-mt-none q-mb-md">{{ t(TRANSLATION_KEYS.SUCCESS.CONTENT_SUBMITTED) || 'Content Submitted Successfully!' }}</h4>
         <p class="text-grey-7 q-mb-lg">
           Thank you for your submission. Our editorial team will review your content and
           provide feedback within 3-5 business days.
@@ -74,7 +74,7 @@
       <!-- Help Section -->
       <div class="help-section q-mt-xl">
         <q-separator class="q-mb-lg" />
-        <h5 class="q-mt-none q-mb-md">Need Help?</h5>
+        <h5 class="q-mt-none q-mb-md">{{ t(TRANSLATION_KEYS.CONTENT.NEED_HELP) || 'Need Help?' }}</h5>
 
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-md-4 q-pa-md">
@@ -82,11 +82,11 @@
               <q-card-section>
                 <div class="text-center">
                   <q-icon name="article" size="2em" color="primary" class="q-mb-sm" />
-                  <div class="text-h6 q-mb-sm">Content Guidelines</div>
+                  <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.CONTENT_GUIDELINES) || 'Content Guidelines' }}</div>
                   <p class="text-caption text-grey-7">
-                    Learn about our content standards and best practices for submissions.
+                    {{ t(TRANSLATION_KEYS.CONTENT.GUIDELINES_DESCRIPTION) || 'Learn about our content standards and best practices for submissions.' }}
                   </p>
-                  <q-btn color="primary" outline size="sm" label="View Guidelines" @click="showGuidelines = true" />
+                  <q-btn color="primary" outline size="sm" :label="t(TRANSLATION_KEYS.CONTENT.VIEW_GUIDELINES) || 'View Guidelines'" @click="showGuidelines = true" />
                 </div>
               </q-card-section>
             </q-card>
@@ -97,11 +97,11 @@
               <q-card-section>
                 <div class="text-center">
                   <q-icon name="image" size="2em" color="primary" class="q-mb-sm" />
-                  <div class="text-h6 q-mb-sm">Image Hosting</div>
+                  <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.IMAGE_HOSTING) || 'Image Hosting' }}</div>
                   <p class="text-caption text-grey-7">
-                    Best practices for hosting images externally to keep costs low.
+                    {{ t(TRANSLATION_KEYS.CONTENT.IMAGE_HOSTING_DESCRIPTION) || 'Best practices for hosting images externally to keep costs low.' }}
                   </p>
-                  <q-btn color="primary" outline size="sm" label="Image Guide" @click="showImageGuide = true" />
+                  <q-btn color="primary" outline size="sm" :label="t(TRANSLATION_KEYS.CONTENT.IMAGE_GUIDE) || 'Image Guide'" @click="showImageGuide = true" />
                 </div>
               </q-card-section>
             </q-card>
@@ -112,11 +112,11 @@
               <q-card-section>
                 <div class="text-center">
                   <q-icon name="support" size="2em" color="primary" class="q-mb-sm" />
-                  <div class="text-h6 q-mb-sm">Get Support</div>
+                  <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.GET_SUPPORT) || 'Get Support' }}</div>
                   <p class="text-caption text-grey-7">
-                    Contact our editorial team if you need assistance with your submission.
+                    {{ t(TRANSLATION_KEYS.CONTENT.SUPPORT_DESCRIPTION) || 'Contact our editorial team if you need assistance with your submission.' }}
                   </p>
-                  <q-btn color="primary" outline size="sm" label="Contact Us"
+                  <q-btn color="primary" outline size="sm" :label="t(TRANSLATION_KEYS.NAVIGATION.CONTACT)"
                     href="mailto:editor@conashaughlakes.com" />
                 </div>
               </q-card-section>
@@ -230,13 +230,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import ContentSubmissionForm from '../components/contribution/ContentSubmissionForm.vue';
 import FirebaseDebugPanel from '../components/contribution/FirebaseDebugPanel.vue';
 import type { ContentType } from '../types/core/content.types';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 
 // Reactive state
 const submissionSuccess = ref(false);

@@ -12,10 +12,10 @@
             <q-card-section>
               <div class="text-h4 text-center q-mb-md">
                 <q-icon :name="getContentIcon('announcement').icon" class="q-mr-sm text-primary" />
-                Content Management
+                {{ t('content.management') || 'Content Management' }}
               </div>
               <p class="text-center text-body1">
-                Review, approve, and manage user-submitted content for publication
+                {{ t('content.managementDescription') || 'Review, approve, and manage user-submitted content for publication' }}
               </p>
             </q-card-section>
           </q-card>
@@ -27,7 +27,7 @@
                 <q-card-section>
                   <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-orange">{{ pendingContent.length }}</div>
-                  <div class="text-caption">Pending Review</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.CONTENT.STATUS.PENDING) }}</div>
                 </q-card-section>
               </q-card>
             </div>
@@ -36,7 +36,7 @@
                 <q-card-section>
                   <q-icon :name="getStatusIcon('approved').icon" :color="getStatusIcon('approved').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-green">{{ approvedContent.length }}</div>
-                  <div class="text-caption">Approved</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.CONTENT.STATUS.APPROVED) }}</div>
                 </q-card-section>
               </q-card>
             </div>
@@ -45,7 +45,7 @@
                 <q-card-section>
                   <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-blue">{{ publishedContent.length }}</div>
-                  <div class="text-caption">Published</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.CONTENT.STATUS.PUBLISHED) }}</div>
                 </q-card-section>
               </q-card>
             </div>
@@ -80,7 +80,7 @@
                   <q-space />
                 </div>
                 <div class="col-auto">
-                  <q-toggle v-model="autoRefresh" label="Auto-refresh" />
+                  <q-toggle v-model="autoRefresh" :label="t(TRANSLATION_KEYS.COMMON.AUTO_REFRESH) || 'Auto-refresh'" />
                 </div>
               </div>
             </q-card-section>
@@ -92,19 +92,19 @@
               align="justify" narrow-indicator>
               <q-tab name="pending">
                 <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" class="q-mr-sm" />
-                Pending ({{ pendingContent.length }})
+                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.PENDING) }} ({{ pendingContent.length }})
               </q-tab>
               <q-tab name="approved">
                 <q-icon :name="getStatusIcon('approved').icon" :color="getStatusIcon('approved').color" class="q-mr-sm" />
-                Approved ({{ approvedContent.length }})
+                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.APPROVED) }} ({{ approvedContent.length }})
               </q-tab>
               <q-tab name="published">
                 <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" class="q-mr-sm" />
-                Published ({{ publishedContent.length }})
+                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.PUBLISHED) }} ({{ publishedContent.length }})
               </q-tab>
               <q-tab name="rejected">
                 <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" class="q-mr-sm" />
-                Rejected ({{ rejectedContent.length }})
+                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.REJECTED) }} ({{ rejectedContent.length }})
               </q-tab>
             </q-tabs>
 
@@ -162,20 +162,20 @@
           </div>
 
           <div class="text-body2 q-mb-md">
-            <strong>Author:</strong> {{ selectedContentItem.authorName }} ({{
+            <strong>{{ t(TRANSLATION_KEYS.FORMS.AUTHOR) || 'Author' }}:</strong> {{ selectedContentItem.authorName }} ({{
               selectedContentItem.authorEmail }})<br>
-            <strong>Submitted:</strong> {{ formatDateTime(selectedContentItem.submissionDate, 'LONG_WITH_TIME') }}<br>
-            <strong>Tags:</strong> {{ selectedContentItem.tags.join(', ') || 'None' }}
+            <strong>{{ t(TRANSLATION_KEYS.CONTENT.SUBMITTED) || 'Submitted' }}:</strong> {{ formatDateTime(selectedContentItem.submissionDate, 'LONG_WITH_TIME') }}<br>
+            <strong>{{ t(TRANSLATION_KEYS.FORMS.TAGS) }}:</strong> {{ selectedContentItem.tags.join(', ') || t(TRANSLATION_KEYS.COMMON.NONE) || 'None' }}
           </div>
 
           <q-separator class="q-my-md" />
 
-          <div class="text-h6 q-mb-sm">Content</div>
+          <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.FORMS.CONTENT) }}</div>
           <div class="text-body1 q-mb-md" style="white-space: pre-line;">{{ selectedContentItem.content }}
           </div>
 
           <div v-if="selectedContentItem.attachments.length > 0">
-            <div class="text-h6 q-mb-sm">Attachments</div>
+            <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.ATTACHMENTS) || 'Attachments' }}</div>
             <q-list dense>
               <q-item v-for="attachment in selectedContentItem.attachments" :key="attachment.filename">
                 <q-item-section avatar>
@@ -194,22 +194,22 @@
 
           <div v-if="selectedContentItem.reviewNotes">
             <q-separator class="q-my-md" />
-            <div class="text-h6 q-mb-sm">Review Notes</div>
+            <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.REVIEW_NOTES) || 'Review Notes' }}</div>
             <div class="text-body2">{{ selectedContentItem.reviewNotes }}</div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right" v-if="selectedContentItem?.status === 'pending'">
-          <q-btn flat label="Reject" color="negative" @click="rejectContentWithDialog(selectedContentItem)" />
-          <q-btn label="Approve" color="positive" @click="approveContent(selectedContentItem.id)" />
+          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.REJECT)" color="negative" @click="rejectContentWithDialog(selectedContentItem)" />
+          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.APPROVE)" color="positive" @click="approveContent(selectedContentItem.id)" />
         </q-card-actions>
 
         <q-card-actions align="right" v-if="selectedContentItem?.status === 'published'">
           <q-toggle :model-value="selectedContentItem.featured || false"
             @update:model-value="(value: boolean) => selectedContentItem && toggleFeaturedStatus(selectedContentItem.id, value)"
-            color="orange" label="Featured" />
+            color="orange" :label="t(TRANSLATION_KEYS.FORMS.FEATURED)" />
           <q-space />
-          <q-btn flat label="Unpublish" color="orange"
+          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.UNPUBLISH)" color="orange"
             @click="selectedContentItem && unpublishContent(selectedContentItem.id)" />
         </q-card-actions>
       </q-card>
@@ -219,17 +219,17 @@
     <q-dialog v-model="showRejectDialog">
       <q-card style="min-width: 350px">
         <q-card-section>
-          <div class="text-h6">Reject Content</div>
+          <div class="text-h6">{{ t(TRANSLATION_KEYS.CONTENT.REJECT_CONTENT) || 'Reject Content' }}</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-input v-model="rejectionReason" label="Reason for rejection (optional)" type="textarea" rows="3"
+          <q-input v-model="rejectionReason" :label="t(TRANSLATION_KEYS.CONTENT.REJECTION_REASON) || 'Reason for rejection (optional)'" type="textarea" rows="3"
             outlined />
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" @click="showRejectDialog = false" />
-          <q-btn label="Reject" color="negative" @click="confirmRejectContent" />
+          <q-btn flat :label="t(TRANSLATION_KEYS.COMMON.CANCEL)" @click="showRejectDialog = false" />
+          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.REJECT)" color="negative" @click="confirmRejectContent" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -238,6 +238,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { firestoreService } from '../services/firebase-firestore.service';
@@ -247,8 +248,10 @@ import { formatDateTime } from '../utils/date-formatter';
 import ContentTable from '../components/content-management/ContentTable.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { UI_ICONS } from '../constants/ui-icons';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const $q = useQuasar();
+const { t } = useI18n();
 const { requireEditor, isAuthReady } = useRoleAuth();
 const { getStatusIcon, getContentIcon } = useSiteTheme();
 

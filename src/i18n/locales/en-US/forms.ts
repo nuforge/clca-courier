@@ -13,6 +13,7 @@ export default {
   content: 'Content',
   email: 'Email',
   name: 'Name',
+  author: 'Author',
   subject: 'Subject',
   message: 'Message',
   category: 'Category',
@@ -22,6 +23,8 @@ export default {
   tags: 'Tags',
   featured: 'Featured',
   published: 'Published',
+  year: 'Year',
+  month: 'Month',
 
   validation: {
     required: '{field} is required',

@@ -73,7 +73,8 @@ export const success = {
   uploaded: 'Subido exitosamente',
   sent: 'Enviado exitosamente',
   published: 'Publicado exitosamente',
-  approved: 'Aprobado exitosamente'
+  approved: 'Aprobado exitosamente',
+  contentSubmitted: '¡Contenido Enviado Exitosamente!'
 };
 
 // Settings and Preferences

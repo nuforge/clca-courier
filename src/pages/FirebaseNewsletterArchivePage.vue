@@ -8,11 +8,10 @@
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-bookshelf" class="q-mr-sm" />
-                Newsletter Archive
+                {{ t(TRANSLATION_KEYS.NEWSLETTER.ARCHIVE) }}
               </div>
               <p class="text-body1">
-                Browse through past issues of The Courier with Firebase-powered search and filtering.
-                All content is dynamically loaded from our cloud database with real-time updates.
+                {{ t('newsletter.archiveDescription') || 'Browse through past issues of The Courier with Firebase-powered search and filtering. All content is dynamically loaded from our cloud database with real-time updates.' }}
               </p>
 
               <!-- Service Statistics -->
@@ -20,19 +19,19 @@
                 <div class="row text-center q-col-gutter-sm">
                   <div class="col">
                     <div class="text-h6 text-primary">{{ stats.totalNewsletters }}</div>
-                    <div class="text-caption">Total Issues</div>
+                    <div class="text-caption">{{ t('newsletter.totalIssues') || 'Total Issues' }}</div>
                   </div>
                   <div class="col">
                     <div class="text-h6 text-positive">{{ stats.sourceCounts.firebase }}</div>
-                    <div class="text-caption">Firebase Storage</div>
+                    <div class="text-caption">{{ t('newsletter.firebaseStorage') || 'Firebase Storage' }}</div>
                   </div>
                   <div class="col">
                     <div class="text-h6 text-info">{{ stats.publishedThisYear }}</div>
-                    <div class="text-caption">Published This Year</div>
+                    <div class="text-caption">{{ t('newsletter.publishedThisYear') || 'Published This Year' }}</div>
                   </div>
                   <div class="col">
                     <div class="text-h6 text-secondary">{{ stats.availableYears.length }}</div>
-                    <div class="text-caption">Years Available</div>
+                    <div class="text-caption">{{ t('newsletter.yearsAvailable') || 'Years Available' }}</div>
                   </div>
                 </div>
               </div>
@@ -44,43 +43,43 @@
             <q-card-section>
               <!-- Search Mode Information -->
               <div class="row items-center q-mb-md">
-                <div class="text-subtitle2 text-weight-medium q-mr-md">Newsletter search:</div>
+                <div class="text-subtitle2 text-weight-medium q-mr-md">{{ t('newsletter.searchLabel') || 'Newsletter search:' }}</div>
                 <q-chip color="primary" text-color="white" icon="cloud" size="sm">
-                  Real-time Cloud Database
+                  {{ t('newsletter.realTimeDatabase') || 'Real-time Cloud Database' }}
                 </q-chip>
                 <q-space />
                 <div v-if="searchResults && searchResults.searchStats.indexedPdfs > 0" class="text-caption text-grey-6">
-                  {{ searchResults.searchStats.indexedPdfs }} PDFs indexed
+                  {{ t('newsletter.pdfsIndexed', { count: searchResults.searchStats.indexedPdfs }) || `${searchResults.searchStats.indexedPdfs} PDFs indexed` }}
                 </div>
                 <div v-if="isSearching" class="text-caption text-primary">
                   <q-spinner size="14px" class="q-mr-xs" />
-                  Searching...
+                  {{ t(TRANSLATION_KEYS.SEARCH.SEARCHING) }}
                 </div>
               </div>
 
               <!-- Main Search Bar -->
               <div class="row q-mb-md">
                 <div class="col-12 col-md-8 q-pa-md">
-                  <q-input v-model="searchInput" label="Search newsletters by title, content, tags, year, or month..."
+                  <q-input v-model="searchInput" :label="t(TRANSLATION_KEYS.NEWSLETTER.SEARCH_CONTENT) || 'Search newsletters by title, content, tags, year, or month...'"
                     outlined dense :class="{ 'bg-grey': !isDarkMode }" clearable :loading="isSearching"
                     @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
-                    :aria-label="'Search through ' + (stats?.totalNewsletters || 0) + ' newsletters'" role="searchbox"
+                    :aria-label="t('newsletter.searchAriaLabel', { count: stats?.totalNewsletters || 0 }) || `Search through ${stats?.totalNewsletters || 0} newsletters`" role="searchbox"
                     aria-expanded="false" :aria-describedby="searchInput ? 'search-suggestions' : null">
                     <template v-slot:prepend>
                       <q-icon name="find_in_page" />
                     </template>
                     <template v-slot:append>
                       <q-btn v-if="!isSearching && searchInput" flat dense round icon="send" @click="handleSearchSubmit"
-                        :aria-label="'Search for: ' + searchInput" />
+                        :aria-label="t('newsletter.searchFor', { query: searchInput }) || `Search for: ${searchInput}`" />
                       <q-btn flat dense round icon="tune" @click="showFilters = !showFilters" color="primary">
-                        <q-tooltip>{{ showFilters ? 'Hide' : 'Show' }} Filters</q-tooltip>
+                        <q-tooltip>{{ showFilters ? t(TRANSLATION_KEYS.COMMON.CLOSE) : t(TRANSLATION_KEYS.COMMON.OPEN) }} {{ t(TRANSLATION_KEYS.SEARCH.FILTERS) }}</q-tooltip>
                       </q-btn>
                     </template>
                   </q-input>
 
                   <!-- Search suggestions -->
                   <div v-if="searchSuggestions.length > 0 && searchInput" id="search-suggestions" class="q-mt-xs"
-                    role="listbox" aria-label="Search suggestions">
+                    role="listbox" :aria-label="t('newsletter.searchSuggestions') || 'Search suggestions'">
                     <q-chip v-for="suggestion in searchSuggestions" :key="suggestion" clickable size="sm" color="grey-3"
                       text-color="dark" class="q-mr-xs q-mb-xs" @click="applySuggestion(suggestion)" :tabindex="0"
                       @keydown.enter="applySuggestion(suggestion)" role="option">
@@ -90,18 +89,17 @@
                   </div>
 
                   <div class="text-caption text-grey-6 q-mt-xs">
-                    Powered by Firebase Firestore with real-time updates and full-text search
+                    {{ t('newsletter.poweredByFirebase') || 'Powered by Firebase Firestore with real-time updates and full-text search' }}
                     <span v-if="stats?.accessibility">
-                      • {{ stats.accessibility.withSearchableText }} of {{ stats.totalNewsletters }} have searchable
-                      text
+                      • {{ t('newsletter.searchableTextCount', { searchable: stats.accessibility.withSearchableText, total: stats.totalNewsletters }) || `${stats.accessibility.withSearchableText} of ${stats.totalNewsletters} have searchable text` }}
                     </span>
                   </div>
                 </div>
                 <div class="col-12 col-md-4 q-pa-md">
 
-                  <q-select v-model="sortBy" :options="sortOptions" label="Sort By" outlined dense emit-value
+                  <q-select v-model="sortBy" :options="sortOptions" :label="t(TRANSLATION_KEYS.SEARCH.SORT_BY)" outlined dense emit-value
                     map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onSortChange"
-                    aria-label="Sort newsletters by different criteria">
+                    :aria-label="t('newsletter.sortAriaLabel') || 'Sort newsletters by different criteria'">
                     <template v-slot:prepend>
                       <q-icon name="sort" />
                     </template>
@@ -109,13 +107,13 @@
                   <!-- Quick Filter Buttons -->
                   <div class="row q-my-xs space-between q-gutter-sm">
                     <q-btn outline  color="primary" size="sm" @click="applyQuickFilter('featured')"
-                      :label="'Featured (' + (quickFilterOptions?.featured?.length || 0) + ')'"
-                      :aria-label="'Show only featured newsletters, ' + (quickFilterOptions?.featured?.length || 0) + ' available'" />
+                      :label="t('newsletter.featured') + ' (' + (quickFilterOptions?.featured?.length || 0) + ')'"
+                      :aria-label="t('newsletter.featuredAriaLabel', { count: quickFilterOptions?.featured?.length || 0 }) || `Show only featured newsletters, ${quickFilterOptions?.featured?.length || 0} available`" />
                     <q-btn outline  color="secondary" size="sm" @click="applyQuickFilter('currentYear')"
-                      :label="'This Year (' + (quickFilterOptions?.currentYear?.length || 0) + ')'"
-                      :aria-label="'Show current year newsletters, ' + (quickFilterOptions?.currentYear?.length || 0) + ' available'" />
+                      :label="t('newsletter.thisYear') + ' (' + (quickFilterOptions?.currentYear?.length || 0) + ')'"
+                      :aria-label="t('newsletter.thisYearAriaLabel', { count: quickFilterOptions?.currentYear?.length || 0 }) || `Show current year newsletters, ${quickFilterOptions?.currentYear?.length || 0} available`" />
                     <q-btn outline  color="accent" size="sm" @click="applyQuickFilter('recentlyAdded')"
-                      label="Recent" aria-label="Show recently added newsletters" />
+                      :label="t('newsletter.recent') || 'Recent'" :aria-label="t('newsletter.recentAriaLabel') || 'Show recently added newsletters'" />
                   </div>
                 </div>
               </div>
@@ -127,13 +125,13 @@
 
                   <div class="text-subtitle2 q-mb-md text-weight-medium">
                     <q-icon name="filter_list" class="q-mr-xs" />
-                    Filters
+                    {{ t(TRANSLATION_KEYS.SEARCH.FILTERS) }}
                   </div>
 
                   <div class="row q-mb-md">
                     <!-- Year Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
-                      <q-select v-model="filters.year" :options="yearFilterOptions" label="Year" outlined dense
+                      <q-select v-model="filters.year" :options="yearFilterOptions" :label="t('forms.year') || 'Year'" outlined dense
                         clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
@@ -144,7 +142,7 @@
 
                     <!-- Month Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
-                      <q-select v-model="filters.month" :options="monthOptions" label="Month" outlined dense clearable
+                      <q-select v-model="filters.month" :options="monthOptions" :label="t('forms.month') || 'Month'" outlined dense clearable
                         emit-value map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="calendar_month" />
@@ -154,7 +152,7 @@
 
                     <!-- Page Count Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
-                      <q-select v-model="filters.pageCount" :options="pageCountOptions" label="Page Count" outlined
+                      <q-select v-model="filters.pageCount" :options="pageCountOptions" :label="t(TRANSLATION_KEYS.NEWSLETTER.PAGE_COUNT)" outlined
                         dense clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
@@ -165,8 +163,8 @@
 
                     <!-- Featured Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
-                      <q-toggle v-model="filters.featured" label="Featured Only" color="primary"
-                        @update:model-value="onFilterChange" aria-label="Show only featured newsletters" />
+                      <q-toggle v-model="filters.featured" :label="t('newsletter.featuredOnly') || 'Featured Only'" color="primary"
+                        @update:model-value="onFilterChange" :aria-label="t('newsletter.featuredOnlyAriaLabel') || 'Show only featured newsletters'" />
                     </div>
                   </div>
 

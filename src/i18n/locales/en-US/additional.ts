@@ -73,7 +73,8 @@ export const success = {
   uploaded: 'Successfully uploaded',
   sent: 'Successfully sent',
   published: 'Successfully published',
-  approved: 'Successfully approved'
+  approved: 'Successfully approved',
+  contentSubmitted: 'Content Submitted Successfully!'
 };
 
 // Settings and Preferences
