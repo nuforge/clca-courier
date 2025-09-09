@@ -1,50 +1,91 @@
 # CLCA Courier - AI Coding Instructions
 
-## 🚨 COMPREHENSIVE REFACTORING COMPLETED - PRODUCTION READY
+## 🚨 COMPREHENSIVE DEVELOPMENT COMPLETED - PRODUCTION READY
 
 ### ✅ ALL PHASES COMPLETE (September 8, 2025)
 
-**PRODUCTION-READY CODEBASE ACHIEVED - COMPREHENSIVE REFACTORING COMPLETE**
+**PRODUCTION-READY CODEBASE ACHIEVED - COMPREHENSIVE REFACTORING & COMMUNITY FEATURES COMPLETE**
 
-#### Phase 1-5: Foundation Architecture ✅
+#### Foundation Architecture ✅ (Phases 1-5)
 
-- ✅ **Type Chaos Eliminated**: LightweightNewsletter interface completely removed
-- ✅ **UnifiedNewsletter Architecture**: Single source of truth implemented across entire codebase
-- ✅ **Property Mapping Fixed**: All url→downloadUrl, date→publicationDate, pages→pageCount conversions completed
-- ✅ **Build System Stabilized**: 0 TypeScript compilation errors, production build successful
+- ✅ **Type System Unified**: Single `UnifiedNewsletter` interface across entire codebase
+- ✅ **Property Standardization**: All `downloadUrl`, `publicationDate`, `pageCount` conversions completed
+- ✅ **Build System Stabilized**: 0 TypeScript compilation errors, clean production builds
 - ✅ **Component Integration**: All Vue components updated to use unified types
-- ✅ **Service Layer Unified**: All newsletter services now return consistent UnifiedNewsletter interface
+- ✅ **Service Layer Unified**: Consistent Firebase-first service architecture
 
-#### Phase 6-7: Code Quality & Cleanup ✅
+#### Code Quality & Professional Standards ✅ (Phases 6-8)
 
-- ✅ **Professional Logging**: Centralized logger utility (src/utils/logger.ts) replacing all console statements
-- ✅ **Debug Code Cleanup**: 25+ console statements replaced with categorized logging (debug/info/warn/error/success/pdf)
-- ✅ **Unused Service Removal**: 3 obsolete services/composables eliminated (deepseek-publication-hub-service.ts, usePublicationHub.ts, file-metadata-storage.ts)
-- ✅ **Bundle Optimization**: Reduced bundle size and improved production code quality
-- ✅ **Error Handling**: Consistent error patterns with professional logging across all services
+- ✅ **Professional Logging**: Centralized logger utility (`src/utils/logger.ts`) replacing all console statements
+- ✅ **Debug Code Cleanup**: 25+ console statements replaced with categorized logging
+- ✅ **Service Optimization**: Unused services removed for optimal bundle size
+- ✅ **File Consolidation**: Duplicate pages merged, comprehensive functionality preserved
+- ✅ **TypeScript Compliance**: 41 linting errors resolved - 0 compilation errors, 0 warnings
 
-#### Phase 9: UI/UX Improvements & Filter Enhancements ✅
+#### UI/UX Improvements & Filter Enhancements ✅ (Phase 9)
 
-- ✅ **Date Sorting Fixed**: Custom sort function implemented for chronological ordering vs string sorting
-- ✅ **Word Count Calculations**: Fixed to use full extracted text content instead of truncated searchableText
-- ✅ **WorkflowToolbar Expandable**: Implemented smooth expand/collapse with persistent state management
-- ✅ **Bulk Processing Removal**: Removed "PROCESS ALL NEWSLETTERS" section to reduce complexity
-- ✅ **Month-Based Filtering**: Replaced season dropdown with month dropdown for more precise filtering
-- ✅ **Featured Filter Logic**: Fixed boolean filtering to properly handle false/null/undefined states
-- ✅ **Google OAuth Avatar Caching**: Implemented data URL caching to prevent 429 rate limit errors
-- ✅ **ESLint Error Resolution**: Fixed floating promise errors and TypeScript compilation issues
+- ✅ **Date Sorting Fixed**: Custom chronological sort function implementation
+- ✅ **Word Count Calculations**: Fixed to use full extracted text content
+- ✅ **WorkflowToolbar Expandable**: Smooth expand/collapse with persistent state
+- ✅ **Month-Based Filtering**: Precise month dropdown replacing season filtering
+- ✅ **Boolean Filter Logic**: Proper handling of false/null/undefined states
+- ✅ **Avatar Caching**: Data URL caching preventing 429 rate limit errors
+- ✅ **ESLint Compliance**: All floating promise errors resolved
 
-#### Phase 10: Content Management System Implementation ✅
+#### Content Management System ✅ (Phase 10)
 
-- ✅ **Content Submission Workflow**: Complete Firebase-powered content submission system at `/contribute/submit`
-- ✅ **Admin Content Management**: Comprehensive content review interface at `/admin/content`
-- ✅ **Content Status Workflow**: Pending → Approved → Published progression with manual review
-- ✅ **Public Content Access**: Published content visible at `/news` without authentication required
-- ✅ **Firestore Security Rules**: Proper permissions for public reading of published content
+- ✅ **Content Submission Workflow**: Complete Firebase-powered system at `/contribute/submit`
+- ✅ **Admin Content Management**: Comprehensive review interface at `/admin/content`
+- ✅ **Content Status Workflow**: Pending → Approved → Published progression
+- ✅ **Public Content Access**: Published content visible at `/news` without authentication
 - ✅ **Real-time Updates**: Live content updates via Firebase subscriptions
-- ✅ **Authentication Integration**: Any authenticated user has admin access (simplified role model)
+- ✅ **Security Rules**: Proper Firestore permissions for public/admin access
 
-**PRODUCTION STATUS**: Complete content management workflow operational with public news display
+#### Community Content Unification ✅ (Latest Enhancement)
+
+- ✅ **Unified Community Hub**: Single interface at `/community` for all content types
+- ✅ **Multi-Content Support**: News, Events, Classifieds, Announcements
+- ✅ **Advanced Filtering**: Search, filter, sort across all content types
+- ✅ **View Mode Toggles**: List/card views with responsive design
+- ✅ **Featured Content System**: Highlighting for important community content
+
+**PRODUCTION STATUS**: Comprehensive community content management platform with advanced features operational
+
+### CURRENT ARCHITECTURE OVERVIEW (September 8, 2025)
+
+#### Framework Stack (Production-Ready)
+
+- **Frontend**: Vue 3 + Quasar Framework v2.18.2 (Vite v6.3.5)
+- **Backend**: Firebase (Authentication, Firestore, Storage, Functions)
+- **State Management**: Pinia stores with composition API
+- **PDF Handling**: PDFTron WebViewer + PDF.js dual viewer support
+- **Storage Strategy**: Firebase Storage with future-ready architecture
+
+#### Current Branch Status
+
+- **Active Branch**: `refactor` (production-ready)
+- **Build Status**: ✅ Clean TypeScript compilation, 0 errors
+- **Code Quality**: ✅ 0 ESLint warnings, professional logging
+- **Last Update**: Navigation improvements and layout enhancements
+
+#### Key Pages (22 Production Pages)
+
+- **`CommunityContentPage.vue`**: ✅ **UNIFIED HUB** - Single interface for all community content (news, events, classifieds, announcements)
+- **`FirebaseNewsletterArchivePage.vue`**: Main newsletter archive with Firebase-first architecture
+- **`ContentManagementPage.vue`**: ✅ **ADMIN INTERFACE** - Comprehensive content review and publishing
+- **`NewsletterManagementPage.vue`**: ✅ **CONSOLIDATED** newsletter content management
+- **`SubmitContentPage.vue`**: Content submission workflow with Firebase integration
+- **`AboutContactPage.vue`**: ✅ **CONSOLIDATED** about and contact information
+- **`SettingsPage.vue`**: User settings (replaces old account page)
+- **`AdminPage.vue`**: Administrative dashboard and controls
+
+#### Service Architecture (12 Services)
+
+- **Firebase Services**: `firebase-auth.service.ts`, `firebase-firestore.service.ts`, `firebase-storage.service.ts`
+- **Content Management**: `content-submission.service.ts` for workflow operations
+- **Newsletter Services**: `firebase-newsletter.service.ts`, `lightweight-newsletter-service.ts`
+- **Supporting Services**: Date management, external image handling, storage abstraction
+- **Logger Utility**: ✅ **PRODUCTION-READY** centralized logging (`src/utils/logger.ts`)
 
 ### CONTENT MANAGEMENT ARCHITECTURE
 
@@ -52,7 +93,7 @@
 
 **User Roles & Access Control:**
 
-- **Public Users**: Can view published content at `/news` (no auth required)
+- **Public Users**: Can view published content at `/community` and `/news` (no auth required)
 - **Authenticated Users**: Full admin access to content management (simplified role model)
 - **No Role-Based Restrictions**: All authenticated users can approve/reject/publish content
 
@@ -60,7 +101,7 @@
 
 1. **Submission**: Users submit content via `/contribute/submit` → Status: `pending`
 2. **Review**: Admins review content via `/admin/content` → Status: `approved`
-3. **Publication**: Admins publish content → Status: `published` → Visible on `/news`
+3. **Publication**: Admins publish content → Status: `published` → Visible on `/community` and `/news`
 
 **Technical Implementation:**
 
@@ -68,6 +109,13 @@
 - **Admin Content Query**: `getApprovedContent()` - Status in ['approved','published'], auth required
 - **Firestore Rules**: Public read access for published content, authenticated access for all content
 - **Real-time Subscriptions**: Separate subscriptions for public vs admin interfaces
+
+**Content Types Supported:**
+
+- **News Articles**: Community news and announcements
+- **Events**: Community events and activities
+- **Classifieds**: For sale, services, wanted, and free items
+- **Announcements**: Official community announcements
 
 ### ABSOLUTE PROHIBITIONS - IMMEDIATE REJECTION
 
