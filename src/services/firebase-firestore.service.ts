@@ -121,6 +121,23 @@ export interface UserContent {
   reviewNotes?: string;
   scheduledPublishDate?: string;
   tags: string[];
+
+  // Calendar and event-specific fields
+  onCalendar?: boolean; // Whether this content should appear on the calendar
+  eventDate?: string; // ISO 8601 date string for event start
+  eventEndDate?: string; // ISO 8601 date string for event end (optional)
+  eventTime?: string; // Time in HH:MM format
+  eventEndTime?: string; // End time in HH:MM format (optional)
+  eventLocation?: string; // Event location/venue
+  eventRecurrence?: {
+    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval?: number; // Every N days/weeks/months/years
+    endDate?: string; // When recurrence ends
+    daysOfWeek?: number[]; // For weekly: 0=Sunday, 1=Monday, etc.
+    dayOfMonth?: number; // For monthly: day of month
+  };
+  allDay?: boolean; // Whether this is an all-day event
+
   attachments: Array<{
     filename: string;
     storageRef: string;

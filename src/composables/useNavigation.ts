@@ -41,6 +41,11 @@ export const useNavigation = () => {
       link: '/community',
     },
     {
+      title: 'Community Calendar',
+      icon: 'mdi-calendar-month',
+      link: '/calendar',
+    },
+    {
       title: 'Issue Archive',
       icon: 'mdi-bookshelf',
       link: '/archive',

@@ -219,6 +219,19 @@ export interface EventMetadata {
   contactInfo?: string;
   maxAttendees?: number;
   currentAttendees?: number;
+
+  // Calendar integration fields
+  onCalendar?: boolean; // Whether this event should appear on the calendar
+  eventTime?: string; // Time in HH:MM format
+  eventEndTime?: string; // End time in HH:MM format
+  allDay?: boolean; // Whether this is an all-day event
+  eventRecurrence?: {
+    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval?: number; // Every N days/weeks/months/years
+    endDate?: string; // When recurrence ends (ISO 8601)
+    daysOfWeek?: number[]; // For weekly: 0=Sunday, 1=Monday, etc.
+    dayOfMonth?: number; // For monthly: day of month
+  };
 }
 
 /**
@@ -291,4 +304,20 @@ export interface ContentSubmissionData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: Record<string, any>;
   attachments: ContentAttachment[];
+
+  // Calendar integration for events
+  onCalendar?: boolean;
+  eventDate?: string; // ISO 8601 date string
+  eventEndDate?: string; // ISO 8601 date string
+  eventTime?: string; // HH:MM format
+  eventEndTime?: string; // HH:MM format
+  eventLocation?: string;
+  allDay?: boolean;
+  eventRecurrence?: {
+    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval?: number;
+    endDate?: string;
+    daysOfWeek?: number[];
+    dayOfMonth?: number;
+  };
 }
