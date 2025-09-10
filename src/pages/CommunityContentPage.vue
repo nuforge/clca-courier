@@ -67,33 +67,16 @@ const categoryOptions = computed(() => {
 
   // Add each category with its proper icon and color from theme system
   allCategories.value.forEach(cat => {
-    // Determine content type for icon lookup
-    let contentType = 'article'; // default
-    let themeCategory = cat;
+    // Use the SAME LOGIC as the working dialog - no complex mapping
+    let categoryConfig;
 
-    if (cat === 'announcement') {
-      contentType = 'announcement';
-      themeCategory = 'community'; // announcement.community in theme
-    } else if (cat === 'event') {
-      contentType = 'event';
-      themeCategory = 'meeting'; // default event mapping
-    } else if (['for-sale', 'services', 'wanted', 'free', 'housing'].includes(cat)) {
-      contentType = 'classified';
-      // Map kebab-case to theme camelCase
-      const classifiedMap: Record<string, string> = {
-        'for-sale': 'forSale',
-        'services': 'services',
-        'wanted': 'wanted',
-        'free': 'free',
-        'housing': 'housing'
-      };
-      themeCategory = classifiedMap[cat] || 'forSale';
-    } else if (cat === 'news') {
-      contentType = 'article';
-      themeCategory = 'news'; // article.news
+    // Determine if this is a classified category vs other content type
+    if (['for-sale', 'services', 'wanted', 'free', 'housing'].includes(cat)) {
+      categoryConfig = getCategoryIcon('classified', cat);
+    } else {
+      // Let theme system handle content type mapping from category directly
+      categoryConfig = getContentIcon(cat);
     }
-
-    const categoryConfig = getCategoryIcon(contentType, themeCategory);
 
     options.push({
       label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' '),
