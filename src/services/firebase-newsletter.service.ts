@@ -871,12 +871,6 @@ class FirebaseNewsletterService {
         newsletter,
       );
 
-      // Debug logging
-      console.log(`🔧 Enhancing ${newsletter.filename}:`);
-      console.log('  📝 Enhanced data:', enhancedDate);
-      console.log('  📅 Month:', enhancedDate.month);
-      console.log('  🌸 Season:', enhancedDate.season);
-
       // Update the newsletter with enhanced date fields
       const updateFields: Record<string, unknown> = {};
 
@@ -902,7 +896,10 @@ class FirebaseNewsletterService {
         updateFields.issueNumber = enhancedDate.issueNumber;
       }
 
-      console.log('  🔄 Updating Firebase with fields:', updateFields);
+      logger.debug('Updating newsletter metadata', {
+        filename: newsletter.filename,
+        fields: updateFields
+      });
 
       await firestoreService.updateNewsletterMetadata(
         newsletterId,
