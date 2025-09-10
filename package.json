@@ -18,6 +18,7 @@
     "build:prod": "cross-env NODE_OPTIONS=\"--max-old-space-size=16384\" quasar build",
     "deploy": "quasar build && firebase deploy",
     "deploy:hosting": "quasar build && firebase deploy --only hosting",
+    "setup-deployment": "pwsh ./scripts/setup-deployment.ps1",
     "postinstall": "quasar prepare",
     "extract-metadata": "node scripts/extract-pdf-metadata.js",
     "extract-metadata-simple": "node scripts/extract-metadata-simple.js",

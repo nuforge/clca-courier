@@ -40,6 +40,26 @@ Built with- **[🚀 Deployment Guide](docs/deployment.md)** - GitHub Pages deplo
 - 🎨 **Professional UI** - Dark/light theme support with Quasar Material Design
 - 🌐 **Internationalization** - Full bilingual support (English/Spanish) with Vue i18n
 
+## 🚀 Quick Deployment to GitHub Pages
+
+**Ready for immediate deployment!** This project is pre-configured for GitHub Pages.
+
+### One-Command Setup
+```bash
+npm run setup-deployment
+```
+
+### Manual Setup (3 steps)
+1. **Fork this repository** to your GitHub account
+2. **Add Firebase secrets** in repository Settings → Secrets and variables → Actions
+3. **Enable GitHub Pages** in Settings → Pages → Source: GitHub Actions
+
+**Your site will be live at:** `https://yourusername.github.io/clca-courier`
+
+📋 **[Complete Deployment Guide](DEPLOYMENT_CHECKLIST.md)** | 🔧 **[Detailed Setup](docs/deployment.md)**
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
