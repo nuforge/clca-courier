@@ -492,28 +492,12 @@ watch(() => monthName.value, (newMonthName) => {
   logger.debug('🗓️ Month name changed:', newMonthName);
 });
 
-// Debug calendar state and events on mount
+// Initialize calendar to today on mount
 onMounted(() => {
-  logger.debug('🗓️ Calendar page mounted with state:', {
-    currentMonth: calendarState.value.currentMonth,
-    currentYear: calendarState.value.currentYear,
-    viewMode: calendarState.value.viewMode,
-    eventsCount: events.value.length
-  });
+  // Set calendar to today's date
+  goToToday();
 
-  logger.debug('🗓️ EventsByDate structure:', eventsByDate.value);
-  logger.debug('🗓️ CalendarEvents array:', calendarEvents.value);
-  logger.debug('🗓️ monthName value:', monthName.value);
-  logger.debug('🗓️ All events:', events.value);
-
-  // Manual debug of calendar header
-  logger.debug('🗓️ Calendar header debug:', {
-    monthName: monthName.value,
-    currentYear: calendarState.value.currentYear,
-    currentMonth: calendarState.value.currentMonth,
-    selectedDate: calendarState.value.selectedDate,
-    viewMode: calendarState.value.viewMode
-  });
+  logger.debug('🗓️ Calendar page mounted and set to today');
 });
 </script>
 
