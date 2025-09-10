@@ -80,6 +80,63 @@
         We recommend hosting images on Google Photos or Google Drive to keep costs low and maintain quality.
       </p>
 
+      <!-- Canva Integration -->
+      <div class="canva-integration q-mb-lg">
+        <q-card flat bordered class="q-pa-md">
+          <div class="row items-center q-col-gutter-md">
+            <div class="col-12 col-md-8">
+              <div class="text-subtitle2 q-mb-xs">
+                {{ $t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA) }}
+              </div>
+              <p class="text-caption text-grey-7 q-ma-none">
+                Create professional designs for your content using Canva's templates and tools.
+              </p>
+              <div v-if="formData.canvaDesign" class="q-mt-sm">
+                <q-chip
+                  :color="getCanvaStatusColor(formData.canvaDesign.status)"
+                  text-color="white"
+                  :icon="getCanvaStatusIcon(formData.canvaDesign.status)"
+                  size="sm"
+                >
+                  {{ $t(`canva.${formData.canvaDesign.status}`) }}
+                </q-chip>
+                <q-btn
+                  v-if="formData.canvaDesign.editUrl"
+                  flat
+                  dense
+                  size="sm"
+                  color="primary"
+                  :icon="UI_ICONS.edit"
+                  :label="$t(TRANSLATION_KEYS.CANVA.EDIT_IN_CANVA)"
+                  @click="openCanvaDesign(formData.canvaDesign.editUrl)"
+                  class="q-ml-sm"
+                />
+              </div>
+            </div>
+            <div class="col-12 col-md-4 text-right">
+              <q-btn
+                v-if="!formData.canvaDesign"
+                color="primary"
+                :icon="UI_ICONS.create"
+                :label="$t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA)"
+                :loading="canvaLoading"
+                :disable="!formData.title"
+                @click="createCanvaDesign"
+                class="full-width-mobile"
+              />
+              <q-btn
+                v-else-if="formData.canvaDesign.status === 'exported'"
+                color="positive"
+                :icon="UI_ICONS.download"
+                :label="$t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN)"
+                @click="downloadCanvaDesign"
+                class="full-width-mobile"
+              />
+            </div>
+          </div>
+        </q-card>
+      </div>
+
       <ExternalImageUpload v-model="formData.attachments" :max-attachments="10" />
     </div>
 
@@ -121,13 +178,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
 import { contentSubmissionService } from '../../services/content-submission.service';
+import { useCanvaAuth } from '../../composables/useCanvaAuth';
+import { canvaApiService } from '../../services/canva-api.service';
 import type {
   ContentType,
   ContentSubmissionData,
   BaseContentItem,
   EventMetadata,
 } from '../../types/core/content.types';
+import type { CanvaDesign } from '../../services/canva/types';
+import { TRANSLATION_KEYS } from '../../i18n/utils/translation-keys';
+import { UI_ICONS } from '../../constants/ui-icons';
 
 // Import components (these will be created next)
 import RichTextEditor from './RichTextEditor.vue';
@@ -159,9 +222,11 @@ const emit = defineEmits<{
 }>();
 
 const $q = useQuasar();
+const { t } = useI18n();
+const { initiateOAuth, isAuthenticated: isCanvaAuthenticated } = useCanvaAuth();
 
 // Form state
-const formData = ref<ContentSubmissionData>({
+const formData = ref<ContentSubmissionData & { canvaDesign?: CanvaDesign }>({
   type: 'article',
   title: '',
   content: '',
@@ -176,6 +241,7 @@ const submitting = ref(false);
 const savingDraft = ref(false);
 const showPreview = ref(false);
 const showTargetIssue = ref(true);
+const canvaLoading = ref(false);
 
 // Update form metadata and handle event-specific calendar fields
 function updateFormMetadata(metadata: Record<string, unknown>) {
@@ -525,6 +591,22 @@ async function onSubmit() {
     const contentId = await contentSubmissionService.submitContent(formData.value);
     console.log('✅ Content submitted successfully! ID:', contentId);
 
+    // If there's a Canva design, attach it to the submitted content
+    if (formData.value.canvaDesign) {
+      try {
+        console.log('🎨 Attaching Canva design to content...');
+        await contentSubmissionService.attachCanvaDesign(contentId, formData.value.canvaDesign);
+        console.log('✅ Canva design attached successfully!');
+      } catch (canvaError) {
+        console.warn('⚠️ Failed to attach Canva design, but content was submitted:', canvaError);
+        $q.notify({
+          type: 'warning',
+          message: 'Content submitted successfully, but failed to attach Canva design',
+          timeout: 3000,
+        });
+      }
+    }
+
     $q.notify({
       type: 'positive',
       message: `Content submitted successfully! ID: ${contentId}. Check Firebase Console > Firestore > userContent collection.`,
@@ -613,6 +695,129 @@ function onReset() {
   };
   initializeNewContent();
 }
+
+// Canva Integration Functions
+function getCanvaStatusColor(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'orange';
+    case 'pending_export':
+      return 'blue';
+    case 'exported':
+      return 'positive';
+    case 'failed':
+      return 'negative';
+    default:
+      return 'grey';
+  }
+}
+
+function getCanvaStatusIcon(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'mdi-pencil-outline';
+    case 'pending_export':
+      return 'mdi-export';
+    case 'exported':
+      return 'mdi-check-circle';
+    case 'failed':
+      return 'mdi-alert-circle';
+    default:
+      return 'mdi-help-circle';
+  }
+}
+
+function openCanvaDesign(editUrl: string): void {
+  window.open(editUrl, '_blank', 'noopener,noreferrer');
+}
+
+async function createCanvaDesign(): Promise<void> {
+  if (!formData.value.title) {
+    $q.notify({
+      type: 'warning',
+      message: t('canva.authRequired'),
+    });
+    return;
+  }
+
+  // Check if user is authenticated with Canva
+  if (!isCanvaAuthenticated.value) {
+    try {
+      await initiateOAuth();
+      return; // OAuth will redirect, function will be called again after callback
+    } catch {
+      $q.notify({
+        type: 'negative',
+        message: t('canva.authFailed'),
+      });
+      return;
+    }
+  }
+
+  canvaLoading.value = true;
+
+  try {
+    $q.notify({
+      type: 'info',
+      message: t('canva.connectingToCanva'),
+      timeout: 1000,
+    });
+
+    // TODO: Replace with actual template ID from environment or configuration
+    const templateId = 'DAGBjl-c4is'; // Placeholder template ID
+
+    const design = await canvaApiService.createDesignFromTemplate(templateId);
+
+    formData.value.canvaDesign = design;
+
+    $q.notify({
+      type: 'positive',
+      message: t('canva.designCreated'),
+      timeout: 3000,
+      actions: [
+        {
+          label: t('canva.openDesign'),
+          color: 'white',
+          handler: () => openCanvaDesign(design.editUrl),
+        },
+      ],
+    });
+
+  } catch (canvaApiError) {
+    $q.notify({
+      type: 'negative',
+      message: canvaApiError instanceof Error ? canvaApiError.message : t('canva.connectionError'),
+    });
+  } finally {
+    canvaLoading.value = false;
+  }
+}async function downloadCanvaDesign(): Promise<void> {
+  if (!formData.value.canvaDesign) return;
+
+  try {
+    const exportResult = await canvaApiService.exportDesign(formData.value.canvaDesign.id);
+
+    if (exportResult.exportUrl) {
+      // Open download URL in new tab
+      window.open(exportResult.exportUrl, '_blank', 'noopener,noreferrer');
+
+      $q.notify({
+        type: 'positive',
+        message: t('canva.exportComplete'),
+      });
+    } else {
+      $q.notify({
+        type: 'info',
+        message: t('canva.exportPending'),
+      });
+    }
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: t('canva.exportFailed'),
+    });
+  }
+}
 </script>
 
 <style scoped>
@@ -624,5 +829,37 @@ function onReset() {
 h6 {
   color: var(--q-primary);
   font-weight: 600;
+}
+
+.canva-integration {
+  border-radius: 8px;
+}
+
+.canva-integration .q-card {
+  border: 2px dashed #e0e0e0;
+  transition: border-color 0.3s ease;
+}
+
+.canva-integration .q-card:hover {
+  border-color: var(--q-primary);
+}
+
+.full-width-mobile {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .full-width-mobile {
+    width: auto;
+  }
+}
+
+/* Dark theme support */
+.body--dark .canva-integration .q-card {
+  border-color: #424242;
+}
+
+.body--dark .canva-integration .q-card:hover {
+  border-color: var(--q-primary);
 }
 </style>
