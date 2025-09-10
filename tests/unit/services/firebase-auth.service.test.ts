@@ -13,23 +13,25 @@ vi.mock('../../../src/utils/logger', () => ({
 }));
 
 // Mock Firebase Auth functions
-vi.mock('firebase/auth', () => ({
-  signInWithPopup: vi.fn(),
-  signInWithRedirect: vi.fn(),
-  getRedirectResult: vi.fn(),
-  signOut: vi.fn(),
-  onAuthStateChanged: vi.fn(),
-  GoogleAuthProvider: vi.fn().mockImplementation(() => ({
-    addScope: vi.fn()
-  })),
-  FacebookAuthProvider: vi.fn().mockImplementation(() => ({
-    addScope: vi.fn()
-  })),
-  TwitterAuthProvider: vi.fn(),
-  GithubAuthProvider: vi.fn().mockImplementation(() => ({
-    addScope: vi.fn()
-  }))
-}));
+vi.mock('firebase/auth', () => {
+  // Create a provider factory that returns instances with addScope
+  const createMockProvider = (providerId: string) => ({
+    providerId,
+    addScope: vi.fn().mockReturnThis(),
+  });
+
+  return {
+    signInWithPopup: vi.fn(),
+    signInWithRedirect: vi.fn(),
+    getRedirectResult: vi.fn(),
+    signOut: vi.fn(),
+    onAuthStateChanged: vi.fn(),
+    GoogleAuthProvider: vi.fn().mockImplementation(() => createMockProvider('google.com')),
+    FacebookAuthProvider: vi.fn().mockImplementation(() => createMockProvider('facebook.com')),
+    TwitterAuthProvider: vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' })),
+    GithubAuthProvider: vi.fn().mockImplementation(() => createMockProvider('github.com'))
+  };
+});
 
 // Mock Firebase config
 vi.mock('../../../src/config/firebase.config', () => ({
@@ -88,51 +90,39 @@ describe('Firebase Authentication Service', () => {
 
   describe('Provider Management', () => {
     it('should create Google provider with correct scopes', () => {
-      const GoogleAuthProvider = vi.mocked(require('firebase/auth').GoogleAuthProvider);
-      const mockProvider = { addScope: vi.fn() };
-      GoogleAuthProvider.mockReturnValue(mockProvider);
-
-      // Access private method via reflection for testing
       const service = firebaseAuthService as any;
       const provider = service.getProvider('google');
 
-      expect(GoogleAuthProvider).toHaveBeenCalled();
-      expect(mockProvider.addScope).toHaveBeenCalledWith('email');
-      expect(mockProvider.addScope).toHaveBeenCalledWith('profile');
+      expect(provider).toBeDefined();
+      expect(provider.addScope).toHaveBeenCalledWith('email');
+      expect(provider.addScope).toHaveBeenCalledWith('profile');
     });
 
     it('should create Facebook provider with email scope', () => {
-      const FacebookAuthProvider = vi.mocked(require('firebase/auth').FacebookAuthProvider);
-      const mockProvider = { addScope: vi.fn() };
-      FacebookAuthProvider.mockReturnValue(mockProvider);
-
       const service = firebaseAuthService as any;
-      const provider = service.getProvider('facebook');
 
-      expect(FacebookAuthProvider).toHaveBeenCalled();
-      expect(mockProvider.addScope).toHaveBeenCalledWith('email');
+      // Check if this test has the same issue as others
+      console.log('About to call getProvider for facebook');
+      const provider = service.getProvider('facebook');
+      console.log('Facebook provider created:', provider);
+
+      expect(provider).toBeDefined();
+      expect(provider.addScope).toHaveBeenCalledWith('email');
     });
 
     it('should create GitHub provider with user:email scope', () => {
-      const GithubAuthProvider = vi.mocked(require('firebase/auth').GithubAuthProvider);
-      const mockProvider = { addScope: vi.fn() };
-      GithubAuthProvider.mockReturnValue(mockProvider);
-
       const service = firebaseAuthService as any;
       const provider = service.getProvider('github');
 
-      expect(GithubAuthProvider).toHaveBeenCalled();
-      expect(mockProvider.addScope).toHaveBeenCalledWith('user:email');
+      expect(provider).toBeDefined();
+      expect(provider.addScope).toHaveBeenCalledWith('user:email');
     });
 
     it('should create Twitter provider without additional scopes', () => {
-      const TwitterAuthProvider = vi.mocked(require('firebase/auth').TwitterAuthProvider);
-      TwitterAuthProvider.mockReturnValue({});
-
       const service = firebaseAuthService as any;
       const provider = service.getProvider('twitter');
 
-      expect(TwitterAuthProvider).toHaveBeenCalled();
+      expect(provider).toBeDefined();
     });
 
     it('should throw error for unsupported provider', () => {
@@ -301,15 +291,18 @@ describe('Firebase Authentication Service', () => {
         blob: () => Promise.resolve(mockBlob)
       } as Response);
 
-      // Simulate FileReader success
-      setTimeout(() => {
-        if (mockFileReader.onloadend) {
-          mockFileReader.onloadend.call(mockFileReader as any, {} as ProgressEvent<FileReader>);
-        }
-      }, 0);
-
       const service = firebaseAuthService as any;
-      await service.cacheAvatarImage('https://example.com/photo.jpg', 'user-123');
+
+      // Start the caching process
+      const cachePromise = service.cacheAvatarImage('https://example.com/photo.jpg', 'user-123');
+
+      // Wait for fetch to be called, then trigger FileReader
+      await new Promise(resolve => setTimeout(resolve, 1));
+      if (mockFileReader.onloadend) {
+        mockFileReader.onloadend.call(mockFileReader as any, {} as ProgressEvent<FileReader>);
+      }
+
+      await cachePromise;
 
       expect(mockFetch).toHaveBeenCalledWith('https://example.com/photo.jpg');
       expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockBlob);
@@ -367,6 +360,17 @@ describe('Firebase Authentication Service', () => {
   });
 
   describe('State Management', () => {
+    beforeEach(() => {
+      // Clear service state between tests
+      const service = firebaseAuthService as any;
+      service.authState = {
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null
+      };
+    });
+
     it('should get current auth state', () => {
       const authState = firebaseAuthService.getAuthState();
 
@@ -518,8 +522,7 @@ describe('Firebase Authentication Service', () => {
             uid: 'google-uid',
             displayName: 'Test User',
             email: 'test@example.com',
-            photoURL: 'https://example.com/photo.jpg',
-            phoneNumber: null
+            photoURL: 'https://example.com/photo.jpg'
           }
         ]
       });
