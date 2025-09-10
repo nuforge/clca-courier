@@ -1,63 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
-import type { NewsItem } from '../types/core/content.types';
+import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
 import { formatDate } from '../utils/date-formatter';
 import { useSiteTheme } from '../composables/useSiteTheme';
 
-// Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
+// Following copilot instructions: Unified types, proper TypeScript, centralized logging
 interface Props {
-  item: NewsItem;
+  item: NewsItem | ClassifiedAd;
   variant?: 'card' | 'list' | 'featured';
   showActions?: boolean;
 }
 
 interface Emits {
-  (e: 'click', item: NewsItem): void;
-  (e: 'edit', item: NewsItem): void;
-  (e: 'delete', item: NewsItem): void;
-}
-
-const { getCategoryIcon } = useSiteTheme();
-
-// Helper function for formatting category names
-const formatCategoryName = (category: string): string => {
-  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
-};
-
-// Get news category icon
-const getNewsCategoryIcon = (category: string) => {
-  // Map categories to their parent content types based on theme configuration
-  const categoryToContentType: Record<string, string> = {
-    // Event categories
-    'meeting': 'event',
-    'social': 'event',
-    'maintenance': 'event',
-
-    // Article categories
-    'news': 'article',
-    'community': 'article',
-    'recreation': 'article',
-
-    // Announcement categories
-    'announcement': 'announcement'
-  };
-
-  const contentType = categoryToContentType[category] || 'article';
-  return getCategoryIcon(contentType, category);
-};
-
-// Following copilot instructions: Unified Newsletter types, proper TypeScript, centralized logging
-interface Props {
-  item: NewsItem;
-  variant?: 'card' | 'list' | 'featured';
-  showActions?: boolean;
-}
-
-interface Emits {
-  (e: 'click', item: NewsItem): void;
-  (e: 'edit', item: NewsItem): void;
-  (e: 'delete', item: NewsItem): void;
+  (e: 'click', item: NewsItem | ClassifiedAd): void;
+  (e: 'edit', item: NewsItem | ClassifiedAd): void;
+  (e: 'delete', item: NewsItem | ClassifiedAd): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -68,8 +26,23 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const siteStore = useSiteStore();
+const { getCategoryIcon } = useSiteTheme();
 
-// Theme-aware classes - following copilot instructions: Theme awareness
+// Helper function for formatting category names
+const formatCategoryName = (category: string): string => {
+  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
+};
+
+// Type guards to determine content type
+function isNewsItem(item: NewsItem | ClassifiedAd): item is NewsItem {
+  return 'content' in item;
+}
+
+function isClassifiedAd(item: NewsItem | ClassifiedAd): item is ClassifiedAd {
+  return 'description' in item && 'contact' in item;
+}
+
+// Theme-aware classes
 const cardClasses = computed(() => {
   const baseClasses = 'cursor-pointer transition-all duration-200 hover:shadow-lg';
   const themeClasses = siteStore.isDarkMode
@@ -83,15 +56,57 @@ const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 );
 
-// Category icon and color configuration - using centralized content icons system (reactive)
-const getCategoryConfig = computed(() => getNewsCategoryIcon(props.item.category));
+// Get category configuration using the established theme system
+const getCategoryConfig = computed(() => {
+  // Use the appropriate content type based on the actual content
+  if (isNewsItem(props.item)) {
+    // For news items, determine content type from category
+    const contentTypeMap: Record<string, string> = {
+      'news': 'article',
+      'announcement': 'announcement',
+      'event': 'event'
+    };
+    const contentType = contentTypeMap[props.item.category] || 'article';
+    return getCategoryIcon(contentType, props.item.category);
+  } else {
+    // For classified ads, always use 'classified' content type
+    return getCategoryIcon('classified', props.item.category);
+  }
+});
 
 // Category display name - using centralized formatting
 const categoryDisplayName = computed(() =>
   formatCategoryName(props.item.category)
 );
 
-// Event handlers - following copilot instructions: Proper TypeScript typing
+// Get the appropriate date field
+const itemDate = computed(() => {
+  if (isNewsItem(props.item)) {
+    return props.item.date;
+  } else {
+    return props.item.datePosted;
+  }
+});
+
+// Get the appropriate content field
+const itemContent = computed(() => {
+  if (isNewsItem(props.item)) {
+    return props.item.summary;
+  } else {
+    return props.item.description;
+  }
+});
+
+// Get author/contact info
+const authorInfo = computed(() => {
+  if (isNewsItem(props.item)) {
+    return `By ${props.item.author}`;
+  } else {
+    return `Contact: ${props.item.contact.name}`;
+  }
+});
+
+// Event handlers
 function handleClick(): void {
   emit('click', props.item);
 }
@@ -120,11 +135,30 @@ function handleDelete(): void {
       </div>
       <div class="text-h6 q-mb-sm line-clamp-2">{{ item.title }}</div>
       <div class="text-body2 q-mb-md line-clamp-3" :class="greyTextClass">
-        {{ item.summary }}
+        {{ itemContent }}
       </div>
+
+      <!-- Price for classified ads -->
+      <div v-if="isClassifiedAd(item) && item.price" class="row items-center q-mb-sm">
+        <div class="col">
+          <div class="text-h6 text-green">{{ item.price }}</div>
+        </div>
+        <div class="col-auto">
+          <div class="text-caption" :class="greyTextClass">
+            {{ formatDate(itemDate) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Date only for news items or classified without price -->
+      <div v-else class="text-caption q-mb-sm" :class="greyTextClass">
+        {{ formatDate(itemDate) }}
+      </div>
+
       <div class="text-caption" :class="greyTextClass">
-        By {{ item.author }} • {{ formatDate(item.date) }}
+        {{ authorInfo }}
       </div>
+
       <q-badge v-if="item.featured" color="amber" text-color="black" class="q-mt-sm">
         <q-icon name="star" size="xs" class="q-mr-xs" />
         Featured
@@ -159,11 +193,30 @@ function handleDelete(): void {
           </div>
           <div class="text-h6 q-mb-sm">{{ item.title }}</div>
           <div class="text-body2 q-mb-md" :class="greyTextClass">
-            {{ item.summary }}
+            {{ itemContent }}
           </div>
+
+          <!-- Price for classified ads -->
+          <div v-if="isClassifiedAd(item) && item.price" class="row items-center q-mb-xs">
+            <div class="col">
+              <div class="text-weight-bold text-green">{{ item.price }}</div>
+            </div>
+            <div class="col-auto">
+              <div class="text-caption" :class="greyTextClass">
+                {{ formatDate(itemDate) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Date only for news items or classified without price -->
+          <div v-else class="text-caption q-mb-xs" :class="greyTextClass">
+            {{ formatDate(itemDate) }}
+          </div>
+
           <div class="text-caption" :class="greyTextClass">
-            By {{ item.author }} • {{ formatDate(item.date) }}
+            {{ authorInfo }}
           </div>
+
           <q-badge v-if="item.featured" color="amber" text-color="black" class="q-mt-sm">
             <q-icon name="star" size="xs" class="q-mr-xs" />
             Featured
@@ -196,14 +249,15 @@ function handleDelete(): void {
     <q-item-section>
       <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
       <q-item-label caption class="q-mt-xs">
-        {{ formatDate(item.date) }} • By {{ item.author }}
+        {{ formatDate(itemDate) }} • {{ authorInfo }}
+        <span v-if="isClassifiedAd(item) && item.price"> • {{ item.price }}</span>
         <q-badge v-if="item.featured" color="amber" text-color="black" class="q-ml-xs">
           <q-icon name="star" size="xs" class="q-mr-xs" />
           Featured
         </q-badge>
       </q-item-label>
       <q-item-label class="q-mt-sm text-body2">
-        {{ item.summary }}
+        {{ itemContent }}
       </q-item-label>
     </q-item-section>
 

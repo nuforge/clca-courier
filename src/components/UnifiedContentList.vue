@@ -2,12 +2,11 @@
 import { computed } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
-import NewsItemCard from './NewsItemCard.vue';
-import ClassifiedAdCard from './ClassifiedAdCard.vue';
+import ContentItemCard from './ContentItemCard.vue';
 
 // Following copilot instructions: Unified Newsletter types, proper TypeScript
 interface Props {
-  items: Array<(NewsItem | ClassifiedAd) & { contentType: 'news' | 'classifieds' }>;
+  items: Array<NewsItem | ClassifiedAd>;
   variant?: 'card' | 'list' | 'featured';
   showActions?: boolean;
   emptyMessage?: string;
@@ -47,15 +46,6 @@ const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 );
 
-// Type guards - following copilot instructions: Proper TypeScript typing
-function isNewsItem(item: NewsItem | ClassifiedAd): item is NewsItem {
-  return 'content' in item;
-}
-
-function isClassifiedAd(item: NewsItem | ClassifiedAd): item is ClassifiedAd {
-  return 'description' in item && 'contact' in item;
-}
-
 // Event handlers - following copilot instructions: Proper TypeScript typing
 function handleItemClick(item: NewsItem | ClassifiedAd): void {
   emit('item-click', item);
@@ -78,20 +68,7 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
       :key="item.id"
       :class="props.variant === 'featured' ? 'col-12 col-md-6 col-lg-4' : 'col-12 col-md-6'"
     >
-      <!-- News Item -->
-      <NewsItemCard
-        v-if="isNewsItem(item)"
-        :item="item"
-        :variant="props.variant"
-        :show-actions="props.showActions ?? false"
-        @click="handleItemClick"
-        @edit="handleItemEdit"
-        @delete="handleItemDelete"
-      />
-
-      <!-- Classified Ad -->
-      <ClassifiedAdCard
-        v-else-if="isClassifiedAd(item)"
+      <ContentItemCard
         :item="item"
         :variant="props.variant"
         :show-actions="props.showActions ?? false"
@@ -126,29 +103,16 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
 
     <q-card-section v-else class="q-pa-none">
       <q-list separator>
-        <template v-for="item in props.items" :key="item.id">
-          <!-- News Item -->
-          <NewsItemCard
-            v-if="isNewsItem(item)"
-            :item="item"
-            variant="list"
-            :show-actions="props.showActions ?? false"
-            @click="handleItemClick"
-            @edit="handleItemEdit"
-            @delete="handleItemDelete"
-          />
-
-          <!-- Classified Ad -->
-          <ClassifiedAdCard
-            v-else-if="isClassifiedAd(item)"
-            :item="item"
-            variant="list"
-            :show-actions="props.showActions ?? false"
-            @click="handleItemClick"
-            @edit="handleItemEdit"
-            @delete="handleItemDelete"
-          />
-        </template>
+        <ContentItemCard
+          v-for="item in props.items"
+          :key="item.id"
+          :item="item"
+          variant="list"
+          :show-actions="props.showActions ?? false"
+          @click="handleItemClick"
+          @edit="handleItemEdit"
+          @delete="handleItemDelete"
+        />
       </q-list>
     </q-card-section>
   </q-card>

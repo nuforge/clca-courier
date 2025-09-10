@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useSiteStore } from '../stores/site-store-simple';
 import { useRoleAuth } from '../composables/useRoleAuth';
-import { useRoute, useRouter } from 'vue-router';
 import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import UnifiedContentList from '../components/UnifiedContentList.vue';
@@ -13,8 +12,6 @@ import { UI_ICONS } from '../constants/ui-icons';
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
 const siteStore = useSiteStore();
 const { isEditor } = useRoleAuth();
-const route = useRoute();
-const router = useRouter();
 
 // Theme system for consistent icons and colors - PROPER ARCHITECTURE
 const { getContentIcon, getCategoryIcon, colors } = useSiteTheme();
@@ -29,9 +26,6 @@ const sortBy = ref<string>('date');
 const sortOrder = ref<'asc' | 'desc'>('desc');
 const showDialog = ref<boolean>(false);
 const selectedItem = ref<NewsItem | ClassifiedAd | null>(null);
-
-// Content type filter
-const contentType = ref<'all' | 'news' | 'classifieds'>('all');
 
 // View toggle - following copilot instructions: Enhanced UI patterns
 const viewMode = ref<'list' | 'card'>('list');
@@ -55,29 +49,20 @@ const allCategories = computed((): string[] => {
   return Array.from(categories).sort();
 });
 
-// Unified content items - following copilot instructions: Unified Newsletter types (adapting pattern)
+// Unified content items - NO MORE ARTIFICIAL CONTENT TYPE SEPARATION
 const unifiedContent = computed(() => {
-  const content: Array<(NewsItem | ClassifiedAd) & { contentType: 'news' | 'classifieds' }> = [];
+  const content: Array<NewsItem | ClassifiedAd> = [];
 
   logger.debug('Building unified content:', {
     newsItemsCount: siteStore.newsItems.length,
-    classifiedsCount: siteStore.classifieds.length,
-    contentTypeFilter: contentType.value
+    classifiedsCount: siteStore.classifieds.length
   });
 
-  // Add news items with content type marker
-  if (contentType.value === 'all' || contentType.value === 'news') {
-    siteStore.newsItems.forEach(item => {
-      content.push({ ...item, contentType: 'news' as const });
-    });
-  }
+  // Add all news items
+  content.push(...siteStore.newsItems);
 
-  // Add classified ads with content type marker
-  if (contentType.value === 'all' || contentType.value === 'classifieds') {
-    siteStore.classifieds.forEach(item => {
-      content.push({ ...item, contentType: 'classifieds' as const });
-    });
-  }
+  // Add all classified ads
+  content.push(...siteStore.classifieds);
 
   logger.debug('Unified content result:', { totalItems: content.length });
   return content;
@@ -158,7 +143,6 @@ function showItemDetail(item: NewsItem | ClassifiedAd): void {
 function clearFilters(): void {
   searchQuery.value = '';
   selectedCategory.value = 'all';
-  contentType.value = 'all';
   sortBy.value = 'date';
   sortOrder.value = 'desc';
 }
@@ -197,31 +181,10 @@ function formatCategoryName(category: string): string {
 
 // Initialize content - following copilot instructions: Async promise handling
 onMounted((): void => {
-  // Set initial filter from URL query params
-  const typeParam = route.query.type as string;
-  if (typeParam === 'news' || typeParam === 'classifieds') {
-    contentType.value = typeParam;
-  }
-
   void siteStore.loadInitialData().then(() => {
     logger.debug('Community content page initialized successfully');
   }).catch((error: unknown) => {
     logger.error('Error initializing community content page:', error);
-  });
-});
-
-// Watch for content type changes and update URL - following copilot instructions: Enhanced UI patterns
-watch(contentType, (newType: string) => {
-  // Update URL query params without navigation
-  const query = { ...route.query };
-  if (newType === 'all') {
-    delete query.type;
-  } else {
-    query.type = newType;
-  }
-
-  void router.replace({ query }).catch((error: unknown) => {
-    logger.warn('Failed to update URL query params:', error);
   });
 });
 </script>
@@ -274,25 +237,8 @@ watch(contentType, (newType: string) => {
                   </q-input>
                 </div>
 
-                <!-- Content Type Filter -->
-                <div class="col-12 col-md-2">
-                  <q-select
-                    v-model="contentType"
-                    :options="[
-                      { label: 'All Content', value: 'all' },
-                      { label: 'News & Updates', value: 'news' },
-                      { label: 'Classifieds', value: 'classifieds' }
-                    ]"
-                    label="Content Type"
-                    outlined
-                    dense
-                    emit-value
-                    map-options
-                  />
-                </div>
-
                 <!-- Category Filter -->
-                <div class="col-12 col-md-2">
+                <div class="col-12 col-md-3">
                   <q-select
                     v-model="selectedCategory"
                     :options="[
@@ -399,8 +345,7 @@ watch(contentType, (newType: string) => {
           <!-- All Content List -->
           <div v-else>
             <div class="text-h5 q-mb-md">
-              {{ contentType === 'news' ? 'News & Updates' :
-                 contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
+              Community Content
             </div>
             <UnifiedContentList
               :items="filteredContent"
@@ -414,7 +359,6 @@ watch(contentType, (newType: string) => {
             <div class="q-mt-md text-caption text-grey">
               Debug: {{ filteredContent.length }} items, viewMode: {{ viewMode }}
               <br>Categories: {{ filteredContent.map(item => item.category).join(', ') }}
-              <br>Content Types: {{ filteredContent.map(item => item.contentType).join(', ') }}
             </div>
           </div>
         </div>
