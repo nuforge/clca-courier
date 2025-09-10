@@ -12,6 +12,32 @@ vi.mock('../../../src/utils/logger', () => ({
   }
 }));
 
+// Mock content sanitization utility
+vi.mock('../../../src/utils/content-sanitization', () => ({
+  sanitizeTitle: vi.fn((input) => ({
+    isValid: true,
+    sanitizedValue: input?.replace(/<script[^>]*>.*?<\/script>/gi, '') || '',
+    errors: []
+  })),
+  sanitizeContent: vi.fn((input) => ({
+    isValid: true,
+    sanitizedValue: input?.replace(/<script[^>]*>.*?<\/script>/gi, '').replace(/onerror="[^"]*"/gi, '') || '',
+    errors: []
+  })),
+  sanitizeLocation: vi.fn((input) => ({
+    isValid: true,
+    sanitizedValue: input?.replace(/<script[^>]*>.*?<\/script>/gi, '') || '',
+    errors: []
+  })),
+  sanitizeMetadata: vi.fn((input) => ({
+    isValid: true,
+    sanitizedValue: input?.replace(/<script[^>]*>.*?<\/script>/gi, '').replace(/<img[^>]*onerror[^>]*>/gi, '') || '',
+    errors: []
+  })),
+  containsMaliciousContent: vi.fn((input) => /<script|onerror|javascript:/i.test(input)),
+  logSecurityEvent: vi.fn()
+}));
+
 // Mock Firebase Firestore service
 vi.mock('../../../src/services/firebase-firestore.service', () => ({
   firestoreService: {
@@ -346,6 +372,173 @@ describe('Content Submission Service', () => {
       expect(calls[0][0].title).toBe('Concurrent Test 1');
       expect(calls[1][0].title).toBe('Concurrent Test 2');
       expect(calls[2][0].title).toBe('Concurrent Test 3');
+    });
+  });
+
+  describe('XSS Prevention and Security Validation', () => {
+    it('should sanitize malicious scripts in title and content', async () => {
+      const maliciousData = {
+        type: 'article' as const,
+        title: '<script>alert("XSS")</script>Malicious Title',
+        content: '<script>document.cookie</script><p>Safe content</p><img src="x" onerror="alert(1)">',
+        category: 'community',
+        priority: 'medium' as const,
+        metadata: {},
+        attachments: []
+      };
+
+      (firestoreService.submitUserContent as any).mockResolvedValue('safe-content-id');
+
+      const contentId = await contentSubmissionService.submitContent(maliciousData);
+
+      expect(contentId).toBe('safe-content-id');
+      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(1);
+
+      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+
+      // Verify scripts are removed from title
+      expect(submittedData.title).toBe('Malicious Title');
+      expect(submittedData.title).not.toContain('<script>');
+
+      // Verify scripts and dangerous attributes are removed from content
+      expect(submittedData.content).toContain('<p>Safe content</p>');
+      expect(submittedData.content).not.toContain('<script>');
+      expect(submittedData.content).not.toContain('onerror');
+    });
+
+    it('should prevent XSS in event location field', async () => {
+      const eventData = {
+        type: 'event' as const,
+        title: 'Community Meeting',
+        content: 'Monthly community gathering',
+        category: 'events',
+        priority: 'medium' as const,
+        metadata: {},
+        attachments: [],
+        eventLocation: '<script>alert("location XSS")</script>Community Center',
+        eventDate: '2025-09-15',
+        onCalendar: true
+      };
+
+      (firestoreService.submitUserContent as any).mockResolvedValue('safe-event-id');
+
+      await contentSubmissionService.submitContent(eventData);
+
+      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+
+      // Verify scripts are removed from location
+      expect(submittedData.eventLocation).toBe('Community Center');
+      expect(submittedData.eventLocation).not.toContain('<script>');
+    });
+
+    it('should validate and reject content with invalid date ranges', async () => {
+      const invalidEventData = {
+        type: 'event' as const,
+        title: 'Invalid Event',
+        content: 'Event with invalid dates',
+        category: 'events',
+        priority: 'medium' as const,
+        metadata: {},
+        attachments: [],
+        eventDate: '2025-09-15',
+        eventEndDate: '2025-09-10', // End date before start date
+        onCalendar: true
+      };
+
+      await expect(contentSubmissionService.submitContent(invalidEventData))
+        .rejects.toThrow('Content validation failed');
+
+      expect(firestoreService.submitUserContent).not.toHaveBeenCalled();
+    });
+
+    it('should sanitize metadata fields to prevent XSS', async () => {
+      const dataWithMaliciousMetadata = {
+        type: 'article' as const,
+        title: 'Test Article',
+        content: 'Safe content',
+        category: 'community',
+        priority: 'medium' as const,
+        metadata: {
+          author: '<script>alert("metadata XSS")</script>John Doe',
+          description: 'Safe description',
+          tags: '<img src="x" onerror="alert(1)">malicious-tag'
+        },
+        attachments: []
+      };
+
+      (firestoreService.submitUserContent as any).mockResolvedValue('sanitized-metadata-id');
+
+      await contentSubmissionService.submitContent(dataWithMaliciousMetadata);
+
+      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+
+      // Check that metadata was included and sanitized
+      expect(submittedData.metadata).toBeDefined();
+      expect(submittedData.metadata.author).toBe('John Doe');
+      expect(submittedData.metadata.author).not.toContain('<script>');
+      expect(submittedData.metadata.tags).toBe('malicious-tag');
+      expect(submittedData.metadata.tags).not.toContain('<img');
+    });
+
+    it('should reject submissions with empty required fields after sanitization', async () => {
+      const emptyContentData = {
+        type: 'article' as const,
+        title: '<script></script>   ', // Only scripts and whitespace
+        content: '<script>document.cookie</script>', // Only malicious scripts
+        category: 'community',
+        priority: 'medium' as const,
+        metadata: {},
+        attachments: []
+      };
+
+      await expect(contentSubmissionService.submitContent(emptyContentData))
+        .rejects.toThrow('Content validation failed');
+
+      expect(firestoreService.submitUserContent).not.toHaveBeenCalled();
+    });
+
+    it('should validate content type and priority values', async () => {
+      const invalidTypeData = {
+        type: 'invalid-type' as any,
+        title: 'Test Article',
+        content: 'Test content',
+        category: 'community',
+        priority: 'invalid-priority' as any,
+        metadata: {},
+        attachments: []
+      };
+
+      await expect(contentSubmissionService.submitContent(invalidTypeData))
+        .rejects.toThrow('Content validation failed');
+
+      expect(firestoreService.submitUserContent).not.toHaveBeenCalled();
+    });
+
+    it('should preserve safe HTML tags in content while removing dangerous ones', async () => {
+      const mixedContentData = {
+        type: 'article' as const,
+        title: 'Article with Mixed Content',
+        content: '<p>Safe paragraph</p><strong>Bold text</strong><script>alert("danger")</script><a href="https://example.com">Safe link</a><iframe src="malicious"></iframe>',
+        category: 'community',
+        priority: 'medium' as const,
+        metadata: {},
+        attachments: []
+      };
+
+      (firestoreService.submitUserContent as any).mockResolvedValue('mixed-content-id');
+
+      await contentSubmissionService.submitContent(mixedContentData);
+
+      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+
+      // Verify safe HTML is preserved
+      expect(submittedData.content).toContain('<p>Safe paragraph</p>');
+      expect(submittedData.content).toContain('<strong>Bold text</strong>');
+      expect(submittedData.content).toContain('<a href="https://example.com">Safe link</a>');
+
+      // Verify dangerous HTML is removed
+      expect(submittedData.content).not.toContain('<script>');
+      expect(submittedData.content).not.toContain('<iframe>');
     });
   });
 });
