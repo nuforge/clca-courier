@@ -7,47 +7,88 @@ You are a senior software engineer and testing expert for a Vue 3, Quasar, and F
 5. The goal is full test coverage.
 
 # TASK STATUS:
-We are in the middle of writing tests and this is your own suggested next task: 
+We are in the **CRITICAL TESTING SUITE REMEDIATION PHASE** - systematically fixing remaining test failures to achieve production-grade testing quality.
 
-#NEXT IMMEDIATE TASK
-The Table Settings Store (47 tests) is the final store implementation needed to achieve 100% store testing coverage. This store manages data table configuration and persistence.
+## 🎯 **CURRENT MISSION: Firebase Auth Service Remediation**
 
-📋 SUGGESTED NEXT ACTIONS
-Examine Table Settings Store structure and functionality
-Update TESTING_SCRATCHPAD.md with current Map Store completion
-Implement Table Settings Store tests using established methodology
-Complete final store to achieve 100% store testing coverage
-Update progress documentation with final achievement
-The proven testing methodology from four successful store implementations provides the perfect foundation for completing the final Table Settings Store with confidence! 🚀
+**Status**: 511/537 tests passing (95.2%) - **26 failures remaining**  
+**Immediate Target**: **Firebase Auth Service** (30/33 tests, 90.9% success) - **3 specific failures**
 
-# HERE IS OUR LIVE SCRATCHPAD OF PROGRESS:TESTING_SCRATCHPAD.md
+### **Firebase Auth Service Failures to Fix**:
 
-# HISTORY
+1. **🔴 User Object Mocking Issue** (Line 238)
+   ```
+   Cannot read properties of undefined (reading 'email')
+   → FirebaseAuthService.signInWithPopup: result.user.email
+   ```
+   **Root Cause**: Mock `signInWithPopup` returns undefined user object
+   **Fix**: Proper user object mock with email property
 
-## 🎉 **MAJOR MILESTONE: Third Complete Pinia Store Achieved**
+2. **🔴 Test Timeout Issue** (10+ second timeout)
+   ```
+   Test timed out in 10000ms: should handle popup closed by user
+   ```
+   **Root Cause**: Async test waiting for promise that never resolves
+   **Fix**: Proper async handling and timeout configuration
 
-**Phase**: Site Theme Store Implementation (Phase 3 of Store Testing)  
-**Status**: ✅ **100% COMPLETE** - All 45 tests fully implemented and passing ✅  
-**Infrastructure**: Advanced UI theming system + localStorage persistence + DOM integration testing
-
-## 📊 **COMPREHENSIVE TESTING PROGRESS UPDATE**
-
-```
-Firebase Service Testing:       73/90 tests (81% - Foundation Complete)
-Component Testing:              47/47 tests (100% - 2 perfect components)
-Site Store Simple Testing:     45/45 tests (100% - FIRST COMPLETE STORE!) ✅
-Newsletter Management Testing:  51/51 tests (100% - SECOND COMPLETE STORE!) ✅
-Site Theme Store Testing:       45/45 tests (100% - THIRD COMPLETE STORE!) ✅
-Map Store Testing:               0/45 tests (0% - NEXT TARGET) 🎯
-Table Settings Store Testing:    0/47 tests (0% - Final Store)
-Store Integration Testing:      137 skeleton tests (2 stores remaining)
-```
-
-### **Total Achievement**: 261/270 tests implemented (96.7% store testing complete)
-
-**🚀 ONLY 9 TESTS REMAINING TO ACHIEVE 100% STORE TESTING COVERAGE!**
+3. **🔴 FileReader Mock Issue** (Avatar caching test)
+   ```
+   expected "spy" to be called with arguments: [ Blob{ …(1) } ]
+   Number of calls: 0
+   ```
+   **Root Cause**: FileReader mock `readAsDataURL` method not being called
+   **Fix**: Complete FileReader mock implementation
 
 ---
+
+## 📋 **NEXT IMMEDIATE ACTIONS**
+
+### **Step 1: Fix Firebase Auth Service User Object Mocking**
+- Examine failing test in `firebase-auth.service.test.ts` around line 224
+- Update `mockSignInWithPopup` to return proper user object with email property
+- Ensure all auth provider tests return consistent user objects
+
+### **Step 2: Fix Async Test Timeout**
+- Identify hanging promise in "popup closed by user" test 
+- Add proper promise resolution/rejection handling
+- Configure appropriate test timeout if needed
+
+### **Step 3: Complete FileReader Mock Implementation**
+- Fix avatar caching test FileReader mock
+- Ensure `readAsDataURL` method is properly called with Blob parameter
+- Validate data URL conversion process
+
+### **Expected Gain**: +3 tests → **514/537 passing (95.7%)**
+
+---
+
+## � **PROVEN REMEDIATION METHODOLOGY**
+
+### **✅ Successful Remediation Patterns Applied**:
+
+1. **Newsletter Store Remediation** (57/57 tests, 100%) ✅
+   - Applied comprehensive business rule validation
+   - Created validation utility functions
+   - Implemented proper concurrency control testing
+
+2. **Firebase Mocking Infrastructure** (All Firebase services) ✅
+   - Implemented `vi.hoisted()` pattern across all Firebase tests
+   - Resolved all constructor/timing-related mocking issues
+   - Standardized Firebase module mocking approach
+
+3. **Store Testing Coverage** (245/245 tests, 100%) ✅
+   - Maintained complete coverage across 5 store implementations
+   - Applied consistent testing patterns and methodologies
+   - Achieved production-grade store testing standards
+
+### **🎯 Focus Areas After Auth Service**:
+- **Firebase Firestore Service** (7 failures) - Test assertion updates for realistic data
+- **Content Submission Enhanced** (9 failures) - Security validation implementation  
+- **Firebase Integration Resilience** (6 failures) - Error message pattern alignment
+
+# HERE IS OUR LIVE SCRATCHPAD OF PROGRESS: TESTING_SCRATCHPAD.md
+
+**Strategic Value**: Each successful remediation validates our methodology and brings us closer to production-grade testing standards with 98%+ pass rates.
 
 ## 🚀 **STRATEGIC RECOMMENDATION: Continue with Map Store Implementation**
 

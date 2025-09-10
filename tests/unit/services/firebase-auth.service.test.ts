@@ -1,59 +1,59 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from 'vitest';
 
-// Use vi.hoisted to ensure mocks are created before any imports
-const mockFirebaseAuthModule = vi.hoisted(() => {
-  // Create a provider factory that returns instances with properly chainable addScope
-  const createMockProvider = (providerId: string) => ({
-    providerId,
-    addScope: vi.fn().mockReturnThis(),
-    setCustomParameters: vi.fn().mockReturnThis(), // Add for completeness
-  });
-
+// Use vi.hoisted to ensure Firebase Auth provider mocks are created before any imports
+const {
+  mockGoogleAuthProvider,
+  mockFacebookAuthProvider,
+  mockGithubAuthProvider,
+  mockTwitterAuthProvider,
+  mockSignInWithPopup,
+  mockSignInWithRedirect,
+  mockGetRedirectResult,
+  mockSignOut,
+  mockOnAuthStateChanged
+} = vi.hoisted(() => {
   return {
-    signInWithPopup: vi.fn(),
-    signInWithRedirect: vi.fn(),
-    getRedirectResult: vi.fn(),
-    signOut: vi.fn(),
-    onAuthStateChanged: vi.fn(),
-    GoogleAuthProvider: vi.fn().mockImplementation(() => createMockProvider('google.com')),
-    FacebookAuthProvider: vi.fn().mockImplementation(() => createMockProvider('facebook.com')),
-    TwitterAuthProvider: vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' })),
-    GithubAuthProvider: vi.fn().mockImplementation(() => createMockProvider('github.com'))
+    mockGoogleAuthProvider: vi.fn(() => ({
+      addScope: vi.fn().mockReturnThis(),
+      setCustomParameters: vi.fn().mockReturnThis(),
+      providerId: 'google.com'
+    })),
+    mockFacebookAuthProvider: vi.fn(() => ({
+      addScope: vi.fn().mockReturnThis(),
+      setCustomParameters: vi.fn().mockReturnThis(),
+      providerId: 'facebook.com'
+    })),
+    mockGithubAuthProvider: vi.fn(() => ({
+      addScope: vi.fn().mockReturnThis(),
+      setCustomParameters: vi.fn().mockReturnThis(),
+      providerId: 'github.com'
+    })),
+    mockTwitterAuthProvider: vi.fn(() => ({
+      setCustomParameters: vi.fn().mockReturnThis(),
+      providerId: 'twitter.com'
+    })),
+    mockSignInWithPopup: vi.fn(),
+    mockSignInWithRedirect: vi.fn(),
+    mockGetRedirectResult: vi.fn(),
+    mockSignOut: vi.fn(),
+    mockOnAuthStateChanged: vi.fn()
   };
 });
 
-// Mock Firebase Auth functions using the hoisted mocks
-vi.mock('firebase/auth', () => mockFirebaseAuthModule);
+// Mock Firebase Auth using the hoisted providers
+vi.mock('firebase/auth', () => ({
+  signInWithPopup: mockSignInWithPopup,
+  signInWithRedirect: mockSignInWithRedirect,
+  getRedirectResult: mockGetRedirectResult,
+  signOut: mockSignOut,
+  onAuthStateChanged: mockOnAuthStateChanged,
+  GoogleAuthProvider: mockGoogleAuthProvider,
+  FacebookAuthProvider: mockFacebookAuthProvider,
+  GithubAuthProvider: mockGithubAuthProvider,
+  TwitterAuthProvider: mockTwitterAuthProvider
+}));
 
-// Mock Firebase Auth functions FIRST - before any Firebase imports
-vi.mock('firebase/auth', () => {
-  // Create a provider factory that returns instances with properly chainable addScope
-  const createMockProvider = (providerId: string) => ({
-    providerId,
-    addScope: vi.fn().mockReturnThis(),
-    setCustomParameters: vi.fn().mockReturnThis(), // Add for completeness
-  });
-
-  // Create constructor functions that return our mock instances
-  const GoogleAuthProvider = vi.fn().mockImplementation(() => createMockProvider('google.com'));
-  const FacebookAuthProvider = vi.fn().mockImplementation(() => createMockProvider('facebook.com'));
-  const TwitterAuthProvider = vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' }));
-  const GithubAuthProvider = vi.fn().mockImplementation(() => createMockProvider('github.com'));
-
-  return {
-    signInWithPopup: vi.fn(),
-    signInWithRedirect: vi.fn(),
-    getRedirectResult: vi.fn(),
-    signOut: vi.fn(),
-    onAuthStateChanged: vi.fn(),
-    GoogleAuthProvider,
-    FacebookAuthProvider,
-    TwitterAuthProvider,
-    GithubAuthProvider
-  };
-});
-
-// Now import Firebase types AFTER the mock is set up
+// Import Firebase types after mock setup
 import type { User, UserCredential, AuthProvider } from 'firebase/auth';
 
 // Mock logger utility - essential for production-ready service
@@ -66,34 +66,6 @@ vi.mock('../../../src/utils/logger', () => ({
     success: vi.fn()
   }
 }));
-
-// Mock Firebase Auth functions
-vi.mock('firebase/auth', () => {
-  // Create a provider factory that returns instances with properly chainable addScope
-  const createMockProvider = (providerId: string) => ({
-    providerId,
-    addScope: vi.fn().mockReturnThis(),
-    setCustomParameters: vi.fn().mockReturnThis(), // Add for completeness
-  });
-
-  // Create constructor functions that return our mock instances
-  const GoogleAuthProvider = vi.fn().mockImplementation(() => createMockProvider('google.com'));
-  const FacebookAuthProvider = vi.fn().mockImplementation(() => createMockProvider('facebook.com'));
-  const TwitterAuthProvider = vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' }));
-  const GithubAuthProvider = vi.fn().mockImplementation(() => createMockProvider('github.com'));
-
-  return {
-    signInWithPopup: vi.fn(),
-    signInWithRedirect: vi.fn(),
-    getRedirectResult: vi.fn(),
-    signOut: vi.fn(),
-    onAuthStateChanged: vi.fn(),
-    GoogleAuthProvider,
-    FacebookAuthProvider,
-    TwitterAuthProvider,
-    GithubAuthProvider
-  };
-});
 
 // Mock Firebase config
 vi.mock('../../../src/config/firebase.config', () => ({
@@ -134,16 +106,12 @@ Object.defineProperty(window, 'open', {
   writable: true
 });
 
-// Import service after mocks are set up
+// Import service after mocks are set up - use the singleton again but ensure mocks work
 import { firebaseAuthService, type FirebaseAuthUser, type AuthState } from '../../../src/services/firebase-auth.service';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { firebaseAuth } from '../../../src/config/firebase.config';
 
-// Get typed mock functions
-const mockSignInWithPopup = vi.mocked(signInWithPopup);
-const mockSignInWithRedirect = vi.mocked(signInWithRedirect);
-const mockGetRedirectResult = vi.mocked(getRedirectResult);
-const mockSignOut = vi.mocked(signOut);
+// Get mocked functions - use the hoisted mocks directly
 const mockFirebaseAuth = vi.mocked(firebaseAuth);
 
 describe('Firebase Authentication Service', () => {

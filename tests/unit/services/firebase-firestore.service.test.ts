@@ -12,7 +12,7 @@ vi.mock('../../../src/utils/logger', () => ({
   }
 }));
 
-// Mock Firebase Firestore functions using vi.hoisted()
+// Mock Firebase Firestore functions and app using vi.hoisted() for consistency
 const {
   mockDoc,
   mockGetDoc,
@@ -28,7 +28,10 @@ const {
   mockOnSnapshot,
   mockServerTimestamp,
   mockLimit,
-  mockStartAfter
+  mockStartAfter,
+  mockInitializeApp,
+  mockGetApps,
+  mockGetApp
 } = vi.hoisted(() => {
   return {
     mockDoc: vi.fn(),
@@ -45,7 +48,10 @@ const {
     mockOnSnapshot: vi.fn(),
     mockServerTimestamp: vi.fn(),
     mockLimit: vi.fn(),
-    mockStartAfter: vi.fn()
+    mockStartAfter: vi.fn(),
+    mockInitializeApp: vi.fn(() => ({ name: 'test-app' })),
+    mockGetApps: vi.fn(() => []),
+    mockGetApp: vi.fn(() => ({ name: 'test-app' }))
   };
 });
 
@@ -69,11 +75,11 @@ vi.mock('firebase/firestore', () => ({
   startAfter: mockStartAfter
 }));
 
-// Mock Firebase app
+// Mock Firebase app using hoisted functions
 vi.mock('firebase/app', () => ({
-  initializeApp: vi.fn(() => ({ name: 'test-app' })),
-  getApps: vi.fn(() => []),
-  getApp: vi.fn(() => ({ name: 'test-app' }))
+  initializeApp: mockInitializeApp,
+  getApps: mockGetApps,
+  getApp: mockGetApp
 }));
 
 // Mock Firebase config
