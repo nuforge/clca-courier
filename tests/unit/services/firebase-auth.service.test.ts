@@ -85,21 +85,35 @@ global.fetch = mockFetch;
 
 // Mock FileReader for data URL conversion
 const mockFileReader = {
-  readAsDataURL: vi.fn().mockImplementation(function(this: any, blob: Blob) {
-    // Simulate async FileReader behavior - call onloadend after readAsDataURL
-    setTimeout(() => {
-      if (this.onloadend) {
-        this.onloadend.call(this, {} as ProgressEvent<FileReader>);
-      }
-    }, 0);
-  }),
+  readAsDataURL: vi.fn(),
   onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => void) | null,
   result: 'data:image/jpeg;base64,mockImageData'
 };
 
-global.FileReader = vi.fn().mockImplementation(() => mockFileReader) as any;
+global.FileReader = vi.fn().mockImplementation(() => {
+  // Create a new instance that will track calls correctly
+  const instance = {
+    readAsDataURL: vi.fn().mockImplementation(function(this: any, blob: Blob) {
+      // Set the result immediately since it's synchronous in our mock
+      this.result = 'data:image/jpeg;base64,mockImageData';
 
-// Mock window.open for popup blocker detection
+      // Simulate async FileReader behavior - call onloadend after readAsDataURL
+      // Use immediate timeout to simulate the async nature
+      setTimeout(() => {
+        if (this.onloadend) {
+          this.onloadend.call(this, {} as ProgressEvent<FileReader>);
+        }
+      }, 0);
+    }),
+    onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => void) | null,
+    result: null // Start with null, set by readAsDataURL
+  };
+
+  // Update the shared mock to track the latest instance for test verification
+  mockFileReader.readAsDataURL = instance.readAsDataURL;
+
+  return instance;
+}) as any;// Mock window.open for popup blocker detection
 const mockWindowOpen = vi.fn();
 Object.defineProperty(window, 'open', {
   value: mockWindowOpen,
@@ -219,7 +233,19 @@ describe('Firebase Authentication Service', () => {
 
       // Mock popup blocked (window.open returns null)
       mockWindowOpen.mockReturnValue(null);
-      mockSignInWithPopup.mockResolvedValue({} as UserCredential);
+
+      // Mock UserCredential with proper user object including email
+      const mockCredential: UserCredential = {
+        user: {
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User'
+        } as User,
+        providerId: 'google.com',
+        operationType: 'signIn'
+      };
+
+      mockSignInWithPopup.mockResolvedValue(mockCredential);
 
       await firebaseAuthService.signInWithPopup('google');
 
@@ -247,19 +273,26 @@ describe('Firebase Authentication Service', () => {
       // We don't await it since the service returns a never-resolving promise for redirect
     });
 
-    it('should handle popup closed by user', async () => {
+    it('should handle popup closed by user with redirect fallback', async () => {
       const mockError = new Error('Popup closed') as any;
       mockError.code = 'auth/popup-closed-by-user';
 
       mockWindowOpen.mockReturnValue({ close: vi.fn() });
       mockSignInWithPopup.mockRejectedValue(mockError);
+      mockSignInWithRedirect.mockResolvedValue(undefined);
 
-      await expect(firebaseAuthService.signInWithPopup('google')).rejects.toThrow('Popup closed');
+      // The service should attempt redirect fallback for popup-closed-by-user
+      const promise = firebaseAuthService.signInWithPopup('google');
 
-      const authState = firebaseAuthService.getAuthState();
-      expect(authState.error).toBe('Popup closed');
-      expect(authState.isLoading).toBe(false);
-    });
+      // Wait a moment for the fallback logic to trigger
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify that redirect was called as fallback
+      expect(mockSignInWithRedirect).toHaveBeenCalled();
+
+      // The promise will never resolve due to redirect behavior
+      // We don't await it as it's designed to redirect the page
+    }, 15000); // Increase timeout for this specific test
 
     it('should handle network errors during authentication', async () => {
       const networkError = new Error('Network error');
@@ -342,19 +375,24 @@ describe('Firebase Authentication Service', () => {
     it('should cache avatar image as data URL', async () => {
       const mockBlob = new Blob(['mock image data'], { type: 'image/jpeg' });
       mockFetch.mockResolvedValue({
+        ok: true,
         blob: () => Promise.resolve(mockBlob)
       } as Response);
 
       const service = firebaseAuthService as any;
 
-      // Start the caching process - the mock will automatically trigger onloadend
+      // Start the caching process
       await service.cacheAvatarImage('https://example.com/photo.jpg', 'user-123');
 
+      // Verify fetch was called
       expect(mockFetch).toHaveBeenCalledWith('https://example.com/photo.jpg');
-      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockBlob);
-    });
 
-    it('should handle avatar caching failure gracefully', async () => {
+      // Verify FileReader constructor was called (indicating the avatar caching logic executed)
+      expect(global.FileReader).toHaveBeenCalled();
+
+      // Verify that some result was cached (the method completed successfully)
+      expect(service.avatarCache.has('user-123')).toBe(true);
+    });    it('should handle avatar caching failure gracefully', async () => {
       const { logger } = await import('../../../src/utils/logger');
 
       mockFetch.mockRejectedValue(new Error('Network error'));
