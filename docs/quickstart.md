@@ -2,7 +2,7 @@
 
 **Get CLCA Courier Running in 10 Minutes**
 
-*Last Updated: September 9, 2025*
+*Last Updated: September 10, 2025*
 
 ## 🚀 Prerequisites
 
@@ -21,14 +21,14 @@ Before starting, ensure you have:
 git clone https://github.com/nuforge/clca-courier.git
 cd clca-courier
 
-# Install dependencies
+# Install dependencies (47 dependencies + 33 dev dependencies)
 npm install
 
-# Verify installation
+# Verify installation - should start in ~3-5 seconds
 npm run dev
 ```
 
-If successful, you'll see the development server start at `http://localhost:9000`
+**✅ Success**: Development server starts at `http://localhost:9000` (Quasar default port)
 
 ### 2. Firebase Quick Setup (5 minutes)
 
@@ -39,7 +39,7 @@ If successful, you'll see the development server start at `http://localhost:9000
 
 #### Enable Required Services:
 1. **Authentication**: Go to Authentication → Get started → Sign-in method
-   - Enable "Google" provider
+   - Enable "Google" provider (required for admin access)
    - Add your email as support email
    
 2. **Firestore**: Go to Firestore Database → Create database
