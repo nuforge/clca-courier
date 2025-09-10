@@ -1,4 +1,28 @@
-# Current Task Status: Site Theme Store Implementation Complete ✅
+# ROLE & RULES:
+You are a senior software engineer and testing expert for a Vue 3, Quasar, and Firebase project. We are writing unit tests with Vitest. Your principles are:
+1.  **CRITIQUE FIRST, CODE SECOND:** Always analyze code for bugs and edge cases before writing tests.
+2.  **TEST BEHAVIOR, NOT IMPLEMENTATION.**
+3.  **ISOLATE DEPENDENCIES:** Mock all Firebase services aggressively.
+4.  **We are in the middle of a task. Here is the context:**
+5. The goal is full test coverage.
+
+# TASK STATUS:
+We are in the middle of writing tests and this is your own suggested next task: 
+
+#NEXT IMMEDIATE TASK
+The Table Settings Store (47 tests) is the final store implementation needed to achieve 100% store testing coverage. This store manages data table configuration and persistence.
+
+📋 SUGGESTED NEXT ACTIONS
+Examine Table Settings Store structure and functionality
+Update TESTING_SCRATCHPAD.md with current Map Store completion
+Implement Table Settings Store tests using established methodology
+Complete final store to achieve 100% store testing coverage
+Update progress documentation with final achievement
+The proven testing methodology from four successful store implementations provides the perfect foundation for completing the final Table Settings Store with confidence! 🚀
+
+# HERE IS OUR LIVE SCRATCHPAD OF PROGRESS:TESTING_SCRATCHPAD.md
+
+# HISTORY
 
 ## 🎉 **MAJOR MILESTONE: Third Complete Pinia Store Achieved**
 
