@@ -67,10 +67,28 @@ const getCategoryConfig = computed(() => {
       'event': 'event'
     };
     const contentType = contentTypeMap[props.item.category] || 'article';
-    return getCategoryIcon(contentType, props.item.category);
+
+    // Map category to theme configuration key
+    let themeCategory: string = props.item.category;
+    if (props.item.category === 'news' && contentType === 'article') {
+      themeCategory = 'news'; // article.news
+    } else if (props.item.category === 'announcement') {
+      themeCategory = 'community'; // announcement.community - default mapping
+    }
+
+    return getCategoryIcon(contentType, themeCategory);
   } else {
-    // For classified ads, always use 'classified' content type
-    return getCategoryIcon('classified', props.item.category);
+    // For classified ads, map kebab-case to camelCase theme keys
+    const classifiedCategoryMap: Record<string, string> = {
+      'for-sale': 'forSale',
+      'services': 'services',
+      'wanted': 'wanted',
+      'free': 'free',
+      'housing': 'housing'
+    };
+
+    const themeCategory = classifiedCategoryMap[props.item.category] || 'forSale';
+    return getCategoryIcon('classified', themeCategory);
   }
 });
 

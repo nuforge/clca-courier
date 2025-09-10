@@ -35,7 +35,7 @@ watch(viewMode, (newMode, oldMode) => {
   logger.debug('View mode changed:', { from: oldMode, to: newMode });
 }, { immediate: true });
 
-// Dynamic categories from actual data - following copilot instructions: Dynamic content discovery
+// Dynamic categories from actual data with icons - following copilot instructions: Dynamic content discovery
 const allCategories = computed((): string[] => {
   const categories = new Set<string>();
 
@@ -48,6 +48,95 @@ const allCategories = computed((): string[] => {
 
   return Array.from(categories).sort();
 });
+
+// Category options with icons for dropdown
+const categoryOptions = computed(() => {
+  const options: Array<{
+    label: string;
+    value: string;
+    icon: string;
+    color: string;
+  }> = [
+    {
+      label: 'All Categories',
+      value: 'all',
+      icon: UI_ICONS.filter,
+      color: 'grey'
+    }
+  ];
+
+  // Add each category with its proper icon and color from theme system
+  allCategories.value.forEach(cat => {
+    // Determine content type for icon lookup
+    let contentType = 'article'; // default
+    let themeCategory = cat;
+
+    if (cat === 'announcement') {
+      contentType = 'announcement';
+      themeCategory = 'community'; // announcement.community in theme
+    } else if (cat === 'event') {
+      contentType = 'event';
+      themeCategory = 'meeting'; // default event mapping
+    } else if (['for-sale', 'services', 'wanted', 'free', 'housing'].includes(cat)) {
+      contentType = 'classified';
+      // Map kebab-case to theme camelCase
+      const classifiedMap: Record<string, string> = {
+        'for-sale': 'forSale',
+        'services': 'services',
+        'wanted': 'wanted',
+        'free': 'free',
+        'housing': 'housing'
+      };
+      themeCategory = classifiedMap[cat] || 'forSale';
+    } else if (cat === 'news') {
+      contentType = 'article';
+      themeCategory = 'news'; // article.news
+    }
+
+    const categoryConfig = getCategoryIcon(contentType, themeCategory);
+
+    options.push({
+      label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' '),
+      value: cat,
+      icon: categoryConfig.icon,
+      color: categoryConfig.color
+    });
+  });
+
+  return options;
+});
+
+// Sort by options with icons
+const sortByOptions = computed(() => [
+  {
+    label: 'Date',
+    value: 'date',
+    icon: UI_ICONS.calendar,
+    color: colors.primary
+  },
+  {
+    label: 'Title',
+    value: 'title',
+    icon: 'mdi-sort-alphabetical-variant',
+    color: colors.primary
+  }
+]);
+
+// Sort order options with icons
+const sortOrderOptions = computed(() => [
+  {
+    label: 'Newest First',
+    value: 'desc',
+    icon: 'mdi-sort-calendar-descending',
+    color: colors.primary
+  },
+  {
+    label: 'Oldest First',
+    value: 'asc',
+    icon: 'mdi-sort-calendar-ascending',
+    color: colors.primary
+  }
+]);
 
 // Unified content items - NO MORE ARTIFICIAL CONTENT TYPE SEPARATION
 const unifiedContent = computed(() => {
@@ -241,51 +330,90 @@ onMounted((): void => {
                 <div class="col-12 col-md-3">
                   <q-select
                     v-model="selectedCategory"
-                    :options="[
-                      { label: 'All Categories', value: 'all' },
-                      ...allCategories.map(cat => ({
-                        label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' '),
-                        value: cat
-                      }))
-                    ]"
+                    :options="categoryOptions"
                     label="Category"
                     outlined
                     dense
                     emit-value
                     map-options
-                  />
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <q-icon :name="scope.opt.icon" :color="scope.opt.color" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.label }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected-item="scope">
+                      <div class="flex items-center">
+                        <q-icon :name="scope.opt.icon" :color="scope.opt.color" class="q-mr-sm" />
+                        {{ scope.opt.label }}
+                      </div>
+                    </template>
+                  </q-select>
                 </div>
 
                 <!-- Sort By -->
                 <div class="col-12 col-md-2">
                   <q-select
                     v-model="sortBy"
-                    :options="[
-                      { label: 'Date', value: 'date' },
-                      { label: 'Title', value: 'title' }
-                    ]"
+                    :options="sortByOptions"
                     label="Sort By"
                     outlined
                     dense
                     emit-value
                     map-options
-                  />
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <q-icon :name="scope.opt.icon" :color="scope.opt.color" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.label }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected-item="scope">
+                      <div class="flex items-center">
+                        <q-icon :name="scope.opt.icon" :color="scope.opt.color" class="q-mr-sm" />
+                        {{ scope.opt.label }}
+                      </div>
+                    </template>
+                  </q-select>
                 </div>
 
                 <!-- Sort Order -->
                 <div class="col-12 col-md-2">
                   <q-select
                     v-model="sortOrder"
-                    :options="[
-                      { label: 'Newest First', value: 'desc' },
-                      { label: 'Oldest First', value: 'asc' }
-                    ]"
+                    :options="sortOrderOptions"
                     label="Order"
                     outlined
                     dense
                     emit-value
                     map-options
-                  />
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <q-icon :name="scope.opt.icon" :color="scope.opt.color" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.label }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected-item="scope">
+                      <div class="flex items-center">
+                        <q-icon :name="scope.opt.icon" :color="scope.opt.color" class="q-mr-sm" />
+                        {{ scope.opt.label }}
+                      </div>
+                    </template>
+                  </q-select>
                 </div>
               </div>
 
