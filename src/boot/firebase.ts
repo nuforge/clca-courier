@@ -20,6 +20,17 @@ export default boot(({ app }) => {
     // Note: Firebase app is already initialized in firebase.config.ts
     logger.info('Firebase services initialized successfully');
 
+    // Check for redirect result on app startup (handles popup fallback)
+    firebaseAuthService.getRedirectResult()
+      .then((result) => {
+        if (result) {
+          logger.success('Redirect authentication successful:', result.user.email);
+        }
+      })
+      .catch((error) => {
+        logger.error('Redirect result error:', error);
+      });
+
     // Check for any existing auth state on app startup
     // This is handled automatically by the auth service's onAuthStateChanged listener
 

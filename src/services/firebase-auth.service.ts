@@ -208,7 +208,7 @@ class FirebaseAuthService {
   }
 
   /**
-   * Sign in with popup
+   * Sign in with popup - automatically falls back to redirect if popup blocked
    */
   async signInWithPopup(providerType: SupportedProvider): Promise<UserCredential> {
     try {
@@ -239,9 +239,6 @@ class FirebaseAuthService {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
-      this.authState.error = errorMessage;
-      this.authState.isLoading = false;
-      this.notifyListeners();
 
       // Enhanced error logging
       logger.error(`Sign in error with ${providerType}:`, error);
@@ -250,7 +247,31 @@ class FirebaseAuthService {
         logger.error('Error code:', firebaseError.code || 'unknown');
         logger.error('Error message:', error.message);
 
-        // Specific guidance for common errors
+        // Auto-fallback to redirect for popup-related errors
+        if (firebaseError.code === 'auth/popup-blocked' ||
+            firebaseError.code === 'auth/popup-closed-by-user' ||
+            firebaseError.code === 'auth/cancelled-popup-request') {
+          logger.warn('🔄 Popup failed, automatically falling back to redirect authentication...');
+          logger.info('💡 You will be redirected to complete authentication');
+
+          try {
+            await this.signInWithRedirect(providerType);
+            // Note: redirect doesn't return immediately, user will be redirected
+            // The result will be handled by getRedirectResult() on page load
+            return new Promise<UserCredential>(() => {
+              // This promise never resolves because the page redirects
+              // The actual result is handled by getRedirectResult() on return
+            });
+          } catch (redirectError) {
+            logger.error('❌ Redirect fallback also failed:', redirectError);
+            this.authState.error = 'Authentication failed. Please enable popups or try again.';
+            this.authState.isLoading = false;
+            this.notifyListeners();
+            throw redirectError;
+          }
+        }
+
+        // Specific guidance for other common errors
         if (firebaseError.code === 'auth/popup-closed-by-user') {
           logger.warn('💡 Popup closed - this might indicate:');
           logger.warn('  1. User closed popup manually');
@@ -259,6 +280,10 @@ class FirebaseAuthService {
           logger.warn('  4. Domain not authorized in Firebase Console');
         }
       }
+
+      this.authState.error = errorMessage;
+      this.authState.isLoading = false;
+      this.notifyListeners();
       throw error;
     }
   }
