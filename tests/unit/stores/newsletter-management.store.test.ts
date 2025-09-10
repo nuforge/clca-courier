@@ -49,23 +49,28 @@ vi.mock('../../../src/utils/logger', () => ({
   logger: mockLogger
 }));
 
-describe('Newsletter Management Store Integration', () => {
+describe('Newsletter Management Store - Critical Remediation Tests', () => {
   let store: ReturnType<typeof useNewsletterManagementStore>;
 
-  // Sample test data factory
-  const createMockNewsletter = (overrides: Partial<ContentManagementNewsletter> = {}): ContentManagementNewsletter => ({
+  // =============================================
+  // TEST DATA FACTORIES - PROPER VALIDATION TESTING
+  // =============================================
+
+  /**
+   * Create valid newsletter data for positive tests
+   */
+  const createValidNewsletter = (overrides: Partial<ContentManagementNewsletter> = {}): ContentManagementNewsletter => ({
     id: 'newsletter-1',
     filename: 'newsletter-2024-01.pdf',
     title: 'January 2024 Newsletter',
     downloadUrl: 'https://example.com/newsletter-1.pdf',
-    fileSize: 2048000, // Number in bytes, not string
-    fileSizeBytes: 2048000,
+    fileSize: 2048000,
     pageCount: 12,
-    published: true,
+    isPublished: true,
     featured: false,
     year: 2024,
     month: 1,
-    season: 'Winter',
+    season: 'winter',
     publicationDate: '2024-01-15',
     tags: ['community', 'updates'],
     storageRef: 'newsletters/newsletter-2024-01.pdf',
@@ -73,15 +78,38 @@ describe('Newsletter Management Store Integration', () => {
     updatedAt: '2024-01-15T00:00:00Z',
     createdBy: 'test-user',
     updatedBy: 'test-user',
-    hasExtractedText: true,
-    hasThumbnails: true,
-    searchableText: 'Sample extracted text content', // Correct property name
-    thumbnailUrl: 'thumb1.jpg', // Single URL, not array
+    searchableText: 'Sample extracted text content',
+    thumbnailUrl: 'thumb1.jpg',
     wordCount: 500,
     description: 'Sample newsletter description',
-    keywords: ['community', 'news'],
+    keywords: 'community, news',
     ...overrides
   });
+
+  /**
+   * Create invalid newsletter data for negative tests
+   */
+  const createInvalidNewsletter = (invalidField: string, invalidValue: unknown): Record<string, unknown> => {
+    const base = createValidNewsletter();
+    return {
+      ...base,
+      [invalidField]: invalidValue
+    };
+  };
+
+  /**
+   * Create batch of newsletters for performance tests
+   */
+  const createNewsletterBatch = (count: number): ContentManagementNewsletter[] => {
+    return Array.from({ length: count }, (_, index) =>
+      createValidNewsletter({
+        id: `newsletter-${index + 1}`,
+        filename: `newsletter-2024-${String(index + 1).padStart(2, '0')}.pdf`,
+        title: `Newsletter ${index + 1}`,
+        publicationDate: `2024-${String(Math.floor(index / 12) + 1).padStart(2, '0')}-15`
+      })
+    );
+  };
 
   beforeEach(() => {
     // Create fresh Pinia instance
@@ -156,8 +184,8 @@ describe('Newsletter Management Store Integration', () => {
   describe('Data Loading Operations', () => {
     it('should load newsletters successfully', async () => {
       const mockNewsletters = [
-        createMockNewsletter({ filename: 'test1.pdf' }),
-        createMockNewsletter({ filename: 'test2.pdf' }),
+        createValidNewsletter({ filename: 'test1.pdf' }),
+        createValidNewsletter({ filename: 'test2.pdf' }),
       ];
       mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
 
@@ -167,7 +195,7 @@ describe('Newsletter Management Store Integration', () => {
       expect(store.newsletters).toEqual(mockNewsletters);
       expect(mockFirebaseNewsletterService.loadAllNewslettersForAdmin).toHaveBeenCalledOnce();
       expect(mockLogger.info).toHaveBeenCalledWith('🔄 Loading ALL newsletters for admin (including unpublished)...');
-      expect(mockLogger.success).toHaveBeenCalledWith('✅ Loaded 2 newsletters (admin view) + reactive subscription active');
+      expect(mockLogger.success).toHaveBeenCalledWith('✅ Loaded 2/2 valid newsletters (admin view) + reactive subscription active');
     });
 
     it('should handle loading errors gracefully', async () => {
@@ -182,7 +210,7 @@ describe('Newsletter Management Store Integration', () => {
     });
 
     it('should update loading state during operations', async () => {
-      const mockNewsletters = [createMockNewsletter()];
+      const mockNewsletters = [createValidNewsletter()];
       mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
 
       const loadPromise = store.loadNewsletters();
@@ -193,13 +221,46 @@ describe('Newsletter Management Store Integration', () => {
     });
 
     it('should refresh newsletters by calling loadNewsletters', async () => {
-      const mockNewsletters = [createMockNewsletter()];
+      const mockNewsletters = [createValidNewsletter()];
       mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
 
       await store.refreshNewsletters();
 
       expect(mockFirebaseNewsletterService.loadAllNewslettersForAdmin).toHaveBeenCalledOnce();
       expect(store.newsletters).toEqual(mockNewsletters);
+    });
+
+    it('should validate newsletters and filter out invalid ones', async () => {
+      const validNewsletter = createValidNewsletter({ filename: 'valid.pdf' });
+      // Create a truly invalid newsletter object that fails validation
+      const invalidNewsletter = {
+        filename: '', // Invalid - empty filename
+        id: 'invalid-1',
+        // Missing required fields that validation expects
+      };
+      const mockNewsletters = [validNewsletter, invalidNewsletter];
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
+
+      await store.loadNewsletters();
+
+      expect(store.newsletters).toEqual([validNewsletter]); // Only valid newsletter
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Invalid newsletter data received from subscription',
+        expect.objectContaining({
+          id: 'invalid-1',
+          errors: expect.arrayContaining([expect.stringContaining('Filename is required')])
+        })
+      );
+    });
+
+    it('should handle empty newsletter arrays correctly', async () => {
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue([]);
+
+      await store.loadNewsletters();
+
+      expect(store.newsletters).toEqual([]);
+      expect(store.isLoading).toBe(false);
+      expect(mockLogger.success).toHaveBeenCalledWith('✅ Loaded 0/0 valid newsletters (admin view) + reactive subscription active');
     });
   });
 
@@ -219,8 +280,8 @@ describe('Newsletter Management Store Integration', () => {
 
     it('should handle subscription data updates', async () => {
       const mockNewsletters = [
-        createMockNewsletter({ filename: 'test1.pdf' }),
-        createMockNewsletter({ filename: 'test2.pdf' }),
+        createValidNewsletter({ filename: 'test1.pdf' }),
+        createValidNewsletter({ filename: 'test2.pdf' }),
       ];
       let subscriptionCallback: (newsletters: any[]) => void;
 
@@ -253,7 +314,7 @@ describe('Newsletter Management Store Integration', () => {
 
   describe('Newsletter Management Operations', () => {
     it('should manage current newsletter correctly', () => {
-      const mockNewsletter = createMockNewsletter({ filename: 'test.pdf' });
+      const mockNewsletter = createValidNewsletter({ filename: 'test.pdf' });
 
       store.setCurrentNewsletter(mockNewsletter);
       expect(store.currentNewsletter).toEqual(mockNewsletter);
@@ -263,8 +324,8 @@ describe('Newsletter Management Store Integration', () => {
     });
 
     it('should handle selection management operations', () => {
-      const newsletter1 = createMockNewsletter({ filename: 'test1.pdf' });
-      const newsletter2 = createMockNewsletter({ filename: 'test2.pdf' });
+      const newsletter1 = createValidNewsletter({ filename: 'test1.pdf' });
+      const newsletter2 = createValidNewsletter({ filename: 'test2.pdf' });
       const newsletters = [newsletter1, newsletter2];
 
       // Set selected newsletters
@@ -277,7 +338,7 @@ describe('Newsletter Management Store Integration', () => {
     });
 
     it('should handle individual newsletter selection toggle', () => {
-      const newsletter = createMockNewsletter({ filename: 'test.pdf' });
+      const newsletter = createValidNewsletter({ filename: 'test.pdf' });
 
       // Select newsletter
       store.selectNewsletter(newsletter);
@@ -291,8 +352,8 @@ describe('Newsletter Management Store Integration', () => {
 
     it('should select all filtered newsletters', () => {
       const newsletters = [
-        createMockNewsletter({ filename: 'test1.pdf' }),
-        createMockNewsletter({ filename: 'test2.pdf' }),
+        createValidNewsletter({ filename: 'test1.pdf' }),
+        createValidNewsletter({ filename: 'test2.pdf' }),
       ];
 
       // Setup newsletters in store
@@ -307,21 +368,21 @@ describe('Newsletter Management Store Integration', () => {
     beforeEach(() => {
       // Setup test newsletters with different properties
       const newsletters = [
-        createMockNewsletter({
+        createValidNewsletter({
           filename: 'newsletter-2024-01.pdf',
           title: 'January Newsletter 2024',
           year: 2024,
           season: 'Winter',
           month: 1
         }),
-        createMockNewsletter({
+        createValidNewsletter({
           filename: 'newsletter-2024-06.pdf',
           title: 'Summer Newsletter 2024',
           year: 2024,
           season: 'Summer',
           month: 6
         }),
-        createMockNewsletter({
+        createValidNewsletter({
           filename: 'newsletter-2023-12.pdf',
           title: 'December Newsletter 2023',
           year: 2023,
@@ -411,9 +472,9 @@ describe('Newsletter Management Store Integration', () => {
   describe('Selection Management', () => {
     beforeEach(() => {
       const newsletters = [
-        createMockNewsletter({ filename: 'test1.pdf' }),
-        createMockNewsletter({ filename: 'test2.pdf' }),
-        createMockNewsletter({ filename: 'test3.pdf' }),
+        createValidNewsletter({ filename: 'test1.pdf' }),
+        createValidNewsletter({ filename: 'test2.pdf' }),
+        createValidNewsletter({ filename: 'test3.pdf' }),
       ];
       store.newsletters = newsletters;
     });
@@ -585,10 +646,86 @@ describe('Newsletter Management Store Integration', () => {
     });
   });
 
-  describe('Computed Properties', () => {
+  describe('Concurrency Control & Race Conditions', () => {
+    it('should detect concurrent operations correctly', async () => {
+      const operationId1 = 'test-operation-1';
+      const operationId2 = 'test-operation-2';
+
+      // Start first operation
+      store.checkConcurrentOperation(operationId1);
+      expect(store.activeOperations.has(operationId1)).toBe(true);
+
+      // Attempt to start second operation with same ID should fail
+      expect(() => store.checkConcurrentOperation(operationId1)).toThrow(
+        'Operation blocked: Operation \'test-operation-1\' is already in progress'
+      );
+
+      // Different operation ID should work
+      store.checkConcurrentOperation(operationId2);
+      expect(store.activeOperations.has(operationId2)).toBe(true);
+
+      // Complete operations
+      store.completeConcurrentOperation(operationId1, true);
+      store.completeConcurrentOperation(operationId2, false);
+
+      expect(store.activeOperations.has(operationId1)).toBe(false);
+      expect(store.activeOperations.has(operationId2)).toBe(false);
+    });
+
+    it('should prevent concurrent newsletter loading operations', async () => {
+      const mockNewsletters = [createValidNewsletter()];
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
+      // Clear any previous subscription setup errors from other tests
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockReturnValue(vi.fn());
+
+      // Start first load operation
+      const firstLoad = store.loadNewsletters();
+
+      // Attempt second concurrent load operation
+      await expect(store.loadNewsletters()).rejects.toThrow(/Operation blocked:/);
+      // Note: The exact operation ID is generated with timestamp, so we use regex
+
+      // Wait for first operation to complete
+      await firstLoad;
+      expect(store.newsletters).toEqual(mockNewsletters);
+    });
+
+    it('should handle operation completion correctly', () => {
+      const operationId = 'test-completion';
+
+      store.checkConcurrentOperation(operationId);
+      expect(store.activeOperations.has(operationId)).toBe(true);
+
+      // Complete with success
+      store.completeConcurrentOperation(operationId, true);
+      expect(store.activeOperations.has(operationId)).toBe(false);
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        `Operation '${operationId}' completed`,
+        expect.objectContaining({
+          success: true
+        })
+      );
+    });
+
+    it('should handle operation failure logging', () => {
+      const operationId = 'test-failure';
+
+      store.checkConcurrentOperation(operationId);
+
+      // Complete with failure
+      store.completeConcurrentOperation(operationId, false);
+      expect(store.activeOperations.has(operationId)).toBe(false);
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        `Operation '${operationId}' completed`,
+        expect.objectContaining({
+          success: false
+        })
+      );
+    });
+  });  describe('Computed Properties', () => {
     beforeEach(() => {
       const newsletters = [
-        createMockNewsletter({
+        createValidNewsletter({
           filename: 'newsletter-2024-01.pdf',
           title: 'January Newsletter 2024',
           searchableText: 'Text content 1', // Has text
@@ -596,7 +733,7 @@ describe('Newsletter Management Store Integration', () => {
           fileSize: 1572864, // 1.5 MB in bytes
           published: true
         }),
-        createMockNewsletter({
+        createValidNewsletter({
           id: undefined, // Draft newsletter without ID
           filename: 'newsletter-2024-02.pdf',
           title: 'February Newsletter 2024',
@@ -605,7 +742,7 @@ describe('Newsletter Management Store Integration', () => {
           fileSize: 2203648, // 2.1 MB in bytes
           published: false
         }),
-        createMockNewsletter({
+        createValidNewsletter({
           filename: 'newsletter-2024-03.pdf',
           title: 'March Newsletter 2024',
           searchableText: 'Text content 3', // Has text
@@ -652,9 +789,9 @@ describe('Newsletter Management Store Integration', () => {
 
     it('should compute availableYears correctly', () => {
       const newsletters = [
-        createMockNewsletter({ year: 2024 }),
-        createMockNewsletter({ year: 2023 }),
-        createMockNewsletter({ year: 2024 }), // Duplicate year
+        createValidNewsletter({ year: 2024 }),
+        createValidNewsletter({ year: 2023 }),
+        createValidNewsletter({ year: 2024 }), // Duplicate year
       ];
       store.newsletters = newsletters;
 
@@ -663,9 +800,9 @@ describe('Newsletter Management Store Integration', () => {
 
     it('should compute availableSeasons correctly', () => {
       const newsletters = [
-        createMockNewsletter({ season: 'Winter' }),
-        createMockNewsletter({ season: 'Summer' }),
-        createMockNewsletter({ season: 'Winter' }), // Duplicate season
+        createValidNewsletter({ season: 'Winter' }),
+        createValidNewsletter({ season: 'Summer' }),
+        createValidNewsletter({ season: 'Winter' }), // Duplicate season
       ];
       store.newsletters = newsletters;
 
@@ -689,8 +826,8 @@ describe('Newsletter Management Store Integration', () => {
       // Setup initial subscription
       await store.loadNewsletters();
 
-      const initialNewsletters = [createMockNewsletter({ filename: 'existing.pdf' })];
-      const newNewsletter = createMockNewsletter({ filename: 'new.pdf' });
+      const initialNewsletters = [createValidNewsletter({ filename: 'existing.pdf' })];
+      const newNewsletter = createValidNewsletter({ filename: 'new.pdf' });
       const updatedNewsletters = [...initialNewsletters, newNewsletter];
 
       // Simulate real-time addition
@@ -711,11 +848,11 @@ describe('Newsletter Management Store Integration', () => {
 
       await store.loadNewsletters();
 
-      const originalNewsletter = createMockNewsletter({
+      const originalNewsletter = createValidNewsletter({
         filename: 'test.pdf',
         title: 'Original Title'
       });
-      const updatedNewsletter = createMockNewsletter({
+      const updatedNewsletter = createValidNewsletter({
         filename: 'test.pdf',
         title: 'Updated Title'
       });
@@ -739,8 +876,8 @@ describe('Newsletter Management Store Integration', () => {
 
       // Start with newsletters, then simulate deletion by providing empty array
       const initialNewsletters = [
-        createMockNewsletter({ filename: 'test1.pdf' }),
-        createMockNewsletter({ filename: 'test2.pdf' })
+        createValidNewsletter({ filename: 'test1.pdf' }),
+        createValidNewsletter({ filename: 'test2.pdf' })
       ];
 
       subscriptionCallback!(initialNewsletters);
@@ -764,8 +901,8 @@ describe('Newsletter Management Store Integration', () => {
 
       await store.loadNewsletters();
 
-      const newsletter1 = createMockNewsletter({ filename: 'test1.pdf' });
-      const newsletter2 = createMockNewsletter({ filename: 'test2.pdf' });
+      const newsletter1 = createValidNewsletter({ filename: 'test1.pdf' });
+      const newsletter2 = createValidNewsletter({ filename: 'test2.pdf' });
 
       // Set initial newsletters and select one
       subscriptionCallback!([newsletter1, newsletter2]);
@@ -775,7 +912,7 @@ describe('Newsletter Management Store Integration', () => {
       expect(store.selectedNewsletters[0].filename).toBe('test1.pdf');
 
       // Simulate real-time update that maintains the same newsletters
-      const updatedNewsletter1 = createMockNewsletter({
+      const updatedNewsletter1 = createValidNewsletter({
         filename: 'test1.pdf',
         title: 'Updated Title'
       });
