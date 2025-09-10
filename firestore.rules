@@ -10,12 +10,38 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+    
+    // Get user role from their profile document
+    function getUserRole(uid) {
+      let userProfile = get(/databases/$(database)/documents/userProfiles/$(uid));
+      return userProfile.data.role;
+    }
+    
+    // Check if user has required role or higher
+    function hasRole(uid, requiredRole) {
+      let userRole = getUserRole(uid);
+      let roleHierarchy = {
+        'reader': 0,
+        'contributor': 1, 
+        'editor': 2,
+        'admin': 3
+      };
+      return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+    }
 
     // User profiles collection
     match /userProfiles/{userId} {
-      allow read, write: if isOwner(userId);
-      // Allow any authenticated user to create their own profile
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+      
+      // Users can only create their own profile with 'reader' role
+      allow create: if isAuthenticated() && 
+        request.auth.uid == userId && 
+        request.resource.data.role == 'reader';
+      
+      // Users can update their own profile but CANNOT change role, permissions, or approval status
+      allow update: if isOwner(userId) && 
+        !resource.data.diff(request.resource.data).affectedKeys().hasAny(['role', 'permissions', 'isApproved', 'approvedBy', 'approvalDate']);
     }
 
     // Newsletter metadata collection - PUBLIC READ FOR PUBLISHED CONTENT
@@ -26,9 +52,9 @@ service cloud.firestore {
       // Allow authenticated users to read ALL newsletters (including unpublished)
       allow read: if isAuthenticated();
       
-      // Allow authenticated users to write (create/update/delete) newsletters
-      // In production, you'd check user role from the profile, but for now this works
-      allow write: if isAuthenticated();
+      // Only allow write access if user has admin or editor role
+      allow write: if isAuthenticated() && 
+        getUserRole(request.auth.uid) in ['admin', 'editor'];
     }
 
     // User-generated content collection
@@ -36,34 +62,36 @@ service cloud.firestore {
       // Allow anyone to read published content (for news page)
       allow read: if resource.data.status == 'published';
       
-      // Allow authenticated users to read ALL content (for admin interface)
-      allow read: if isAuthenticated();
+      // Allow authenticated users with editor+ role to read ALL content (for admin interface)
+      allow read: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
       
       // Allow authenticated users to create content (they must be the author)
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.authorId;
       
-      // Allow authors to update their own content, or authenticated users to update status
-      allow update: if isAuthenticated() && 
-        (request.auth.uid == resource.data.authorId || 
-         request.auth.uid == request.resource.data.reviewedBy);
+      // Allow authors to update their own content (but not status), or editors+ to update status
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == resource.data.authorId && 
+         !resource.data.diff(request.resource.data).affectedKeys().hasAny(['status', 'reviewedBy'])) ||
+        hasRole(request.auth.uid, 'editor')
+      );
       
-      // Allow authenticated users to delete content
-      allow delete: if isAuthenticated();
+      // Allow editors+ to delete content
+      allow delete: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
 
-    // Newsletter issues collection
+    // Newsletter issues collection - Admin/Editor only
     match /newsletterIssues/{issueId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
 
-    // Content categories collection
+    // Content categories collection - Admin/Editor only
     match /contentCategories/{categoryId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
 
-    // Approval queue collection
+    // Approval queue collection - Admin/Editor only
     match /approvalQueue/{queueId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
   }
 }

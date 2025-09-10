@@ -20,7 +20,8 @@
     "extract-metadata-simple": "node scripts/extract-metadata-simple.js",
     "generate-thumbnails": "node scripts/generate-thumbnails.js",
     "setup-newsletters": "npm run extract-metadata && npm run generate-thumbnails",
-    "test-newsletter-archive": "node scripts/test-newsletter-archive.js"
+    "test-newsletter-archive": "node scripts/test-newsletter-archive.js",
+    "create-admin": "node scripts/secure-admin-creator.js"
   },
   "dependencies": {
     "@firebase/auth": "^1.11.0",

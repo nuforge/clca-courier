@@ -15,6 +15,7 @@ import {
   type UserContent,
   type UserProfile,
 } from '../services/firebase-firestore.service';
+import { type UserRole } from '../composables/useRoleAuth';
 import {
   firebaseStorageService,
   type FileUploadProgress,
@@ -431,13 +432,21 @@ export function useFirebaseUserProfile() {
   // Create user profile
   const createUserProfile = async (profile: Omit<UserProfile, 'createdAt' | 'lastLoginAt'>) => {
     try {
-      await firestoreService.createUserProfile(profile);
-      userProfile.value = {
+      // SECURITY: Force role to 'reader' for new users - admin roles must be set server-side
+      const secureProfile = {
         ...profile,
+        role: 'reader' as UserRole, // Always default to reader
+        permissions: ['read'], // Basic permissions only
+        isApproved: false, // Require approval
+      };
+
+      await firestoreService.createUserProfile(secureProfile);
+      userProfile.value = {
+        ...secureProfile,
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
       };
-      logger.success('User profile created:', profile.uid);
+      logger.success('User profile created with reader role:', profile.uid);
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to create profile';
       logger.error('Failed to create user profile:', err);
