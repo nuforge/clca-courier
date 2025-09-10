@@ -14,14 +14,14 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Firebase configuration (same as in your app)
+// Firebase configuration - use environment variables
 const firebaseConfig = {
-  apiKey: 'AIzaSyBnBOmxFNu4gGpW7nSjmm5oY9RMcT6RzXs',
-  authDomain: 'clca-courier.firebaseapp.com',
-  projectId: 'clca-courier',
-  storageBucket: 'clca-courier.appspot.com',
-  messagingSenderId: '1030796606399',
-  appId: '1:1030796606399:web:df8e2a2d0c89b6b8f4b5a1',
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
