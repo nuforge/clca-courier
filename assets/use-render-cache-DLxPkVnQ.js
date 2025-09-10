@@ -1,0 +1,1 @@
+function r(){let c=Object.create(null);return{getCache:(e,t)=>c[e]===void 0?c[e]=typeof t=="function"?t():t:c[e],setCache(e,t){c[e]=t},hasCache(e){return Object.hasOwnProperty.call(c,e)},clearCache(e){e!==void 0?delete c[e]:c=Object.create(null)}}}export{r as u};
