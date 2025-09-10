@@ -22,7 +22,7 @@ fi
 echo "✅ Checking project structure..."
 
 # Verify required files exist
-required_files=("quasar.config.ts" ".github/workflows/deploy.yml" "src/main.ts")
+required_files=("quasar.config.ts" ".github/workflows/deploy.yml" "src/App.vue")
 for file in "${required_files[@]}"; do
     if [ ! -f "$file" ]; then
         echo "❌ Missing required file: $file"

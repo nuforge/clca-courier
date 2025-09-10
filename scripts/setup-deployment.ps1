@@ -20,7 +20,7 @@ if (-not (Test-Path ".git")) {
 Write-Host "✅ Checking project structure..." -ForegroundColor Green
 
 # Verify required files exist
-$requiredFiles = @("quasar.config.ts", ".github/workflows/deploy.yml", "src/main.ts")
+$requiredFiles = @("quasar.config.ts", ".github/workflows/deploy.yml", "src/App.vue")
 foreach ($file in $requiredFiles) {
     if (-not (Test-Path $file)) {
         Write-Host "❌ Missing required file: $file" -ForegroundColor Red
