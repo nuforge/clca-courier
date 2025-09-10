@@ -57,6 +57,17 @@ const missingFields = requiredFields.filter(
 
 if (missingFields.length > 0) {
   console.error('Missing required Firebase configuration fields:', missingFields);
+
+  // Provide helpful error message for different environments
+  if (typeof window !== 'undefined') {
+    // Browser environment
+    console.error('🔥 Firebase Configuration Error:');
+    console.error('This usually means:');
+    console.error('1. Local development: Check your .env file exists and has all VITE_FIREBASE_* variables');
+    console.error('2. GitHub Pages: Check repository secrets are configured in Settings > Secrets and variables > Actions');
+    console.error('3. Other deployment: Ensure environment variables are set');
+  }
+
   throw new Error(`Firebase configuration incomplete. Missing: ${missingFields.join(', ')}`);
 }
 

@@ -33,18 +33,20 @@
 
 ## 📋 Required GitHub Secrets
 
-When you upload to GitHub, add these secrets in repository settings:
+⚠️ **CRITICAL**: Add these secrets in repository settings before deployment works:
 
 ```
-VITE_FIREBASE_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN  
-VITE_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID
-VITE_FIREBASE_APP_ID
-VITE_FIREBASE_MEASUREMENT_ID
-VITE_PDFTRON_LICENSE_KEY (optional)
+VITE_FIREBASE_API_KEY=AIzaSyACwH9AJZlSYVPdA4dNNb8G3iwIiFto9oY
+VITE_FIREBASE_AUTH_DOMAIN=clca-courier-27aed.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=clca-courier-27aed
+VITE_FIREBASE_STORAGE_BUCKET=clca-courier-27aed.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=1008202516083
+VITE_FIREBASE_APP_ID=1:1008202516083:web:8b846c50c0a00c3e198c06
+VITE_FIREBASE_MEASUREMENT_ID=G-ZEE8YT3ZEN
+VITE_PDFTRON_LICENSE_KEY=demo:1755018916059:6190cc190300000000802eeb6de57ad467f2a02c3d73841559f864c933
 ```
+
+**How to add**: Repository Settings → Secrets and variables → Actions → New repository secret
 
 ## 🚀 Deployment Steps
 
