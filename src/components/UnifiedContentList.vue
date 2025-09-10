@@ -27,7 +27,8 @@ const props = withDefaults(defineProps<Props>(), {
   emptyIcon: 'search_off'
 });
 
-const { items, variant, showActions, emptyMessage, emptyIcon } = props;
+// DON'T destructure props - it breaks reactivity!
+// Use props.items, props.variant, etc. directly in template
 
 const emit = defineEmits<Emits>();
 
@@ -71,18 +72,18 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
 
 <template>
   <!-- Grid Layout for Card/Featured Variants -->
-  <div v-if="variant === 'card' || variant === 'featured'" class="row q-col-gutter-md">
+  <div v-if="props.variant === 'card' || props.variant === 'featured'" class="row q-col-gutter-md">
     <div
-      v-for="item in items"
+      v-for="item in props.items"
       :key="item.id"
-      :class="variant === 'featured' ? 'col-12 col-md-6 col-lg-4' : 'col-12 col-md-6'"
+      :class="props.variant === 'featured' ? 'col-12 col-md-6 col-lg-4' : 'col-12 col-md-6'"
     >
       <!-- News Item -->
       <NewsItemCard
         v-if="isNewsItem(item)"
         :item="item"
-        :variant="variant"
-        :show-actions="showActions ?? false"
+        :variant="props.variant"
+        :show-actions="props.showActions ?? false"
         @click="handleItemClick"
         @edit="handleItemEdit"
         @delete="handleItemDelete"
@@ -92,8 +93,8 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
       <ClassifiedAdCard
         v-else-if="isClassifiedAd(item)"
         :item="item"
-        :variant="variant"
-        :show-actions="showActions ?? false"
+        :variant="props.variant"
+        :show-actions="props.showActions ?? false"
         @click="handleItemClick"
         @edit="handleItemEdit"
         @delete="handleItemDelete"
@@ -101,11 +102,11 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
     </div>
 
     <!-- Empty State for Grid -->
-    <div v-if="items.length === 0" class="col-12">
+    <div v-if="props.items.length === 0" class="col-12">
       <q-card :class="cardClasses">
         <q-card-section class="text-center q-py-xl">
-          <q-icon :name="emptyIcon" size="48px" :class="greyTextClass" />
-          <div class="text-h6 q-mt-md" :class="greyTextClass">{{ emptyMessage }}</div>
+          <q-icon :name="props.emptyIcon" size="48px" :class="greyTextClass" />
+          <div class="text-h6 q-mt-md" :class="greyTextClass">{{ props.emptyMessage }}</div>
           <div class="text-body2" :class="greyTextClass">
             Try adjusting your search or filter criteria
           </div>
@@ -116,8 +117,8 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
 
   <!-- List Layout -->
   <q-card v-else :class="cardClasses">
-    <q-card-section v-if="items.length === 0" class="text-center q-py-xl">
-      <div class="text-h6 q-mt-md" :class="greyTextClass">{{ emptyMessage }}</div>
+    <q-card-section v-if="props.items.length === 0" class="text-center q-py-xl">
+      <div class="text-h6 q-mt-md" :class="greyTextClass">{{ props.emptyMessage }}</div>
       <div class="text-body2" :class="greyTextClass">
         Try adjusting your search or filter criteria
       </div>
@@ -125,13 +126,13 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
 
     <q-card-section v-else class="q-pa-none">
       <q-list separator>
-        <template v-for="item in items" :key="item.id">
+        <template v-for="item in props.items" :key="item.id">
           <!-- News Item -->
           <NewsItemCard
             v-if="isNewsItem(item)"
             :item="item"
             variant="list"
-            :show-actions="showActions ?? false"
+            :show-actions="props.showActions ?? false"
             @click="handleItemClick"
             @edit="handleItemEdit"
             @delete="handleItemDelete"
@@ -142,7 +143,7 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
             v-else-if="isClassifiedAd(item)"
             :item="item"
             variant="list"
-            :show-actions="showActions ?? false"
+            :show-actions="props.showActions ?? false"
             @click="handleItemClick"
             @edit="handleItemEdit"
             @delete="handleItemDelete"

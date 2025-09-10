@@ -16,47 +16,8 @@ const { isEditor } = useRoleAuth();
 const route = useRoute();
 const router = useRouter();
 
-// Theme system for consistent icons and colors
+// Theme system for consistent icons and colors - PROPER ARCHITECTURE
 const { getContentIcon, getCategoryIcon, colors } = useSiteTheme();
-
-// Helper function to get the right icon based on item type
-const getItemIcon = (item: NewsItem | ClassifiedAd) => {
-  if (isClassifiedAd(item)) {
-    // For classified ads, get the specific category icon
-    const categoryIcon = getCategoryIcon('classified', item.category);
-    return categoryIcon.icon ? categoryIcon : getContentIcon('classified');
-  } else {
-    // For news items, map categories to their parent content types
-    const categoryToContentType: Record<string, string> = {
-      // Event categories
-      'meeting': 'event',
-      'social': 'event',
-      'maintenance': 'event',
-
-      // Article categories
-      'news': 'article',
-      'community': 'article',
-      'recreation': 'article',
-
-      // Announcement categories (use announcement, not article)
-      'announcement': 'announcement'
-    };
-
-    const contentType = categoryToContentType[item.category] || 'announcement';  // Default to announcement for news items
-    const categoryIcon = getCategoryIcon(contentType, item.category);
-    return categoryIcon.icon ? categoryIcon : getContentIcon(contentType);
-  }
-};
-
-// Helper function to get the right color based on item type
-const getItemColor = (item: NewsItem | ClassifiedAd) => {
-  return getItemIcon(item).color;
-};
-
-// Helper function for formatting category names
-const formatCategoryName = (category: string): string => {
-  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
-};
 
 // Loading state from store
 const isLoading = computed(() => siteStore.isLoading);
@@ -80,11 +41,18 @@ watch(viewMode, (newMode, oldMode) => {
   logger.debug('View mode changed:', { from: oldMode, to: newMode });
 }, { immediate: true });
 
-// Categories for filtering - following copilot instructions: Dynamic content discovery
-const allCategories = computed(() => {
-  const newsCategories = ['news', 'announcement', 'event'];
-  const classifiedCategories = ['for-sale', 'services', 'wanted', 'free'];
-  return [...newsCategories, ...classifiedCategories];
+// Dynamic categories from actual data - following copilot instructions: Dynamic content discovery
+const allCategories = computed((): string[] => {
+  const categories = new Set<string>();
+
+  // Get categories from actual data
+  [...siteStore.newsItems, ...siteStore.classifieds].forEach(item => {
+    if (item.category) {
+      categories.add(item.category);
+    }
+  });
+
+  return Array.from(categories).sort();
 });
 
 // Unified content items - following copilot instructions: Unified Newsletter types (adapting pattern)
@@ -209,6 +177,24 @@ function formatDate(dateString: string): string {
   return formatDateUtil(dateString, 'LONG');
 }
 
+// Helper functions using PROPER THEME ARCHITECTURE
+function getItemIcon(item: NewsItem | ClassifiedAd) {
+  if (isClassifiedAd(item)) {
+    return getCategoryIcon('classified', item.category);
+  } else {
+    // Let theme system handle content type mapping from category
+    return getContentIcon(item.category);
+  }
+}
+
+function getItemColor(item: NewsItem | ClassifiedAd) {
+  return getItemIcon(item).color;
+}
+
+function formatCategoryName(category: string): string {
+  return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/-/g, ' ');
+}
+
 // Initialize content - following copilot instructions: Async promise handling
 onMounted((): void => {
   // Set initial filter from URL query params
@@ -260,7 +246,7 @@ watch(contentType, (newType: string) => {
                   </p>
                 </div>
                 <div class="col-auto">
-                  <q-btn :color="colors.primary" icon="create" label="Submit Content"
+                  <q-btn :color="colors.primary" :icon="UI_ICONS.create" label="Submit Content"
                     @click="$router.push('/contribute/submit')" class="q-mr-sm" />
                   <q-btn v-if="isAdmin" :color="colors.secondary" :icon="getContentIcon('announcement').icon" label="Manage Content"
                     @click="$router.push('/admin/content')" outline />
@@ -362,7 +348,7 @@ watch(contentType, (newType: string) => {
                 <div class="col">
                   <q-btn
                     flat
-                    color="primary"
+                    :color="colors.primary"
                     :icon="UI_ICONS.clear"
                     label="Clear All Filters"
                     @click="clearFilters"
@@ -370,7 +356,7 @@ watch(contentType, (newType: string) => {
                   />
                   <q-chip
                     v-if="filteredContent.length !== unifiedContent.length"
-                    color="primary"
+                    :color="colors.primary"
                     text-color="white"
                     class="q-ml-sm"
                   >
@@ -380,7 +366,7 @@ watch(contentType, (newType: string) => {
                 <div class="col-auto">
                   <q-btn-toggle
                     v-model="viewMode"
-                    toggle-color="primary"
+                    :toggle-color="colors.primary"
                     :options="[
                       { label: 'List', value: 'list', icon: 'view_list' },
                       { label: 'Cards', value: 'card', icon: 'view_module' }
@@ -394,6 +380,7 @@ watch(contentType, (newType: string) => {
 
           <!-- Featured Content Section -->
           <div v-if="!isLoading && featuredContent.length > 0" class="q-mb-xl">
+            Featured Content Section
             <div class="text-h5 q-mb-md">Featured Content</div>
             <UnifiedContentList
               :items="featuredContent"
@@ -404,7 +391,8 @@ watch(contentType, (newType: string) => {
 
           <!-- Loading State -->
           <div v-if="isLoading" class="text-center q-py-xl">
-            <q-spinner-dots size="50px" color="primary" />
+            Loading State
+            <q-spinner-dots size="50px" :color="colors.primary" />
             <div class="text-h6 q-mt-md">Loading content...</div>
           </div>
 
@@ -414,7 +402,6 @@ watch(contentType, (newType: string) => {
               {{ contentType === 'news' ? 'News & Updates' :
                  contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
             </div>
-
             <UnifiedContentList
               :items="filteredContent"
               :variant="viewMode"
@@ -426,6 +413,8 @@ watch(contentType, (newType: string) => {
             <!-- Debug info -->
             <div class="q-mt-md text-caption text-grey">
               Debug: {{ filteredContent.length }} items, viewMode: {{ viewMode }}
+              <br>Categories: {{ filteredContent.map(item => item.category).join(', ') }}
+              <br>Content Types: {{ filteredContent.map(item => item.contentType).join(', ') }}
             </div>
           </div>
         </div>

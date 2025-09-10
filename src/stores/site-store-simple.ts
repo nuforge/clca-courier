@@ -23,6 +23,7 @@ export const useSiteStore = defineStore('site', () => {
   // Data state
   const archivedIssues = ref<Record<string, unknown>[]>([]);
   const newsItems = ref<NewsItem[]>([]);
+  const realClassifieds = ref<ClassifiedAd[]>([]);
   const stats = ref<CommunityStats>({
     households: 0,
     lakes: 0,
@@ -58,80 +59,26 @@ export const useSiteStore = defineStore('site', () => {
       }))
   );
 
-  // Filter newsItems to get classifieds (announcements that look like classifieds)
-  const classifieds = computed(() =>
-    newsItems.value
-      .filter((item) =>
-        item.category === 'announcement' &&
-        (item.summary.toLowerCase().includes('sale') ||
-         item.summary.toLowerCase().includes('wanted') ||
-         item.summary.toLowerCase().includes('free') ||
-         item.title.toLowerCase().includes('for sale'))
-      )
-      .map((item) => {
-        const classified: Record<string, unknown> = {
-          id: item.id,
-          title: item.title,
-          description: item.content.length > 100 ? item.content.substring(0, 100) + '...' : item.content,
-          datePosted: item.date,
-          category: 'for-sale' as const,
-          contact: {
-            name: item.author,
-          },
-        };
-
-        if (item.featured) {
-          classified.featured = item.featured;
-        }
-
-        // Don't add price property at all if we don't have one
-        // classified.price could be added later when we extract from content
-
-        return classified as unknown as ClassifiedAd;
-      })
-  );  const upcomingEvents = computed(() => {
-    // Filter newsItems for events and convert to Event format
+  // Real classifieds from Firebase
+  const classifieds = computed(() => realClassifieds.value);  const upcomingEvents = computed(() => {
+    // Just show recent newsItems as "events" - keep it simple
     return newsItems.value
-      .filter((item) => item.category === 'event')
-      .filter((item) => new Date(item.date) >= new Date())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(0, 5)
       .map((item) => ({
         id: item.id,
         title: item.title,
         description: item.content,
         date: item.date,
-        time: 'TBD', // Could extract from content if needed
+        time: 'TBD',
         organizer: item.author,
       }));
   });
 
   const recentClassifieds = computed(() => {
-    // Filter newsItems for classifieds/announcements that look like classifieds
-    return newsItems.value
-      .filter((item) => item.category === 'announcement' || item.summary.toLowerCase().includes('sale') || item.summary.toLowerCase().includes('wanted'))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 4)
-      .map((item) => {
-        const classified: Record<string, unknown> = {
-          id: item.id,
-          title: item.title,
-          description: item.content.length > 100 ? item.content.substring(0, 100) + '...' : item.content,
-          datePosted: item.date,
-          category: 'for-sale' as const,
-          contact: {
-            name: item.author,
-          },
-        };
-
-        if (item.featured) {
-          classified.featured = item.featured;
-        }
-
-        // Don't add price property at all if we don't have one
-
-        return classified as unknown as ClassifiedAd;
-      });
+    // Use real classifieds sorted by date
+    return realClassifieds.value
+      .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+      .slice(0, 4);
   });  // Get the latest issue (most recent)
   const latestIssue = computed(() => {
     const issues = archivedIssuesComputed.value;
@@ -155,14 +102,14 @@ export const useSiteStore = defineStore('site', () => {
   async function loadInitialData() {
     isLoading.value = true;
     try {
-      // Load synchronous functions first
-      loadClassifieds();
+      // Load events (still computed from newsItems)
       loadEvents();
 
       // Load async functions
       await Promise.all([
         loadArchivedIssues(),
         loadNewsItems(),
+        loadClassifieds(), // Now async and loads real data
         loadStats(),
       ]);
     } catch (error) {
@@ -221,9 +168,22 @@ export const useSiteStore = defineStore('site', () => {
     cleanup();
   });
 
-  function loadClassifieds() {
-    // Classifieds are now computed from newsItems - no separate loading needed
-    logger.debug('Classifieds are computed from newsItems - no loading required');
+  async function loadClassifieds() {
+    try {
+      logger.debug('Loading real classifieds from Firebase...');
+      const userContent = await firestoreService.getPublishedContent();
+
+      // Convert classified content to ClassifiedAd objects
+      const classifiedContent = userContent
+        .filter(content => content.type === 'classified')
+        .map(content => firestoreService.convertUserContentToClassifiedAd(content));
+
+      realClassifieds.value = classifiedContent;
+      logger.debug('Loaded classifieds:', { count: classifiedContent.length, categories: classifiedContent.map(c => c.category) });
+    } catch (error) {
+      logger.error('Error loading classifieds:', error);
+      realClassifieds.value = [];
+    }
   }
 
   function loadEvents() {
@@ -255,8 +215,8 @@ export const useSiteStore = defineStore('site', () => {
     await loadNewsItems();
   }
 
-  function refreshClassifieds() {
-    loadClassifieds();
+  async function refreshClassifieds() {
+    await loadClassifieds();
   }
 
   function refreshEvents() {
