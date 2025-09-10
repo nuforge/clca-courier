@@ -74,9 +74,11 @@ export default defineConfig({
         maxThreads: 4
       }
     },
-    // Mock configuration
-    deps: {
-      inline: ['@vue', '@vueuse', 'vue-demi', 'quasar']
+    // Mock configuration - Updated to fix deprecation warning
+    server: {
+      deps: {
+        inline: ['@vue', '@vueuse', 'vue-demi', 'quasar']
+      }
     }
   },
   resolve: {
