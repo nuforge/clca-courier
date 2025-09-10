@@ -25,11 +25,32 @@ export function parseDateOnly(dateString: string): Date | null {
 
   const parts = dateString.trim().split('-').map(Number);
   if (parts.length === 3 && !parts.some(p => isNaN(p))) {
-    // Create date in local timezone to avoid UTC offset issues
     const year = parts[0] as number;
     const month = parts[1] as number;
     const day = parts[2] as number;
-    return new Date(year, month - 1, day); // month is 0-indexed
+
+    // CRITICAL: Validate date components before creating Date object
+    if (month < 1 || month > 12) {
+      return null;
+    }
+    if (day < 1 || day > 31) {
+      return null;
+    }
+    if (year < 1000 || year > 9999) {
+      return null;
+    }
+
+    // Create date and verify it didn't roll over
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+
+    // Check if the date rolled over (e.g., Feb 30 -> Mar 2)
+    if (date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day) {
+      return null;
+    }
+
+    return date;
   }
   return null;
 }
@@ -121,11 +142,37 @@ export function normalizeDate(input: DateInput): Date | null {
       if (dateOnlyPattern.test(input.trim())) {
         const parts = input.trim().split('-').map(Number);
         if (parts.length === 3 && !parts.some(p => isNaN(p))) {
-          // Create date in local timezone to avoid UTC offset issues
           const year = parts[0] as number;
           const month = parts[1] as number;
           const day = parts[2] as number;
-          return new Date(year, month - 1, day); // month is 0-indexed
+
+          // CRITICAL: Validate date components before creating Date object
+          // Reject obviously invalid dates that would roll over
+          if (month < 1 || month > 12) {
+            logger.warn('Invalid month in date string:', input);
+            return null;
+          }
+          if (day < 1 || day > 31) {
+            logger.warn('Invalid day in date string:', input);
+            return null;
+          }
+          if (year < 1000 || year > 9999) {
+            logger.warn('Invalid year in date string:', input);
+            return null;
+          }
+
+          // Create date and verify it didn't roll over
+          const date = new Date(year, month - 1, day); // month is 0-indexed
+
+          // CRITICAL: Check if the date rolled over (e.g., Feb 30 -> Mar 2)
+          if (date.getFullYear() !== year ||
+              date.getMonth() !== month - 1 ||
+              date.getDate() !== day) {
+            logger.warn('Date rolled over, rejecting:', { input, created: date.toISOString() });
+            return null;
+          }
+
+          return date;
         }
       }
 
