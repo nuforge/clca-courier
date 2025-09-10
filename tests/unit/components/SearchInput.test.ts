@@ -9,15 +9,15 @@ const mockQuasarComponents = vi.hoisted(() => ({
     name: 'QInput',
     template: `
       <div class="q-input"
-           :class="$attrs.containerClass || $attrs['container-class']"
-           :data-dark="$attrs.dark"
-           :data-dense="$attrs.dense"
-           :data-standout="$attrs.standout">
+           :class="[containerClass, $attrs.class]"
+           :data-dark="dark === true ? 'true' : undefined"
+           :data-dense="dense === true ? 'true' : undefined"
+           :data-standout="standout === true ? 'true' : undefined">
         <slot name="prepend" v-if="$slots.prepend"></slot>
         <input
-          :value="$attrs.modelValue || $attrs['model-value']"
-          :placeholder="$attrs.placeholder"
-          :class="$attrs.inputClass || $attrs['input-class']"
+          :value="modelValue"
+          :placeholder="placeholder"
+          :class="inputClass"
           @input="$emit('update:model-value', $event.target.value)"
           data-testid="search-input"
         />
