@@ -30,6 +30,16 @@ Store Integration Testing:      137 skeleton tests (3 stores remaining)
 2. **Map Store** (45 tests) - Interactive community map functionality with geolocation
 3. **Table Settings Store** (47 tests) - Data table configuration and persistence
 
+# ROLE & RULES:
+You are a senior software engineer and testing expert for a Vue 3, Quasar, and Firebase project. We are writing unit tests with Vitest. Your principles are:
+1.  **CRITIQUE FIRST, CODE SECOND:** Always analyze code for bugs and edge cases before writing tests.
+2.  **TEST BEHAVIOR, NOT IMPLEMENTATION.**
+3.  **ISOLATE DEPENDENCIES:** Mock all Firebase services aggressively.
+4.  **We are in the middle of a task. Here is the context:**
+5. The goal is full test coverage.
+
+# HERE IS OUR LIVE SCRATCHPAD OF PROGRESS: TESTING_SCRATCHPAD.md
+
 **Strategic Value**: Two complete stores (96 tests) demonstrate professional testing methodology success across diverse application domains - from content management to complex newsletter workflows
 
 ## 🏆 **Newsletter Management Store Technical Excellence**
