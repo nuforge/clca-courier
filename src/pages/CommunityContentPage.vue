@@ -190,15 +190,31 @@ const filteredContent = computed(() => {
     if (sortBy.value === 'date') {
       const dateA = 'date' in a ? a.date : 'datePosted' in a ? a.datePosted : '';
       const dateB = 'date' in b ? b.date : 'datePosted' in b ? b.datePosted : '';
-      comparison = sortByDateDesc(dateA, dateB);
+
+      // Use appropriate sort function based on sort order
+      if (sortOrder.value === 'desc') {
+        comparison = sortByDateDesc(dateA, dateB); // newest first
+      } else {
+        comparison = -sortByDateDesc(dateA, dateB); // oldest first (reverse of desc)
+      }
     } else if (sortBy.value === 'title') {
       comparison = a.title.localeCompare(b.title);
+
+      // Apply sort order for title sorting
+      if (sortOrder.value === 'desc') {
+        comparison = -comparison; // Z to A
+      }
+      // else keep as-is for asc (A to Z)
     }
 
-    return sortOrder.value === 'desc' ? comparison : -comparison;
+    return comparison;
   });
 
-  logger.debug('Filtered content result:', { filteredItems: sorted.length });
+  logger.debug('Filtered content result:', {
+    filteredItems: sorted.length,
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value
+  });
   return sorted;
 });
 

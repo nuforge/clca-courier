@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const siteStore = useSiteStore();
-const { getCategoryIcon } = useSiteTheme();
+const { getCategoryIcon, getContentIcon } = useSiteTheme();
 
 // Helper function for formatting category names
 const formatCategoryName = (category: string): string => {
@@ -56,39 +56,14 @@ const greyTextClass = computed(() =>
   siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
 );
 
-// Get category configuration using the established theme system
+// Get category configuration using the SAME LOGIC as the working dialog
 const getCategoryConfig = computed(() => {
-  // Use the appropriate content type based on the actual content
-  if (isNewsItem(props.item)) {
-    // For news items, determine content type from category
-    const contentTypeMap: Record<string, string> = {
-      'news': 'article',
-      'announcement': 'announcement',
-      'event': 'event'
-    };
-    const contentType = contentTypeMap[props.item.category] || 'article';
-
-    // Map category to theme configuration key
-    let themeCategory: string = props.item.category;
-    if (props.item.category === 'news' && contentType === 'article') {
-      themeCategory = 'news'; // article.news
-    } else if (props.item.category === 'announcement') {
-      themeCategory = 'community'; // announcement.community - default mapping
-    }
-
-    return getCategoryIcon(contentType, themeCategory);
+  if (isClassifiedAd(props.item)) {
+    // Use the same logic as CommunityContentPage dialog
+    return getCategoryIcon('classified', props.item.category);
   } else {
-    // For classified ads, map kebab-case to camelCase theme keys
-    const classifiedCategoryMap: Record<string, string> = {
-      'for-sale': 'forSale',
-      'services': 'services',
-      'wanted': 'wanted',
-      'free': 'free',
-      'housing': 'housing'
-    };
-
-    const themeCategory = classifiedCategoryMap[props.item.category] || 'forSale';
-    return getCategoryIcon('classified', themeCategory);
+    // Use the same logic as CommunityContentPage dialog - use getContentIcon for news items
+    return getContentIcon(props.item.category);
   }
 });
 
