@@ -774,8 +774,8 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       ];
 
       // Manually modify the second newsletter to be a draft (no ID) and no searchable text
-      newsletters[1] = { ...newsletters[1], id: '', searchableText: '' };
-      newsletters[2] = { ...newsletters[2], thumbnailUrl: '' };
+      newsletters[1] = { ...newsletters[1], id: '', searchableText: '' } as ContentManagementNewsletter;
+      newsletters[2] = { ...newsletters[2], thumbnailUrl: '' } as ContentManagementNewsletter;
 
       store.newsletters = newsletters;
     });
