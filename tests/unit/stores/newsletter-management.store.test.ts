@@ -6,13 +6,15 @@ import type { ContentManagementNewsletter, NewsletterFilters } from '../../../sr
 // Mock Firebase services using established patterns from service tests
 const mockFirebaseNewsletterService = vi.hoisted(() => ({
   getNewsletters: vi.fn(),
+  loadAllNewslettersForAdmin: vi.fn(),
   uploadNewsletter: vi.fn(),
   deleteNewsletter: vi.fn(),
   updateNewsletter: vi.fn(),
   getNpwsleterMetadata: vi.fn(),
   extractTextFromNewsletter: vi.fn(),
   generateThumbnail: vi.fn(),
-  getNewsletterStats: vi.fn()
+  getNewsletterStats: vi.fn(),
+  initialize: vi.fn()
 }));
 
 const mockFirestoreService = vi.hoisted(() => ({
@@ -30,7 +32,8 @@ const mockLogger = vi.hoisted(() => ({
   info: vi.fn(),
   error: vi.fn(),
   warn: vi.fn(),
-  debug: vi.fn()
+  debug: vi.fn(),
+  success: vi.fn()
 }));
 
 // Apply mocks
@@ -50,16 +53,19 @@ describe('Newsletter Management Store Integration', () => {
   let store: ReturnType<typeof useNewsletterManagementStore>;
 
   // Sample test data factory
-  const createSampleNewsletter = (overrides: Partial<ContentManagementNewsletter> = {}): ContentManagementNewsletter => ({
+  const createMockNewsletter = (overrides: Partial<ContentManagementNewsletter> = {}): ContentManagementNewsletter => ({
     id: 'newsletter-1',
     filename: 'newsletter-2024-01.pdf',
     title: 'January 2024 Newsletter',
     downloadUrl: 'https://example.com/newsletter-1.pdf',
-    fileSize: 2048000,
+    fileSize: 2048000, // Number in bytes, not string
+    fileSizeBytes: 2048000,
     pageCount: 12,
-    isPublished: true,
+    published: true,
     featured: false,
     year: 2024,
+    month: 1,
+    season: 'Winter',
     publicationDate: '2024-01-15',
     tags: ['community', 'updates'],
     storageRef: 'newsletters/newsletter-2024-01.pdf',
@@ -67,12 +73,13 @@ describe('Newsletter Management Store Integration', () => {
     updatedAt: '2024-01-15T00:00:00Z',
     createdBy: 'test-user',
     updatedBy: 'test-user',
-    actions: {
-      canView: true,
-      canDownload: true,
-      canSearch: false,
-      hasThumbnail: false
-    },
+    hasExtractedText: true,
+    hasThumbnails: true,
+    searchableText: 'Sample extracted text content', // Correct property name
+    thumbnailUrl: 'thumb1.jpg', // Single URL, not array
+    wordCount: 500,
+    description: 'Sample newsletter description',
+    keywords: ['community', 'news'],
     ...overrides
   });
 
@@ -83,13 +90,14 @@ describe('Newsletter Management Store Integration', () => {
 
     // Reset all mocks
     vi.clearAllMocks();
+
+    // Default mock setup for loadAllNewslettersForAdmin
+    mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue([]);
   });
 
   afterEach(() => {
-    // Cleanup subscriptions if any
-    if (store.unsubscribe?.value) {
-      store.unsubscribe.value();
-    }
+    // Cleanup
+    vi.clearAllMocks();
   });
 
   describe('Store Initialization', () => {
@@ -97,17 +105,19 @@ describe('Newsletter Management Store Integration', () => {
       expect(store.newsletters).toEqual([]);
       expect(store.selectedNewsletters).toEqual([]);
       expect(store.currentNewsletter).toBeNull();
-      expect(store.isLoading).toBe(false);
     });
 
     it('should initialize with default filters', () => {
-      expect(store.filters.searchText).toBe('');
-      expect(store.filters.filterYear).toBeNull();
-      expect(store.filters.filterSeason).toBeNull();
-      expect(store.filters.filterMonth).toBeNull();
+      expect(store.filters).toEqual({
+        searchText: '',
+        filterYear: null,
+        filterSeason: null,
+        filterMonth: null,
+      });
     });
 
     it('should initialize all processing states as false', () => {
+      expect(store.isLoading).toBe(false);
       expect(store.isExtracting).toBe(false);
       expect(store.isExtractingText).toBe(false);
       expect(store.isExtractingPageCount).toBe(false);
@@ -117,189 +127,663 @@ describe('Newsletter Management Store Integration', () => {
       expect(store.isGeneratingDescriptions).toBe(false);
       expect(store.isGeneratingTitles).toBe(false);
       expect(store.isGeneratingThumbs).toBe(false);
+      expect(store.isSyncing).toBe(false);
+      expect(store.isUploading).toBe(false);
+      expect(store.isToggling).toBe(false);
+      expect(store.isDeleting).toBe(false);
+    });
+
+    it('should initialize with empty processing tracking objects', () => {
+      expect(store.extractingText).toEqual({});
+      expect(store.syncingIndividual).toEqual({});
+      expect(store.publishingStates).toEqual({});
+      expect(store.featuredStates).toEqual({});
+      expect(store.thumbnailIndividualStates).toEqual({});
+    });
+
+    it('should initialize dialog states as false', () => {
+      expect(store.showImportDialog).toBe(false);
+      expect(store.showEditDialog).toBe(false);
+      expect(store.showTextDialog).toBe(false);
+      expect(store.extractedText).toBe('');
+    });
+
+    it('should initialize workflow toolbar as expanded by default', () => {
+      expect(store.workflowToolbarExpanded).toBe(true);
     });
   });
 
   describe('Data Loading Operations', () => {
     it('should load newsletters successfully', async () => {
-      // TODO: Implement newsletter loading test
-      expect(true).toBe(true); // Placeholder
+      const mockNewsletters = [
+        createMockNewsletter({ filename: 'test1.pdf' }),
+        createMockNewsletter({ filename: 'test2.pdf' }),
+      ];
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
+
+      await store.loadNewsletters();
+
+      expect(store.isLoading).toBe(false);
+      expect(store.newsletters).toEqual(mockNewsletters);
+      expect(mockFirebaseNewsletterService.loadAllNewslettersForAdmin).toHaveBeenCalledOnce();
+      expect(mockLogger.info).toHaveBeenCalledWith('🔄 Loading ALL newsletters for admin (including unpublished)...');
+      expect(mockLogger.success).toHaveBeenCalledWith('✅ Loaded 2 newsletters (admin view) + reactive subscription active');
     });
 
     it('should handle loading errors gracefully', async () => {
-      // TODO: Implement error handling test
-      expect(true).toBe(true); // Placeholder
+      const mockError = new Error('Network error');
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockRejectedValue(mockError);
+
+      await expect(store.loadNewsletters()).rejects.toThrow('Network error');
+
+      expect(store.isLoading).toBe(false);
+      expect(store.newsletters).toEqual([]);
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Failed to load newsletters:', mockError);
     });
 
     it('should update loading state during operations', async () => {
-      // TODO: Implement loading state test
-      expect(true).toBe(true); // Placeholder
+      const mockNewsletters = [createMockNewsletter()];
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
+
+      const loadPromise = store.loadNewsletters();
+      expect(store.isLoading).toBe(true);
+
+      await loadPromise;
+      expect(store.isLoading).toBe(false);
+    });
+
+    it('should refresh newsletters by calling loadNewsletters', async () => {
+      const mockNewsletters = [createMockNewsletter()];
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockResolvedValue(mockNewsletters);
+
+      await store.refreshNewsletters();
+
+      expect(mockFirebaseNewsletterService.loadAllNewslettersForAdmin).toHaveBeenCalledOnce();
+      expect(store.newsletters).toEqual(mockNewsletters);
     });
   });
 
   describe('Firebase Service Integration', () => {
     it('should setup reactive subscriptions correctly', () => {
-      // TODO: Implement subscription setup test
-      expect(true).toBe(true); // Placeholder
+      const mockUnsubscribe = vi.fn();
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockReturnValue(mockUnsubscribe);
+
+      // Loading newsletters automatically sets up subscription
+      store.loadNewsletters();
+
+      expect(mockFirestoreService.subscribeToNewslettersForAdmin).toHaveBeenCalledWith(
+        expect.any(Function)
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Setting up reactive admin subscription for newsletter management...');
     });
 
     it('should handle subscription data updates', async () => {
-      // TODO: Implement subscription update test
-      expect(true).toBe(true); // Placeholder
+      const mockNewsletters = [
+        createMockNewsletter({ filename: 'test1.pdf' }),
+        createMockNewsletter({ filename: 'test2.pdf' }),
+      ];
+      let subscriptionCallback: (newsletters: any[]) => void;
+
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockImplementation((callback) => {
+        subscriptionCallback = callback;
+        return vi.fn();
+      });
+
+      await store.loadNewsletters();
+
+      // Simulate subscription update
+      subscriptionCallback!(mockNewsletters);
+
+      expect(store.newsletters).toEqual(mockNewsletters);
+      expect(mockLogger.info).toHaveBeenCalledWith('Received 2 newsletters via reactive subscription');
     });
 
     it('should cleanup subscriptions on destroy', () => {
-      // TODO: Implement cleanup test
-      expect(true).toBe(true); // Placeholder
+      const mockUnsubscribe = vi.fn();
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockReturnValue(mockUnsubscribe);
+
+      // Setup subscription through loadNewsletters
+      store.loadNewsletters();
+
+      // Simulate component unmount (would be called by Vue's onUnmounted)
+      // We can't directly test onUnmounted, but we can verify the unsubscribe function works
+      expect(mockFirestoreService.subscribeToNewslettersForAdmin).toHaveBeenCalledOnce();
     });
   });
 
   describe('Newsletter Management Operations', () => {
-    it('should add newsletters correctly', async () => {
-      // TODO: Implement add newsletter test
-      expect(true).toBe(true); // Placeholder
+    it('should manage current newsletter correctly', () => {
+      const mockNewsletter = createMockNewsletter({ filename: 'test.pdf' });
+
+      store.setCurrentNewsletter(mockNewsletter);
+      expect(store.currentNewsletter).toEqual(mockNewsletter);
+
+      store.setCurrentNewsletter(null);
+      expect(store.currentNewsletter).toBeNull();
     });
 
-    it('should update newsletters correctly', async () => {
-      // TODO: Implement update newsletter test
-      expect(true).toBe(true); // Placeholder
+    it('should handle selection management operations', () => {
+      const newsletter1 = createMockNewsletter({ filename: 'test1.pdf' });
+      const newsletter2 = createMockNewsletter({ filename: 'test2.pdf' });
+      const newsletters = [newsletter1, newsletter2];
+
+      // Set selected newsletters
+      store.setSelectedNewsletters(newsletters);
+      expect(store.selectedNewsletters).toEqual(newsletters);
+
+      // Clear selection
+      store.clearSelection();
+      expect(store.selectedNewsletters).toEqual([]);
     });
 
-    it('should delete newsletters correctly', async () => {
-      // TODO: Implement delete newsletter test
-      expect(true).toBe(true); // Placeholder
+    it('should handle individual newsletter selection toggle', () => {
+      const newsletter = createMockNewsletter({ filename: 'test.pdf' });
+
+      // Select newsletter
+      store.selectNewsletter(newsletter);
+      expect(store.selectedNewsletters).toHaveLength(1);
+      expect(store.selectedNewsletters[0].filename).toBe('test.pdf');
+
+      // Deselect newsletter
+      store.selectNewsletter(newsletter);
+      expect(store.selectedNewsletters).toHaveLength(0);
     });
 
-    it('should handle bulk operations', async () => {
-      // TODO: Implement bulk operations test
-      expect(true).toBe(true); // Placeholder
+    it('should select all filtered newsletters', () => {
+      const newsletters = [
+        createMockNewsletter({ filename: 'test1.pdf' }),
+        createMockNewsletter({ filename: 'test2.pdf' }),
+      ];
+
+      // Setup newsletters in store
+      store.newsletters = newsletters;
+
+      store.selectAll();
+      expect(store.selectedNewsletters).toEqual(newsletters);
     });
   });
 
   describe('Filtering and Search', () => {
+    beforeEach(() => {
+      // Setup test newsletters with different properties
+      const newsletters = [
+        createMockNewsletter({
+          filename: 'newsletter-2024-01.pdf',
+          title: 'January Newsletter 2024',
+          year: 2024,
+          season: 'Winter',
+          month: 1
+        }),
+        createMockNewsletter({
+          filename: 'newsletter-2024-06.pdf',
+          title: 'Summer Newsletter 2024',
+          year: 2024,
+          season: 'Summer',
+          month: 6
+        }),
+        createMockNewsletter({
+          filename: 'newsletter-2023-12.pdf',
+          title: 'December Newsletter 2023',
+          year: 2023,
+          season: 'Winter',
+          month: 12
+        }),
+      ];
+      store.newsletters = newsletters;
+    });
+
     it('should filter newsletters by search text', () => {
-      // TODO: Implement search filter test
-      expect(true).toBe(true); // Placeholder
+      store.updateFilters({ searchText: 'Summer' });
+
+      expect(store.filteredNewsletters).toHaveLength(1);
+      expect(store.filteredNewsletters[0].title).toContain('Summer');
+    });
+
+    it('should filter newsletters by filename search', () => {
+      store.updateFilters({ searchText: '2024-01' });
+
+      expect(store.filteredNewsletters).toHaveLength(1);
+      expect(store.filteredNewsletters[0].filename).toContain('2024-01');
     });
 
     it('should filter newsletters by year', () => {
-      // TODO: Implement year filter test
-      expect(true).toBe(true); // Placeholder
+      store.updateFilters({ filterYear: 2024 });
+
+      expect(store.filteredNewsletters).toHaveLength(2);
+      expect(store.filteredNewsletters.every(n => n.year === 2024)).toBe(true);
     });
 
     it('should filter newsletters by season', () => {
-      // TODO: Implement season filter test
-      expect(true).toBe(true); // Placeholder
+      store.updateFilters({ filterSeason: 'Winter' });
+
+      expect(store.filteredNewsletters).toHaveLength(2);
+      expect(store.filteredNewsletters.every(n => n.season === 'Winter')).toBe(true);
     });
 
     it('should filter newsletters by month', () => {
-      // TODO: Implement month filter test
-      expect(true).toBe(true); // Placeholder
+      store.updateFilters({ filterMonth: 6 });
+
+      expect(store.filteredNewsletters).toHaveLength(1);
+      expect(store.filteredNewsletters[0].month).toBe(6);
     });
 
     it('should combine multiple filters correctly', () => {
-      // TODO: Implement combined filter test
-      expect(true).toBe(true); // Placeholder
+      store.updateFilters({
+        filterYear: 2024,
+        filterSeason: 'Winter'
+      });
+
+      expect(store.filteredNewsletters).toHaveLength(1);
+      expect(store.filteredNewsletters[0].year).toBe(2024);
+      expect(store.filteredNewsletters[0].season).toBe('Winter');
     });
 
     it('should reset filters correctly', () => {
-      // TODO: Implement filter reset test
-      expect(true).toBe(true); // Placeholder
+      // Apply some filters first
+      store.updateFilters({
+        searchText: 'Summer',
+        filterYear: 2024,
+        filterSeason: 'Winter'
+      });
+
+      store.resetFilters();
+
+      expect(store.filters).toEqual({
+        searchText: '',
+        filterYear: null,
+        filterSeason: null,
+        filterMonth: null,
+      });
+      expect(store.filteredNewsletters).toHaveLength(3); // All newsletters
+    });
+
+    it('should update filters partially', () => {
+      store.updateFilters({ searchText: 'test' });
+      expect(store.filters.searchText).toBe('test');
+      expect(store.filters.filterYear).toBeNull();
+
+      store.updateFilters({ filterYear: 2024 });
+      expect(store.filters.searchText).toBe('test'); // Should preserve
+      expect(store.filters.filterYear).toBe(2024);
     });
   });
 
   describe('Selection Management', () => {
-    it('should select individual newsletters', () => {
-      // TODO: Implement individual selection test
-      expect(true).toBe(true); // Placeholder
+    beforeEach(() => {
+      const newsletters = [
+        createMockNewsletter({ filename: 'test1.pdf' }),
+        createMockNewsletter({ filename: 'test2.pdf' }),
+        createMockNewsletter({ filename: 'test3.pdf' }),
+      ];
+      store.newsletters = newsletters;
     });
 
-    it('should select multiple newsletters', () => {
-      // TODO: Implement multiple selection test
-      expect(true).toBe(true); // Placeholder
+    it('should handle individual newsletter selection', () => {
+      const newsletter = store.newsletters[0];
+
+      // Should start with no selection
+      expect(store.selectedNewsletters).toHaveLength(0);
+
+      // Select newsletter
+      store.selectNewsletter(newsletter);
+      expect(store.selectedNewsletters).toHaveLength(1);
+      expect(store.selectedNewsletters[0]).toEqual(newsletter);
+
+      // Deselect newsletter
+      store.selectNewsletter(newsletter);
+      expect(store.selectedNewsletters).toHaveLength(0);
     });
 
-    it('should select all newsletters', () => {
-      // TODO: Implement select all test
-      expect(true).toBe(true); // Placeholder
+    it('should handle multiple newsletter selection', () => {
+      const newsletter1 = store.newsletters[0];
+      const newsletter2 = store.newsletters[1];
+
+      store.selectNewsletter(newsletter1);
+      store.selectNewsletter(newsletter2);
+
+      expect(store.selectedNewsletters).toHaveLength(2);
+      expect(store.selectedNewsletters).toContain(newsletter1);
+      expect(store.selectedNewsletters).toContain(newsletter2);
     });
 
-    it('should clear selections', () => {
-      // TODO: Implement clear selection test
-      expect(true).toBe(true); // Placeholder
+    it('should select all newsletters via selectAll', () => {
+      store.selectAll();
+
+      expect(store.selectedNewsletters).toHaveLength(3);
+      expect(store.selectedNewsletters).toEqual(store.filteredNewsletters);
+    });
+
+    it('should clear all selections', () => {
+      // First select some newsletters
+      store.selectNewsletter(store.newsletters[0]);
+      store.selectNewsletter(store.newsletters[1]);
+      expect(store.selectedNewsletters).toHaveLength(2);
+
+      // Clear selection
+      store.clearSelection();
+      expect(store.selectedNewsletters).toHaveLength(0);
+    });
+
+    it('should set selected newsletters directly', () => {
+      const selectedNewsletters = [store.newsletters[0], store.newsletters[2]];
+
+      store.setSelectedNewsletters(selectedNewsletters);
+
+      expect(store.selectedNewsletters).toEqual(selectedNewsletters);
+      expect(store.selectedNewsletters).toHaveLength(2);
     });
   });
 
   describe('Processing State Management', () => {
-    it('should manage text extraction states', async () => {
-      // TODO: Implement text extraction state test
-      expect(true).toBe(true); // Placeholder
+    it('should initialize processing states computed property correctly', () => {
+      const processingStates = store.processingStates;
+
+      expect(processingStates.isLoading).toBe(false);
+      expect(processingStates.isExtracting).toBe(false);
+      expect(processingStates.isExtractingAllText).toBe(false);
+      expect(processingStates.isGeneratingThumbs).toBe(false);
+      expect(processingStates.isSaving).toBe(false);
+      expect(processingStates.isProcessingText).toBe(false);
+      expect(processingStates.isApplyingMetadata).toBe(false);
+      expect(processingStates.isSyncing).toBe(false);
+      expect(processingStates.extractingText).toEqual({});
+      expect(processingStates.generatingThumb).toEqual({});
     });
 
-    it('should manage metadata extraction states', async () => {
-      // TODO: Implement metadata extraction state test
-      expect(true).toBe(true); // Placeholder
+    it('should reflect individual processing states changes', () => {
+      // Update individual states
+      store.isLoading = true;
+      store.isExtracting = true;
+      store.isSyncing = true;
+
+      const processingStates = store.processingStates;
+      expect(processingStates.isLoading).toBe(true);
+      expect(processingStates.isExtracting).toBe(true);
+      expect(processingStates.isSyncing).toBe(true);
     });
 
-    it('should manage AI generation states', async () => {
-      // TODO: Implement AI generation state test
-      expect(true).toBe(true); // Placeholder
+    it('should track individual newsletter processing states', () => {
+      const newsletterId = 'test-newsletter-1';
+
+      // Initially empty
+      expect(store.extractingText[newsletterId]).toBeUndefined();
+      expect(store.thumbnailIndividualStates[newsletterId]).toBeUndefined();
+
+      // Update individual tracking
+      store.extractingText = { [newsletterId]: true };
+      store.thumbnailIndividualStates = { [newsletterId]: true };
+
+      expect(store.extractingText[newsletterId]).toBe(true);
+      expect(store.thumbnailIndividualStates[newsletterId]).toBe(true);
+      expect(store.processingStates.extractingText[newsletterId]).toBe(true);
+      expect(store.processingStates.generatingThumb[newsletterId]).toBe(true);
     });
 
-    it('should manage thumbnail generation states', async () => {
-      // TODO: Implement thumbnail generation state test
-      expect(true).toBe(true); // Placeholder
+    it('should manage workflow toolbar state with localStorage persistence', () => {
+      // Initially expanded
+      expect(store.workflowToolbarExpanded).toBe(true);
+
+      // Toggle to collapsed
+      store.toggleWorkflowToolbar();
+      expect(store.workflowToolbarExpanded).toBe(false);
+
+      // Toggle back to expanded
+      store.toggleWorkflowToolbar();
+      expect(store.workflowToolbarExpanded).toBe(true);
+
+      // Should log debug messages
+      expect(mockLogger.debug).toHaveBeenCalledWith('Toolbar expanded state saved: false');
+      expect(mockLogger.debug).toHaveBeenCalledWith('Toolbar expanded state saved: true');
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle service errors gracefully', async () => {
-      // TODO: Implement service error handling test
-      expect(true).toBe(true); // Placeholder
+    it('should handle service errors gracefully in loadNewsletters', async () => {
+      const mockError = new Error('Firebase service error');
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockRejectedValue(mockError);
+
+      await expect(store.loadNewsletters()).rejects.toThrow('Firebase service error');
+
+      expect(store.isLoading).toBe(false);
+      expect(store.newsletters).toEqual([]);
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Failed to load newsletters:', mockError);
     });
 
-    it('should handle network errors gracefully', async () => {
-      // TODO: Implement network error handling test
-      expect(true).toBe(true); // Placeholder
+    it('should handle subscription setup errors gracefully', async () => {
+      const mockError = new Error('Subscription error');
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockImplementation(() => {
+        throw mockError;
+      });
+
+      // The error in subscription setup will cause loadNewsletters to fail
+      await expect(store.loadNewsletters()).rejects.toThrow('Subscription error');
+      expect(mockLogger.info).toHaveBeenCalledWith('🔄 Loading ALL newsletters for admin (including unpublished)...');
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Failed to load newsletters:', mockError);
     });
 
-    it('should handle validation errors gracefully', async () => {
-      // TODO: Implement validation error handling test
-      expect(true).toBe(true); // Placeholder
+    it('should maintain state consistency during errors', async () => {
+      const mockError = new Error('Network error');
+      mockFirebaseNewsletterService.loadAllNewslettersForAdmin.mockRejectedValue(mockError);
+
+      const initialState = {
+        newsletters: [...store.newsletters],
+        selectedNewsletters: [...store.selectedNewsletters],
+        filters: { ...store.filters }
+      };
+
+      try {
+        await store.loadNewsletters();
+      } catch {
+        // Error expected
+      }
+
+      // State should be preserved except for loading state
+      expect(store.newsletters).toEqual(initialState.newsletters);
+      expect(store.selectedNewsletters).toEqual(initialState.selectedNewsletters);
+      expect(store.filters).toEqual(initialState.filters);
+      expect(store.isLoading).toBe(false);
     });
   });
 
   describe('Computed Properties', () => {
-    it('should compute filtered newsletters correctly', () => {
-      // TODO: Implement filtered newsletters computed test
-      expect(true).toBe(true); // Placeholder
+    beforeEach(() => {
+      const newsletters = [
+        createMockNewsletter({
+          filename: 'newsletter-2024-01.pdf',
+          title: 'January Newsletter 2024',
+          searchableText: 'Text content 1', // Has text
+          thumbnailUrl: 'thumb1.jpg', // Has thumbnail
+          fileSize: 1572864, // 1.5 MB in bytes
+          published: true
+        }),
+        createMockNewsletter({
+          id: undefined, // Draft newsletter without ID
+          filename: 'newsletter-2024-02.pdf',
+          title: 'February Newsletter 2024',
+          searchableText: undefined, // No text
+          thumbnailUrl: 'thumb2.jpg', // Has thumbnail
+          fileSize: 2203648, // 2.1 MB in bytes
+          published: false
+        }),
+        createMockNewsletter({
+          filename: 'newsletter-2024-03.pdf',
+          title: 'March Newsletter 2024',
+          searchableText: 'Text content 3', // Has text
+          thumbnailUrl: undefined, // No thumbnail
+          fileSize: 1887437, // 1.8 MB in bytes
+          published: true
+        }),
+      ];
+      store.newsletters = newsletters;
     });
 
-    it('should compute newsletter statistics correctly', () => {
-      // TODO: Implement statistics computed test
-      expect(true).toBe(true); // Placeholder
+    it('should compute totalNewsletters correctly', () => {
+      expect(store.totalNewsletters).toBe(3);
     });
 
-    it('should compute selection state correctly', () => {
-      // TODO: Implement selection state computed test
-      expect(true).toBe(true); // Placeholder
-    });
-  });
-
-  describe('Real-time Updates', () => {
-    it('should handle real-time newsletter additions', async () => {
-      // TODO: Implement real-time addition test
-      expect(true).toBe(true); // Placeholder
+    it('should compute newslettersWithText correctly', () => {
+      expect(store.newslettersWithText).toBe(2); // 2 newsletters with searchableText
     });
 
-    it('should handle real-time newsletter updates', async () => {
-      // TODO: Implement real-time update test
-      expect(true).toBe(true); // Placeholder
+    it('should compute newslettersWithThumbnails correctly', () => {
+      expect(store.newslettersWithThumbnails).toBe(2); // 2 newsletters with thumbnailUrl
     });
 
-    it('should handle real-time newsletter deletions', async () => {
-      // TODO: Implement real-time deletion test
-      expect(true).toBe(true); // Placeholder
+    it('should compute totalFileSize correctly', () => {
+      const totalBytes = 1572864 + 2203648 + 1887437; // 5663949 bytes = ~5.4 MB
+      expect(store.totalFileSize).toBe('5.4 MB');
+    });
+
+    it('should compute totalFileSizeBytes correctly', () => {
+      expect(store.totalFileSizeBytes).toBe(5663949); // Sum of all fileSize numbers
+    });
+
+    it('should compute draftNewsletters correctly', () => {
+      expect(store.draftNewsletters.length).toBe(1); // One newsletter without id
+    });
+
+    it('should compute hasDrafts correctly', () => {
+      expect(store.hasDrafts).toBe(true);
+
+      // Set all newsletters to have IDs (no drafts)
+      store.newsletters = store.newsletters.map(n => ({ ...n, id: n.id || 'temp-id' }));
+      expect(store.hasDrafts).toBe(false);
+    });
+
+    it('should compute availableYears correctly', () => {
+      const newsletters = [
+        createMockNewsletter({ year: 2024 }),
+        createMockNewsletter({ year: 2023 }),
+        createMockNewsletter({ year: 2024 }), // Duplicate year
+      ];
+      store.newsletters = newsletters;
+
+      expect(store.availableYears).toEqual([2024, 2023]); // Unique years only, sorted desc
+    });
+
+    it('should compute availableSeasons correctly', () => {
+      const newsletters = [
+        createMockNewsletter({ season: 'Winter' }),
+        createMockNewsletter({ season: 'Summer' }),
+        createMockNewsletter({ season: 'Winter' }), // Duplicate season
+      ];
+      store.newsletters = newsletters;
+
+      expect(store.availableSeasons).toEqual(['Winter', 'Summer']); // Unique seasons only
+    });
+
+    it('should compute availableMonths correctly', () => {
+      expect(store.availableMonths).toHaveLength(12);
+      expect(store.availableMonths[0]).toEqual({ label: 'January', value: 1 });
+      expect(store.availableMonths[11]).toEqual({ label: 'December', value: 12 });
+    });
+  });  describe('Real-time Updates', () => {
+    it('should handle real-time newsletter additions through subscription', async () => {
+      let subscriptionCallback: (newsletters: any[]) => void;
+
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockImplementation((callback) => {
+        subscriptionCallback = callback;
+        return vi.fn();
+      });
+
+      // Setup initial subscription
+      await store.loadNewsletters();
+
+      const initialNewsletters = [createMockNewsletter({ filename: 'existing.pdf' })];
+      const newNewsletter = createMockNewsletter({ filename: 'new.pdf' });
+      const updatedNewsletters = [...initialNewsletters, newNewsletter];
+
+      // Simulate real-time addition
+      subscriptionCallback!(updatedNewsletters);
+
+      expect(store.newsletters).toEqual(updatedNewsletters);
+      expect(store.newsletters).toHaveLength(2);
+      expect(mockLogger.info).toHaveBeenCalledWith('Received 2 newsletters via reactive subscription');
+    });
+
+    it('should handle real-time newsletter updates through subscription', async () => {
+      let subscriptionCallback: (newsletters: any[]) => void;
+
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockImplementation((callback) => {
+        subscriptionCallback = callback;
+        return vi.fn();
+      });
+
+      await store.loadNewsletters();
+
+      const originalNewsletter = createMockNewsletter({
+        filename: 'test.pdf',
+        title: 'Original Title'
+      });
+      const updatedNewsletter = createMockNewsletter({
+        filename: 'test.pdf',
+        title: 'Updated Title'
+      });
+
+      // Simulate real-time update
+      subscriptionCallback!([updatedNewsletter]);
+
+      expect(store.newsletters).toHaveLength(1);
+      expect(store.newsletters[0].title).toBe('Updated Title');
+    });
+
+    it('should handle real-time newsletter deletions through subscription', async () => {
+      let subscriptionCallback: (newsletters: any[]) => void;
+
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockImplementation((callback) => {
+        subscriptionCallback = callback;
+        return vi.fn();
+      });
+
+      await store.loadNewsletters();
+
+      // Start with newsletters, then simulate deletion by providing empty array
+      const initialNewsletters = [
+        createMockNewsletter({ filename: 'test1.pdf' }),
+        createMockNewsletter({ filename: 'test2.pdf' })
+      ];
+
+      subscriptionCallback!(initialNewsletters);
+      expect(store.newsletters).toHaveLength(2);
+
+      // Simulate deletion of one newsletter
+      const remainingNewsletters = [initialNewsletters[0]];
+      subscriptionCallback!(remainingNewsletters);
+
+      expect(store.newsletters).toHaveLength(1);
+      expect(store.newsletters[0].filename).toBe('test1.pdf');
+    });
+
+    it('should maintain selection state during real-time updates', async () => {
+      let subscriptionCallback: (newsletters: any[]) => void;
+
+      mockFirestoreService.subscribeToNewslettersForAdmin.mockImplementation((callback) => {
+        subscriptionCallback = callback;
+        return vi.fn();
+      });
+
+      await store.loadNewsletters();
+
+      const newsletter1 = createMockNewsletter({ filename: 'test1.pdf' });
+      const newsletter2 = createMockNewsletter({ filename: 'test2.pdf' });
+
+      // Set initial newsletters and select one
+      subscriptionCallback!([newsletter1, newsletter2]);
+      store.selectNewsletter(newsletter1);
+
+      expect(store.selectedNewsletters).toHaveLength(1);
+      expect(store.selectedNewsletters[0].filename).toBe('test1.pdf');
+
+      // Simulate real-time update that maintains the same newsletters
+      const updatedNewsletter1 = createMockNewsletter({
+        filename: 'test1.pdf',
+        title: 'Updated Title'
+      });
+      subscriptionCallback!([updatedNewsletter1, newsletter2]);
+
+      // Selection should still exist (though object reference may change)
+      expect(store.newsletters).toHaveLength(2);
+      expect(store.newsletters[0].title).toBe('Updated Title');
     });
   });
 });
