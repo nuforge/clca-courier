@@ -541,4 +541,80 @@ describe('Content Submission Service', () => {
       expect(submittedData.content).not.toContain('<iframe>');
     });
   });
+
+  describe('Canva Integration - attachCanvaDesign', () => {
+    it('should successfully attach Canva design to existing content', async () => {
+      const contentId = 'test-content-123';
+      const mockCanvaDesign = {
+        id: 'canva-design-456',
+        editUrl: 'https://canva.com/design/canva-design-456/edit',
+        exportUrl: null,
+        status: 'draft' as const,
+        createdAt: { seconds: 1726000000, nanoseconds: 0 } as any,
+        updatedAt: { seconds: 1726000000, nanoseconds: 0 } as any
+      };
+
+      (firestoreService.updateUserContent as any).mockResolvedValue(undefined);
+
+      await contentSubmissionService.attachCanvaDesign(contentId, mockCanvaDesign);
+
+      // Verify the update was called with correct parameters
+      expect(firestoreService.updateUserContent).toHaveBeenCalledWith(contentId, {
+        canvaDesign: mockCanvaDesign
+      });
+
+      // Verify it was called exactly once
+      expect(firestoreService.updateUserContent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle errors when attaching Canva design', async () => {
+      const contentId = 'test-content-123';
+      const mockCanvaDesign = {
+        id: 'canva-design-456',
+        editUrl: 'https://canva.com/design/canva-design-456/edit',
+        exportUrl: null,
+        status: 'draft' as const,
+        createdAt: { seconds: 1726000000, nanoseconds: 0 } as any,
+        updatedAt: { seconds: 1726000000, nanoseconds: 0 } as any
+      };
+
+      const mockError = new Error('Firestore update failed');
+      (firestoreService.updateUserContent as any).mockRejectedValue(mockError);
+
+      await expect(
+        contentSubmissionService.attachCanvaDesign(contentId, mockCanvaDesign)
+      ).rejects.toThrow('Firestore update failed');
+
+      // Verify the update was attempted
+      expect(firestoreService.updateUserContent).toHaveBeenCalledWith(contentId, {
+        canvaDesign: mockCanvaDesign
+      });
+    });
+
+    it('should handle Canva design with export URL and exported status', async () => {
+      const contentId = 'test-content-123';
+      const mockCanvaDesign = {
+        id: 'canva-design-789',
+        editUrl: 'https://canva.com/design/canva-design-789/edit',
+        exportUrl: 'https://canva-export.s3.amazonaws.com/design-789.pdf',
+        status: 'exported' as const,
+        createdAt: { seconds: 1726000000, nanoseconds: 0 } as any,
+        updatedAt: { seconds: 1726001000, nanoseconds: 0 } as any
+      };
+
+      (firestoreService.updateUserContent as any).mockResolvedValue(undefined);
+
+      await contentSubmissionService.attachCanvaDesign(contentId, mockCanvaDesign);
+
+      // Verify the exported design is properly attached
+      expect(firestoreService.updateUserContent).toHaveBeenCalledWith(contentId, {
+        canvaDesign: mockCanvaDesign
+      });
+
+      // Verify all fields including export URL are preserved
+      const callArgs = (firestoreService.updateUserContent as any).mock.calls[0][1];
+      expect(callArgs.canvaDesign.exportUrl).toBe('https://canva-export.s3.amazonaws.com/design-789.pdf');
+      expect(callArgs.canvaDesign.status).toBe('exported');
+    });
+  });
 });

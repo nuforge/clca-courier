@@ -29,6 +29,7 @@ import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
 import { sortByDateDesc, sortByDateAsc, normalizeDate } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
 import type { NewsItem, ClassifiedAd, Event } from '../types/core/content.types';
+import type { CanvaDesign } from '../services/canva/types';
 
 // Newsletter metadata interface (Firebase Storage with future flexibility)
 export interface NewsletterMetadata {
@@ -138,6 +139,9 @@ export interface UserContent {
     dayOfMonth?: number; // For monthly: day of month
   };
   allDay?: boolean; // Whether this is an all-day event
+
+  // Canva integration for design collaboration
+  canvaDesign?: CanvaDesign;
 
   attachments: Array<{
     filename: string;
@@ -544,6 +548,23 @@ class FirebaseFirestoreService {
       logger.success('Content featured status updated:', contentId, featured);
     } catch (error) {
       logger.error('Error updating content featured status:', error);
+      throw error;
+    }
+  }
+
+  async updateUserContent(contentId: string, updates: Partial<UserContent>): Promise<void> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to update content');
+      }
+
+      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
+      await updateDoc(docRef, updates);
+
+      logger.success('User content updated:', contentId, Object.keys(updates));
+    } catch (error) {
+      logger.error('Error updating user content:', error);
       throw error;
     }
   }

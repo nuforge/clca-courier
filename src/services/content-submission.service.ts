@@ -5,6 +5,7 @@
  */
 
 import type { ContentType, ContentSubmissionData } from '../types/core/content.types';
+import type { CanvaDesign } from '../services/canva/types';
 import { firestoreService, type UserContent } from './firebase-firestore.service';
 import { logger } from '../utils/logger';
 import {
@@ -293,6 +294,33 @@ class ContentSubmissionService {
       }
 
       logger.error('Error submitting content to Firebase:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Attach a Canva design to existing content
+   * @param contentId - The ID of the content to attach the design to
+   * @param canvaDesign - The Canva design object to attach
+   */
+  async attachCanvaDesign(contentId: string, canvaDesign: CanvaDesign): Promise<void> {
+    logger.info('Attaching Canva design to content', { contentId, designId: canvaDesign.id });
+
+    try {
+      // Update the content document with the Canva design
+      await firestoreService.updateUserContent(contentId, { canvaDesign });
+
+      logger.success('Canva design attached successfully', {
+        contentId,
+        designId: canvaDesign.id,
+        designStatus: canvaDesign.status
+      });
+    } catch (error) {
+      logger.error('Error attaching Canva design to content:', {
+        contentId,
+        designId: canvaDesign.id,
+        error
+      });
       throw error;
     }
   }

@@ -69,10 +69,18 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.authorId;
       
       // Allow authors to update their own content (but not status), or editors+ to update status
+      // Special handling for Canva design fields
       allow update: if isAuthenticated() && (
         (request.auth.uid == resource.data.authorId && 
-         !resource.data.diff(request.resource.data).affectedKeys().hasAny(['status', 'reviewedBy'])) ||
-        hasRole(request.auth.uid, 'editor')
+         !resource.data.diff(request.resource.data).affectedKeys().hasAny(['status', 'reviewedBy']) &&
+         // Allow authors to update canvaDesign field only when status is 'pending'
+         (resource.data.status == 'pending' || 
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['canvaDesign']))) ||
+        hasRole(request.auth.uid, 'editor') ||
+        // Allow admin/editor to update canvaDesign.status to 'exported'
+        (hasRole(request.auth.uid, 'admin') && 
+         resource.data.diff(request.resource.data).affectedKeys().hasOnly(['canvaDesign']) &&
+         request.resource.data.canvaDesign.status == 'exported')
       );
       
       // Allow editors+ to delete content
