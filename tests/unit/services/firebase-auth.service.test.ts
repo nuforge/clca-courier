@@ -1,23 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from 'vitest';
-import type { User, UserCredential, AuthProvider } from 'firebase/auth';
 
-// Mock logger utility FIRST - essential for production-ready service
-vi.mock('../../../src/utils/logger', () => ({
-  logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    success: vi.fn()
-  }
-}));
-
-// Mock Firebase Auth functions
-vi.mock('firebase/auth', () => {
-  // Create a provider factory that returns instances with addScope
+// Use vi.hoisted to ensure mocks are created before any imports
+const mockFirebaseAuthModule = vi.hoisted(() => {
+  // Create a provider factory that returns instances with properly chainable addScope
   const createMockProvider = (providerId: string) => ({
     providerId,
     addScope: vi.fn().mockReturnThis(),
+    setCustomParameters: vi.fn().mockReturnThis(), // Add for completeness
   });
 
   return {
@@ -30,6 +19,79 @@ vi.mock('firebase/auth', () => {
     FacebookAuthProvider: vi.fn().mockImplementation(() => createMockProvider('facebook.com')),
     TwitterAuthProvider: vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' })),
     GithubAuthProvider: vi.fn().mockImplementation(() => createMockProvider('github.com'))
+  };
+});
+
+// Mock Firebase Auth functions using the hoisted mocks
+vi.mock('firebase/auth', () => mockFirebaseAuthModule);
+
+// Mock Firebase Auth functions FIRST - before any Firebase imports
+vi.mock('firebase/auth', () => {
+  // Create a provider factory that returns instances with properly chainable addScope
+  const createMockProvider = (providerId: string) => ({
+    providerId,
+    addScope: vi.fn().mockReturnThis(),
+    setCustomParameters: vi.fn().mockReturnThis(), // Add for completeness
+  });
+
+  // Create constructor functions that return our mock instances
+  const GoogleAuthProvider = vi.fn().mockImplementation(() => createMockProvider('google.com'));
+  const FacebookAuthProvider = vi.fn().mockImplementation(() => createMockProvider('facebook.com'));
+  const TwitterAuthProvider = vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' }));
+  const GithubAuthProvider = vi.fn().mockImplementation(() => createMockProvider('github.com'));
+
+  return {
+    signInWithPopup: vi.fn(),
+    signInWithRedirect: vi.fn(),
+    getRedirectResult: vi.fn(),
+    signOut: vi.fn(),
+    onAuthStateChanged: vi.fn(),
+    GoogleAuthProvider,
+    FacebookAuthProvider,
+    TwitterAuthProvider,
+    GithubAuthProvider
+  };
+});
+
+// Now import Firebase types AFTER the mock is set up
+import type { User, UserCredential, AuthProvider } from 'firebase/auth';
+
+// Mock logger utility - essential for production-ready service
+vi.mock('../../../src/utils/logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    success: vi.fn()
+  }
+}));
+
+// Mock Firebase Auth functions
+vi.mock('firebase/auth', () => {
+  // Create a provider factory that returns instances with properly chainable addScope
+  const createMockProvider = (providerId: string) => ({
+    providerId,
+    addScope: vi.fn().mockReturnThis(),
+    setCustomParameters: vi.fn().mockReturnThis(), // Add for completeness
+  });
+
+  // Create constructor functions that return our mock instances
+  const GoogleAuthProvider = vi.fn().mockImplementation(() => createMockProvider('google.com'));
+  const FacebookAuthProvider = vi.fn().mockImplementation(() => createMockProvider('facebook.com'));
+  const TwitterAuthProvider = vi.fn().mockImplementation(() => ({ providerId: 'twitter.com' }));
+  const GithubAuthProvider = vi.fn().mockImplementation(() => createMockProvider('github.com'));
+
+  return {
+    signInWithPopup: vi.fn(),
+    signInWithRedirect: vi.fn(),
+    getRedirectResult: vi.fn(),
+    signOut: vi.fn(),
+    onAuthStateChanged: vi.fn(),
+    GoogleAuthProvider,
+    FacebookAuthProvider,
+    TwitterAuthProvider,
+    GithubAuthProvider
   };
 });
 
@@ -51,7 +113,14 @@ global.fetch = mockFetch;
 
 // Mock FileReader for data URL conversion
 const mockFileReader = {
-  readAsDataURL: vi.fn(),
+  readAsDataURL: vi.fn().mockImplementation(function(this: any, blob: Blob) {
+    // Simulate async FileReader behavior - call onloadend after readAsDataURL
+    setTimeout(() => {
+      if (this.onloadend) {
+        this.onloadend.call(this, {} as ProgressEvent<FileReader>);
+      }
+    }, 0);
+  }),
   onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => void) | null,
   result: 'data:image/jpeg;base64,mockImageData'
 };
@@ -80,8 +149,19 @@ const mockFirebaseAuth = vi.mocked(firebaseAuth);
 describe('Firebase Authentication Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
     // Reset auth state
     (mockFirebaseAuth as any).currentUser = null;
+
+    // Reset FileReader mock
+    mockFileReader.readAsDataURL.mockClear();
+    mockFileReader.onloadend = null;
+
+    // Reset window.open mock
+    mockWindowOpen.mockClear();
+
+    // Reset fetch mock
+    mockFetch.mockClear();
   });
 
   afterEach(() => {
@@ -186,11 +266,17 @@ describe('Firebase Authentication Service', () => {
       mockSignInWithPopup.mockRejectedValue(mockError);
       (mockSignInWithRedirect as any).mockResolvedValue(undefined);
 
-      // This should not throw, but redirect instead
+      // Start the popup sign-in which should fallback to redirect
       const promise = firebaseAuthService.signInWithPopup('google');
 
-      // The promise should not resolve immediately (page redirects)
+      // Wait a bit for the async fallback to trigger
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // The redirect should have been called as fallback
       expect(mockSignInWithRedirect).toHaveBeenCalled();
+
+      // The promise should be pending (never resolves due to redirect)
+      // We don't await it since the service returns a never-resolving promise for redirect
     });
 
     it('should handle popup closed by user', async () => {
@@ -293,16 +379,8 @@ describe('Firebase Authentication Service', () => {
 
       const service = firebaseAuthService as any;
 
-      // Start the caching process
-      const cachePromise = service.cacheAvatarImage('https://example.com/photo.jpg', 'user-123');
-
-      // Wait for fetch to be called, then trigger FileReader
-      await new Promise(resolve => setTimeout(resolve, 1));
-      if (mockFileReader.onloadend) {
-        mockFileReader.onloadend.call(mockFileReader as any, {} as ProgressEvent<FileReader>);
-      }
-
-      await cachePromise;
+      // Start the caching process - the mock will automatically trigger onloadend
+      await service.cacheAvatarImage('https://example.com/photo.jpg', 'user-123');
 
       expect(mockFetch).toHaveBeenCalledWith('https://example.com/photo.jpg');
       expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockBlob);
