@@ -14,6 +14,7 @@ import content from './content';
 import newsletter from './newsletter';
 import auth from './auth';
 import pages from './pages';
+import { canva } from './canva';
 import { dates, search, errors, success, settings, footer } from './additional';
 
 export default {
@@ -34,6 +35,9 @@ export default {
 
   // Authentication
   auth,
+
+  // Canva integration
+  canva,
 
   // Page content
   ...pages,

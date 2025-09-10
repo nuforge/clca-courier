@@ -22,6 +22,9 @@ const routes: RouteRecordRaw[] = [
       { path: '/contribute/submit', component: () => import('pages/SubmitContentPage.vue') },
       { path: '/contribute/guide', component: () => import('pages/ContributeGuide.vue') },
 
+      // Canva integration
+      { path: '/canva/callback', component: () => import('pages/CanvaCallbackPage.vue') },
+
       { path: '/dashboard', component: () => import('pages/DashboardPage.vue') },
 
       // User settings

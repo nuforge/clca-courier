@@ -166,7 +166,15 @@ export const TRANSLATION_KEYS = {
     EDIT_IN_CANVA: 'canva.editInCanva',
     DOWNLOAD_DESIGN: 'canva.downloadDesign',
     PROCESSING: 'canva.processing',
-    READY_FOR_DOWNLOAD: 'canva.readyForDownload'
+    READY_FOR_DOWNLOAD: 'canva.readyForDownload',
+    // OAuth specific keys
+    OAUTH_INITIATED: 'canva.oauthInitiated',
+    OAUTH_SUCCESS: 'canva.oauthSuccess',
+    OAUTH_CANCELLED: 'canva.oauthCancelled',
+    OAUTH_ERROR: 'canva.oauthError',
+    CONNECTING_TO_CANVA: 'canva.connectingToCanva',
+    CONNECTED_TO_CANVA: 'canva.connectedToCanva',
+    SIGN_OUT_SUCCESS: 'canva.signOutSuccess'
   },
 
   // Newsletter Specific
