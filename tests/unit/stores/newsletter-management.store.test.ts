@@ -343,7 +343,7 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       // Select newsletter
       store.selectNewsletter(newsletter);
       expect(store.selectedNewsletters).toHaveLength(1);
-      expect(store.selectedNewsletters[0].filename).toBe('test.pdf');
+      expect(store.selectedNewsletters[0]?.filename).toBe('test.pdf');
 
       // Deselect newsletter
       store.selectNewsletter(newsletter);
@@ -372,21 +372,21 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
           filename: 'newsletter-2024-01.pdf',
           title: 'January Newsletter 2024',
           year: 2024,
-          season: 'Winter',
+          season: 'winter',
           month: 1
         }),
         createValidNewsletter({
           filename: 'newsletter-2024-06.pdf',
           title: 'Summer Newsletter 2024',
           year: 2024,
-          season: 'Summer',
+          season: 'summer',
           month: 6
         }),
         createValidNewsletter({
           filename: 'newsletter-2023-12.pdf',
           title: 'December Newsletter 2023',
           year: 2023,
-          season: 'Winter',
+          season: 'winter',
           month: 12
         }),
       ];
@@ -397,14 +397,14 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       store.updateFilters({ searchText: 'Summer' });
 
       expect(store.filteredNewsletters).toHaveLength(1);
-      expect(store.filteredNewsletters[0].title).toContain('Summer');
+      expect(store.filteredNewsletters[0]?.title).toContain('Summer');
     });
 
     it('should filter newsletters by filename search', () => {
       store.updateFilters({ searchText: '2024-01' });
 
       expect(store.filteredNewsletters).toHaveLength(1);
-      expect(store.filteredNewsletters[0].filename).toContain('2024-01');
+      expect(store.filteredNewsletters[0]?.filename).toContain('2024-01');
     });
 
     it('should filter newsletters by year', () => {
@@ -415,28 +415,28 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
     });
 
     it('should filter newsletters by season', () => {
-      store.updateFilters({ filterSeason: 'Winter' });
+      store.updateFilters({ filterSeason: 'winter' });
 
       expect(store.filteredNewsletters).toHaveLength(2);
-      expect(store.filteredNewsletters.every(n => n.season === 'Winter')).toBe(true);
+      expect(store.filteredNewsletters.every(n => n.season === 'winter')).toBe(true);
     });
 
     it('should filter newsletters by month', () => {
       store.updateFilters({ filterMonth: 6 });
 
       expect(store.filteredNewsletters).toHaveLength(1);
-      expect(store.filteredNewsletters[0].month).toBe(6);
+      expect(store.filteredNewsletters[0]?.month).toBe(6);
     });
 
     it('should combine multiple filters correctly', () => {
       store.updateFilters({
         filterYear: 2024,
-        filterSeason: 'Winter'
+        filterSeason: 'winter'
       });
 
       expect(store.filteredNewsletters).toHaveLength(1);
-      expect(store.filteredNewsletters[0].year).toBe(2024);
-      expect(store.filteredNewsletters[0].season).toBe('Winter');
+      expect(store.filteredNewsletters[0]?.year).toBe(2024);
+      expect(store.filteredNewsletters[0]?.season).toBe('winter');
     });
 
     it('should reset filters correctly', () => {
@@ -482,16 +482,19 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
     it('should handle individual newsletter selection', () => {
       const newsletter = store.newsletters[0];
 
+      // Ensure newsletter exists before testing
+      expect(newsletter).toBeDefined();
+
       // Should start with no selection
       expect(store.selectedNewsletters).toHaveLength(0);
 
       // Select newsletter
-      store.selectNewsletter(newsletter);
+      store.selectNewsletter(newsletter!);
       expect(store.selectedNewsletters).toHaveLength(1);
       expect(store.selectedNewsletters[0]).toEqual(newsletter);
 
       // Deselect newsletter
-      store.selectNewsletter(newsletter);
+      store.selectNewsletter(newsletter!);
       expect(store.selectedNewsletters).toHaveLength(0);
     });
 
@@ -499,8 +502,12 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       const newsletter1 = store.newsletters[0];
       const newsletter2 = store.newsletters[1];
 
-      store.selectNewsletter(newsletter1);
-      store.selectNewsletter(newsletter2);
+      // Ensure newsletters exist before testing
+      expect(newsletter1).toBeDefined();
+      expect(newsletter2).toBeDefined();
+
+      store.selectNewsletter(newsletter1!);
+      store.selectNewsletter(newsletter2!);
 
       expect(store.selectedNewsletters).toHaveLength(2);
       expect(store.selectedNewsletters).toContain(newsletter1);
@@ -516,8 +523,15 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
 
     it('should clear all selections', () => {
       // First select some newsletters
-      store.selectNewsletter(store.newsletters[0]);
-      store.selectNewsletter(store.newsletters[1]);
+      const newsletter1 = store.newsletters[0];
+      const newsletter2 = store.newsletters[1];
+
+      // Ensure newsletters exist before testing
+      expect(newsletter1).toBeDefined();
+      expect(newsletter2).toBeDefined();
+
+      store.selectNewsletter(newsletter1!);
+      store.selectNewsletter(newsletter2!);
       expect(store.selectedNewsletters).toHaveLength(2);
 
       // Clear selection
@@ -526,7 +540,14 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
     });
 
     it('should set selected newsletters directly', () => {
-      const selectedNewsletters = [store.newsletters[0], store.newsletters[2]];
+      const newsletter1 = store.newsletters[0];
+      const newsletter3 = store.newsletters[2];
+
+      // Ensure newsletters exist before testing
+      expect(newsletter1).toBeDefined();
+      expect(newsletter3).toBeDefined();
+
+      const selectedNewsletters = [newsletter1!, newsletter3!];
 
       store.setSelectedNewsletters(selectedNewsletters);
 
@@ -724,33 +745,38 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
     });
   });  describe('Computed Properties', () => {
     beforeEach(() => {
-      const newsletters = [
+      // Create newsletters with proper types - avoiding strict optional property issues
+      const newsletters: ContentManagementNewsletter[] = [
         createValidNewsletter({
+          id: 'newsletter-1',
           filename: 'newsletter-2024-01.pdf',
           title: 'January Newsletter 2024',
           searchableText: 'Text content 1', // Has text
           thumbnailUrl: 'thumb1.jpg', // Has thumbnail
           fileSize: 1572864, // 1.5 MB in bytes
-          published: true
+          isPublished: true
         }),
         createValidNewsletter({
-          id: undefined, // Draft newsletter without ID
           filename: 'newsletter-2024-02.pdf',
           title: 'February Newsletter 2024',
-          searchableText: undefined, // No text
           thumbnailUrl: 'thumb2.jpg', // Has thumbnail
           fileSize: 2203648, // 2.1 MB in bytes
-          published: false
+          isPublished: false
         }),
         createValidNewsletter({
+          id: 'newsletter-3',
           filename: 'newsletter-2024-03.pdf',
           title: 'March Newsletter 2024',
           searchableText: 'Text content 3', // Has text
-          thumbnailUrl: undefined, // No thumbnail
           fileSize: 1887437, // 1.8 MB in bytes
-          published: true
+          isPublished: true
         }),
       ];
+
+      // Manually modify the second newsletter to be a draft (no ID) and no searchable text
+      newsletters[1] = { ...newsletters[1], id: '', searchableText: '' };
+      newsletters[2] = { ...newsletters[2], thumbnailUrl: '' };
+
       store.newsletters = newsletters;
     });
 
@@ -800,13 +826,13 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
 
     it('should compute availableSeasons correctly', () => {
       const newsletters = [
-        createValidNewsletter({ season: 'Winter' }),
-        createValidNewsletter({ season: 'Summer' }),
-        createValidNewsletter({ season: 'Winter' }), // Duplicate season
+        createValidNewsletter({ season: 'winter' }),
+        createValidNewsletter({ season: 'summer' }),
+        createValidNewsletter({ season: 'winter' }), // Duplicate season
       ];
       store.newsletters = newsletters;
 
-      expect(store.availableSeasons).toEqual(['Winter', 'Summer']); // Unique seasons only
+      expect(store.availableSeasons).toEqual(['winter', 'summer']); // Unique seasons only
     });
 
     it('should compute availableMonths correctly', () => {
@@ -861,7 +887,7 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       subscriptionCallback!([updatedNewsletter]);
 
       expect(store.newsletters).toHaveLength(1);
-      expect(store.newsletters[0].title).toBe('Updated Title');
+      expect(store.newsletters[0]?.title).toBe('Updated Title');
     });
 
     it('should handle real-time newsletter deletions through subscription', async () => {
@@ -888,7 +914,7 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       subscriptionCallback!(remainingNewsletters);
 
       expect(store.newsletters).toHaveLength(1);
-      expect(store.newsletters[0].filename).toBe('test1.pdf');
+      expect(store.newsletters[0]?.filename).toBe('test1.pdf');
     });
 
     it('should maintain selection state during real-time updates', async () => {
@@ -909,7 +935,7 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       store.selectNewsletter(newsletter1);
 
       expect(store.selectedNewsletters).toHaveLength(1);
-      expect(store.selectedNewsletters[0].filename).toBe('test1.pdf');
+      expect(store.selectedNewsletters[0]?.filename).toBe('test1.pdf');
 
       // Simulate real-time update that maintains the same newsletters
       const updatedNewsletter1 = createValidNewsletter({
@@ -920,7 +946,7 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
 
       // Selection should still exist (though object reference may change)
       expect(store.newsletters).toHaveLength(2);
-      expect(store.newsletters[0].title).toBe('Updated Title');
+      expect(store.newsletters[0]?.title).toBe('Updated Title');
     });
   });
 });

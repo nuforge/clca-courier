@@ -11,8 +11,7 @@ import { logger } from '../utils/logger';
 import {
   validateNewsletter,
   validateBatchOperation,
-  validateConcurrentOperation,
-  type ValidationResult
+  validateConcurrentOperation
 } from '../utils/newsletter-validation.utils';
 
 export const useNewsletterManagementStore = defineStore('newsletter-management', () => {
@@ -65,7 +64,7 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
 
       // Validate incoming newsletters from subscription
       const validatedNewsletters = validateIncomingNewsletters(updatedNewsletters);
-      newsletters.value = validatedNewsletters as ContentManagementNewsletter[];
+      newsletters.value = validatedNewsletters;
     });
   };
 
@@ -358,7 +357,7 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
       validateBatchOperationSafety(data, 'load');
       const validatedNewsletters = validateIncomingNewsletters(data);
 
-      newsletters.value = validatedNewsletters as ContentManagementNewsletter[];
+      newsletters.value = validatedNewsletters;
 
       logger.success(
         `✅ Loaded ${validatedNewsletters.length}/${data.length} valid newsletters (admin view) + reactive subscription active`,
