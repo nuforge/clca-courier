@@ -288,7 +288,7 @@ onMounted((): void => {
               <div class="row items-center q-gutter-md">
                 <div class="col">
                   <div class="text-h4 q-mb-md">
-                    <q-icon :name="getContentIcon('article').icon" :color="getContentIcon('article').color" class="q-mr-sm" />
+                    <q-icon :name="getContentIcon('article').icon" :style="`color: ${getContentIcon('article').color}`" class="q-mr-sm" />
                     Community Content
                   </div>
                   <p class="text-body1">
@@ -320,7 +320,7 @@ onMounted((): void => {
                     clearable
                   >
                     <template v-slot:prepend>
-                      <q-icon :name="UI_ICONS.search" />
+                      <q-icon :name="UI_ICONS.search" :color="colors.primary" />
                     </template>
                   </q-input>
                 </div>
@@ -503,7 +503,7 @@ onMounted((): void => {
 
         <q-card-section v-if="selectedItem && isNewsItem(selectedItem)">
           <div class="text-overline q-mb-sm" :class="`text-${getItemColor(selectedItem)}`">
-            <q-icon :name="getItemIcon(selectedItem).icon" size="sm" class="q-mr-xs" />
+            <q-icon :name="getItemIcon(selectedItem).icon" :style="`color: ${getItemIcon(selectedItem).color}`" size="sm" class="q-mr-xs" />
             {{ formatCategoryName(selectedItem.category) }}
           </div>
           <div class="text-caption q-mb-md" :class="greyTextClass">
@@ -516,7 +516,7 @@ onMounted((): void => {
 
         <q-card-section v-else-if="selectedItem && isClassifiedAd(selectedItem)">
           <div class="text-overline q-mb-sm" :class="`text-${getItemColor(selectedItem)}`">
-            <q-icon :name="getItemIcon(selectedItem).icon" size="sm" class="q-mr-xs" />
+            <q-icon :name="getItemIcon(selectedItem).icon" :style="`color: ${getItemIcon(selectedItem).color}`" size="sm" class="q-mr-xs" />
             {{ formatCategoryName(selectedItem.category) }}
           </div>
           <div class="text-caption q-mb-md" :class="greyTextClass">
@@ -539,11 +539,11 @@ onMounted((): void => {
               <strong>{{ selectedItem.contact.name }}</strong>
             </div>
             <div v-if="selectedItem.contact.phone" class="q-mb-xs">
-              <q-icon :name="UI_ICONS.phone" class="q-mr-xs" />
+              <q-icon :name="UI_ICONS.phone" :color="colors.primary" class="q-mr-xs" />
               <a :href="`tel:${selectedItem.contact.phone}`">{{ selectedItem.contact.phone }}</a>
             </div>
             <div v-if="selectedItem.contact.email" class="q-mb-xs">
-              <q-icon :name="UI_ICONS.email" class="q-mr-xs" />
+              <q-icon :name="UI_ICONS.email" :color="colors.primary" class="q-mr-xs" />
               <a :href="`mailto:${selectedItem.contact.email}`">{{ selectedItem.contact.email }}</a>
             </div>
           </div>

@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const siteStore = useSiteStore();
-const { getCategoryIcon, getContentIcon } = useSiteTheme();
+const { getCategoryIcon, getContentIcon, getStatusIcon } = useSiteTheme();
 
 // Helper function for formatting category names
 const formatCategoryName = (category: string): string => {
@@ -123,7 +123,7 @@ function handleDelete(): void {
   >
     <q-card-section>
       <div class="text-overline" :class="`text-${getCategoryConfig.color}`">
-        <q-icon :name="getCategoryConfig.icon" size="xs" class="q-mr-xs" />
+        <q-icon :name="getCategoryConfig.icon" :style="`color: ${getCategoryConfig.color}`" size="xs" class="q-mr-xs" />
         {{ categoryDisplayName }}
       </div>
       <div class="text-h6 q-mb-sm line-clamp-2">{{ item.title }}</div>
@@ -153,7 +153,7 @@ function handleDelete(): void {
       </div>
 
       <q-badge v-if="item.featured" color="amber" text-color="black" class="q-mt-sm">
-        <q-icon name="star" size="xs" class="q-mr-xs" />
+        <q-icon :name="getStatusIcon('featured').icon" :style="`color: ${getStatusIcon('featured').color}`" size="xs" class="q-mr-xs" />
         Featured
       </q-badge>
     </q-card-section>
@@ -181,7 +181,7 @@ function handleDelete(): void {
         />
         <div class="col">
           <div class="text-overline" :class="`text-${getCategoryConfig.color}`">
-            <q-icon :name="getCategoryConfig.icon" size="xs" class="q-mr-xs" />
+            <q-icon :name="getCategoryConfig.icon" :style="`color: ${getCategoryConfig.color}`" size="xs" class="q-mr-xs" />
             {{ categoryDisplayName }}
           </div>
           <div class="text-h6 q-mb-sm">{{ item.title }}</div>
@@ -211,7 +211,7 @@ function handleDelete(): void {
           </div>
 
           <q-badge v-if="item.featured" color="amber" text-color="black" class="q-mt-sm">
-            <q-icon name="star" size="xs" class="q-mr-xs" />
+            <q-icon :name="getStatusIcon('featured').icon" :style="`color: ${getStatusIcon('featured').color}`" size="xs" class="q-mr-xs" />
             Featured
           </q-badge>
         </div>
@@ -233,8 +233,8 @@ function handleDelete(): void {
   >
     <q-item-section avatar>
       <q-avatar
-        color="transparent"
-        :text-color="getCategoryConfig.color"
+        :color="getCategoryConfig.color"
+        text-color="white"
         :icon="getCategoryConfig.icon"
       />
     </q-item-section>
@@ -245,7 +245,7 @@ function handleDelete(): void {
         {{ formatDate(itemDate) }} • {{ authorInfo }}
         <span v-if="isClassifiedAd(item) && item.price"> • {{ item.price }}</span>
         <q-badge v-if="item.featured" color="amber" text-color="black" class="q-ml-xs">
-          <q-icon name="star" size="xs" class="q-mr-xs" />
+          <q-icon :name="getStatusIcon('featured').icon" :style="`color: ${getStatusIcon('featured').color}`" size="xs" class="q-mr-xs" />
           Featured
         </q-badge>
       </q-item-label>
@@ -262,7 +262,7 @@ function handleDelete(): void {
     </q-item-section>
 
     <q-item-section side v-else>
-      <q-icon name="chevron_right" color="grey" />
+      <q-icon name="chevron_right" color="grey-5" />
     </q-item-section>
   </q-item>
 </template>

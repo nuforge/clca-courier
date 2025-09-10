@@ -31,7 +31,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon :name="getContentIcon('article').icon" size="2rem" color="primary" />
+              <q-icon :name="getContentIcon('article').icon" :color="getContentIcon('article').color" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ stats.totalContent }}</div>
               <div class="text-caption text-grey-6">Total Content</div>
             </q-card-section>
@@ -40,7 +40,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon :name="getStatusIcon('pending').icon" size="2rem" color="orange" />
+              <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ stats.pendingReviews }}</div>
               <div class="text-caption text-grey-6">Pending Reviews</div>
             </q-card-section>
@@ -49,7 +49,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon :name="getStatusIcon('published').icon" size="2rem" color="positive" />
+              <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ stats.publishedContent }}</div>
               <div class="text-caption text-grey-6">Published</div>
             </q-card-section>
@@ -58,7 +58,7 @@
         <div class="col-12 col-md-3">
           <q-card class="text-center">
             <q-card-section>
-              <q-icon :name="getContentIcon('newsletter').icon" size="2rem" color="secondary" />
+                                          <q-icon :name="getContentIcon('notification').icon" :color="getContentIcon('notification').color" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ stats.newsletters }}</div>
               <div class="text-caption text-grey-6">Newsletters</div>
             </q-card-section>
