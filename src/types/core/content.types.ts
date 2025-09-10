@@ -3,6 +3,8 @@
  * Eliminates duplicate interfaces across models.ts, site-store.ts, etc.
  */
 
+import type { CanvaDesign } from '../../services/canva/types';
+
 /**
  * News item interface - consolidated from models.ts and site-store.ts
  * Standardized with optional featured property and consistent category union
@@ -320,4 +322,7 @@ export interface ContentSubmissionData {
     daysOfWeek?: number[];
     dayOfMonth?: number;
   };
+
+  // Canva integration for design creation
+  canvaDesign?: CanvaDesign;
 }

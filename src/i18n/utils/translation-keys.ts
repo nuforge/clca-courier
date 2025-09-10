@@ -149,6 +149,26 @@ export const TRANSLATION_KEYS = {
     }
   },
 
+  // Canva Integration
+  CANVA: {
+    DESIGN_CREATED: 'canva.designCreated',
+    EXPORT_PENDING: 'canva.exportPending',
+    EXPORT_COMPLETE: 'canva.exportComplete',
+    OPEN_DESIGN: 'canva.openDesign',
+    CREATE_DESIGN: 'canva.createDesign',
+    EXPORT_FOR_PRINT: 'canva.exportForPrint',
+    DESIGN_ATTACHED: 'canva.designAttached',
+    AUTH_REQUIRED: 'canva.authRequired',
+    AUTH_FAILED: 'canva.authFailed',
+    EXPORT_FAILED: 'canva.exportFailed',
+    CONNECTION_ERROR: 'canva.connectionError',
+    CREATE_WITH_CANVA: 'canva.createWithCanva',
+    EDIT_IN_CANVA: 'canva.editInCanva',
+    DOWNLOAD_DESIGN: 'canva.downloadDesign',
+    PROCESSING: 'canva.processing',
+    READY_FOR_DOWNLOAD: 'canva.readyForDownload'
+  },
+
   // Newsletter Specific
   NEWSLETTER: {
     ARCHIVE: 'newsletter.archive',
