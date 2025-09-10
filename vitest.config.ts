@@ -94,6 +94,9 @@ export default defineConfig({
   },
   define: {
     // Mock environment variables for tests
+    'import.meta.env.DEV': true,
+    'import.meta.env.PROD': false,
+    'import.meta.env.NODE_ENV': '"test"',
     'process.env': {
       NODE_ENV: 'test',
       VITE_FIREBASE_API_KEY: 'test-api-key',
