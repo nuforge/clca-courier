@@ -17,6 +17,7 @@ export function useSiteTheme() {
     statusMappings: store.statusMappings,
     isDirty: store.isDirty,
     lastSaved: store.lastSaved,
+    debugInfo: store.debugInfo,
 
     // Helper functions
     getContentIcon: store.getContentIcon,

@@ -153,7 +153,7 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
   contentTypes: {
     article: {
       icon: 'mdi-newspaper-variant',
-      color: 'contentTypes.article',
+      color: '#1976d2',  // Direct color instead of circular reference
       label: 'Articles & Stories',
       description: 'In-depth articles, community stories, and feature content',
       subcategories: ['news', 'community', 'recreation'],
@@ -161,7 +161,7 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
 
     event: {
       icon: 'mdi-calendar-star',
-      color: 'contentTypes.event',
+      color: '#9c27b0',  // Direct color instead of circular reference
       label: 'Events & Activities',
       description: 'Community events, meetings, and activities',
       subcategories: ['meeting', 'social', 'maintenance'],
@@ -169,7 +169,7 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
 
     announcement: {
       icon: 'mdi-bullhorn',
-      color: 'contentTypes.announcement',
+      color: '#21ba45',  // Direct color instead of circular reference
       label: 'Announcements',
       description: 'Official announcements and important notices',
       subcategories: ['news', 'community'],
@@ -177,7 +177,7 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
 
     classified: {
       icon: 'mdi-tag',
-      color: 'contentTypes.classified',
+      color: '#ff9800',  // Direct color instead of circular reference
       label: 'Classifieds',
       description: 'Marketplace items, services, and exchanges',
       subcategories: ['forSale', 'services', 'wanted', 'free', 'housing'],
@@ -185,7 +185,7 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
 
     photo: {
       icon: 'mdi-camera',
-      color: 'contentTypes.photo',
+      color: '#26a69a',  // Direct color instead of circular reference
       label: 'Photo Stories',
       description: 'Photo collections with captions and context',
       subcategories: ['community', 'recreation'],
@@ -193,7 +193,7 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
 
     newsletter: {
       icon: 'mdi-book-open-page-variant',
-      color: 'contentTypes.newsletter',
+      color: '#1976d2',  // Direct color instead of circular reference
       label: 'Newsletters',
       description: 'Official CLCA newsletter publications',
     },
@@ -203,17 +203,17 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
     article: {
       news: {
         icon: 'mdi-newspaper',
-        color: 'categories.news',
+        color: '#1976d2',  // Direct color instead of reference
         label: 'News',
       },
       community: {
         icon: 'mdi-account-group',
-        color: 'categories.community',
+        color: '#26a69a',  // Direct color instead of reference
         label: 'Community',
       },
       recreation: {
         icon: 'mdi-pool',
-        color: 'categories.recreation',
+        color: '#00bcd4',  // Direct color instead of reference
         label: 'Recreation',
       },
     },
@@ -221,17 +221,17 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
     event: {
       meeting: {
         icon: 'mdi-account-group',
-        color: 'categories.meeting',
+        color: '#673ab7',  // Direct color instead of reference
         label: 'Meeting',
       },
       social: {
         icon: 'mdi-party-popper',
-        color: 'categories.social',
+        color: '#e91e63',  // Direct color instead of reference
         label: 'Social Event',
       },
       maintenance: {
         icon: 'mdi-wrench',
-        color: 'categories.maintenance',
+        color: '#795548',  // Direct color instead of reference
         label: 'Maintenance',
       },
     },
@@ -239,12 +239,12 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
     announcement: {
       news: {
         icon: 'mdi-newspaper',
-        color: 'categories.news',
+        color: '#1976d2',  // Direct color instead of reference
         label: 'News',
       },
       community: {
         icon: 'mdi-bullhorn',
-        color: 'categories.community',
+        color: '#26a69a',  // Direct color instead of reference
         label: 'Community',
       },
     },
@@ -252,27 +252,27 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
     classified: {
       forSale: {
         icon: 'mdi-tag',
-        color: 'categories.forSale',
+        color: '#4caf50',  // Direct color instead of reference
         label: 'For Sale',
       },
       services: {
         icon: 'mdi-hammer-wrench',
-        color: 'categories.services',
+        color: '#2196f3',  // Direct color instead of reference
         label: 'Services',
       },
       wanted: {
         icon: 'mdi-magnify',
-        color: 'categories.wanted',
+        color: '#ff9800',  // Direct color instead of reference
         label: 'Wanted',
       },
       free: {
         icon: 'mdi-gift',
-        color: 'categories.free',
+        color: '#9c27b0',  // Direct color instead of reference
         label: 'Free',
       },
       housing: {
         icon: 'mdi-home',
-        color: 'categories.housing',
+        color: '#795548',  // Direct color instead of reference
         label: 'Housing',
       },
     },
@@ -280,12 +280,12 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
     photo: {
       community: {
         icon: 'mdi-camera-account',
-        color: 'categories.community',
+        color: '#26a69a',  // Direct color instead of reference
         label: 'Community Photos',
       },
       recreation: {
         icon: 'mdi-camera-outline',
-        color: 'categories.recreation',
+        color: '#00bcd4',  // Direct color instead of reference
         label: 'Recreation Photos',
       },
     },
@@ -294,37 +294,37 @@ export const DEFAULT_SITE_THEME: ThemeConfig = {
   statusMappings: {
     draft: {
       icon: 'mdi-file-document-edit',
-      color: 'status.draft',
+      color: '#9e9e9e',  // Direct color instead of reference
       label: 'Draft',
       description: 'Content being worked on',
     },
     pending: {
       icon: 'mdi-clock-outline',
-      color: 'status.pending',
+      color: '#2196f3',  // Direct color instead of reference
       label: 'Pending Review',
       description: 'Submitted for admin review',
     },
     approved: {
       icon: 'mdi-check-circle',
-      color: 'status.approved',
+      color: '#4caf50',  // Direct color instead of reference
       label: 'Approved',
       description: 'Approved by admin, ready to publish',
     },
     published: {
       icon: 'mdi-earth',
-      color: 'status.published',
+      color: '#21ba45',  // Direct color instead of reference
       label: 'Published',
       description: 'Live and visible to public',
     },
     rejected: {
       icon: 'mdi-close-circle',
-      color: 'status.rejected',
+      color: '#c10015',  // Direct color instead of reference
       label: 'Rejected',
       description: 'Not approved for publication',
     },
     featured: {
       icon: 'mdi-star',
-      color: 'status.featured',
+      color: '#ffc107',  // Direct color instead of reference
       label: 'Featured',
       description: 'Highlighted content',
     },

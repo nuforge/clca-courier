@@ -45,6 +45,36 @@
         </div>
       </div>
 
+      <!-- Debug Panel -->
+      <div class="q-mb-md">
+        <q-expansion-item icon="mdi-bug" label="Debug Info" class="bg-grey-1">
+          <q-card flat>
+            <q-card-section>
+              <div class="text-caption text-grey-6 q-mb-sm">Theme Store Debug Info:</div>
+              <pre class="text-caption">{{ debugInfo ? JSON.stringify(debugInfo, null, 2) : 'Debug info not available' }}</pre>
+              <div class="q-mt-md">
+                <q-btn
+                  size="sm"
+                  icon="mdi-content-copy"
+                  label="Copy to Clipboard"
+                  @click="copyDebugInfo"
+                  outline
+                />
+                <q-btn
+                  size="sm"
+                  icon="mdi-delete"
+                  label="Clear localStorage"
+                  @click="clearLocalStorage"
+                  color="negative"
+                  outline
+                  class="q-ml-sm"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+      </div>
+
       <!-- Main Editor Layout -->
       <div class="row q-col-gutter-lg">
         <!-- Left Panel - Editor -->
@@ -91,7 +121,7 @@
                       <div class="col-12 col-md-6">
                         <q-select
                           v-model="config.color"
-                          :options="colorOptions"
+                          :options="getColorOptionsForField()"
                           label="Color"
                           outlined
                           dense
@@ -102,8 +132,7 @@
                         >
                           <template v-slot:append>
                             <ColorPreview
-                              :color-value="resolvePreviewColor(config.color)"
-
+                              :color-value="config.color"
                               size="sm"
                               shape="circle"
                             />
@@ -112,8 +141,7 @@
                             <q-item v-bind="scope.itemProps">
                               <q-item-section avatar>
                                 <ColorPreview
-                                  :color-value="resolvePreviewColor(scope.opt.value)"
-
+                                  :color-value="scope.opt.preview || scope.opt.value"
                                   size="xs"
                                   shape="circle"
                                 />
@@ -216,7 +244,7 @@
 
                             <q-select
                               v-model="config.color"
-                              :options="colorOptions"
+                              :options="getColorOptionsForField()"
                               label="Color"
                               outlined
                               dense
@@ -227,8 +255,7 @@
                             >
                               <template v-slot:append>
                                 <ColorPreview
-                                  :color-value="resolvePreviewColor(config.color)"
-
+                                  :color-value="config.color"
                                   size="sm"
                                   shape="circle"
                                 />
@@ -237,8 +264,7 @@
                                 <q-item v-bind="scope.itemProps">
                                   <q-item-section avatar>
                                     <ColorPreview
-                                      :color-value="resolvePreviewColor(scope.opt.value)"
-
+                                      :color-value="scope.opt.preview || scope.opt.value"
                                       size="xs"
                                       shape="circle"
                                     />
@@ -362,7 +388,7 @@
 
                         <q-select
                           v-model="config.color"
-                          :options="colorOptions"
+                          :options="getColorOptionsForField()"
                           label="Color"
                           outlined
                           dense
@@ -374,8 +400,7 @@
                         >
                           <template v-slot:append>
                             <ColorPreview
-                              :color-value="resolvePreviewColor(config.color)"
-
+                              :color-value="config.color"
                               size="sm"
                               shape="circle"
                             />
@@ -384,8 +409,7 @@
                             <q-item v-bind="scope.itemProps">
                               <q-item-section avatar>
                                 <ColorPreview
-                                  :color-value="resolvePreviewColor(scope.opt.value)"
-
+                                  :color-value="scope.opt.preview || scope.opt.value"
                                   size="xs"
                                   shape="circle"
                                 />
@@ -626,7 +650,8 @@ const {
   getThemeForEditing,
   updateTheme,
   resetTheme,
-  saveTheme: saveThemeToStore
+  saveTheme: saveThemeToStore,
+  debugInfo
 } = useSiteTheme();
 
 // State
@@ -643,29 +668,36 @@ const hasUnsavedChanges = computed(() => {
 
 // Computed
 const colorOptions = computed(() => [
-  // Direct Quasar colors
-  { label: 'Primary', value: 'primary' },
-  { label: 'Secondary', value: 'secondary' },
-  { label: 'Accent', value: 'accent' },
-  { label: 'Positive', value: 'positive' },
-  { label: 'Negative', value: 'negative' },
-  { label: 'Warning', value: 'warning' },
-  { label: 'Info', value: 'info' },
+  // Direct Quasar colors with proper previews
+  { label: 'Primary', value: 'primary', preview: editableTheme.value.colors.primary },
+  { label: 'Secondary', value: 'secondary', preview: editableTheme.value.colors.secondary },
+  { label: 'Accent', value: 'accent', preview: editableTheme.value.colors.accent },
+  { label: 'Positive', value: 'positive', preview: editableTheme.value.colors.positive },
+  { label: 'Negative', value: 'negative', preview: editableTheme.value.colors.negative },
+  { label: 'Warning', value: 'warning', preview: editableTheme.value.colors.warning },
+  { label: 'Info', value: 'info', preview: editableTheme.value.colors.info },
 
-  // Content type color references
-  { label: 'Article Color', value: 'contentTypes.article' },
-  { label: 'Event Color', value: 'contentTypes.event' },
-  { label: 'Announcement Color', value: 'contentTypes.announcement' },
-  { label: 'Classified Color', value: 'contentTypes.classified' },
-  { label: 'Photo Color', value: 'contentTypes.photo' },
+  // Content type color references (these are now direct colors, but keeping for flexibility)
+  { label: 'Article Color', value: editableTheme.value.contentTypes.article?.color || '#1976d2', preview: editableTheme.value.contentTypes.article?.color || '#1976d2' },
+  { label: 'Event Color', value: editableTheme.value.contentTypes.event?.color || '#9c27b0', preview: editableTheme.value.contentTypes.event?.color || '#9c27b0' },
+  { label: 'Announcement Color', value: editableTheme.value.contentTypes.announcement?.color || '#21ba45', preview: editableTheme.value.contentTypes.announcement?.color || '#21ba45' },
+  { label: 'Classified Color', value: editableTheme.value.contentTypes.classified?.color || '#ff9800', preview: editableTheme.value.contentTypes.classified?.color || '#ff9800' },
+  { label: 'Photo Color', value: editableTheme.value.contentTypes.photo?.color || '#26a69a', preview: editableTheme.value.contentTypes.photo?.color || '#26a69a' },
+  { label: 'Newsletter Color', value: editableTheme.value.contentTypes.newsletter?.color || '#1976d2', preview: editableTheme.value.contentTypes.newsletter?.color || '#1976d2' },
 
-  // Status color references
-  { label: 'Draft Color', value: 'status.draft' },
-  { label: 'Pending Color', value: 'status.pending' },
-  { label: 'Approved Color', value: 'status.approved' },
-  { label: 'Published Color', value: 'status.published' },
-  { label: 'Featured Color', value: 'status.featured' },
+  // Status color references (these are now direct colors, but keeping for flexibility)
+  { label: 'Draft Color', value: editableTheme.value.statusMappings.draft?.color || '#9e9e9e', preview: editableTheme.value.statusMappings.draft?.color || '#9e9e9e' },
+  { label: 'Pending Color', value: editableTheme.value.statusMappings.pending?.color || '#2196f3', preview: editableTheme.value.statusMappings.pending?.color || '#2196f3' },
+  { label: 'Approved Color', value: editableTheme.value.statusMappings.approved?.color || '#4caf50', preview: editableTheme.value.statusMappings.approved?.color || '#4caf50' },
+  { label: 'Published Color', value: editableTheme.value.statusMappings.published?.color || '#21ba45', preview: editableTheme.value.statusMappings.published?.color || '#21ba45' },
+  { label: 'Featured Color', value: editableTheme.value.statusMappings.featured?.color || '#ffc107', preview: editableTheme.value.statusMappings.featured?.color || '#ffc107' },
 ]);
+
+// Helper function to get all color options
+// Note: Self-references are eliminated at the data level (no circular references in site-theme.config.ts)
+const getColorOptionsForField = () => {
+  return colorOptions.value;
+};
 
 // Methods
 const formatLabel = (text: string): string => {
@@ -734,6 +766,38 @@ const confirmReset = () => {
       message: 'Theme reset to defaults',
       position: 'top',
     });
+  });
+};
+
+// Debug functions (development only)
+const copyDebugInfo = () => {
+  if (debugInfo) {
+    navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
+      .then(() => {
+        $q.notify({
+          type: 'positive',
+          message: 'Debug info copied to clipboard',
+          position: 'top',
+        });
+      })
+      .catch((error) => {
+        logger.error('Failed to copy debug info to clipboard', { error });
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to copy to clipboard',
+          position: 'top',
+        });
+      });
+  }
+};
+
+const clearLocalStorage = () => {
+  const STORAGE_KEY = 'clca-courier-site-theme';
+  localStorage.removeItem(STORAGE_KEY);
+  $q.notify({
+    type: 'info',
+    message: 'localStorage cleared. Refresh to reload defaults.',
+    position: 'top',
   });
 };
 

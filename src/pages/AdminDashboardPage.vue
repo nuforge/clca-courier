@@ -81,6 +81,7 @@
               </p>
               <div class="q-col-gutter-sm">
                 <q-btn
+                  outline
                   color="primary"
                   :icon="UI_ICONS.eye"
                   label="Review Content"
@@ -90,6 +91,7 @@
                 <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
+                    flat
                       color="orange"
                       :icon="getStatusIcon('pending').icon"
                       :label="`${stats.pendingReviews} Pending`"
@@ -100,6 +102,7 @@
                   </div>
                   <div class="col">
                     <q-btn
+                    flat
                       color="positive"
                       :icon="getStatusIcon('published').icon"
                       :label="`${stats.publishedContent} Published`"
@@ -127,6 +130,7 @@
               </p>
               <div class="q-col-gutter-sm">
                 <q-btn
+                outline
                   color="secondary"
                   :icon="UI_ICONS.edit"
                   label="Manage Newsletters"
@@ -136,6 +140,7 @@
                 <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
+                    flat
                       color="info"
                       :icon="UI_ICONS.upload"
                       label="Upload PDF"
@@ -146,6 +151,7 @@
                   </div>
                   <div class="col">
                     <q-btn
+                    flat
                       color="accent"
                       :icon="UI_ICONS.cog"
                       label="Settings"
@@ -173,7 +179,8 @@
               </p>
                             <div class="q-col-gutter-sm">
                 <q-btn
-                  color="accent"
+                outline
+                  color="grey-6"
                   :icon="UI_ICONS.paletteOutline"
                   label="Theme Editor"
                   to="/admin/theme"
@@ -182,6 +189,7 @@
                 <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
+                    flat
                       color="brown"
                       :icon="UI_ICONS.tagMultiple"
                       label="Quick Categories"
@@ -192,6 +200,7 @@
                   </div>
                   <div class="col">
                     <q-btn
+                    flat
                       color="deep-purple"
                       :icon="UI_ICONS.colorFill"
                       label="Quick Colors"
@@ -219,6 +228,7 @@
               </p>
               <div class="q-col-gutter-sm">
                 <q-btn
+                outline
                   color="info"
                   :icon="UI_ICONS.accountCog"
                   label="Manage Users"
@@ -228,6 +238,7 @@
                 <div class="row q-gutter-sm q-px-none">
                   <div class="col">
                     <q-btn
+                    flat
                       color="green"
                       :icon="UI_ICONS.accountPlus"
                       label="Add Admin"
@@ -238,6 +249,7 @@
                   </div>
                   <div class="col">
                     <q-btn
+                    flat
                       color="purple"
                       :icon="UI_ICONS.accountKey"
                       label="Roles"

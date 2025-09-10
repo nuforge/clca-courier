@@ -115,7 +115,7 @@ const openNewsletter = () => {
       <!-- Mini mode (collapsed navigation) -->
       <div v-else class="mini-mode-container">
         <q-btn
-          color="primary"
+          :color="getContentIcon('newsletter').color"
           :icon="getContentIcon('newsletter').icon"
           round
           size="sm"
@@ -136,7 +136,7 @@ const openNewsletter = () => {
 
     <!-- No Issue Available -->
     <div v-else class="q-pa-md text-center">
-      <q-icon :name="getContentIcon('newsletter').icon" color="grey-6" size="20px" />
+      <q-icon :name="getContentIcon('newsletter').icon" :color="getContentIcon('newsletter').color" size="20px" />
       <div v-if="!mini" class="text-caption text-grey-6 q-mt-xs">
         No issues available
       </div>
