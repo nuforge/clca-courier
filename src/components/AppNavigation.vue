@@ -137,7 +137,7 @@ const isOpen = computed({
           <div v-if="!isMini" class="bg-dark text-white rounded-borders q-pa-sm">
             <div class="row items-center">
               <q-avatar size="24px" class="q-mr-sm">
-                <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
+                <img v-if="auth.currentUser.value?.photoURL && auth.currentUser.value.photoURL.startsWith('data:')" :src="auth.currentUser.value.photoURL" />
                 <q-icon v-else :name="UI_ICONS.account" />
               </q-avatar>
               <div class="col">
@@ -156,7 +156,7 @@ const isOpen = computed({
           </div>
           <div v-else class="text-center">
             <q-avatar size="32px" class="q-mb-xs">
-              <img v-if="auth.currentUser.value?.photoURL" :src="auth.currentUser.value.photoURL" />
+              <img v-if="auth.currentUser.value?.photoURL && auth.currentUser.value.photoURL.startsWith('data:')" :src="auth.currentUser.value.photoURL" />
               <q-icon v-else :name="UI_ICONS.account" />
             </q-avatar>
             <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" round size="xs" class="text-grey-4" />

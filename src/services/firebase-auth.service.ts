@@ -65,11 +65,29 @@ class FirebaseAuthService {
   private readonly AVATAR_CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
   /**
-   * Cache avatar image as data URL to prevent 429 rate limits
+   * Cache avatar image as data URL with retry logic and rate limit handling
    */
   private async cacheAvatarImage(photoURL: string, cacheKey: string): Promise<void> {
     try {
+      // Add delay to prevent immediate 429 errors
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const response = await fetch(photoURL);
+
+      if (response.status === 429) {
+        // Rate limited - retry after longer delay
+        logger.warn('Avatar caching rate limited, retrying in 30 seconds...');
+        setTimeout(() => {
+          void this.cacheAvatarImage(photoURL, cacheKey);
+        }, 30000);
+        return;
+      }
+
+      if (!response.ok) {
+        logger.error(`Failed to fetch avatar: ${response.status} ${response.statusText}`);
+        return;
+      }
+
       const blob = await response.blob();
       const dataUrl = await new Promise<string>((resolve) => {
         const reader = new FileReader();
@@ -83,25 +101,13 @@ class FirebaseAuthService {
 
       // Update the current user's photoURL with cached version
       if (this.authState.user && this.authState.user.uid === cacheKey) {
-        this.authState = {
-          ...this.authState,
-          user: {
-            ...this.authState.user,
-            photoURL: dataUrl
-          }
-        };
-        this.notifyListeners();
+        this.authState.user.photoURL = dataUrl;
+        logger.success('Avatar cached successfully and UI updated');
       }
     } catch (error) {
-      logger.warn('Failed to cache avatar image:', error);
-      // Fallback to original URL if caching fails
-      const now = Date.now();
-      this.avatarCache.set(cacheKey, photoURL);
-      this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
+      logger.error('Error caching avatar image:', error);
     }
-  }
-
-  constructor() {
+  }  constructor() {
     this.initializeAuthListener();
   }
 
@@ -130,17 +136,17 @@ class FirebaseAuthService {
    * Transform Firebase User to our FirebaseAuthUser interface with avatar caching
    */
   private transformFirebaseUser(user: User): FirebaseAuthUser {
-    // Cache avatar URL to prevent rate limiting
-    let cachedPhotoURL = user.photoURL;
-    if (cachedPhotoURL) {
-      const now = Date.now();
-      const cacheKey = user.uid;
-      const originalPhotoURL = cachedPhotoURL; // Store original URL for caching
+    let cachedPhotoURL: string | null = null;
 
-      // Check if we have a cached version that's still valid
+    if (user.photoURL) {
+      const originalPhotoURL = user.photoURL;
+      const cacheKey = user.uid;
+
       if (this.avatarCache.has(cacheKey) && this.avatarCacheExpiry.has(cacheKey)) {
+        const now = Date.now();
         const expiry = this.avatarCacheExpiry.get(cacheKey)!;
         if (now < expiry) {
+          // Use valid cached version
           cachedPhotoURL = this.avatarCache.get(cacheKey)!;
         } else {
           // Cache expired, use cached version while updating in background
@@ -148,8 +154,8 @@ class FirebaseAuthService {
           void this.cacheAvatarImage(originalPhotoURL, cacheKey);
         }
       } else {
-        // No cache entry, use original URL initially while caching in background
-        // This prevents showing a default avatar when Google URL is available
+        // No cache entry, show default icon while caching in background
+        cachedPhotoURL = null;
         void this.cacheAvatarImage(originalPhotoURL, cacheKey);
       }
     }
