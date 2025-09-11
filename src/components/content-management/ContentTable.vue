@@ -98,6 +98,66 @@
                 <q-tooltip>Reconsider</q-tooltip>
               </q-btn>
             </template>
+
+            <!-- Canva Export for Print (Admin/Editor only) -->
+            <template v-if="showCanvaExport && props.row.canvaDesign && hasCanvaExportPermission">
+              <!-- Export button when design is ready for export (draft or exported without exportUrl) -->
+              <q-btn
+                v-if="props.row.canvaDesign.status === 'draft' || (props.row.canvaDesign.status === 'exported' && !props.row.canvaDesign.exportUrl)"
+                flat
+                round
+                size="sm"
+                icon="print"
+                @click="$emit('export-for-print', props.row)"
+                color="purple"
+                :loading="isExportingContent(props.row.id)"
+                :disable="isExportingContent(props.row.id)"
+              >
+                <q-tooltip>{{ $t(TRANSLATION_KEYS.CANVA.EXPORT_FOR_PRINT) }}</q-tooltip>
+              </q-btn>
+
+              <!-- Loading indicator when export is in progress -->
+              <q-btn
+                v-else-if="props.row.canvaDesign.status === 'pending_export' || isExportingContent(props.row.id)"
+                flat
+                round
+                size="sm"
+                icon="hourglass_empty"
+                color="orange"
+                loading
+                disable
+              >
+                <q-tooltip>{{ $t(TRANSLATION_KEYS.CANVA.EXPORT_PENDING) }}</q-tooltip>
+              </q-btn>
+
+              <!-- Download button when export is complete -->
+              <q-btn
+                v-else-if="props.row.canvaDesign.status === 'exported' && props.row.canvaDesign.exportUrl"
+                flat
+                round
+                size="sm"
+                icon="download"
+                @click="$emit('download-design', props.row.canvaDesign.exportUrl, `design-${props.row.canvaDesign.id}.pdf`)"
+                color="green"
+              >
+                <q-tooltip>{{ $t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
+              </q-btn>
+
+              <!-- Failed state with retry option -->
+              <q-btn
+                v-else-if="props.row.canvaDesign.status === 'failed'"
+                flat
+                round
+                size="sm"
+                icon="error"
+                @click="$emit('export-for-print', props.row)"
+                color="red"
+                :loading="isExportingContent(props.row.id)"
+                :disable="isExportingContent(props.row.id)"
+              >
+                <q-tooltip>Export failed - Click to retry</q-tooltip>
+              </q-btn>
+            </template>
           </div>
         </q-td>
       </template>
@@ -109,8 +169,11 @@
 import { computed } from 'vue';
 import type { UserContent } from '../../services/firebase-firestore.service';
 import { useSiteTheme } from '../../composables/useSiteTheme';
+import { useRoleAuth } from '../../composables/useRoleAuth';
+import { TRANSLATION_KEYS } from '../../i18n/utils/translation-keys';
 
 const { getStatusIcon } = useSiteTheme();
+const { isEditor } = useRoleAuth();
 
 interface Props {
   content: UserContent[];
@@ -119,6 +182,8 @@ interface Props {
   showPublishActions?: boolean;
   showUnpublishActions?: boolean;
   showReconsiderActions?: boolean;
+  showCanvaExport?: boolean;
+  isExportingContent?: (contentId: string) => boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -126,6 +191,8 @@ const props = withDefaults(defineProps<Props>(), {
   showPublishActions: false,
   showUnpublishActions: false,
   showReconsiderActions: false,
+  showCanvaExport: false,
+  isExportingContent: () => () => false,
 });
 
 const emit = defineEmits<{
@@ -137,7 +204,12 @@ const emit = defineEmits<{
   'reconsider': [id: string];
   'view': [content: UserContent];
   'toggle-featured': [id: string, featured: boolean];
+  'export-for-print': [content: UserContent];
+  'download-design': [exportUrl: string, filename: string];
 }>();
+
+// Computed properties
+const hasCanvaExportPermission = computed(() => isEditor.value);
 
 // Helper method to handle toggle featured
 const handleToggleFeatured = (id: string, featured: boolean) => {

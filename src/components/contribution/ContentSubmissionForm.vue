@@ -743,7 +743,7 @@ async function createCanvaDesign(): Promise<void> {
   // Check if user is authenticated with Canva
   if (!isCanvaAuthenticated.value) {
     try {
-      await initiateOAuth();
+      initiateOAuth();
       return; // OAuth will redirect, function will be called again after callback
     } catch {
       $q.notify({

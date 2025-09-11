@@ -171,7 +171,7 @@ export function useCanvaAuth() {
    * Initialize Canva OAuth flow
    * Redirects user to Canva authorization page
    */
-  async function initiateOAuth(): Promise<void> {
+  function initiateOAuth(): void {
     try {
       // Check if user is authenticated with Firebase
       if (!auth.currentUser.value) {

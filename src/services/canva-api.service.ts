@@ -16,8 +16,7 @@ import type {
   CanvaConfig,
   CanvaCreateDesignResponse,
   CanvaExportResponse,
-  CanvaGetDesignResponse,
-  CanvaApiError
+  CanvaGetDesignResponse
 } from './canva/types';
 import { isCanvaApiError } from './canva/types';
 
@@ -66,7 +65,7 @@ export class CanvaApiService {
       },
       (error) => {
         logger.error('Canva API request error:', error);
-        return Promise.reject(error);
+        throw error instanceof Error ? error : new Error(String(error));
       }
     );
 
@@ -85,7 +84,7 @@ export class CanvaApiService {
           url: error.config?.url,
           message: error.message
         });
-        return Promise.reject(error);
+        throw error instanceof Error ? error : new Error(String(error));
       }
     );
 
@@ -172,7 +171,7 @@ export class CanvaApiService {
 
       if (axios.isAxiosError(error)) {
         if (isCanvaApiError(error.response?.data)) {
-          const canvaError = error.response.data as CanvaApiError;
+          const canvaError = error.response.data;
           logger.error('Canva API error:', {
             templateId,
             code: canvaError.error.code,
@@ -258,7 +257,7 @@ export class CanvaApiService {
 
       if (axios.isAxiosError(error)) {
         if (isCanvaApiError(error.response?.data)) {
-          const canvaError = error.response.data as CanvaApiError;
+          const canvaError = error.response.data;
           logger.error('Canva API error during export:', {
             designId,
             code: canvaError.error.code,
@@ -335,7 +334,7 @@ export class CanvaApiService {
         }
 
         if (isCanvaApiError(error.response?.data)) {
-          const canvaError = error.response.data as CanvaApiError;
+          const canvaError = error.response.data;
           logger.error('Canva API error retrieving design:', {
             designId,
             code: canvaError.error.code,

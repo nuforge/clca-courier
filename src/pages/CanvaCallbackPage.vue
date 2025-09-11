@@ -41,13 +41,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useI18n } from 'vue-i18n';
 import { useCanvaAuth } from '../composables/useCanvaAuth';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import { logger } from '../utils/logger';
 
 const router = useRouter();
-const { t } = useI18n();
 const { handleOAuthRedirect, isLoading } = useCanvaAuth();
 
 const hasError = ref(false);

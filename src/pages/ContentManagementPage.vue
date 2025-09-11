@@ -115,28 +115,40 @@
               <q-tab-panel name="pending">
                 <ContentTable :content="pendingContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @approve="approveContent" @reject="rejectContent"
-                  @view="viewContent" @toggle-featured="toggleFeaturedStatus" show-actions />
+                  @view="viewContent" @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-actions />
               </q-tab-panel>
 
               <!-- Approved Content -->
               <q-tab-panel name="approved">
                 <ContentTable :content="approvedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @publish="publishContent" @unpublish="unpublishContent"
-                  @view="viewContent" @toggle-featured="toggleFeaturedStatus" show-publish-actions />
+                  @view="viewContent" @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-publish-actions />
               </q-tab-panel>
 
               <!-- Published Content -->
               <q-tab-panel name="published">
                 <ContentTable :content="publishedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @unpublish="unpublishContent" @view="viewContent"
-                  @toggle-featured="toggleFeaturedStatus" show-unpublish-actions />
+                  @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-unpublish-actions />
               </q-tab-panel>
 
               <!-- Rejected Content -->
               <q-tab-panel name="rejected">
                 <ContentTable :content="rejectedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @reconsider="reconsiderContent" @view="viewContent"
-                  @toggle-featured="toggleFeaturedStatus" show-reconsider-actions />
+                  @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-reconsider-actions />
               </q-tab-panel>
             </q-tab-panels>
           </q-card>
@@ -192,6 +204,73 @@
             </q-list>
           </div>
 
+          <!-- Canva Design Section -->
+          <div v-if="selectedContentItem.canvaDesign">
+            <q-separator class="q-my-md" />
+            <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CANVA.CREATE_DESIGN) || 'Canva Design' }}</div>
+            <q-card flat bordered class="q-mb-md">
+              <q-card-section>
+                <div class="row items-center q-gutter-md">
+                  <div class="col-auto">
+                    <q-badge
+                      :color="getCanvaStatusColor(selectedContentItem.canvaDesign.status)"
+                      :label="getCanvaStatusLabel(selectedContentItem.canvaDesign.status)"
+                    />
+                  </div>
+                  <div class="col">
+                    <div class="text-body2">
+                      <strong>Design ID:</strong> {{ selectedContentItem.canvaDesign.id }}
+                    </div>
+                    <div v-if="selectedContentItem.canvaDesign.exportUrl" class="text-body2">
+                      <strong>Export Ready:</strong> Yes
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <div class="row q-gutter-xs">
+                      <!-- Edit in Canva -->
+                      <q-btn
+                        v-if="selectedContentItem.canvaDesign.editUrl"
+                        flat
+                        round
+                        icon="edit"
+                        color="primary"
+                        @click="openCanvaDesign(selectedContentItem.canvaDesign.editUrl)"
+                      >
+                        <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EDIT_IN_CANVA) }}</q-tooltip>
+                      </q-btn>
+
+                      <!-- Export for Print -->
+                      <q-btn
+                        v-if="selectedContentItem.canvaDesign.status === 'draft' || selectedContentItem.canvaDesign.status === 'exported'"
+                        flat
+                        round
+                        icon="print"
+                        color="purple"
+                        @click="handleExportForPrint(selectedContentItem)"
+                        :loading="isExporting(selectedContentItem.id)"
+                        :disable="isExporting(selectedContentItem.id)"
+                      >
+                        <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EXPORT_FOR_PRINT) }}</q-tooltip>
+                      </q-btn>
+
+                      <!-- Download Design -->
+                      <q-btn
+                        v-if="selectedContentItem.canvaDesign.status === 'exported' && selectedContentItem.canvaDesign.exportUrl"
+                        flat
+                        round
+                        icon="download"
+                        color="green"
+                        @click="handleDownloadDesign(selectedContentItem.canvaDesign.exportUrl, `design-${selectedContentItem.canvaDesign.id}.pdf`)"
+                      >
+                        <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+
           <div v-if="selectedContentItem.reviewNotes">
             <q-separator class="q-my-md" />
             <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.REVIEW_NOTES) || 'Review Notes' }}</div>
@@ -241,6 +320,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
+import { useCanvaExport } from '../composables/useCanvaExport';
 import { firestoreService } from '../services/firebase-firestore.service';
 import type { UserContent } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
@@ -254,6 +334,7 @@ const $q = useQuasar();
 const { t } = useI18n();
 const { requireEditor, isAuthReady } = useRoleAuth();
 const { getStatusIcon, getContentIcon } = useSiteTheme();
+const { exportDesignForPrint, downloadDesign, isExporting, cleanup: cleanupCanvaExport } = useCanvaExport();
 
 // State
 const isLoading = ref(false);
@@ -482,6 +563,56 @@ const showBulkRejectDialog = () => {
   });
 };
 
+// Canva Export Handlers
+const handleExportForPrint = async (content: UserContent) => {
+  logger.info('Export for print requested', { contentId: content.id, hasCanvaDesign: !!content.canvaDesign });
+
+  if (!content.canvaDesign) {
+    $q.notify({
+      type: 'warning',
+      message: t(TRANSLATION_KEYS.CANVA.EXPORT_FAILED) + ' - No Canva design attached'
+    });
+    return;
+  }
+
+  try {
+    await exportDesignForPrint(content);
+  } catch (error) {
+    logger.error('Failed to handle export for print', { contentId: content.id, error });
+  }
+};
+
+const handleDownloadDesign = (exportUrl: string, filename: string) => {
+  logger.info('Design download requested', { exportUrl, filename });
+  downloadDesign(exportUrl, filename);
+};
+
+// Canva Status Utility Functions
+const getCanvaStatusColor = (status: string): string => {
+  switch (status) {
+    case 'draft': return 'orange';
+    case 'pending_export': return 'blue';
+    case 'exported': return 'green';
+    case 'failed': return 'red';
+    default: return 'grey';
+  }
+};
+
+const getCanvaStatusLabel = (status: string): string => {
+  switch (status) {
+    case 'draft': return t(TRANSLATION_KEYS.CANVA.PROCESSING) || 'Draft';
+    case 'pending_export': return t(TRANSLATION_KEYS.CANVA.EXPORT_PENDING) || 'Pending Export';
+    case 'exported': return t(TRANSLATION_KEYS.CANVA.READY_FOR_DOWNLOAD) || 'Exported';
+    case 'failed': return 'Failed';
+    default: return status.toUpperCase();
+  }
+};
+
+const openCanvaDesign = (editUrl: string) => {
+  logger.info('Opening Canva design in new tab', { editUrl });
+  window.open(editUrl, '_blank', 'noopener,noreferrer');
+};
+
 // Utility functions
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
@@ -519,6 +650,8 @@ onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval);
   }
+  // Cleanup Canva export polling
+  cleanupCanvaExport();
 });
 </script>
 
