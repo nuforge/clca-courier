@@ -86,7 +86,16 @@
         unelevated
         size="lg"
         class="q-px-xl"
-      />
+      >
+        <q-tooltip
+          v-if="!isValid"
+          :delay="500"
+          class="text-body2"
+          max-width="300px"
+        >
+          {{ validationTooltip }}
+        </q-tooltip>
+      </q-btn>
     </div>
   </div>
 </template>
@@ -177,6 +186,31 @@ const requiredFeatures = computed(() => {
 
 const isValid = computed(() => {
   return props.title.trim().length >= 3 && props.description.trim().length >= 10;
+});
+
+const validationTooltip = computed(() => {
+  const issues: string[] = [];
+
+  if (props.title.trim().length < 3) {
+    issues.push(t('forms.title.minLength'));
+  }
+
+  if (props.description.trim().length < 10) {
+    issues.push(t('forms.description.minLength'));
+  }
+
+  if (issues.length === 1) {
+    return issues[0];
+  }
+
+  if (issues.length > 1) {
+    return t('content.submission.steps.basicInfo.multipleIssues', {
+      count: issues.length,
+      issues: issues.join(', ')
+    });
+  }
+
+  return t('content.submission.steps.basicInfo.allValid');
 });
 
 // Validation rules

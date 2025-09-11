@@ -150,14 +150,21 @@ const validateLongitude = (val: number | null) => {
 // Methods
 const formatLocationPreview = (): string => {
   if (!localLocationFeature.value.address) {
-    return t('features.location.incompleteLocation');
+    return t('content.features.location.incompleteLocation');
   }
 
-  let preview = '';
+  let preview = localLocationFeature.value.address;
+
   if (localLocationFeature.value.name) {
-    preview += localLocationFeature.value.name + ' - ';
+    preview = `${localLocationFeature.value.name}: ${preview}`;
   }
-  preview += localLocationFeature.value.address;
+
+  if (hasCoordinates.value && latitude.value !== null && longitude.value !== null) {
+    preview += ` (${t('content.features.location.coordinatesDisplay', {
+      lat: latitude.value.toFixed(6),
+      lng: longitude.value.toFixed(6)
+    })})`;
+  }
 
   return preview;
 };

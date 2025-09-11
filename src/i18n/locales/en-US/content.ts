@@ -49,7 +49,8 @@ export default {
       endTime: 'End Time',
       hasEndDate: 'This event has an end date/time',
       endAfterStart: 'End date must be after start date',
-      invalidDate: 'Invalid date'
+      invalidDate: 'Invalid date',
+      validationError: 'Please set a valid start date for this event'
     },
     task: {
       label: 'Task',
@@ -64,6 +65,7 @@ export default {
       claimedBy: 'Claimed by {user}',
       incompleteTask: 'Please complete all task details',
       previewFormat: '{qty} {unit} needed for {category}',
+      validationError: 'Please complete the task category, quantity, and unit',
       categories: {
         setup: 'Event Setup',
         printing: 'Printing & Distribution',
@@ -108,7 +110,8 @@ export default {
       geolocationNotSupported: 'Geolocation is not supported by this browser',
       locationObtained: 'Location obtained successfully',
       locationError: 'Failed to get current location',
-      incompleteLocation: 'Please enter at least an address'
+      incompleteLocation: 'Please enter at least an address',
+      validationError: 'Please enter a valid address for this location'
     },
     canva: {
       label: 'Canva Design',
@@ -130,7 +133,11 @@ export default {
       helpTitle: 'How to use Canva Integration',
       help1: 'Create or open your design in Canva',
       help2: 'Copy the design ID from the URL or paste the full URL',
-      help3: 'Share the edit link so others can collaborate'
+      help3: 'Share the edit link so others can collaborate',
+      validationError: 'Please provide a valid Canva design ID or URL'
+    },
+    general: {
+      validationError: 'Please complete the required information for this feature'
     }
   },
 
@@ -183,20 +190,25 @@ export default {
       contentType: {
         title: 'Content Type',
         subtitle: 'What type of content would you like to create?',
-        description: 'Choose the content type that best matches what you want to share with the community.'
+        description: 'Choose the content type that best matches what you want to share with the community.',
+        validationError: 'Please select a content type to continue'
       },
       basicInfo: {
         title: 'Basic Information',
         subtitle: 'Tell us about your content',
         description: 'Provide the title and description for your content.',
-        requiredFeatures: 'This content type requires:'
+        requiredFeatures: 'This content type requires:',
+        allValid: 'All required information is provided',
+        multipleIssues: '{count} issues need attention: {issues}'
       },
       features: {
         title: 'Features & Details',
         subtitle: 'Add specific features to your content',
         description: 'Configure additional features based on your content type.',
         required: 'Required Features',
-        optional: 'Optional Features'
+        optional: 'Optional Features',
+        allValid: 'All required features are configured correctly',
+        multipleIssues: '{count} features need attention: {issues}'
       },
       preview: {
         title: 'Preview & Submit',
@@ -208,7 +220,8 @@ export default {
         notesTitle: 'Important Notes',
         note1: 'Your content will be reviewed by our team before publication',
         note2: 'You will receive a notification when your content is approved',
-        note3: 'Published content will appear in the community feed'
+        note3: 'Published content will appear in the community feed',
+        validationError: 'Please complete all required information before submitting'
       }
     },
     contentTypes: {

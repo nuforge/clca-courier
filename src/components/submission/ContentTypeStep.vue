@@ -76,7 +76,16 @@
         unelevated
         size="lg"
         class="q-px-xl"
-      />
+      >
+        <q-tooltip
+          v-if="!selectedType"
+          :delay="500"
+          class="text-body2"
+          max-width="300px"
+        >
+          {{ $t('content.submission.steps.contentType.validationError') }}
+        </q-tooltip>
+      </q-btn>
     </div>
   </div>
 </template>

@@ -103,6 +103,14 @@
         <template #loading>
           <q-spinner-facebook />
         </template>
+        <q-tooltip
+          v-if="!canSubmit"
+          :delay="500"
+          class="text-body2"
+          max-width="300px"
+        >
+          {{ $t('content.submission.steps.preview.validationError') }}
+        </q-tooltip>
       </q-btn>
     </div>
   </div>
@@ -148,7 +156,13 @@ const contentTypeIcon = computed(() => {
 
 const enabledFeatures = computed(() => {
   if (!props.previewContent) return [];
-  return Object.keys(props.previewContent.features);
+  return Object.keys(props.previewContent.features || {}).filter(key =>
+    key.startsWith('feat:') || key.startsWith('integ:')
+  );
+});
+
+const canSubmit = computed(() => {
+  return props.previewContent !== null && !props.isSubmitting;
 });
 
 const featuresCount = computed(() => enabledFeatures.value.length);

@@ -133,13 +133,23 @@
         unelevated
         size="lg"
         class="q-px-xl"
-      />
+      >
+        <q-tooltip
+          v-if="!isValid"
+          :delay="500"
+          class="text-body2"
+          max-width="300px"
+        >
+          {{ validationTooltip }}
+        </q-tooltip>
+      </q-btn>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ContentFeatures } from '../../types/core/content.types';
 
 // Type aliases for easier reference
@@ -169,6 +179,24 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const { t } = useI18n();
+
+// Helper function to get validation message for a specific feature
+const getFeatureValidationMessage = (featureKey: string): string => {
+  switch (featureKey) {
+    case 'feat:date':
+      return t('content.features.date.validationError');
+    case 'feat:task':
+      return t('content.features.task.validationError');
+    case 'feat:location':
+      return t('content.features.location.validationError');
+    case 'integ:canva':
+      return t('content.features.canva.validationError');
+    default:
+      return t('content.features.general.validationError');
+  }
+};
 
 // Content type configuration
 const contentTypeConfig = {
@@ -240,6 +268,36 @@ const isValid = computed(() => {
     }
   }
   return true;
+});
+
+// Validation messages for user feedback
+const validationMessages = computed(() => {
+  const messages: string[] = [];
+
+  for (const feature of requiredFeatures.value) {
+    const featureData = localFeatures.value[feature as keyof ContentFeatures];
+    if (!featureData || !isFeatureValid(feature, featureData)) {
+      messages.push(getFeatureValidationMessage(feature));
+    }
+  }
+
+  return messages;
+});
+
+// Combined validation message for tooltip
+const validationTooltip = computed(() => {
+  if (isValid.value) {
+    return t('content.submission.steps.features.allValid');
+  }
+
+  if (validationMessages.value.length === 1) {
+    return validationMessages.value[0];
+  }
+
+  return t('content.submission.steps.features.multipleIssues', {
+    count: validationMessages.value.length,
+    issues: validationMessages.value.join(', ')
+  });
 });
 
 // Methods
