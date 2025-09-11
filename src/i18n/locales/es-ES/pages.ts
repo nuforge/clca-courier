@@ -269,5 +269,11 @@ export default {
     deleteMessage: '¿Estás seguro de que quieres eliminar "{title}"?',
     deleteNotImplemented: 'Funcionalidad de eliminación aún no implementada',
     taskClaimed: '¡Tarea "{title}" reclamada exitosamente!'
+  },
+
+  // Content Submission Page
+  contentSubmission: {
+    title: 'Enviar Contenido',
+    subtitle: 'Comparte tu contenido con la comunidad a través de nuestro proceso de envío guiado'
   }
 };

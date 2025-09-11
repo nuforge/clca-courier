@@ -41,27 +41,96 @@ export default {
   features: {
     date: {
       label: 'Event Date',
-      allDay: 'All Day'
+      description: 'Add date and time information to your content',
+      allDay: 'All Day',
+      startDate: 'Start Date',
+      startTime: 'Start Time',
+      endDate: 'End Date',
+      endTime: 'End Time',
+      hasEndDate: 'This event has an end date/time',
+      endAfterStart: 'End date must be after start date',
+      invalidDate: 'Invalid date'
     },
     task: {
       label: 'Task',
+      description: 'Add task details for community volunteers',
+      category: 'Task Category',
       quantity: '{qty} {unit} needed',
+      quantityRange: 'Quantity must be between 1 and 999',
+      unit: 'Unit',
+      status: 'Task Status',
+      statusHelp: 'Tasks start as unclaimed and can be claimed by community members',
       claim: 'Claim',
       claimedBy: 'Claimed by {user}',
-      status: {
+      incompleteTask: 'Please complete all task details',
+      previewFormat: '{qty} {unit} needed for {category}',
+      categories: {
+        setup: 'Event Setup',
+        printing: 'Printing & Distribution',
+        cleanup: 'Cleanup & Breakdown',
+        delivery: 'Delivery & Transport',
+        coordination: 'Coordination & Management',
+        supplies: 'Supplies & Materials',
+        technical: 'Technical Support',
+        other: 'Other'
+      },
+      units: {
+        people: 'people',
+        hours: 'hours',
+        items: 'items',
+        copies: 'copies',
+        sets: 'sets',
+        tables: 'tables',
+        chairs: 'chairs',
+        boxes: 'boxes'
+      },
+      statusOptions: {
         unclaimed: 'Available',
         claimed: 'Claimed',
         completed: 'Completed'
       }
     },
     location: {
-      coordinates: 'Lat: {lat}, Lng: {lng}'
+      label: 'Location',
+      description: 'Add location information to your content',
+      name: 'Location Name',
+      nameHint: 'Optional: A friendly name for this location',
+      address: 'Address',
+      addressHint: 'The street address or location description',
+      coordinates: 'Coordinates (Optional)',
+      coordinatesHelp: 'Add precise coordinates for mapping',
+      coordinatesDisplay: 'Lat: {lat}, Lng: {lng}',
+      latitude: 'Latitude',
+      longitude: 'Longitude',
+      invalidLatitude: 'Latitude must be between -90 and 90',
+      invalidLongitude: 'Longitude must be between -180 and 180',
+      getCurrentLocation: 'Use Current Location',
+      geolocationNotSupported: 'Geolocation is not supported by this browser',
+      locationObtained: 'Location obtained successfully',
+      locationError: 'Failed to get current location',
+      incompleteLocation: 'Please enter at least an address'
     },
     canva: {
       label: 'Canva Design',
-      designId: 'Design ID: {id}',
-      edit: 'Edit',
-      export: 'Export'
+      description: 'Integrate with Canva designs for visual content',
+      designId: 'Design ID',
+      designIdHint: 'The Canva design ID or paste the full URL',
+      editUrl: 'Edit URL',
+      editUrlHint: 'The Canva edit link for this design',
+      exportUrl: 'Export URL (Optional)',
+      exportUrlHint: 'Direct link to download the completed design',
+      invalidUrl: 'Please enter a valid URL',
+      notCanvaUrl: 'This doesn\'t appear to be a Canva URL',
+      openDesign: 'Open Design in Canva',
+      openExport: 'Open Export URL',
+      incompleteIntegration: 'Please complete the Canva integration details',
+      previewFormat: 'Canva Design: {designId}',
+      editInCanva: 'Edit in Canva',
+      downloadDesign: 'Download Design',
+      helpTitle: 'How to use Canva Integration',
+      help1: 'Create or open your design in Canva',
+      help2: 'Copy the design ID from the URL or paste the full URL',
+      help3: 'Share the edit link so others can collaborate'
     }
   },
 
@@ -106,6 +175,73 @@ export default {
     claimError: 'Failed to claim print job',
     jobCompleted: 'Print job marked as completed',
     completeError: 'Failed to complete print job'
+  },
+
+  // Content Submission Workflow
+  submission: {
+    steps: {
+      contentType: {
+        title: 'Content Type',
+        subtitle: 'What type of content would you like to create?',
+        description: 'Choose the content type that best matches what you want to share with the community.'
+      },
+      basicInfo: {
+        title: 'Basic Information',
+        subtitle: 'Tell us about your content',
+        description: 'Provide the title and description for your content.',
+        requiredFeatures: 'This content type requires:'
+      },
+      features: {
+        title: 'Features & Details',
+        subtitle: 'Add specific features to your content',
+        description: 'Configure additional features based on your content type.',
+        required: 'Required Features',
+        optional: 'Optional Features'
+      },
+      preview: {
+        title: 'Preview & Submit',
+        subtitle: 'Review your content before submitting',
+        description: 'Check how your content will appear and submit for review.',
+        contentPreview: 'Content Preview',
+        summary: 'Submission Summary',
+        features: 'Features',
+        notesTitle: 'Important Notes',
+        note1: 'Your content will be reviewed by our team before publication',
+        note2: 'You will receive a notification when your content is approved',
+        note3: 'Published content will appear in the community feed'
+      }
+    },
+    contentTypes: {
+      news: {
+        description: 'Share community news and updates'
+      },
+      event: {
+        description: 'Announce upcoming community events'
+      },
+      announcement: {
+        description: 'Important community announcements'
+      },
+      classified: {
+        description: 'Buy, sell, or trade items with neighbors'
+      },
+      task: {
+        description: 'Request help or volunteers for community tasks'
+      },
+      article: {
+        description: 'Share articles and educational content'
+      }
+    },
+    autoSave: {
+      saving: 'Saving draft...',
+      saved: 'Draft saved'
+    },
+    success: {
+      submitted: 'Content submitted successfully! It will be reviewed before publication.'
+    },
+    errors: {
+      invalidContent: 'Please complete all required fields',
+      submitFailed: 'Failed to submit content. Please try again.'
+    }
   },
 
   management: 'Content Management',

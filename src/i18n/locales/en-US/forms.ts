@@ -8,8 +8,29 @@
  */
 
 export default {
-  title: 'Title',
-  description: 'Description',
+  title: {
+    label: 'Title',
+    hint: 'Enter a clear, descriptive title for your content',
+    required: 'Title is required',
+    minLength: 'Title must be at least 3 characters',
+    maxLength: 'Title cannot exceed 200 characters'
+  },
+  description: {
+    label: 'Description',
+    hint: 'Provide detailed information about your content',
+    required: 'Description is required',
+    minLength: 'Description must be at least 10 characters',
+    maxLength: 'Description cannot exceed 2000 characters'
+  },
+  contentType: {
+    label: 'Content Type'
+  },
+  status: {
+    label: 'Status'
+  },
+  required: 'This field is required',
+
+  // Legacy fields for compatibility
   content: 'Content',
   email: 'Email',
   name: 'Name',

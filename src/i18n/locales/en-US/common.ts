@@ -58,6 +58,11 @@ export default {
 
   actions: {
     edit: 'Edit',
-    delete: 'Delete'
-  }
+    delete: 'Delete',
+    next: 'Next',
+    back: 'Back',
+    submit: 'Submit'
+  },
+
+  preview: 'Preview'
 };

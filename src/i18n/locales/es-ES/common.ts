@@ -47,6 +47,7 @@ export default {
   retry: 'Reintentar',
   clearSelection: 'Limpiar Selección',
   by: 'Por',
+  preview: 'Vista previa',
 
   accessibility: {
     showActions: 'Mostrar menú de acciones',
@@ -58,6 +59,9 @@ export default {
 
   actions: {
     edit: 'Editar',
-    delete: 'Eliminar'
+    delete: 'Eliminar',
+    next: 'Siguiente',
+    back: 'Atrás',
+    submit: 'Enviar'
   }
 };

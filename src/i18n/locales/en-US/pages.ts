@@ -269,5 +269,11 @@ export default {
     deleteMessage: 'Are you sure you want to delete "{title}"?',
     deleteNotImplemented: 'Delete functionality not implemented yet',
     taskClaimed: 'Task "{title}" claimed successfully!',
+  },
+
+  // Content Submission Page
+  contentSubmission: {
+    title: 'Submit Content',
+    subtitle: 'Share your content with the community through our guided submission process'
   }
 };
