@@ -22,7 +22,7 @@
           icon="edit"
           :label="$t('content.features.canva.editInCanva')"
           @click="openEditor"
-          :aria-label="$t('accessibility.editCanvaDesign')"
+          :aria-label="$t('common.accessibility.editCanvaDesign')"
         />
 
         <q-btn
@@ -34,7 +34,7 @@
           icon="download"
           :label="$t('content.features.canva.openExport')"
           @click="downloadExport"
-          :aria-label="$t('accessibility.downloadCanvaExport')"
+          :aria-label="$t('common.accessibility.downloadCanvaExport')"
         />
       </div>
     </div>

@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "timestamps.created", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "userContent",
       "queryScope": "COLLECTION",
       "fields": [

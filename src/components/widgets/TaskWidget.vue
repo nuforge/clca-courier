@@ -31,7 +31,7 @@
           size="sm"
           :label="$t('content.features.task.claim')"
           @click="$emit('claim-task')"
-          :aria-label="$t('accessibility.claimTask')"
+          :aria-label="$t('common.accessibility.claimTask')"
         />
       </div>
     </div>

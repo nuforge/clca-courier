@@ -40,7 +40,7 @@ export default {
   canva,
 
   // Page content
-  ...pages,
+  pages,
 
   // Date and time
   dates,

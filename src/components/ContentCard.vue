@@ -25,7 +25,7 @@
               size="sm"
               class="q-ml-sm"
             >
-              {{ $t('status.published') }}
+              {{ $t('content.status.published') }}
             </q-chip>
           </div>
         </div>
@@ -38,7 +38,7 @@
           dense
           icon="more_vert"
           @click.stop="showActionsMenu = !showActionsMenu"
-          :aria-label="$t('accessibility.showActions')"
+          :aria-label="$t('common.accessibility.showActions')"
         >
           <q-menu v-model="showActionsMenu">
             <q-list>

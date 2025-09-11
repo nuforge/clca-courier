@@ -26,7 +26,7 @@
         color="secondary"
         size="sm"
         @click="openMap"
-        :aria-label="$t('accessibility.openMap')"
+        :aria-label="$t('common.accessibility.openMap')"
       />
     </div>
   </div>

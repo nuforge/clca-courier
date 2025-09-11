@@ -90,7 +90,7 @@
             :icon="autoSaveStatus === 'saving' ? 'sync' : 'check'"
             class="animate-fade-in"
           >
-            {{ $t(`submission.autoSave.${autoSaveStatus}`) }}
+            {{ $t(`content.submission.autoSave.${autoSaveStatus}`) }}
           </q-chip>
         </div>
       </div>
@@ -128,6 +128,7 @@ const stepper = ref();
 const isSubmitting = ref(false);
 const autoSaveStatus = ref<'idle' | 'saving' | 'saved'>('idle');
 const draftId = ref<string | null>(null);
+const isSaving = ref(false); // Prevent recursive saves
 
 // Wizard state
 const wizardState = ref({
@@ -182,11 +183,12 @@ const previewContentDoc = computed(() => {
 
 // Auto-save functionality
 const saveAsDraft = async () => {
-  if (!previewContentDoc.value) {
+  if (!previewContentDoc.value || isSaving.value) {
     return;
   }
 
   try {
+    isSaving.value = true;
     autoSaveStatus.value = 'saving';
 
     if (draftId.value) {
@@ -215,16 +217,23 @@ const saveAsDraft = async () => {
   } catch (error) {
     logger.error('Failed to auto-save draft', error);
     autoSaveStatus.value = 'idle';
+  } finally {
+    isSaving.value = false;
   }
 };
 
 const debouncedAutoSave = () => {
+  // Don't trigger auto-save if already saving
+  if (isSaving.value) {
+    return;
+  }
+
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer);
   }
 
   autoSaveTimer = setTimeout(() => {
-    if (wizardState.value.basicData.title.trim()) {
+    if (wizardState.value.basicData.title.trim() && !isSaving.value) {
       void saveAsDraft();
     }
   }, 2000); // 2 second debounce
