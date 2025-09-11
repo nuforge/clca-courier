@@ -1,508 +1,392 @@
 /**
- * Content Submission Service
- * Firebase-integrated implementation for contribution system
- * Includes XSS prevention and input sanitization
+ * Content Submission Service - Refactored for Composable Architecture
+ * New standard: "A content object is a base entity that has features, not is a type."
+ * Uses the unified ContentDoc model with tag-driven classification.
  */
 
-import type { ContentType, ContentSubmissionData } from '../types/core/content.types';
-import type { CanvaDesign } from '../services/canva/types';
-import { firestoreService, type UserContent } from './firebase-firestore.service';
+import {
+  ContentDoc,
+  ContentFeatures,
+  createContentDoc
+} from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import {
-  sanitizeTitle,
-  sanitizeContent,
-  sanitizeLocation,
-  sanitizeMetadata,
-  containsMaliciousContent,
-  logSecurityEvent,
-  type ValidationResult
-} from '../utils/content-sanitization';
+  collection,
+  addDoc,
+  serverTimestamp,
+  type Timestamp
+} from 'firebase/firestore';
+import { getAuth, type User } from 'firebase/auth';
+import { firestore as db } from '../config/firebase.config';
 
 class ContentSubmissionService {
   /**
-   * Create metadata template for content type
+   * Create new content using the composable ContentDoc model.
+   * This is the primary method for all content creation.
+   *
+   * @param title - The content title
+   * @param description - The content description/body
+   * @param contentType - The type of content (becomes content-type:value tag)
+   * @param features - Optional features to attach (date, task, location, canva)
+   * @param additionalTags - Additional tags beyond the content-type tag
+   * @returns The ID of the created content document
+   *
+   * @example
+   * ```typescript
+   * // Create an event with date and location features
+   * const eventId = await contentSubmissionService.createContent(
+   *   'Community BBQ',
+   *   'Join us for a summer BBQ at the lake',
+   *   'event',
+   *   {
+   *     'feat:date': {
+   *       start: Timestamp.fromDate(new Date('2025-09-20T17:00:00Z')),
+   *       end: Timestamp.fromDate(new Date('2025-09-20T20:00:00Z')),
+   *       isAllDay: false
+   *     },
+   *     'feat:location': {
+   *       name: 'Lake Pavilion',
+   *       address: '123 Lake Dr, Community, TX 75001'
+   *     }
+   *   },
+   *   ['category:social', 'priority:high']
+   * );
+   * ```
    */
-  createMetadataTemplate(contentType: ContentType): Record<string, unknown> {
-    const baseTemplate = {
-      priority: 'normal',
-      tags: [],
-      visibility: 'public',
-    };
+  async createContent(
+    title: string,
+    description: string,
+    contentType: string,
+    features: Partial<ContentFeatures> = {},
+    additionalTags: string[] = []
+  ): Promise<string> {
+    logger.debug('Creating new content with composable architecture', {
+      title: title.substring(0, 50),
+      contentType,
+      featuresCount: Object.keys(features).length,
+      additionalTagsCount: additionalTags.length
+    });
 
-    switch (contentType) {
-      case 'article':
-        return {
-          ...baseTemplate,
-          category: 'community',
-          author: '',
-        };
-      case 'event':
-        return {
-          ...baseTemplate,
-          date: '',
-          location: '',
-          capacity: 0,
-        };
-      case 'classified':
-        return {
-          ...baseTemplate,
-          category: 'for-sale',
-          price: '',
-          contact: '',
-        };
-      case 'announcement':
-        return {
-          ...baseTemplate,
-          category: 'community',
-          urgency: 'normal',
-        };
-      default:
-        return baseTemplate;
-    }
-  }
+    try {
+      // Get current user from Firebase Auth
+      const auth = getAuth();
+      const currentUser: User | null = auth.currentUser;
 
-  /**
-   * Get predefined categories
-   */
-  getPredefinedCategories(): string[] {
-    return [
-      'community',
-      'events',
-      'announcements',
-      'for-sale',
-      'services',
-      'housing',
-      'recreation',
-    ];
-  }
-
-  /**
-   * Get user-defined categories (async)
-   */
-  getUserDefinedCategories(): string[] {
-    // In a real implementation, this would fetch from storage
-    return ['lake-activities', 'volunteer-opportunities', 'neighborhood-watch'];
-  }
-
-  /**
-   * Validate and sanitize content submission data to prevent XSS attacks
-   */
-  private validateAndSanitizeContent(data: ContentSubmissionData): ContentSubmissionData {
-    const errors: string[] = [];
-
-    // Log any malicious content attempts
-    if (containsMaliciousContent(data.title) || containsMaliciousContent(data.content)) {
-      logSecurityEvent('xss_attempt', {
-        type: data.type,
-        titleSuspicious: containsMaliciousContent(data.title),
-        contentSuspicious: containsMaliciousContent(data.content),
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Sanitize title (no HTML allowed)
-    const titleResult: ValidationResult = sanitizeTitle(data.title);
-    if (!titleResult.isValid) {
-      errors.push(...titleResult.errors.map(err => `Title: ${err}`));
-    }
-
-    // Sanitize content (safe HTML allowed)
-    const contentResult: ValidationResult = sanitizeContent(data.content);
-    if (!contentResult.isValid) {
-      errors.push(...contentResult.errors.map(err => `Content: ${err}`));
-    }
-
-    // Validate and sanitize event location if provided
-    let sanitizedEventLocation = data.eventLocation;
-    if (data.eventLocation) {
-      const locationResult: ValidationResult = sanitizeLocation(data.eventLocation);
-      if (!locationResult.isValid) {
-        errors.push(...locationResult.errors.map(err => `Event Location: ${err}`));
+      if (!currentUser) {
+        throw new Error('User must be authenticated to create content');
       }
-      sanitizedEventLocation = locationResult.sanitizedValue;
-    }
 
-    // Sanitize category
-    const categoryResult: ValidationResult = sanitizeMetadata(data.category);
-    if (!categoryResult.isValid) {
-      errors.push(...categoryResult.errors.map(err => `Category: ${err}`));
-    }
+      // Build tags array - always starts with content-type tag
+      const tags = [`content-type:${contentType}`, ...additionalTags];
 
-    // Validate required fields after sanitization
-    if (!titleResult.sanitizedValue.trim()) {
-      errors.push('Title is required and cannot be empty');
-    }
+      logger.debug('Content tags prepared', { tags });
 
-    if (!contentResult.sanitizedValue.trim()) {
-      errors.push('Content is required and cannot be empty');
-    }
-
-    // Validate event date logic
-    if (data.type === 'event' && data.eventDate && data.eventEndDate) {
-      const startDate = new Date(data.eventDate);
-      const endDate = new Date(data.eventEndDate);
-
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        errors.push('Invalid event date format');
-      } else if (endDate < startDate) {
-        errors.push('Event end date cannot be before start date');
-      }
-    }
-
-    // Validate priority
-    if (!['low', 'medium', 'high'].includes(data.priority)) {
-      errors.push('Invalid priority value');
-    }
-
-    // Validate type
-    if (!['article', 'event', 'classified', 'announcement'].includes(data.type)) {
-      errors.push('Invalid content type');
-    }
-
-    // Throw validation error if any issues found
-    if (errors.length > 0) {
-      const errorMessage = `Content validation failed: ${errors.join('; ')}`;
-      logger.error('Content validation failed:', { errors, data: { type: data.type, title: data.title.substring(0, 50) } });
-      throw new Error(errorMessage);
-    }
-
-    // Return sanitized data
-    const sanitizedData: ContentSubmissionData = {
-      ...data,
-      title: titleResult.sanitizedValue,
-      content: contentResult.sanitizedValue,
-      category: categoryResult.sanitizedValue,
-      metadata: this.sanitizeMetadataObject(data.metadata)
-    };
-
-    // Only include eventLocation if it was provided and sanitized
-    if (sanitizedEventLocation !== undefined) {
-      sanitizedData.eventLocation = sanitizedEventLocation;
-    }
-
-    return sanitizedData;
-  }
-
-  /**
-   * Sanitize metadata object to prevent XSS in metadata fields
-   */
-  private sanitizeMetadataObject(metadata: Record<string, unknown>): Record<string, unknown> {
-    const sanitizedMetadata: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(metadata)) {
-      if (typeof value === 'string') {
-        const result = sanitizeMetadata(value);
-        sanitizedMetadata[key] = result.sanitizedValue;
-
-        if (!result.isValid) {
-          logger.warn(`Metadata field '${key}' contained invalid content`, { errors: result.errors });
+      // Create ContentDoc using the factory function
+      const contentDoc = createContentDoc({
+        title,
+        description,
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || 'Unknown User',
+        tags,
+        features,
+        status: 'draft', // New content starts as draft
+        timestamps: {
+          created: serverTimestamp() as Timestamp,
+          updated: serverTimestamp() as Timestamp
         }
-      } else {
-        // Keep non-string values as-is (numbers, booleans, etc.)
-        sanitizedMetadata[key] = value;
-      }
-    }
-
-    return sanitizedMetadata;
-  }
-
-  /**
-   * Submit content to Firebase
-   */
-  async submitContent(data: ContentSubmissionData): Promise<string> {
-    logger.debug('Submitting content to Firebase:', { type: data.type, title: data.title.substring(0, 50) });
-
-    try {
-      // SECURITY: Validate and sanitize all input data to prevent XSS attacks
-      const sanitizedData = this.validateAndSanitizeContent(data);
-
-      logger.debug('Content validation and sanitization completed successfully');
-
-      // Special logging for calendar events
-      if (sanitizedData.type === 'event') {
-        logger.debug('Calendar event detected:', {
-          onCalendar: sanitizedData.onCalendar,
-          eventDate: sanitizedData.eventDate,
-          eventTime: sanitizedData.eventTime,
-          eventLocation: sanitizedData.eventLocation,
-          allDay: sanitizedData.allDay,
-        });
-      }
-
-      // Convert ContentSubmissionData to UserContent format using sanitized data
-      const userContentData: Record<string, unknown> = {
-        type: sanitizedData.type,
-        title: sanitizedData.title,
-        content: sanitizedData.content,
-        tags: [sanitizedData.category], // Use category as a tag
-        attachments: sanitizedData.attachments || [],
-
-        // Calendar-specific fields (only include if they have values)
-        onCalendar: sanitizedData.onCalendar || false,
-        allDay: sanitizedData.allDay || false,
-      };
-
-      // Only add calendar fields if they have values (not undefined)
-      if (sanitizedData.eventDate) {
-        userContentData.eventDate = sanitizedData.eventDate;
-      }
-      if (sanitizedData.eventEndDate) {
-        userContentData.eventEndDate = sanitizedData.eventEndDate;
-      }
-      if (sanitizedData.eventTime) {
-        userContentData.eventTime = sanitizedData.eventTime;
-      }
-      if (sanitizedData.eventEndTime) {
-        userContentData.eventEndTime = sanitizedData.eventEndTime;
-      }
-      if (sanitizedData.eventLocation) {
-        userContentData.eventLocation = sanitizedData.eventLocation;
-      }
-      if (sanitizedData.eventRecurrence) {
-        userContentData.eventRecurrence = sanitizedData.eventRecurrence;
-      }
-
-      // Add metadata (already sanitized)
-      userContentData.metadata = {
-        submissionSource: 'web' as const,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
-        priority: sanitizedData.priority,
-        targetIssue: sanitizedData.targetIssue,
-        // Include any additional metadata from the form (already sanitized)
-        ...sanitizedData.metadata,
-      };
-
-      logger.debug('UserContent data prepared for submission');
-
-      // Submit to Firebase using the existing firestore service
-      // The service will automatically add authorId, authorName, authorEmail from current user
-      const contentId = await firestoreService.submitUserContent(
-        userContentData as unknown as Omit<UserContent, 'id' | 'submissionDate' | 'status'>,
-      );
-
-      logger.success('Content submitted successfully to Firebase with ID:', contentId);
-      return contentId;
-    } catch (error) {
-      // Log the error but don't expose sensitive validation details to the client
-      if (error instanceof Error && error.message.includes('Content validation failed')) {
-        logger.error('Content validation failed during submission:', {
-          type: data.type,
-          titleLength: data.title?.length || 0,
-          contentLength: data.content?.length || 0
-        });
-        throw new Error('Content validation failed. Please check your input and try again.');
-      }
-
-      logger.error('Error submitting content to Firebase:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Attach a Canva design to existing content
-   * @param contentId - The ID of the content to attach the design to
-   * @param canvaDesign - The Canva design object to attach
-   */
-  async attachCanvaDesign(contentId: string, canvaDesign: CanvaDesign): Promise<void> {
-    logger.info('Attaching Canva design to content', { contentId, designId: canvaDesign.id });
-
-    try {
-      // Validate Canva design object
-      const validationResult = this.validateCanvaDesign(canvaDesign);
-      if (!validationResult.isValid) {
-        throw new Error(`Invalid Canva design: ${validationResult.errors.join(', ')}`);
-      }
-
-      // Sanitize the design data before storing
-      const sanitizedDesign = this.sanitizeCanvaDesign(canvaDesign);
-
-      // Update the content document with the Canva design
-      await firestoreService.updateUserContent(contentId, { canvaDesign: sanitizedDesign });
-
-      logger.success('Canva design attached successfully', {
-        contentId,
-        designId: sanitizedDesign.id,
-        designStatus: sanitizedDesign.status
       });
+
+      logger.debug('ContentDoc prepared for submission', {
+        authorId: contentDoc.authorId,
+        authorName: contentDoc.authorName,
+        status: contentDoc.status,
+        featuresKeys: Object.keys(contentDoc.features)
+      });
+
+      // Write to main 'content' collection in Firestore
+      const contentCollection = collection(db, 'content');
+      const docRef = await addDoc(contentCollection, contentDoc);
+
+      logger.info('Content successfully created in Firestore', {
+        contentId: docRef.id,
+        contentType,
+        title: title.substring(0, 50),
+        authorId: currentUser.uid,
+        featuresCount: Object.keys(features).length
+      });
+
+      return docRef.id;
+
     } catch (error) {
-      logger.error('Error attaching Canva design to content:', {
-        contentId,
-        designId: canvaDesign.id,
-        error
+      logger.error('Failed to create content', {
+        title: title.substring(0, 50),
+        contentType,
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
     }
   }
 
   /**
-   * Validate Canva design object for security and integrity
-   * @private
+   * Create content with date feature (events, scheduled content).
+   * Convenience method for common event creation pattern.
+   *
+   * @param title - Event title
+   * @param description - Event description
+   * @param startDate - Event start date/time
+   * @param endDate - Optional event end date/time
+   * @param isAllDay - Whether this is an all-day event
+   * @param additionalFeatures - Additional features to include
+   * @param additionalTags - Additional tags beyond content-type:event
+   * @returns The ID of the created content document
    */
-  private validateCanvaDesign(design: CanvaDesign): { isValid: boolean; errors: string[] } {
+  async createEvent(
+    title: string,
+    description: string,
+    startDate: Timestamp,
+    endDate?: Timestamp,
+    isAllDay = false,
+    additionalFeatures: Partial<ContentFeatures> = {},
+    additionalTags: string[] = []
+  ): Promise<string> {
+    const dateFeature: ContentFeatures['feat:date'] = {
+      start: startDate,
+      isAllDay
+    };
+
+    // Only add end date if provided
+    if (endDate) {
+      dateFeature.end = endDate;
+    }
+
+    const features: Partial<ContentFeatures> = {
+      'feat:date': dateFeature,
+      ...additionalFeatures
+    };
+
+    return this.createContent(
+      title,
+      description,
+      'event',
+      features,
+      additionalTags
+    );
+  }
+
+  /**
+   * Create content with task feature (volunteer tasks, community needs).
+   * Convenience method for common task creation pattern.
+   *
+   * @param title - Task title
+   * @param description - Task description
+   * @param category - Task category (e.g., 'printing', 'setup', 'cleanup')
+   * @param qty - Quantity needed
+   * @param unit - Unit of measurement
+   * @param additionalFeatures - Additional features to include
+   * @param additionalTags - Additional tags beyond content-type:task
+   * @returns The ID of the created content document
+   */
+  async createTask(
+    title: string,
+    description: string,
+    category: string,
+    qty: number,
+    unit: string,
+    additionalFeatures: Partial<ContentFeatures> = {},
+    additionalTags: string[] = []
+  ): Promise<string> {
+    const features: Partial<ContentFeatures> = {
+      'feat:task': {
+        category,
+        qty,
+        unit,
+        status: 'unclaimed'
+      },
+      ...additionalFeatures
+    };
+
+    return this.createContent(
+      title,
+      description,
+      'task',
+      features,
+      additionalTags
+    );
+  }
+
+  /**
+   * Create content with location feature (location-based content).
+   * Convenience method for content that requires location context.
+   *
+   * @param title - Content title
+   * @param description - Content description
+   * @param contentType - Type of content
+   * @param address - Location address
+   * @param locationName - Optional location name
+   * @param additionalFeatures - Additional features to include
+   * @param additionalTags - Additional tags
+   * @returns The ID of the created content document
+   */
+  async createLocationContent(
+    title: string,
+    description: string,
+    contentType: string,
+    address: string,
+    locationName?: string,
+    additionalFeatures: Partial<ContentFeatures> = {},
+    additionalTags: string[] = []
+  ): Promise<string> {
+    const locationFeature: ContentFeatures['feat:location'] = {
+      address
+    };
+
+    // Only add name if provided
+    if (locationName) {
+      locationFeature.name = locationName;
+    }
+
+    const features: Partial<ContentFeatures> = {
+      'feat:location': locationFeature,
+      ...additionalFeatures
+    };
+
+    return this.createContent(
+      title,
+      description,
+      contentType,
+      features,
+      additionalTags
+    );
+  }
+
+  /**
+   * Create content with Canva integration feature.
+   * Convenience method for design-enabled content.
+   *
+   * @param title - Content title
+   * @param description - Content description
+   * @param contentType - Type of content
+   * @param designId - Canva design ID
+   * @param editUrl - Canva edit URL
+   * @param exportUrl - Optional export URL
+   * @param additionalFeatures - Additional features to include
+   * @param additionalTags - Additional tags
+   * @returns The ID of the created content document
+   */
+  async createCanvaContent(
+    title: string,
+    description: string,
+    contentType: string,
+    designId: string,
+    editUrl: string,
+    exportUrl?: string,
+    additionalFeatures: Partial<ContentFeatures> = {},
+    additionalTags: string[] = []
+  ): Promise<string> {
+    const canvaFeature: ContentFeatures['integ:canva'] = {
+      designId,
+      editUrl
+    };
+
+    // Only add export URL if provided
+    if (exportUrl) {
+      canvaFeature.exportUrl = exportUrl;
+    }
+
+    const features: Partial<ContentFeatures> = {
+      'integ:canva': canvaFeature,
+      ...additionalFeatures
+    };
+
+    return this.createContent(
+      title,
+      description,
+      contentType,
+      features,
+      additionalTags
+    );
+  }
+
+  /**
+   * Validate content data before submission.
+   * Performs basic validation on title, description, and features.
+   *
+   * @param title - Content title to validate
+   * @param description - Content description to validate
+   * @param features - Features to validate
+   * @returns Validation result
+   */
+  validateContentData(
+    title: string,
+    description: string,
+    features: Partial<ContentFeatures> = {}
+  ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // Validate required fields
-    if (!design.id || typeof design.id !== 'string') {
-      errors.push('Design ID is required and must be a string');
+    if (!title || title.trim().length === 0) {
+      errors.push('Title is required and cannot be empty');
     }
 
-    if (!design.editUrl || typeof design.editUrl !== 'string') {
-      errors.push('Edit URL is required and must be a string');
+    if (!description || description.trim().length === 0) {
+      errors.push('Description is required and cannot be empty');
     }
 
-    if (!design.status || !['draft', 'pending_export', 'exported', 'failed'].includes(design.status)) {
-      errors.push('Valid design status is required');
+    // Validate title length
+    if (title && title.length > 200) {
+      errors.push('Title cannot exceed 200 characters');
     }
 
-    // Validate URLs for security
-    if (design.editUrl && !this.isValidCanvaUrl(design.editUrl)) {
-      errors.push('Edit URL must be a valid Canva URL');
+    // Validate description length
+    if (description && description.length > 10000) {
+      errors.push('Description cannot exceed 10,000 characters');
     }
 
-    if (design.exportUrl && !this.isValidUrl(design.exportUrl)) {
-      errors.push('Export URL must be a valid URL');
+    // Validate features
+    if (features['feat:date']) {
+      const dateFeature = features['feat:date'];
+      if (!dateFeature.start) {
+        errors.push('Date feature requires a start time');
+      }
+      if (dateFeature.end && dateFeature.start && dateFeature.end.toMillis() < dateFeature.start.toMillis()) {
+        errors.push('Event end time cannot be before start time');
+      }
     }
 
-    // Validate timestamps
-    if (!design.createdAt || typeof design.createdAt !== 'object') {
-      errors.push('Created timestamp is required');
+    if (features['feat:task']) {
+      const taskFeature = features['feat:task'];
+      if (!taskFeature.category || taskFeature.category.trim().length === 0) {
+        errors.push('Task feature requires a category');
+      }
+      if (!taskFeature.qty || taskFeature.qty <= 0) {
+        errors.push('Task feature requires a positive quantity');
+      }
+      if (!taskFeature.unit || taskFeature.unit.trim().length === 0) {
+        errors.push('Task feature requires a unit');
+      }
     }
 
-    if (!design.updatedAt || typeof design.updatedAt !== 'object') {
-      errors.push('Updated timestamp is required');
+    if (features['feat:location']) {
+      const locationFeature = features['feat:location'];
+      if (!locationFeature.address || locationFeature.address.trim().length === 0) {
+        errors.push('Location feature requires an address');
+      }
+    }
+
+    if (features['integ:canva']) {
+      const canvaFeature = features['integ:canva'];
+      if (!canvaFeature.designId || canvaFeature.designId.trim().length === 0) {
+        errors.push('Canva feature requires a design ID');
+      }
+      if (!canvaFeature.editUrl || canvaFeature.editUrl.trim().length === 0) {
+        errors.push('Canva feature requires an edit URL');
+      }
     }
 
     return {
       isValid: errors.length === 0,
       errors
     };
-  }
-
-  /**
-   * Sanitize Canva design object to prevent XSS and ensure data integrity
-   * @private
-   */
-  private sanitizeCanvaDesign(design: CanvaDesign): CanvaDesign {
-    return {
-      id: this.sanitizeString(design.id),
-      editUrl: this.sanitizeUrl(design.editUrl),
-      exportUrl: design.exportUrl ? this.sanitizeUrl(design.exportUrl) : null,
-      status: design.status, // Already validated in validateCanvaDesign
-      createdAt: design.createdAt, // Timestamp object, no sanitization needed
-      updatedAt: design.updatedAt  // Timestamp object, no sanitization needed
-    };
-  }
-
-  /**
-   * Check if URL is a valid Canva URL
-   * @private
-   */
-  private isValidCanvaUrl(url: string): boolean {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname === 'www.canva.com' || urlObj.hostname === 'canva.com';
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Check if URL is valid
-   * @private
-   */
-  private isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Sanitize string values
-   * @private
-   */
-  private sanitizeString(value: string): string {
-    return value
-      .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
-      .replace(/javascript:/gi, '') // Remove javascript: protocols
-      .replace(/on\w+\s*=/gi, '') // Remove event handlers
-      .trim();
-  }
-
-  /**
-   * Sanitize URL values
-   * @private
-   */
-  private sanitizeUrl(url: string): string {
-    const sanitized = this.sanitizeString(url);
-
-    // Additional URL-specific sanitization
-    if (!this.isValidUrl(sanitized)) {
-      logger.warn('Invalid URL detected during sanitization:', { original: url, sanitized });
-      return '';
-    }
-
-    return sanitized;
-  }
-
-  /**
-   * Validate and process Canva template configuration
-   * @param templateConfig - Template configuration to validate
-   * @returns Validated template configuration
-   */
-  validateCanvaTemplate(templateConfig: Record<string, unknown>): Record<string, unknown> {
-    const sanitized: Record<string, unknown> = {};
-
-    // Validate template ID
-    if (templateConfig.id && typeof templateConfig.id === 'string') {
-      sanitized.id = this.sanitizeString(templateConfig.id);
-    }
-
-    // Validate template name
-    if (templateConfig.name && typeof templateConfig.name === 'string') {
-      sanitized.name = this.sanitizeString(templateConfig.name);
-    }
-
-    // Validate description
-    if (templateConfig.description && typeof templateConfig.description === 'string') {
-      sanitized.description = this.sanitizeString(templateConfig.description);
-    }
-
-    // Validate thumbnail URL
-    if (templateConfig.thumbnailUrl && typeof templateConfig.thumbnailUrl === 'string') {
-      const thumbnailUrl = this.sanitizeUrl(templateConfig.thumbnailUrl);
-      if (thumbnailUrl && this.isValidUrl(thumbnailUrl)) {
-        sanitized.thumbnailUrl = thumbnailUrl;
-      }
-    }
-
-    // Validate fields array
-    if (Array.isArray(templateConfig.fields)) {
-      sanitized.fields = templateConfig.fields
-        .filter((field): field is Record<string, unknown> =>
-          typeof field === 'object' && field !== null
-        )
-        .map(field => ({
-          name: typeof field.name === 'string' ? this.sanitizeString(field.name) : '',
-          type: typeof field.type === 'string' ? this.sanitizeString(field.type) : 'text',
-          required: typeof field.required === 'boolean' ? field.required : false,
-          placeholder: typeof field.placeholder === 'string' ? this.sanitizeString(field.placeholder) : ''
-        }));
-    }
-
-    // Validate boolean flags
-    if (typeof templateConfig.isActive === 'boolean') {
-      sanitized.isActive = templateConfig.isActive;
-    }
-
-    logger.debug('Template configuration validated and sanitized:', {
-      originalKeys: Object.keys(templateConfig),
-      sanitizedKeys: Object.keys(sanitized)
-    });
-
-    return sanitized;
   }
 }
 
