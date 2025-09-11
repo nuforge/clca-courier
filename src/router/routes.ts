@@ -42,6 +42,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/admin/content', component: () => import('pages/ContentManagementPage.vue') },
       { path: '/admin/newsletters', component: () => import('pages/NewsletterManagementPage.vue') },
       { path: '/admin/theme', component: () => import('pages/ThemeEditorPage.vue') },
+      { path: '/admin/test-content-v2', component: () => import('pages/TestContentV2Page.vue') },
 
       // Print workflow
       { path: '/content/print-queue', component: () => import('pages/PrintQueuePage.vue') },

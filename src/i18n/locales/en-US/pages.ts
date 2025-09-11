@@ -239,5 +239,35 @@ export default {
     feedbackSupport: 'Feedback and Support',
     legalInfo: 'Legal Information',
     contactInfo: 'Contact Information'
+  },
+
+  // Test Content V2 Page (Admin)
+  testContentV2: {
+    title: 'Content Architecture Test Page',
+    description: 'This page demonstrates the new composable content architecture with feature-driven rendering.',
+    createEvent: 'Create Sample Event',
+    createTask: 'Create Sample Task',
+    createHybrid: 'Create Hybrid Content',
+    refresh: 'Refresh',
+    totalContent: 'Total Content',
+    withFeatures: 'With Features',
+    contentList: 'Content List',
+    showFeaturedOnly: 'Show Featured Only',
+    loading: 'Loading content...',
+    noContent: 'No content available. Create some sample content to get started.',
+    noFilteredContent: 'No content matches the current filter.',
+    createFirst: 'Create Your First Content',
+    contentCreated: 'Content created successfully! ID: {id}',
+    eventCreated: 'Sample event created successfully!',
+    taskCreated: 'Sample task created successfully!',
+    hybridCreated: 'Sample hybrid content created successfully!',
+    createError: 'Failed to create content',
+    loadError: 'Failed to load content',
+    contentClicked: 'Content "{title}" clicked',
+    editNotImplemented: 'Edit functionality not implemented yet',
+    confirmDelete: 'Confirm Delete',
+    deleteMessage: 'Are you sure you want to delete "{title}"?',
+    deleteNotImplemented: 'Delete functionality not implemented yet',
+    taskClaimed: 'Task "{title}" claimed successfully!',
   }
 };

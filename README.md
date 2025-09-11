@@ -151,6 +151,164 @@ src/
 - **PDF Viewing**: Dual-viewer architecture with WebViewer primary, PDF.js fallback
 - **Search**: Full-text search across extracted PDF content and metadata
 
+## 🧩 Content Data Architecture
+
+**Philosophy**: "A content object is a base entity that has features, not is a type."
+
+Our content management system uses a **composable, tag-driven architecture** that replaces traditional type-based content systems with a flexible, feature-driven model.
+
+### Core Components
+
+#### ContentDoc Interface
+The single, canonical interface for all content in the system:
+
+```typescript
+interface ContentDoc {
+  id: string;
+  title: string;
+  description: string;
+  authorId: string;
+  authorName: string;
+  tags: string[];           // [namespace:value] format
+  features: ContentFeatures; // Structured feature blocks
+  status: 'draft' | 'published' | 'archived';
+  timestamps: { created: Timestamp; updated: Timestamp; published?: Timestamp; };
+}
+```
+
+#### Content Features System
+Features are **composable capabilities** that can be attached to any content:
+
+- **`feat:date`** - Event scheduling with start/end times and all-day flag
+- **`feat:task`** - Task tracking with quantities, categories, and claim status
+- **`feat:location`** - Geographic content with addresses and coordinates
+- **`integ:canva`** - Canva design integration with edit/export URLs
+
+#### Tag-Based Classification
+Content classification uses a flexible namespace:value tag system:
+
+- **`content-type:event`** - Primary content type classification
+- **`category:community`** - Content categorization
+- **`priority:high`** - Custom attributes for filtering and display
+- **`location:clubhouse`** - Flexible additional metadata
+
+### Usage Examples
+
+#### Creating Feature-Rich Content
+```typescript
+// Create an event with multiple features
+const eventId = await contentSubmissionService.createContent(
+  'Community BBQ',
+  'Annual summer BBQ at the lake',
+  'event',
+  {
+    'feat:date': {
+      start: Timestamp.fromDate(new Date('2025-09-20T17:00:00Z')),
+      end: Timestamp.fromDate(new Date('2025-09-20T20:00:00Z')),
+      isAllDay: false
+    },
+    'feat:location': {
+      name: 'Lake Pavilion',
+      address: '123 Lake Dr, Community, TX 75001'
+    },
+    'feat:task': {
+      category: 'setup',
+      qty: 5,
+      unit: 'volunteers',
+      status: 'unclaimed'
+    }
+  },
+  ['category:social', 'priority:high']
+);
+```
+
+#### Type-Safe Feature Access
+```typescript
+// Check for features with type narrowing
+if (contentUtils.hasFeature(content, 'feat:date')) {
+  // TypeScript knows content.features['feat:date'] is defined
+  const eventDate = content.features['feat:date'].start;
+}
+
+// Safe feature retrieval
+const taskFeature = contentUtils.getFeature(content, 'feat:task');
+if (taskFeature?.status === 'unclaimed') {
+  // Show claim button
+}
+```
+
+#### Mechanical UI Rendering
+Components render features mechanically based on presence:
+
+```vue
+<template>
+  <!-- Date widget only appears if feat:date exists -->
+  <EventDateWidget 
+    v-if="contentUtils.hasFeature(content, 'feat:date')"
+    :dateFeature="content.features['feat:date']"
+  />
+  
+  <!-- Task widget with claim functionality -->
+  <TaskWidget 
+    v-if="contentUtils.hasFeature(content, 'feat:task')"
+    :taskFeature="content.features['feat:task']"
+    :canClaim="canClaimTask"
+    @claim-task="handleClaimTask"
+  />
+</template>
+```
+
+### Adding New Features
+
+To add a new feature (e.g., `feat:rsvp`):
+
+1. **Extend ContentFeatures interface**:
+```typescript
+interface ContentFeatures {
+  // ... existing features
+  'feat:rsvp'?: {
+    required: boolean;
+    maxAttendees?: number;
+    deadline?: Timestamp;
+  };
+}
+```
+
+2. **Create convenience method** in service:
+```typescript
+async createRSVPContent(title: string, description: string, rsvpOptions: RSVPOptions) {
+  return this.createContent(title, description, 'event', {
+    'feat:rsvp': rsvpOptions
+  });
+}
+```
+
+3. **Build widget component**:
+```vue
+<RSVPWidget 
+  v-if="contentUtils.hasFeature(content, 'feat:rsvp')"
+  :rsvpFeature="content.features['feat:rsvp']"
+  @submit-rsvp="handleRSVP"
+/>
+```
+
+### ContentUtils API
+
+The `contentUtils` object provides type-safe mechanical operations:
+
+- **`hasFeature(doc, feature)`** - Type-safe feature checker with narrowing
+- **`getFeature(doc, feature)`** - Safe feature getter
+- **`getContentType(doc)`** - Extract content type from tags  
+- **`getTagsByNamespace(doc, namespace)`** - Filter tags by namespace
+- **`hasTag(doc, tag)`** - Check for specific tags
+
+### Test & Validation
+
+Visit **`/admin/test-content-v2`** to see the architecture in action:
+- Create sample content with different feature combinations
+- See mechanical UI rendering based on feature presence
+- Validate the composable model with real Firebase integration
+
 ## 📱 Key Routes
 
 - **`/`** - Homepage with featured content and quick navigation

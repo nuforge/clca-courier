@@ -5,10 +5,9 @@
  */
 
 import {
-  ContentDoc,
-  ContentFeatures,
   createContentDoc
 } from '../types/core/content.types';
+import type { ContentFeatures } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import {
   collection,

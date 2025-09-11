@@ -21,7 +21,48 @@ export default {
     event: 'Event',
     announcement: 'Announcement',
     classified: 'Classified',
-    newsletter: 'Newsletter'
+    newsletter: 'Newsletter',
+    task: 'Task',
+    article: 'Article'
+  },
+
+  contentType: {
+    event: 'Event',
+    task: 'Task',
+    announcement: 'Announcement',
+    classified: 'Classified',
+    article: 'Article',
+    news: 'News',
+    unknown: 'Unknown'
+  },
+
+  byAuthor: 'by {author}',
+
+  features: {
+    date: {
+      label: 'Event Date',
+      allDay: 'All Day'
+    },
+    task: {
+      label: 'Task',
+      quantity: '{qty} {unit} needed',
+      claim: 'Claim',
+      claimedBy: 'Claimed by {user}',
+      status: {
+        unclaimed: 'Available',
+        claimed: 'Claimed',
+        completed: 'Completed'
+      }
+    },
+    location: {
+      coordinates: 'Lat: {lat}, Lng: {lng}'
+    },
+    canva: {
+      label: 'Canva Design',
+      designId: 'Design ID: {id}',
+      edit: 'Edit',
+      export: 'Export'
+    }
   },
 
   categories: {
