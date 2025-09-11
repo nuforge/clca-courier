@@ -168,13 +168,15 @@ export interface UserContent {
   };
 }
 
-// User profile interface
+// User profile interface - Updated for enhanced role system
 export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
   photoURL?: string;
-  role: 'reader' | 'contributor' | 'editor' | 'admin';
+  // Enhanced role system - backward compatible with legacy roles
+  role: 'member' | 'contributor' | 'canva_contributor' | 'editor' | 'moderator' | 'administrator' |
+        'reader' | 'admin'; // Legacy roles for backward compatibility
   permissions: string[];
   isApproved: boolean;
   approvedBy?: string;

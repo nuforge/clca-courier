@@ -9,9 +9,8 @@ import { firestoreService } from '../services/firebase-firestore.service';
 import type { UserProfile } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 
-export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';
-
-export const useRoleAuth = () => {
+// Legacy role type for backward compatibility
+export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export const useRoleAuth = () => {
   const router = useRouter();
   const { auth } = useFirebase();
 
@@ -43,16 +42,24 @@ export const useRoleAuth = () => {
     return !isLoading.value;
   });
 
-  // Role hierarchy checks
+  // Role hierarchy checks - supports both legacy and new roles
   const hasRole = (requiredRole: UserRole): boolean => {
-    const roleHierarchy: Record<UserRole, number> = {
+    // Extended hierarchy supporting both legacy and new roles
+    const roleHierarchy: Record<string, number> = {
+      // Legacy roles
       'reader': 0,
       'contributor': 1,
       'editor': 2,
-      'admin': 3
+      'admin': 3,
+      // New roles
+      'member': 0,          // Same as reader
+      'canva_contributor': 2, // Between contributor and editor
+      'moderator': 3,       // Same as admin
+      'administrator': 4,   // Highest level
     };
 
-    const userLevel = roleHierarchy[userRole.value] || 0;
+    const currentRole = userRole.value;
+    const userLevel = roleHierarchy[currentRole] || 0;
     const requiredLevel = roleHierarchy[requiredRole] || 0;
 
     return userLevel >= requiredLevel;

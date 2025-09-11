@@ -17,16 +17,28 @@ service cloud.firestore {
       return userProfile.data.role;
     }
     
+    // Enhanced role hierarchy supporting new role system
+    function getRoleLevel(role) {
+      return role == 'reader' ? 0 :
+             role == 'member' ? 0 :
+             role == 'contributor' ? 1 :
+             role == 'canva_contributor' ? 2 :
+             role == 'editor' ? 3 :
+             role == 'admin' ? 4 :
+             role == 'moderator' ? 4 :
+             role == 'administrator' ? 5 : 0;
+    }
+    
     // Check if user has required role or higher
     function hasRole(uid, requiredRole) {
       let userRole = getUserRole(uid);
-      let roleHierarchy = {
-        'reader': 0,
-        'contributor': 1, 
-        'editor': 2,
-        'admin': 3
-      };
-      return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+      return getRoleLevel(userRole) >= getRoleLevel(requiredRole);
+    }
+
+    // Check if user can manage roles (moderator or administrator)
+    function canManageRoles(uid) {
+      let userRole = getUserRole(uid);
+      return userRole in ['moderator', 'administrator', 'admin'];
     }
 
     // User profiles collection
@@ -34,14 +46,66 @@ service cloud.firestore {
       // Users can read their own profile
       allow read: if isOwner(userId);
       
-      // Users can only create their own profile with 'reader' role
+      // Moderators and administrators can read any profile
+      allow read: if isAuthenticated() && canManageRoles(request.auth.uid);
+      
+      // Users can only create their own profile with 'member' role
       allow create: if isAuthenticated() && 
         request.auth.uid == userId && 
-        request.resource.data.role == 'reader';
+        request.resource.data.role in ['member', 'reader'];
       
       // Users can update their own profile but CANNOT change role, permissions, or approval status
       allow update: if isOwner(userId) && 
         !resource.data.diff(request.resource.data).affectedKeys().hasAny(['role', 'permissions', 'isApproved', 'approvedBy', 'approvalDate']);
+      
+      // Moderators and administrators can update role and permissions
+      allow update: if isAuthenticated() && canManageRoles(request.auth.uid);
+    }
+
+    // Role assignments collection - Enhanced role system
+    match /roleAssignments/{userId} {
+      // Users can read their own role assignment
+      allow read: if isOwner(userId);
+      
+      // Moderators and administrators can read any role assignment
+      allow read: if isAuthenticated() && canManageRoles(request.auth.uid);
+      
+      // Only moderators and administrators can create/update role assignments
+      allow write: if isAuthenticated() && canManageRoles(request.auth.uid);
+    }
+
+    // Role requests collection
+    match /roleRequests/{requestId} {
+      // Users can read their own role requests
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Moderators and administrators can read all role requests
+      allow read: if isAuthenticated() && canManageRoles(request.auth.uid);
+      
+      // Authenticated users can create role requests for themselves
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Only moderators and administrators can update role requests (approve/reject)
+      allow update: if isAuthenticated() && canManageRoles(request.auth.uid);
+    }
+
+    // Role transitions collection (audit log)
+    match /roleTransitions/{transitionId} {
+      // Only moderators and administrators can read role transitions
+      allow read: if isAuthenticated() && canManageRoles(request.auth.uid);
+      
+      // Only the system (server-side) should write role transitions
+      // This will be handled by Cloud Functions or admin SDK
+      allow write: if false; // Prevent client-side writes
+    }
+
+    // Role configurations collection
+    match /roleConfigs/{roleType} {
+      // Anyone can read role configurations (for UI display)
+      allow read: if true;
+      
+      // Only administrators can update role configurations
+      allow write: if isAuthenticated() && getUserRole(request.auth.uid) == 'administrator';
     }
 
     // Newsletter metadata collection - PUBLIC READ FOR PUBLISHED CONTENT
