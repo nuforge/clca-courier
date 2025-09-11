@@ -182,6 +182,10 @@ export const TRANSLATION_KEYS = {
     FIELD_MAPPING_DETAILS: 'canva.fieldMappingDetails',
     LOAD_TEMPLATES_ERROR: 'canva.loadTemplatesError',
     DESIGN_CREATING: 'canva.designCreating',
+    // Page Integration
+    DESIGN_WITH_TEMPLATES: 'canva.designWithTemplates',
+    TEMPLATES_AVAILABLE_MESSAGE: 'canva.templatesAvailableMessage',
+    LEARN_MORE: 'canva.learnMore',
     // OAuth specific keys
     OAUTH_INITIATED: 'canva.oauthInitiated',
     OAUTH_SUCCESS: 'canva.oauthSuccess',

@@ -43,6 +43,26 @@
             size="sm"
           />
         </template>
+      </q-banner>
+
+      <!-- Canva Integration Banner -->
+      <q-banner v-if="hasCanvaTemplates && !submissionSuccess" class="bg-deep-purple-1 text-deep-purple-9 q-mb-lg" rounded>
+        <template v-slot:avatar>
+          <q-icon name="mdi-palette" color="deep-purple" />
+        </template>
+        <div class="text-subtitle1">{{ $t(TRANSLATION_KEYS.CANVA.DESIGN_WITH_TEMPLATES) || 'Professional Design Templates Available' }}</div>
+        <div class="text-caption">
+          {{ $t(TRANSLATION_KEYS.CANVA.TEMPLATES_AVAILABLE_MESSAGE) || 'Create professional designs automatically using our Canva brand templates' }}
+        </div>
+        <template v-slot:action>
+          <q-btn
+            flat
+            color="deep-purple"
+            :label="$t(TRANSLATION_KEYS.CANVA.LEARN_MORE) || 'Learn More'"
+            @click="showCanvaInfo = true"
+            size="sm"
+          />
+        </template>
       </q-banner>      <!-- Success State -->
       <div v-if="submissionSuccess" class="success-state text-center q-pa-xl">
         <q-icon name="check_circle" size="4em" color="positive" class="q-mb-md" />
@@ -224,6 +244,87 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+
+      <!-- Canva Integration Info Dialog -->
+      <q-dialog v-model="showCanvaInfo" max-width="800px">
+        <q-card>
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6 flex items-center">
+              <q-icon name="mdi-palette" color="deep-purple" class="q-mr-sm" />
+              {{ $t(TRANSLATION_KEYS.CANVA.DESIGN_WITH_TEMPLATES) }}
+            </div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="canva-info-content">
+              <p class="text-subtitle2 text-deep-purple q-mb-md">
+                {{ $t(TRANSLATION_KEYS.CANVA.TEMPLATES_AVAILABLE_MESSAGE) }}
+              </p>
+
+              <h6>How Template-Based Design Works</h6>
+              <ol>
+                <li><strong>Select a Template:</strong> Choose from our professionally designed Canva brand templates</li>
+                <li><strong>Auto-Fill Content:</strong> Your form data automatically populates the template fields</li>
+                <li><strong>Professional Results:</strong> Get publication-ready designs without design experience</li>
+                <li><strong>Edit if Needed:</strong> Fine-tune the design in Canva before finalizing</li>
+              </ol>
+
+              <h6>Template Features</h6>
+              <ul>
+                <li><strong>Brand Consistent:</strong> All templates follow CLCA brand guidelines</li>
+                <li><strong>Field Mapping:</strong> Your content automatically fills the right places</li>
+                <li><strong>Multiple Formats:</strong> Optimized for print and digital distribution</li>
+                <li><strong>Professional Quality:</strong> Designed by professionals for community content</li>
+              </ul>
+
+              <div v-if="availableTemplates.length > 0" class="q-mt-md">
+                <h6>Available Templates</h6>
+                <div class="template-preview-grid row q-gutter-sm">
+                  <div
+                    v-for="template in availableTemplates.slice(0, 4)"
+                    :key="template.id"
+                    class="col-12 col-sm-6 col-md-3"
+                  >
+                    <q-card flat bordered class="template-preview-card">
+                      <q-img
+                        v-if="template.thumbnailUrl"
+                        :src="template.thumbnailUrl"
+                        :alt="template.name"
+                        height="80px"
+                        fit="cover"
+                      />
+                      <div v-else class="template-placeholder flex flex-center" style="height: 80px; background: #f5f5f5;">
+                        <q-icon name="image" size="1.5em" color="grey-5" />
+                      </div>
+                      <q-card-section class="q-pa-sm">
+                        <div class="text-caption text-weight-medium">{{ template.name }}</div>
+                        <div class="text-caption text-grey-7" style="font-size: 0.7rem;">
+                          {{ template.description || 'Professional template' }}
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+                <div v-if="availableTemplates.length > 4" class="text-center q-mt-sm">
+                  <div class="text-caption text-grey-7">
+                    +{{ availableTemplates.length - 4 }} more templates available
+                  </div>
+                </div>
+              </div>
+
+              <div class="q-mt-md q-pa-md" style="background: rgba(121, 85, 72, 0.1); border-radius: 8px;">
+                <div class="text-weight-medium q-mb-xs">Getting Started:</div>
+                <div class="text-caption">
+                  Simply fill out your content form below, and look for the template selection section before creating your design.
+                  The system will guide you through choosing the right template for your content type.
+                </div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -234,7 +335,10 @@ import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import ContentSubmissionForm from '../components/contribution/ContentSubmissionForm.vue';
 import FirebaseDebugPanel from '../components/contribution/FirebaseDebugPanel.vue';
+import { firestoreService } from '../services/firebase-firestore.service';
 import type { ContentType } from '../types/core/content.types';
+import type { CanvaTemplateConfig } from '../services/canva/types';
+import { logger } from '../utils/logger';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const router = useRouter();
@@ -245,7 +349,9 @@ const { t } = useI18n();
 const submissionSuccess = ref(false);
 const showGuidelines = ref(false);
 const showImageGuide = ref(false);
+const showCanvaInfo = ref(false);
 const submittedContentId = ref<string | null>(null);
+const availableTemplates = ref<CanvaTemplateConfig[]>([]);
 
 // URL parameters
 const initialContentType = computed<ContentType | undefined>(() => {
@@ -313,6 +419,9 @@ const pageDescription = computed(() => {
   return description;
 });
 
+// Canva-related computed properties
+const hasCanvaTemplates = computed(() => availableTemplates.value.length > 0);
+
 // Event handlers
 function onSubmissionSuccess(contentId: string) {
   submittedContentId.value = contentId;
@@ -334,10 +443,32 @@ function resetForm() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Load available Canva templates
+async function loadCanvaTemplates(): Promise<void> {
+  try {
+    logger.debug('Loading Canva templates for content type filtering');
+
+    const configData = await firestoreService.getDocument('app/config');
+    const canvaTemplates = configData?.canvaTemplates as CanvaTemplateConfig[] || [];
+
+    // Filter active templates only
+    availableTemplates.value = canvaTemplates.filter(template => template.isActive !== false);
+
+    logger.info(`Loaded ${availableTemplates.value.length} active Canva templates`);
+  } catch (error) {
+    logger.warn('Failed to load Canva templates:', error);
+    // Don't show error to user as templates are optional
+    availableTemplates.value = [];
+  }
+}
+
 // Lifecycle
 onMounted(() => {
+  // Load available Canva templates
+  void loadCanvaTemplates();
+
   // Any initialization needed based on URL parameters
-  console.log('SubmitContentPage mounted with:', {
+  logger.debug('SubmitContentPage mounted with:', {
     contentType: initialContentType.value,
     quickMode: isQuickMode.value
   });
@@ -437,5 +568,42 @@ onMounted(() => {
 .body--dark .success-state {
   background: rgba(76, 175, 80, 0.1);
   border-color: rgba(76, 175, 80, 0.3);
+}
+
+/* Canva Integration Styles */
+.canva-info-content h6 {
+  color: var(--q-deep-purple);
+  font-weight: 600;
+  margin: 1.5rem 0 0.8rem 0;
+}
+
+.canva-info-content h6:first-child {
+  margin-top: 0;
+}
+
+.canva-info-content ul,
+.canva-info-content ol {
+  padding-left: 1.5rem;
+  line-height: 1.6;
+}
+
+.canva-info-content li {
+  margin: 0.5rem 0;
+}
+
+.template-preview-card {
+  height: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+
+.template-preview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.template-preview-grid {
+  max-height: 200px;
+  overflow: hidden;
 }
 </style>

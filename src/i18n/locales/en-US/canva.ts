@@ -33,6 +33,11 @@ export const canva = {
   loadTemplatesError: 'Failed to load templates: {error}',
   designCreating: 'Creating your design...',
 
+  // Page Integration
+  designWithTemplates: 'Professional Design Templates Available',
+  templatesAvailableMessage: 'Create professional designs automatically using our Canva brand templates',
+  learnMore: 'Learn More',
+
   // Authentication
   authRequired: 'Please sign in to connect with Canva',
   authFailed: 'Failed to connect to Canva. Please try again.',

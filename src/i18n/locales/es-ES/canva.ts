@@ -33,6 +33,11 @@ export const canva = {
   loadTemplatesError: 'Error al cargar plantillas: {error}',
   designCreating: 'Creando tu diseño...',
 
+  // Page Integration
+  designWithTemplates: 'Plantillas de Diseño Profesional Disponibles',
+  templatesAvailableMessage: 'Crea diseños profesionales automáticamente usando nuestras plantillas de marca de Canva',
+  learnMore: 'Saber Más',
+
   // Authentication
   authRequired: 'Por favor inicia sesión para conectar con Canva',
   authFailed: 'Error al conectar con Canva. Por favor intenta de nuevo.',
