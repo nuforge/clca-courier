@@ -40,11 +40,12 @@
         <!-- Location Feature Toggle -->
         <div v-if="optionalFeatures.includes('feat:location')" class="feature-section">
           <q-expansion-item
-            v-model="featureToggles.location"
+            :model-value="!!localFeatures['feat:location']"
             :label="$t('content.features.location.label')"
             icon="location_on"
             :caption="$t('content.features.location.description')"
             class="feature-toggle"
+            @show="initializeFeatureIfNeeded('feat:location')"
           >
             <LocationFeatureForm
               v-if="localFeatures['feat:location']"
@@ -57,11 +58,12 @@
         <!-- Additional Task Feature (for events) -->
         <div v-if="optionalFeatures.includes('feat:task')" class="feature-section">
           <q-expansion-item
-            v-model="featureToggles.task"
+            :model-value="!!localFeatures['feat:task']"
             :label="$t('content.features.task.label')"
             icon="assignment"
             :caption="$t('content.features.task.description')"
             class="feature-toggle"
+            @show="initializeFeatureIfNeeded('feat:task')"
           >
             <TaskFeatureForm
               v-if="localFeatures['feat:task']"
@@ -74,11 +76,12 @@
         <!-- Additional Date Feature (for announcements) -->
         <div v-if="optionalFeatures.includes('feat:date')" class="feature-section">
           <q-expansion-item
-            v-model="featureToggles.date"
+            :model-value="!!localFeatures['feat:date']"
             :label="$t('content.features.date.label')"
             icon="event"
             :caption="$t('content.features.date.description')"
             class="feature-toggle"
+            @show="initializeFeatureIfNeeded('feat:date')"
           >
             <DateFeatureForm
               v-if="localFeatures['feat:date']"
@@ -91,11 +94,12 @@
         <!-- Canva Integration Feature -->
         <div v-if="optionalFeatures.includes('integ:canva')" class="feature-section">
           <q-expansion-item
-            v-model="featureToggles.canva"
+            :model-value="!!localFeatures['integ:canva']"
             :label="$t('content.features.canva.label')"
             icon="design_services"
             :caption="$t('content.features.canva.description')"
             class="feature-toggle"
+            @show="initializeFeatureIfNeeded('integ:canva')"
           >
             <CanvaFeatureForm
               v-if="localFeatures['integ:canva']"
@@ -131,8 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { logger } from '../../utils/logger';
+import { computed } from 'vue';
 import type { ContentFeatures } from '../../types/core/content.types';
 
 // Type aliases for easier reference
@@ -189,14 +192,6 @@ const contentTypeConfig = {
   }
 };
 
-// Feature toggles for optional features
-const featureToggles = ref({
-  date: false,
-  task: false,
-  location: false,
-  canva: false
-});
-
 // Local features state
 const localFeatures = computed({
   get: () => props.features,
@@ -248,70 +243,57 @@ const isFeatureValid = (featureKey: string, featureData: unknown): boolean => {
 };
 
 const updateFeature = (featureKey: keyof ContentFeatures, value: unknown) => {
-  const updatedFeatures = { ...localFeatures.value };
+  const newFeatures = { ...localFeatures.value };
 
   if (value) {
-    (updatedFeatures as Record<string, unknown>)[featureKey] = value;
+    (newFeatures as Record<string, unknown>)[featureKey] = value;
   } else {
-    delete (updatedFeatures as Record<string, unknown>)[featureKey];
+    delete newFeatures[featureKey];
   }
 
-  localFeatures.value = updatedFeatures;
+  emit('update:features', newFeatures);
 };
 
-const handleNext = () => {
-  if (!isValid.value) {
-    logger.warn('Attempted to proceed with invalid features');
-    return;
+const initializeFeatureIfNeeded = (featureKey: keyof ContentFeatures) => {
+  if (!localFeatures.value[featureKey]) {
+    // Initialize with default values when user expands the section
+    const newFeatures = { ...localFeatures.value };
+
+    switch (featureKey) {
+      case 'feat:date':
+        (newFeatures as Record<string, unknown>)[featureKey] = {
+          start: new Date(),
+          isAllDay: false
+        };
+        break;
+      case 'feat:task':
+        (newFeatures as Record<string, unknown>)[featureKey] = {
+          category: 'volunteers',
+          qty: 1,
+          unit: 'person',
+          status: 'unclaimed'
+        };
+        break;
+      case 'feat:location':
+        (newFeatures as Record<string, unknown>)[featureKey] = {
+          address: ''
+        };
+        break;
+      case 'integ:canva':
+        (newFeatures as Record<string, unknown>)[featureKey] = {
+          designId: ''
+        };
+        break;
+    }
+
+    emit('update:features', newFeatures);
   }
+};
 
-  logger.debug('Features configuration completed', {
-    requiredFeatures: requiredFeatures.value,
-    configuredFeatures: Object.keys(localFeatures.value),
-    contentType: props.contentType
-  });
-
+// Navigation methods
+const handleNext = () => {
   emit('next');
 };
-
-// Watch for feature toggle changes to clean up disabled features
-watch(
-  featureToggles,
-  (newToggles) => {
-    const updatedFeatures = { ...localFeatures.value };
-
-    // Remove features that were toggled off
-    if (!newToggles.date && !requiredFeatures.value.includes('feat:date')) {
-      delete updatedFeatures['feat:date'];
-    }
-    if (!newToggles.task && !requiredFeatures.value.includes('feat:task')) {
-      delete updatedFeatures['feat:task'];
-    }
-    if (!newToggles.location) {
-      delete updatedFeatures['feat:location'];
-    }
-    if (!newToggles.canva) {
-      delete updatedFeatures['integ:canva'];
-    }
-
-    localFeatures.value = updatedFeatures;
-  },
-  { deep: true }
-);
-
-// Initialize feature toggles based on existing features
-watch(
-  () => props.features,
-  (features) => {
-    featureToggles.value = {
-      date: !!features['feat:date'],
-      task: !!features['feat:task'],
-      location: !!features['feat:location'],
-      canva: !!features['integ:canva']
-    };
-  },
-  { immediate: true }
-);
 </script>
 
 <style lang="scss" scoped>

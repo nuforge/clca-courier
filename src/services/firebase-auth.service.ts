@@ -62,24 +62,38 @@ class FirebaseAuthService {
   // Avatar caching to prevent 429 rate limits
   private avatarCache = new Map<string, string>();
   private avatarCacheExpiry = new Map<string, number>();
+  private avatarRetryCount = new Map<string, number>();
   private readonly AVATAR_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+  private readonly MAX_AVATAR_RETRIES = 2; // Maximum retries before giving up
 
   /**
    * Cache avatar image as data URL with retry logic and rate limit handling
    */
-  private async cacheAvatarImage(photoURL: string, cacheKey: string): Promise<void> {
+  private async cacheAvatarImage(photoURL: string, cacheKey: string, retryCount = 0): Promise<void> {
     try {
-      // Add delay to prevent immediate 429 errors
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Check if we've exceeded retry limit
+      if (retryCount >= this.MAX_AVATAR_RETRIES) {
+        logger.warn(`Avatar caching failed after ${this.MAX_AVATAR_RETRIES} retries, giving up for user ${cacheKey}`);
+        return;
+      }
+
+      // Add delay to prevent immediate 429 errors (progressive delay)
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Progressive delay: 1s, 2s, 4s, max 30s
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
 
       const response = await fetch(photoURL);
 
       if (response.status === 429) {
-        // Rate limited - retry after longer delay
-        logger.warn('Avatar caching rate limited, retrying in 30 seconds...');
+        // Rate limited - retry with exponential backoff
+        const nextRetry = retryCount + 1;
+        const backoffDelay = Math.min(30000 * Math.pow(2, retryCount), 300000); // 30s, 60s, 120s, max 5min
+        logger.warn(`Avatar caching rate limited (attempt ${nextRetry}), retrying in ${backoffDelay/1000}s...`);
+
         setTimeout(() => {
-          void this.cacheAvatarImage(photoURL, cacheKey);
-        }, 30000);
+          void this.cacheAvatarImage(photoURL, cacheKey, nextRetry);
+        }, backoffDelay);
         return;
       }
 
@@ -166,13 +180,13 @@ class FirebaseAuthService {
           // Cache expired, use cached version while updating in background
           cachedPhotoURL = this.avatarCache.get(cacheKey)!;
           logger.debug('Cache expired, refreshing avatar');
-          void this.cacheAvatarImage(originalPhotoURL, cacheKey);
+          void this.cacheAvatarImage(originalPhotoURL, cacheKey, 0);
         }
       } else {
         // No cache entry, show default icon while caching in background
         cachedPhotoURL = null;
         logger.debug('No cached avatar found, starting background caching');
-        void this.cacheAvatarImage(originalPhotoURL, cacheKey);
+        void this.cacheAvatarImage(originalPhotoURL, cacheKey, 0);
       }
     }
 

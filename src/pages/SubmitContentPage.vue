@@ -183,13 +183,21 @@ const previewContentDoc = computed(() => {
 
 // Auto-save functionality
 const saveAsDraft = async () => {
-  if (!previewContentDoc.value || isSaving.value) {
+  // Comprehensive guard against recursive calls
+  if (!previewContentDoc.value || isSaving.value || isSubmitting.value) {
+    logger.debug('Skipping saveAsDraft: guard conditions not met', {
+      hasPreviewDoc: !!previewContentDoc.value,
+      isSaving: isSaving.value,
+      isSubmitting: isSubmitting.value
+    });
     return;
   }
 
   try {
     isSaving.value = true;
     autoSaveStatus.value = 'saving';
+
+    logger.debug('Starting auto-save operation');
 
     if (draftId.value) {
       // Update existing draft
@@ -212,7 +220,9 @@ const saveAsDraft = async () => {
 
     // Hide saved indicator after 3 seconds
     setTimeout(() => {
-      autoSaveStatus.value = 'idle';
+      if (autoSaveStatus.value === 'saved') {
+        autoSaveStatus.value = 'idle';
+      }
     }, 3000);
   } catch (error) {
     logger.error('Failed to auto-save draft', error);
@@ -223,8 +233,9 @@ const saveAsDraft = async () => {
 };
 
 const debouncedAutoSave = () => {
-  // Don't trigger auto-save if already saving
-  if (isSaving.value) {
+  // Don't trigger auto-save if already saving or submitting
+  if (isSaving.value || isSubmitting.value) {
+    logger.debug('Skipping auto-save: operation in progress');
     return;
   }
 
@@ -233,8 +244,15 @@ const debouncedAutoSave = () => {
   }
 
   autoSaveTimer = setTimeout(() => {
-    if (wizardState.value.basicData.title.trim() && !isSaving.value) {
+    // Double-check the saving state before actually saving
+    if (wizardState.value.basicData.title.trim() && !isSaving.value && !isSubmitting.value) {
       void saveAsDraft();
+    } else {
+      logger.debug('Skipping auto-save: conditions not met', {
+        hasTitle: !!wizardState.value.basicData.title.trim(),
+        isSaving: isSaving.value,
+        isSubmitting: isSubmitting.value
+      });
     }
   }, 2000); // 2 second debounce
 };
@@ -293,7 +311,10 @@ const handleSubmit = async () => {
 watch(
   () => wizardState.value.basicData,
   () => {
-    debouncedAutoSave();
+    // Don't trigger auto-save if we're currently saving
+    if (!isSaving.value) {
+      debouncedAutoSave();
+    }
   },
   { deep: true }
 );
@@ -301,7 +322,10 @@ watch(
 watch(
   () => wizardState.value.features,
   () => {
-    debouncedAutoSave();
+    // Don't trigger auto-save if we're currently saving
+    if (!isSaving.value) {
+      debouncedAutoSave();
+    }
   },
   { deep: true }
 );
@@ -320,7 +344,6 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .content-submission-page {
-  max-width: 100%;
   margin: 0 auto;
 }
 

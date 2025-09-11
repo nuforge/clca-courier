@@ -21,8 +21,22 @@ export default {
     event: 'Evento',
     announcement: 'Anuncio',
     classified: 'Clasificado',
-    newsletter: 'Boletín'
+    newsletter: 'Boletín',
+    task: 'Tarea',
+    article: 'Artículo'
   },
+
+  contentType: {
+    event: 'Evento',
+    task: 'Tarea',
+    announcement: 'Anuncio',
+    classified: 'Clasificado',
+    article: 'Artículo',
+    news: 'Noticias',
+    unknown: 'Desconocido'
+  },
+
+  byAuthor: 'por {author}',
 
   categories: {
     general: 'General',
@@ -65,6 +79,73 @@ export default {
     claimError: 'Error al reclamar trabajo de impresión',
     jobCompleted: 'Trabajo de impresión marcado como completado',
     completeError: 'Error al completar trabajo de impresión'
+  },
+
+  // Content Submission Workflow
+  submission: {
+    steps: {
+      contentType: {
+        title: 'Tipo de Contenido',
+        subtitle: '¿Qué tipo de contenido te gustaría crear?',
+        description: 'Elige el tipo de contenido que mejor coincida con lo que quieres compartir con la comunidad.'
+      },
+      basicInfo: {
+        title: 'Información Básica',
+        subtitle: 'Cuéntanos sobre tu contenido',
+        description: 'Proporciona el título y descripción de tu contenido.',
+        requiredFeatures: 'Este tipo de contenido requiere:'
+      },
+      features: {
+        title: 'Características y Detalles',
+        subtitle: 'Añade características específicas a tu contenido',
+        description: 'Configura características adicionales basadas en tu tipo de contenido.',
+        required: 'Características Requeridas',
+        optional: 'Características Opcionales'
+      },
+      preview: {
+        title: 'Vista Previa y Envío',
+        subtitle: 'Revisa tu contenido antes de enviarlo',
+        description: 'Verifica cómo aparecerá tu contenido y envíalo para revisión.',
+        contentPreview: 'Vista Previa del Contenido',
+        summary: 'Resumen del Envío',
+        features: 'Características',
+        notesTitle: 'Notas Importantes',
+        note1: 'Tu contenido será revisado por nuestro equipo antes de la publicación',
+        note2: 'Recibirás una notificación cuando tu contenido sea aprobado',
+        note3: 'El contenido publicado aparecerá en el feed de la comunidad'
+      }
+    },
+    contentTypes: {
+      news: {
+        description: 'Comparte noticias y actualizaciones de la comunidad'
+      },
+      event: {
+        description: 'Anuncia próximos eventos de la comunidad'
+      },
+      announcement: {
+        description: 'Anuncios importantes de la comunidad'
+      },
+      classified: {
+        description: 'Compra, vende o intercambia artículos con vecinos'
+      },
+      task: {
+        description: 'Solicita ayuda o voluntarios para tareas comunitarias'
+      },
+      article: {
+        description: 'Comparte artículos y contenido educativo'
+      }
+    },
+    autoSave: {
+      saving: 'Guardando borrador...',
+      saved: 'Borrador guardado'
+    },
+    success: {
+      submitted: '¡Contenido enviado exitosamente! Será revisado antes de la publicación.'
+    },
+    errors: {
+      invalidContent: 'Por favor completa todos los campos requeridos',
+      submitFailed: 'Error al enviar contenido. Por favor intenta de nuevo.'
+    }
   },
 
   management: 'Gestión de Contenido',

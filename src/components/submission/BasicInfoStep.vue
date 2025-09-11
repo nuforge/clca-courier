@@ -46,7 +46,7 @@
           <div>
             <div class="text-subtitle2">{{ $t(`content.contentType.${contentType}`) }}</div>
             <div class="text-caption text-grey-7">
-              {{ $t(`submission.contentTypes.${contentType}.description`) }}
+              {{ $t(`content.submission.contentTypes.${contentType}.description`) }}
             </div>
           </div>
         </q-card-section>

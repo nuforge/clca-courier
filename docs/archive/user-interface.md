@@ -160,13 +160,14 @@ $breakpoint-xl: 1920px; // Extra large
 ```vue
 <!-- Responsive grid example -->
 <template>
-  <div class="row q-gutter-md">
+  <div class="row q-col-gutter-md">
     <div class="col-12 col-md-6 col-lg-4">
       <!-- Content adapts to screen size -->
     </div>
   </div>
 </template>
 ```
+- `q-col-gutter-m` should be used for rows containing child elements with `col-*`
 
 ## Loading States
 
