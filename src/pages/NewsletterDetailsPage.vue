@@ -358,8 +358,7 @@ const viewNewsletter = () => {
     try {
         viewLoading.value = true;
 
-        // Open PDF in new tab
-        // TODO: Integrate with global PDF viewer
+        // Open PDF in new tab (future: integrate with global PDF viewer)
         window.open(newsletter.value.downloadUrl, '_blank');
 
         logger.info('Newsletter opened for viewing:', newsletter.value.title);

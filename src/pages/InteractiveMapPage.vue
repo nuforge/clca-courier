@@ -2,7 +2,7 @@
   <q-page class="map-page">
     <!-- Map Container -->
     <div class="map-container">
-      <InteractiveMapSVGRefactored ref="mapRef" class="fit" />
+      <InteractiveMapSVG ref="mapRef" class="fit" />
 
       <!-- Roads Panel - Collapsible Overlay -->
       <div class="map-overlay roads-overlay" :class="{ 'collapsed': !roadsExpanded }">
@@ -130,11 +130,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import InteractiveMapSVGRefactored from '../components/InteractiveMapSVGRefactored.vue';
+import InteractiveMapSVG from '../components/InteractiveMapSVG.vue';
 import type { Road } from '../composables/useInteractiveMap';
 
 // Template refs
-const mapRef = ref<InstanceType<typeof InteractiveMapSVGRefactored>>();
+const mapRef = ref<InstanceType<typeof InteractiveMapSVG>>();
 
 // Local state for the page controls
 const selectedTheme = ref('default');

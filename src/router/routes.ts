@@ -11,11 +11,11 @@ const routes: RouteRecordRaw[] = [
       { path: '/calendar', component: () => import('pages/CommunityCalendarPage.vue') },
       { path: '/about', component: () => import('pages/AboutContactPage.vue') },
       { path: '/contact', redirect: '/about' }, // Redirect old contact route to about page
-      { path: '/map', component: () => import('pages/MapRefactoredPage.vue') },
+      { path: '/map', component: () => import('pages/InteractiveMapPage.vue') },
 
-      // Newsletter archive (Firebase-powered)
-      { path: '/archive', component: () => import('pages/FirebaseNewsletterArchivePage.vue') },
-      { path: '/archive/:id', component: () => import('pages/FirebaseNewsletterDetailsPage.vue') },
+      // Newsletter archive
+      { path: '/archive', component: () => import('pages/NewsletterArchivePage.vue') },
+      { path: '/archive/:id', component: () => import('pages/NewsletterDetailsPage.vue') },
 
       // Contribution system
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },

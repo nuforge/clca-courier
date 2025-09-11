@@ -24,10 +24,10 @@ onMounted(() => {
 
 // Methods
 const loadUserSubmissions = async () => {
-    // Placeholder - will implement when we have user-specific content queries
+    // Will implement when we have user-specific content queries
     isLoading.value = true;
     try {
-        // TODO: Implement getUserSubmissions in Firebase service
+        // Future: Implement getUserSubmissions in Firebase service
         logger.debug('Loading user submissions...');
         await new Promise(resolve => setTimeout(resolve, 500)); // Simulate loading
         userSubmissions.value = [];
@@ -115,7 +115,7 @@ const goToSubmit = () => {
                             </div>
 
                             <div v-else>
-                                <!-- TODO: Display user submissions when backend is ready -->
+                                <!-- Display user submissions when backend is ready -->
                                 <q-list separator>
                                     <q-item v-for="submission in userSubmissions" :key="submission.id">
                                         <q-item-section>

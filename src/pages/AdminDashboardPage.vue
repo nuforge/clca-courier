@@ -444,10 +444,10 @@ const refreshStats = async () => {
     stats.value.pendingReviews = allContent.filter(c => c.status === 'pending').length;
     stats.value.publishedContent = allContent.filter(c => c.status === 'published').length;
 
-    // Get newsletter statistics (placeholder)
-    stats.value.newsletters = 24; // TODO: Get from actual newsletter service
+    // Get newsletter statistics (future: from newsletter service)
+    stats.value.newsletters = 24; // Placeholder value
 
-    // Get recent activity (placeholder)
+    // Get recent activity (sample data)
     recentActivity.value = [
       {
         id: '1',

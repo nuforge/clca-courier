@@ -357,7 +357,7 @@
             <div class="row">
               <div v-for="newsletter in sortedNewsletters" :key="newsletter.id"
                 class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 q-pa-md">
-                <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
+                <NewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
                   @metadata-updated="onNewsletterMetadataUpdated" @refresh-needed="onRefreshNeeded" />
               </div>
             </div>
@@ -385,7 +385,7 @@
                 <div class="row">
                   <div v-for="newsletter in yearGroup.newsletters" :key="newsletter.id"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 q-pa-md">
-                    <FirebaseNewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
+                    <NewsletterCard :newsletter="newsletter" :show-admin-controls="isAdmin"
                       @metadata-updated="onNewsletterMetadataUpdated" @refresh-needed="onRefreshNeeded" />
                   </div>
                 </div>
@@ -404,7 +404,7 @@ import { useI18n } from 'vue-i18n';
 import { useSiteStore } from '../stores/site-store-simple';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
-import FirebaseNewsletterCard from '../components/FirebaseNewsletterCard.vue';
+import NewsletterCard from '../components/NewsletterCard.vue';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 

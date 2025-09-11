@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import FirebaseNewsletterCard from '../../../src/components/FirebaseNewsletterCard.vue';
+import NewsletterCard from '../../../src/components/NewsletterCard.vue';
 import type { NewsletterMetadata } from '../../../src/services/firebase-firestore.service';
 
 // Use vi.hoisted() for complex mock infrastructure
@@ -129,7 +129,7 @@ const createMinimalNewsletter = (overrides: Partial<NewsletterMetadata> = {}): N
   });
 };
 
-describe('FirebaseNewsletterCard Component', () => {
+describe('NewsletterCard Component', () => {
   let wrapper: VueWrapper<any>;
   let pinia: any;
 
@@ -152,7 +152,7 @@ describe('FirebaseNewsletterCard Component', () => {
   });
 
   const mountComponent = (newsletter: NewsletterMetadata, props = {}) => {
-    return mount(FirebaseNewsletterCard, {
+    return mount(NewsletterCard, {
       props: {
         newsletter,
         showAdminControls: false,

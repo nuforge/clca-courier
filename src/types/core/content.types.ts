@@ -65,14 +65,6 @@ export interface CommunityStats {
 }
 
 /**
- * Generic todo interface - preserved from models.ts
- */
-export interface Todo {
-  id: number;
-  content: string;
-}
-
-/**
  * Generic meta interface for API responses
  */
 export interface Meta {

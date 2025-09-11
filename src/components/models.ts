@@ -5,7 +5,7 @@
  */
 
 // Re-export from centralized types for backward compatibility
-export type { Todo, Meta, NewsItem, ClassifiedAd as Classified, Event } from '../types';
+export type { Meta, NewsItem, ClassifiedAd as Classified, Event } from '../types';
 
 // Note: This file will be removed in a future version
 // Please update imports to use: import { NewsItem, Event, ClassifiedAd } from '@/types'

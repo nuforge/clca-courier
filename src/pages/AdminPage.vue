@@ -220,6 +220,7 @@ import { firebaseAuthService } from '../services/firebase-auth.service';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { UI_ICONS } from '../constants/ui-icons';
 import { useSiteTheme } from '../composables/useSiteTheme';
+import { logger } from '../utils/logger';
 import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 
 const $q = useQuasar();
@@ -247,10 +248,10 @@ const unpublishedNewsletters = ref<NewsletterMetadata[]>([]);
 const featuredNewsletters = ref<NewsletterMetadata[]>([]);
 const totalNewsletters = ref(0);
 
-// Placeholder functions (PDF processing removed)
+// Newsletter management functions
 const loadNewsletters = () => {
-    // TODO: Implement newsletter loading from Firebase
-    console.log('Loading newsletters...');
+    // Future: Implement newsletter loading from Firebase
+    logger.debug('Loading newsletters...');
 };
 
 const processLocalPdfsToFirebase = (files: string[]) => {

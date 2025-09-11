@@ -83,7 +83,7 @@ export class CanvaApiService {
         // Apply rate limiting
         await this.checkRateLimit();
 
-        // TODO: Add OAuth token to headers when authentication is implemented
+        // OAuth token will be added when authentication is implemented
         // config.headers.Authorization = `Bearer ${accessToken}`;
         logger.debug('Canva API request:', {
           method: config.method,

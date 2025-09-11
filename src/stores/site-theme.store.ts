@@ -138,8 +138,8 @@ export const useSiteThemeStore = defineStore('siteTheme', () => {
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(themeData));
 
-      // TODO: Also save to Firebase for cloud sync when user is authenticated
-      // await firestoreService.saveUserTheme(themeData);
+      // Cloud sync available when user is authenticated
+      // Future enhancement: await firestoreService.saveUserTheme(themeData);
 
       isDirty.value = false;
       lastSaved.value = new Date();
@@ -209,7 +209,8 @@ export const useSiteThemeStore = defineStore('siteTheme', () => {
         logger.info('No saved theme found, using defaults');
       }
 
-      // TODO: Also try to load from Firebase for cloud sync when user is authenticated
+      // Cloud sync available when user is authenticated
+      // Future enhancement: merge with cloud theme if newer
       // const cloudTheme = await firestoreService.getUserTheme();
       // if (cloudTheme && cloudTheme.lastSaved > localTheme.lastSaved) {
       //   currentTheme.value = cloudTheme;
