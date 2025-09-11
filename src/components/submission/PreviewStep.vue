@@ -27,7 +27,7 @@
             <div class="summary-label">{{ $t('forms.contentType.label') }}</div>
             <div class="summary-value">
               <q-chip color="primary" text-color="white" :icon="contentTypeIcon">
-                {{ $t(`contentType.${contentType}`) }}
+                {{ $t(`content.contentType.${contentType}`) }}
               </q-chip>
             </div>
           </div>
@@ -45,7 +45,7 @@
                 :icon="getFeatureIcon(feature)"
                 class="q-mr-xs q-mb-xs"
               >
-                {{ $t(`features.${feature.replace('feat:', '').replace('integ:', '')}.label`) }}
+                {{ $t(`content.features.${feature.replace('feat:', '').replace('integ:', '')}.label`) }}
               </q-chip>
             </div>
           </div>
@@ -83,7 +83,7 @@
     <!-- Navigation -->
     <div class="row justify-between q-mt-xl">
       <q-btn
-        :label="$t('actions.back')"
+        :label="$t('common.actions.back')"
         flat
         color="grey-7"
         @click="$emit('back')"
@@ -92,7 +92,7 @@
         :disable="isSubmitting"
       />
       <q-btn
-        :label="$t('actions.submit')"
+        :label="$t('common.actions.submit')"
         color="primary"
         :loading="isSubmitting"
         @click="handleSubmit"

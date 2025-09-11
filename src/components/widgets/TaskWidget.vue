@@ -5,10 +5,10 @@
         <q-icon name="task_alt" color="warning" size="sm" />
         <div class="col">
           <div class="text-body2 text-weight-medium">
-            {{ $t('features.task.label') }}: {{ taskFeature.category }}
+            {{ $t('content.features.task.label') }}: {{ taskFeature.category }}
           </div>
           <div class="text-caption text-grey-7">
-            {{ $t('features.task.quantity', { qty: taskFeature.qty, unit: taskFeature.unit }) }}
+            {{ $t('content.features.task.quantity', { qty: taskFeature.qty, unit: taskFeature.unit }) }}
           </div>
         </div>
       </div>
@@ -29,7 +29,7 @@
           outline
           color="primary"
           size="sm"
-          :label="$t('features.task.claim')"
+          :label="$t('content.features.task.claim')"
           @click="$emit('claim-task')"
           :aria-label="$t('accessibility.claimTask')"
         />
@@ -38,7 +38,7 @@
 
     <div v-if="taskFeature.claimedBy && taskFeature.status === 'claimed'" class="q-mt-sm">
       <div class="text-caption text-grey-6">
-        {{ $t('features.task.claimedBy', { user: taskFeature.claimedBy }) }}
+        {{ $t('content.features.task.claimedBy', { user: taskFeature.claimedBy }) }}
       </div>
     </div>
   </div>

@@ -2,14 +2,14 @@
   <div class="date-feature-form">
     <div class="text-subtitle2 q-mb-md">
       <q-icon name="event" class="q-mr-sm" />
-      {{ $t('features.date.label') }}
+      {{ $t('content.features.date.label') }}
     </div>
 
     <div class="q-gutter-md">
       <!-- All Day Toggle -->
       <q-toggle
         v-model="localDateFeature.isAllDay"
-        :label="$t('features.date.allDay')"
+        :label="$t('content.features.date.allDay')"
         color="primary"
         class="q-mb-md"
       />
@@ -19,7 +19,7 @@
         <div class="col-12 col-sm-6">
           <q-input
             v-model="startDate"
-            :label="$t('features.date.startDate')"
+            :label="$t('content.features.date.startDate')"
             filled
             type="date"
             :rules="[required]"
@@ -28,7 +28,7 @@
         <div v-if="!localDateFeature.isAllDay" class="col-12 col-sm-6">
           <q-input
             v-model="startTime"
-            :label="$t('features.date.startTime')"
+            :label="$t('content.features.date.startTime')"
             filled
             type="time"
             :rules="[required]"
@@ -39,7 +39,7 @@
       <!-- End Date and Time (optional) -->
       <q-toggle
         v-model="hasEndDate"
-        :label="$t('features.date.hasEndDate')"
+        :label="$t('content.features.date.hasEndDate')"
         color="secondary"
         class="q-mt-md"
       />
@@ -48,7 +48,7 @@
         <div class="col-12 col-sm-6">
           <q-input
             v-model="endDate"
-            :label="$t('features.date.endDate')"
+            :label="$t('content.features.date.endDate')"
             filled
             type="date"
             :rules="[required, (val) => validateEndDate(val)]"
@@ -57,7 +57,7 @@
         <div v-if="!localDateFeature.isAllDay" class="col-12 col-sm-6">
           <q-input
             v-model="endTime"
-            :label="$t('features.date.endTime')"
+            :label="$t('content.features.date.endTime')"
             filled
             type="time"
             :rules="[required]"

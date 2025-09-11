@@ -4,7 +4,7 @@
       <q-icon name="event" color="primary" size="sm" />
       <div class="col">
         <div class="text-body2 text-weight-medium">
-          {{ $t('features.date.label') }}
+          {{ $t('content.features.date.label') }}
         </div>
         <div class="text-caption text-grey-7">
           {{ formatEventDate }}
@@ -17,7 +17,7 @@
         text-color="white"
         size="sm"
       >
-        {{ $t('features.date.allDay') }}
+        {{ $t('content.features.date.allDay') }}
       </q-chip>
     </div>
   </div>

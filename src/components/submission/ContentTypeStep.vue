@@ -28,7 +28,7 @@
               :color="selectedType === contentType.type ? 'primary' : 'grey-6'"
               class="q-mb-md"
             />
-            <h6 class="q-ma-none q-mb-xs">{{ $t(`contentType.${contentType.type}`) }}</h6>
+            <h6 class="q-ma-none q-mb-xs">{{ $t(`content.contentType.${contentType.type}`) }}</h6>
             <p class="text-body2 text-grey-7 q-ma-none">
               {{ $t(`content.submission.contentTypes.${contentType.type}.description`) }}
             </p>
@@ -44,7 +44,7 @@
                 size="sm"
                 class="q-mr-xs q-mb-xs"
               >
-                {{ $t(`features.${feature.replace('feat:', '')}.label`) }}
+                {{ $t(`content.features.${feature.replace('feat:', '')}.label`) }}
               </q-chip>
             </div>
 
@@ -58,7 +58,7 @@
                 size="sm"
                 class="q-mr-xs q-mb-xs"
               >
-                {{ $t(`features.${feature.replace('feat:', '').replace('integ:', '')}.label`) }}
+                {{ $t(`content.features.${feature.replace('feat:', '').replace('integ:', '')}.label`) }}
               </q-chip>
             </div>
           </q-card-section>
@@ -69,7 +69,7 @@
     <!-- Navigation -->
     <div class="row justify-end q-mt-xl">
       <q-btn
-        :label="$t('actions.next')"
+        :label="$t('common.actions.next')"
         color="primary"
         :disable="!selectedType"
         @click="$emit('next')"

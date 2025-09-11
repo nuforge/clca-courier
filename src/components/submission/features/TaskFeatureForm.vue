@@ -2,7 +2,7 @@
   <div class="task-feature-form">
     <div class="text-subtitle2 q-mb-md">
       <q-icon name="assignment" class="q-mr-sm" />
-      {{ $t('features.task.label') }}
+      {{ $t('content.features.task.label') }}
     </div>
 
     <div class="q-gutter-md">
@@ -10,7 +10,7 @@
       <q-select
         v-model="localTaskFeature.category"
         :options="taskCategories"
-        :label="$t('features.task.category')"
+        :label="$t('content.features.task.category')"
         filled
         emit-value
         map-options
@@ -22,7 +22,7 @@
         <div class="col-12 col-sm-6">
           <q-input
             v-model.number="localTaskFeature.qty"
-            :label="$t('features.task.quantity')"
+            :label="$t('content.features.task.quantity')"
             type="number"
             filled
             min="1"
@@ -34,7 +34,7 @@
           <q-select
             v-model="localTaskFeature.unit"
             :options="unitOptions"
-            :label="$t('features.task.unit')"
+            :label="$t('content.features.task.unit')"
             filled
             emit-value
             map-options
@@ -46,12 +46,12 @@
       <!-- Task Status (always starts as unclaimed) -->
       <q-card flat bordered class="bg-grey-1">
         <q-card-section>
-          <div class="text-subtitle2 q-mb-sm">{{ $t('features.task.status') }}</div>
+          <div class="text-subtitle2 q-mb-sm">{{ $t('content.features.task.status') }}</div>
           <q-chip color="orange" text-color="white" icon="pending">
             {{ $t('content.status.unclaimed') }}
           </q-chip>
           <div class="text-caption text-grey-7 q-mt-sm">
-            {{ $t('features.task.statusHelp') }}
+            {{ $t('content.features.task.statusHelp') }}
           </div>
         </q-card-section>
       </q-card>

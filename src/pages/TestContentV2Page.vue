@@ -65,14 +65,14 @@
       <q-card class="col">
         <q-card-section class="text-center">
           <div class="text-h6">{{ contentTypeStats.event || 0 }}</div>
-          <div class="text-caption text-grey-7">{{ $t('contentType.event') }}</div>
+          <div class="text-caption text-grey-7">{{ $t('content.contentType.event') }}</div>
         </q-card-section>
       </q-card>
 
       <q-card class="col">
         <q-card-section class="text-center">
           <div class="text-h6">{{ contentTypeStats.task || 0 }}</div>
-          <div class="text-caption text-grey-7">{{ $t('contentType.task') }}</div>
+          <div class="text-caption text-grey-7">{{ $t('content.contentType.task') }}</div>
         </q-card-section>
       </q-card>
     </div>

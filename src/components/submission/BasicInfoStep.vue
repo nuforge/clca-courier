@@ -44,7 +44,7 @@
         <q-card-section class="row items-center">
           <q-icon :name="contentTypeIcon" :color="contentTypeColor" size="md" class="q-mr-md" />
           <div>
-            <div class="text-subtitle2">{{ $t(`contentType.${contentType}`) }}</div>
+            <div class="text-subtitle2">{{ $t(`content.contentType.${contentType}`) }}</div>
             <div class="text-caption text-grey-7">
               {{ $t(`submission.contentTypes.${contentType}.description`) }}
             </div>
@@ -63,7 +63,7 @@
           :icon="getFeatureIcon(feature)"
           class="q-mr-sm q-mb-sm"
         >
-          {{ $t(`features.${feature.replace('feat:', '')}.label`) }}
+          {{ $t(`content.features.${feature.replace('feat:', '')}.label`) }}
         </q-chip>
       </div>
     </div>
@@ -71,7 +71,7 @@
     <!-- Navigation -->
     <div class="row justify-between q-mt-xl">
       <q-btn
-        :label="$t('actions.back')"
+        :label="$t('common.actions.back')"
         flat
         color="grey-7"
         @click="$emit('back')"
@@ -79,7 +79,7 @@
         class="q-px-xl"
       />
       <q-btn
-        :label="$t('actions.next')"
+        :label="$t('common.actions.next')"
         color="primary"
         :disable="!isValid"
         @click="handleNext"

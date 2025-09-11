@@ -10,7 +10,7 @@
           {{ locationFeature.address }}
         </div>
         <div v-if="locationFeature.geo" class="text-caption text-grey-6">
-          {{ $t('features.location.coordinates', {
+          {{ $t('content.features.location.coordinates', {
             lat: locationFeature.geo.latitude.toFixed(4),
             lng: locationFeature.geo.longitude.toFixed(4)
           }) }}

@@ -2,15 +2,15 @@
   <div class="location-feature-form">
     <div class="text-subtitle2 q-mb-md">
       <q-icon name="location_on" class="q-mr-sm" />
-      {{ $t('features.location.label') }}
+      {{ $t('content.features.location.label') }}
     </div>
 
     <div class="q-gutter-md">
       <!-- Location Name (Optional) -->
       <q-input
         v-model="localLocationFeature.name"
-        :label="$t('features.location.name')"
-        :hint="$t('features.location.nameHint')"
+        :label="$t('content.features.location.name')"
+        :hint="$t('content.features.location.nameHint')"
         filled
         maxlength="100"
         counter
@@ -19,8 +19,8 @@
       <!-- Address (Required) -->
       <q-input
         v-model="localLocationFeature.address"
-        :label="$t('features.location.address')"
-        :hint="$t('features.location.addressHint')"
+        :label="$t('content.features.location.address')"
+        :hint="$t('content.features.location.addressHint')"
         filled
         :rules="[required]"
         maxlength="200"
@@ -29,18 +29,18 @@
 
       <!-- Coordinate Input (Optional) -->
       <q-expansion-item
-        :label="$t('features.location.coordinates')"
+        :label="$t('content.features.location.coordinates')"
         icon="my_location"
         class="coordinate-expansion"
       >
         <div class="q-pa-md bg-grey-1">
-          <div class="text-body2 q-mb-md">{{ $t('features.location.coordinatesHelp') }}</div>
+          <div class="text-body2 q-mb-md">{{ $t('content.features.location.coordinatesHelp') }}</div>
 
           <div class="row q-gutter-md">
             <div class="col-12 col-sm-6">
               <q-input
                 v-model.number="latitude"
-                :label="$t('features.location.latitude')"
+                :label="$t('content.features.location.latitude')"
                 type="number"
                 filled
                 step="0.000001"
@@ -50,7 +50,7 @@
             <div class="col-12 col-sm-6">
               <q-input
                 v-model.number="longitude"
-                :label="$t('features.location.longitude')"
+                :label="$t('content.features.location.longitude')"
                 type="number"
                 filled
                 step="0.000001"
@@ -61,7 +61,7 @@
 
           <div class="q-mt-md">
             <q-btn
-              :label="$t('features.location.getCurrentLocation')"
+              :label="$t('content.features.location.getCurrentLocation')"
               color="primary"
               outline
               icon="my_location"
@@ -82,7 +82,7 @@
             {{ formatLocationPreview() }}
           </div>
           <div v-if="hasCoordinates" class="text-caption text-grey-7 q-mt-sm">
-            {{ $t('features.location.coordinatesDisplay', { lat: latitude, lng: longitude }) }}
+            {{ $t('content.features.location.coordinatesDisplay', { lat: latitude, lng: longitude }) }}
           </div>
         </q-card-section>
       </q-card>

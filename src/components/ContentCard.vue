@@ -46,13 +46,13 @@
                 <q-item-section avatar>
                   <q-icon name="edit" />
                 </q-item-section>
-                <q-item-section>{{ $t('actions.edit') }}</q-item-section>
+                <q-item-section>{{ $t('common.actions.edit') }}</q-item-section>
               </q-item>
               <q-item clickable @click="$emit('delete', content)">
                 <q-item-section avatar>
                   <q-icon name="delete" />
                 </q-item-section>
-                <q-item-section>{{ $t('actions.delete') }}</q-item-section>
+                <q-item-section>{{ $t('common.actions.delete') }}</q-item-section>
               </q-item>
             </q-list>
           </q-menu>

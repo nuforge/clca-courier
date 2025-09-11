@@ -2,7 +2,7 @@
   <div class="canva-feature-form">
     <div class="text-subtitle2 q-mb-md">
       <q-icon name="design_services" class="q-mr-sm" />
-      {{ $t('features.canva.label') }}
+      {{ $t('content.features.canva.label') }}
     </div>
 
     <!-- Info Card -->
@@ -11,9 +11,9 @@
         <div class="row items-start">
           <q-icon name="info" size="md" class="text-info q-mr-md q-mt-xs" />
           <div>
-            <div class="text-subtitle2 q-mb-sm">{{ $t('features.canva.infoTitle') }}</div>
+            <div class="text-subtitle2 q-mb-sm">{{ $t('content.features.canva.helpTitle') }}</div>
             <p class="text-body2 text-grey-7 q-mb-none">
-              {{ $t('features.canva.infoDescription') }}
+              {{ $t('content.features.canva.description') }}
             </p>
           </div>
         </div>
@@ -24,8 +24,8 @@
       <!-- Design ID Input -->
       <q-input
         v-model="localCanvaFeature.designId"
-        :label="$t('features.canva.designId')"
-        :hint="$t('features.canva.designIdHint')"
+        :label="$t('content.features.canva.designId')"
+        :hint="$t('content.features.canva.designIdHint')"
         filled
         :rules="[required]"
         maxlength="50"
@@ -34,8 +34,8 @@
       <!-- Edit URL Input -->
       <q-input
         v-model="localCanvaFeature.editUrl"
-        :label="$t('features.canva.editUrl')"
-        :hint="$t('features.canva.editUrlHint')"
+        :label="$t('content.features.canva.editUrl')"
+        :hint="$t('content.features.canva.editUrlHint')"
         filled
         :rules="[required, urlValidation]"
         type="url"
@@ -44,8 +44,8 @@
       <!-- Export URL Input (Optional) -->
       <q-input
         v-model="localCanvaFeature.exportUrl"
-        :label="$t('features.canva.exportUrl')"
-        :hint="$t('features.canva.exportUrlHint')"
+        :label="$t('content.features.canva.exportUrl')"
+        :hint="$t('content.features.canva.exportUrlHint')"
         filled
         :rules="[optionalUrlValidation]"
         type="url"
@@ -55,7 +55,7 @@
       <div class="row q-gutter-sm">
         <q-btn
           v-if="localCanvaFeature.editUrl"
-          :label="$t('features.canva.openInCanva')"
+          :label="$t('content.features.canva.openDesign')"
           color="primary"
           outline
           icon="open_in_new"
@@ -65,7 +65,7 @@
 
         <q-btn
           v-if="localCanvaFeature.exportUrl"
-          :label="$t('features.canva.downloadExport')"
+          :label="$t('content.features.canva.downloadDesign')"
           color="secondary"
           outline
           icon="download"
@@ -76,23 +76,23 @@
 
       <!-- Preview Section -->
       <div v-if="isValid" class="canva-preview q-mt-md">
-        <div class="text-subtitle2 q-mb-sm">{{ $t('features.canva.preview') }}</div>
+        <div class="text-subtitle2 q-mb-sm">{{ $t('content.submission.steps.preview.contentPreview') }}</div>
         <q-card flat bordered>
           <q-card-section>
             <div class="row q-gutter-md">
               <div class="col-12 col-sm-6">
-                <div class="text-caption text-grey-7">{{ $t('features.canva.designId') }}</div>
+                <div class="text-caption text-grey-7">{{ $t('content.features.canva.designId') }}</div>
                 <div class="text-body2">{{ localCanvaFeature.designId }}</div>
               </div>
               <div class="col-12 col-sm-6">
-                <div class="text-caption text-grey-7">{{ $t('features.canva.status') }}</div>
+                <div class="text-caption text-grey-7">{{ $t('forms.status.label') }}</div>
                 <div class="text-body2">
                   <q-chip
                     :color="localCanvaFeature.exportUrl ? 'positive' : 'warning'"
                     text-color="white"
                     size="sm"
                   >
-                    {{ localCanvaFeature.exportUrl ? $t('features.canva.exported') : $t('features.canva.inProgress') }}
+                    {{ localCanvaFeature.exportUrl ? $t('content.status.published') : $t('content.status.pending') }}
                   </q-chip>
                 </div>
               </div>

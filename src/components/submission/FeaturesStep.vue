@@ -41,9 +41,9 @@
         <div v-if="optionalFeatures.includes('feat:location')" class="feature-section">
           <q-expansion-item
             v-model="featureToggles.location"
-            :label="$t('features.location.label')"
+            :label="$t('content.features.location.label')"
             icon="location_on"
-            :caption="$t('features.location.description')"
+            :caption="$t('content.features.location.description')"
             class="feature-toggle"
           >
             <LocationFeatureForm
@@ -58,9 +58,9 @@
         <div v-if="optionalFeatures.includes('feat:task')" class="feature-section">
           <q-expansion-item
             v-model="featureToggles.task"
-            :label="$t('features.task.label')"
+            :label="$t('content.features.task.label')"
             icon="assignment"
-            :caption="$t('features.task.description')"
+            :caption="$t('content.features.task.description')"
             class="feature-toggle"
           >
             <TaskFeatureForm
@@ -75,9 +75,9 @@
         <div v-if="optionalFeatures.includes('feat:date')" class="feature-section">
           <q-expansion-item
             v-model="featureToggles.date"
-            :label="$t('features.date.label')"
+            :label="$t('content.features.date.label')"
             icon="event"
-            :caption="$t('features.date.description')"
+            :caption="$t('content.features.date.description')"
             class="feature-toggle"
           >
             <DateFeatureForm
@@ -92,9 +92,9 @@
         <div v-if="optionalFeatures.includes('integ:canva')" class="feature-section">
           <q-expansion-item
             v-model="featureToggles.canva"
-            :label="$t('features.canva.label')"
+            :label="$t('content.features.canva.label')"
             icon="design_services"
-            :caption="$t('features.canva.description')"
+            :caption="$t('content.features.canva.description')"
             class="feature-toggle"
           >
             <CanvaFeatureForm
@@ -110,7 +110,7 @@
     <!-- Navigation -->
     <div class="row justify-between q-mt-xl">
       <q-btn
-        :label="$t('actions.back')"
+        :label="$t('common.actions.back')"
         flat
         color="grey-7"
         @click="$emit('back')"
@@ -118,7 +118,7 @@
         class="q-px-xl"
       />
       <q-btn
-        :label="$t('actions.next')"
+        :label="$t('common.actions.next')"
         color="primary"
         :disable="!isValid"
         @click="handleNext"

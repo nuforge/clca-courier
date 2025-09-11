@@ -5,10 +5,10 @@
         <q-icon name="design_services" color="positive" size="sm" />
         <div class="col">
           <div class="text-body2 text-weight-medium">
-            {{ $t('features.canva.label') }}
+            {{ $t('content.features.canva.label') }}
           </div>
           <div class="text-caption text-grey-7">
-            {{ $t('features.canva.designId', { id: canvaFeature.designId }) }}
+            {{ $t('content.features.canva.previewFormat', { designId: canvaFeature.designId }) }}
           </div>
         </div>
       </div>
@@ -20,7 +20,7 @@
           color="positive"
           size="sm"
           icon="edit"
-          :label="$t('features.canva.edit')"
+          :label="$t('content.features.canva.editInCanva')"
           @click="openEditor"
           :aria-label="$t('accessibility.editCanvaDesign')"
         />
@@ -32,7 +32,7 @@
           color="positive"
           size="sm"
           icon="download"
-          :label="$t('features.canva.export')"
+          :label="$t('content.features.canva.openExport')"
           @click="downloadExport"
           :aria-label="$t('accessibility.downloadCanvaExport')"
         />
