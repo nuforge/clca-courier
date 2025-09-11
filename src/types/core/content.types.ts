@@ -1,340 +1,288 @@
 /**
- * Core Content Types - Consolidated from multiple locations
- * Eliminates duplicate interfaces across models.ts, site-store.ts, etc.
+ * Composable Content Architecture - Tag-Driven Model
+ * New standard: "A content object is a base entity that has features, not is a type."
+ *
+ * This architecture replaces all legacy content interfaces with a unified,
+ * composable system based on features and tags.
  */
 
-import type { CanvaDesign } from '../../services/canva/types';
-import type { Timestamp } from 'firebase/firestore';
+import { Timestamp, type GeoPoint } from 'firebase/firestore';
 
 /**
- * News item interface - consolidated from models.ts and site-store.ts
- * Standardized with optional featured property and consistent category union
+ * The single, canonical interface for all content in the system.
+ * Represents a base content entity that can have various features attached.
+ *
+ * @principle A content object is a base entity that has features, not is a type.
  */
-export interface NewsItem {
+export interface ContentDoc {
+  /** Unique identifier for the content document */
   id: string;
+
+  /** Human-readable title of the content */
   title: string;
-  summary: string;
-  content: string;
-  author: string;
-  date: string;
-  category: 'news' | 'announcement' | 'event';
-  featured?: boolean;
+
+  /** Detailed description or body text of the content */
+  description: string;
+
+  /** Firebase Auth UID of the content author */
+  authorId: string;
+
+  /** Display name of the content author */
+  authorName: string;
+
+  /** Array of filterable tags in [namespace:value] format */
+  tags: string[];
+
+  /** Structured feature blocks that define content capabilities */
+  features: ContentFeatures;
+
+  /** Publication status of the content */
+  status: 'draft' | 'published' | 'archived';
+
+  /** Timestamp tracking for content lifecycle */
+  timestamps: {
+    /** When the content was first created */
+    created: Timestamp;
+    /** When the content was last modified */
+    updated: Timestamp;
+    /** When the content was published (optional) */
+    published?: Timestamp;
+  };
 }
 
 /**
- * Classified ad interface - consolidated from models.ts and site-store.ts
- * Unified as ClassifiedAd with optional contact fields and consistent categories
+ * The heart of the composable content system: a map of possible features.
+ * Each feature is optional and adds specific capabilities to the base content.
  */
-export interface ClassifiedAd {
-  id: string;
+export interface ContentFeatures {
+  /**
+   * Date/time feature for events and scheduled content.
+   * Provides temporal context with start/end times and all-day flag.
+   */
+  'feat:date'?: {
+    /** Start date/time of the event */
+    start: Timestamp;
+    /** Optional end date/time of the event */
+    end?: Timestamp;
+    /** Whether this is an all-day event */
+    isAllDay: boolean;
+  };
+
+  /**
+   * Task feature for actionable community items.
+   * Enables task claiming, tracking, and completion workflow.
+   */
+  'feat:task'?: {
+    /** Category of the task (e.g., 'printing', 'setup', 'cleanup') */
+    category: string;
+    /** Quantity needed for the task */
+    qty: number;
+    /** Unit of measurement for the quantity */
+    unit: string;
+    /** Current status of the task */
+    status: 'unclaimed' | 'claimed' | 'completed';
+    /** Firebase Auth UID of user who claimed the task (optional) */
+    claimedBy?: string;
+  };
+
+  /**
+   * Location feature for content with geographic context.
+   * Supports both address and coordinate-based location data.
+   */
+  'feat:location'?: {
+    /** Optional human-readable name of the location */
+    name?: string;
+    /** Street address or location description */
+    address: string;
+    /** Optional Firestore GeoPoint for map queries and distance calculations */
+    geo?: GeoPoint;
+  };
+
+  /**
+   * Canva integration feature for design-enabled content.
+   * Links content to Canva designs for collaborative editing and export.
+   */
+  'integ:canva'?: {
+    /** Canva design identifier */
+    designId: string;
+    /** URL for editing the design in Canva */
+    editUrl: string;
+    /** Optional URL for exporting the completed design */
+    exportUrl?: string;
+  };
+
+  // [Intentional space for future features]
+  // Future features can be added here following the same pattern:
+  // 'feat:rsvp'?, 'feat:payment'?, 'integ:calendar'?, etc.
+}
+
+/**
+ * Utility functions for working with ContentDoc objects and their features.
+ * Provides type-safe access patterns and mechanical operations.
+ */
+export const contentUtils = {
+  /**
+   * Type-safe feature checker with proper type narrowing.
+   * Returns true if the specified feature exists and narrows the type accordingly.
+   *
+   * @param doc - The content document to check
+   * @param feature - The feature key to check for
+   * @returns Type-narrowed boolean indicating feature presence
+   *
+   * @example
+   * ```typescript
+   * if (contentUtils.hasFeature(doc, 'feat:date')) {
+   *   // TypeScript now knows doc.features['feat:date'] is defined
+   *   console.log(doc.features['feat:date'].start);
+   * }
+   * ```
+   */
+  hasFeature: <K extends keyof ContentFeatures>(
+    doc: ContentDoc,
+    feature: K
+  ): doc is ContentDoc & { features: { [P in K]: NonNullable<ContentFeatures[P]> } } => {
+    return doc.features[feature] !== undefined;
+  },
+
+  /**
+   * Safe feature getter that returns the feature data or undefined.
+   * Provides null-safe access to feature data without type narrowing.
+   *
+   * @param doc - The content document to access
+   * @param feature - The feature key to retrieve
+   * @returns The feature data or undefined if not present
+   *
+   * @example
+   * ```typescript
+   * const dateFeature = contentUtils.getFeature(doc, 'feat:date');
+   * if (dateFeature) {
+   *   console.log(dateFeature.start);
+   * }
+   * ```
+   */
+  getFeature: <K extends keyof ContentFeatures>(doc: ContentDoc, feature: K): ContentFeatures[K] => {
+    return doc.features[feature];
+  },
+
+  /**
+   * Extract content type from the tags array.
+   * Looks for tags in the format 'content-type:value' and returns the value.
+   *
+   * @param doc - The content document to analyze
+   * @returns The content type string or undefined if not found
+   *
+   * @example
+   * ```typescript
+   * const type = contentUtils.getContentType(doc);
+   * // Returns 'event' for tags: ['content-type:event', 'category:community']
+   * ```
+   */
+  getContentType: (doc: ContentDoc): string | undefined => {
+    const typeTag = doc.tags.find(tag => tag.startsWith('content-type:'));
+    return typeTag?.split(':')[1];
+  },
+
+  /**
+   * Get all tags with a specific namespace.
+   * Useful for filtering and grouping content by tag categories.
+   *
+   * @param doc - The content document to analyze
+   * @param namespace - The namespace to filter by (e.g., 'category', 'priority')
+   * @returns Array of tag values for the specified namespace
+   *
+   * @example
+   * ```typescript
+   * const categories = contentUtils.getTagsByNamespace(doc, 'category');
+   * // Returns ['community', 'urgent'] for tags: ['category:community', 'category:urgent']
+   * ```
+   */
+  getTagsByNamespace: (doc: ContentDoc, namespace: string): string[] => {
+    const prefix = `${namespace}:`;
+    return doc.tags
+      .filter(tag => tag.startsWith(prefix))
+      .map(tag => tag.substring(prefix.length));
+  },
+
+  /**
+   * Check if content has a specific tag.
+   * Supports both full tag format (namespace:value) and value-only checking.
+   *
+   * @param doc - The content document to check
+   * @param tag - The tag to look for
+   * @returns Boolean indicating if the tag exists
+   *
+   * @example
+   * ```typescript
+   * const isUrgent = contentUtils.hasTag(doc, 'priority:urgent');
+   * const hasCategory = contentUtils.hasTag(doc, 'category:community');
+   * ```
+   */
+  hasTag: (doc: ContentDoc, tag: string): boolean => {
+    return doc.tags.includes(tag);
+  }
+};
+
+/**
+ * Type guard to check if an object is a valid ContentDoc.
+ * Useful for runtime validation and type narrowing from unknown objects.
+ *
+ * @param obj - The object to validate
+ * @returns Type-narrowed boolean indicating if object is ContentDoc
+ */
+export function isContentDoc(obj: unknown): obj is ContentDoc {
+  if (!obj || typeof obj !== 'object') return false;
+
+  const doc = obj as Record<string, unknown>;
+
+  return (
+    typeof doc.id === 'string' &&
+    typeof doc.title === 'string' &&
+    typeof doc.description === 'string' &&
+    typeof doc.authorId === 'string' &&
+    typeof doc.authorName === 'string' &&
+    Array.isArray(doc.tags) &&
+    doc.tags.every((tag: unknown) => typeof tag === 'string') &&
+    typeof doc.features === 'object' &&
+    doc.features !== null &&
+    ['draft', 'published', 'archived'].includes(doc.status as string) &&
+    typeof doc.timestamps === 'object' &&
+    doc.timestamps !== null
+  );
+}
+
+/**
+ * Create a new ContentDoc with default values and proper timestamp initialization.
+ * Useful for creating new content objects with consistent structure.
+ *
+ * @param partial - Partial content data to merge with defaults
+ * @returns Complete ContentDoc with defaults applied
+ */
+export function createContentDoc(partial: Partial<ContentDoc> & {
   title: string;
   description: string;
-  price?: string;
-  category: 'for-sale' | 'services' | 'wanted' | 'free';
-  contact: {
-    name: string;
-    email?: string;
-    phone?: string;
-  };
-  datePosted: string;
-  featured?: boolean;
-}
+  authorId: string;
+  authorName: string;
+}): Omit<ContentDoc, 'id'> {
+  const now = Timestamp.now();
 
-/**
- * Event interface - consolidated from models.ts and site-store.ts
- * Standardized with optional location and organizer fields
- */
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location?: string;
-  organizer?: string;
-}
-
-/**
- * Community statistics interface - consolidated from site-store.ts and data-service.ts
- */
-export interface CommunityStats {
-  households: number;
-  lakes: number;
-  yearsPublished: number;
-  issuesPerYear: number;
-}
-
-/**
- * Generic meta interface for API responses
- */
-export interface Meta {
-  totalCount: number;
-}
-
-/**
- * Content category union type for filtering and organization
- */
-export type ContentCategory = 'news' | 'announcement' | 'event' | 'classified' | 'newsletter';
-
-/**
- * Content status for content management workflows
- */
-export type ContentStatus = 'draft' | 'published' | 'archived' | 'featured';
-
-/**
- * Unified Content Submission System
- * Flexible base structure for all user-generated content
- */
-
-/**
- * Review status for iterative workflow
- */
-export type ReviewStatus =
-  | 'draft' // Author working
-  | 'submitted' // Ready for review
-  | 'under_review' // Being reviewed
-  | 'needs_revision' // Feedback provided, author revising
-  | 'approved' // Ready for publication
-  | 'rejected' // Not suitable
-  | 'published'; // Live in newsletter
-
-/**
- * Content types for unified submission system
- */
-export type ContentType =
-  | 'article'
-  | 'event'
-  | 'project'
-  | 'announcement'
-  | 'classified'
-  | 'photo_story';
-
-/**
- * Review entry for iterative feedback
- */
-export interface ReviewEntry {
-  id: string;
-  reviewerId: string;
-  reviewerName: string;
-  timestamp: number; // Unix timestamp
-  status: ReviewStatus;
-  feedback?: string;
-  section?: string; // Which part of content (for modular review)
-}
-
-/**
- * Content attachment with external hosting preference
- */
-export interface ContentAttachment {
-  id: string;
-  type: 'external_image' | 'external_video' | 'firebase_image' | 'firebase_pdf';
-
-  // External hosting (preferred for cost efficiency)
-  externalUrl?: string;
-  hostingProvider?: 'google_photos' | 'google_drive' | 'instagram' | 'facebook' | 'other';
-
-  // Firebase storage (fallback)
-  filename?: string;
-  firebaseUrl?: string;
-  thumbnailUrl?: string;
-
-  // Common properties
-  caption?: string;
-  alt?: string;
-  isUserHosted: boolean; // True for external, false for Firebase
-}
-
-/**
- * Author information
- */
-export interface ContentAuthor {
-  uid: string;
-  displayName: string;
-  email: string;
-  avatar?: string;
-}
-
-/**
- * Base content item for unified submission system
- * All submissions inherit from this flexible structure
- */
-export interface BaseContentItem {
-  id: string;
-  type: ContentType;
-  title: string;
-  authorId: string; // For Firestore security rules
-  author: ContentAuthor;
-  content: string; // Rich text/HTML content
-  status: ReviewStatus;
-
-  // Flexible metadata that adapts to content type
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any>;
-
-  // Media attachments with external hosting preference
-  attachments: ContentAttachment[];
-
-  // Iterative workflow tracking
-  reviewHistory: ReviewEntry[];
-  submittedAt: number; // Unix timestamp
-  lastReviewedAt?: number;
-  publishedAt?: number;
-
-  // Newsletter integration
-  targetIssue?: string;
-  priority: 'low' | 'medium' | 'high';
-  category: string; // User-defined with smart defaults
-
-  // Timestamps
-  createdAt: number;
-  updatedAt: number;
-}
-
-/**
- * Type-specific metadata structures
- */
-
-/**
- * Article metadata (basic content)
- */
-export interface ArticleMetadata {
-  subtitle?: string;
-  readTime?: number; // estimated minutes
-  tags?: string[];
-}
-
-/**
- * Event metadata (date/time/location specific)
- */
-export interface EventMetadata {
-  startDate: number; // Unix timestamp
-  endDate?: number;
-  location: string;
-  registrationRequired: boolean;
-  contactInfo?: string;
-  maxAttendees?: number;
-  currentAttendees?: number;
-
-  // Calendar integration fields
-  onCalendar?: boolean; // Whether this event should appear on the calendar
-  eventTime?: string; // Time in HH:MM format
-  eventEndTime?: string; // End time in HH:MM format
-  allDay?: boolean; // Whether this is an all-day event
-  eventRecurrence?: {
-    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-    interval?: number; // Every N days/weeks/months/years
-    endDate?: string; // When recurrence ends (ISO 8601)
-    daysOfWeek?: number[]; // For weekly: 0=Sunday, 1=Monday, etc.
-    dayOfMonth?: number; // For monthly: day of month
-  };
-}
-
-/**
- * Project metadata (progress and involvement)
- */
-export interface ProjectMetadata {
-  projectStatus: 'planning' | 'in_progress' | 'completed';
-  involvedResidents?: string[];
-  budget?: number;
-  completionDate?: number; // Unix timestamp
-  startDate?: number;
-  progressPercentage?: number;
-}
-
-/**
- * Classified metadata (buying/selling)
- */
-export interface ClassifiedMetadata {
-  price?: number;
-  category: 'for_sale' | 'wanted' | 'services' | 'housing';
-  contactMethod: 'email' | 'phone' | 'both';
-  expirationDate?: number; // Unix timestamp
-  condition?: 'new' | 'like_new' | 'good' | 'fair' | 'poor';
-  location?: string;
-}
-
-/**
- * Photo story metadata (visual content)
- */
-export interface PhotoStoryMetadata {
-  photographerName?: string;
-  photographyDate?: number; // Unix timestamp
-  location?: string;
-  cameraInfo?: string;
-  story?: string; // Background story about the photos
-}
-
-/**
- * Announcement metadata (official communications)
- */
-export interface AnnouncementMetadata {
-  urgency: 'low' | 'medium' | 'high' | 'urgent';
-  expirationDate?: number; // Unix timestamp
-  affectedAreas?: string[]; // Lake sections, streets, etc.
-  contactPerson?: string;
-  actionRequired?: boolean;
-}
-
-/**
- * Union type for all metadata types
- */
-export type ContentMetadata =
-  | ArticleMetadata
-  | EventMetadata
-  | ProjectMetadata
-  | ClassifiedMetadata
-  | PhotoStoryMetadata
-  | AnnouncementMetadata;
-
-/**
- * Print job status tracking for content with Canva designs
- */
-export interface PrintJob {
-  status: 'not_required' | 'print_ready' | 'claimed' | 'completed';
-  quantity?: number;
-  claimedBy?: string; // Reference to user's UID
-  claimedAt?: Timestamp;
-  exportedAt?: Timestamp; // When the design was exported
-  completedAt?: Timestamp; // When the print job was completed
-}
-
-/**
- * Content submission form data interface
- */
-export interface ContentSubmissionData {
-  type: ContentType;
-  title: string;
-  content: string;
-  category: string;
-  priority: 'low' | 'medium' | 'high';
-  targetIssue?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any>;
-  attachments: ContentAttachment[];
-
-  // Calendar integration for events
-  onCalendar?: boolean;
-  eventDate?: string; // ISO 8601 date string
-  eventEndDate?: string; // ISO 8601 date string
-  eventTime?: string; // HH:MM format
-  eventEndTime?: string; // HH:MM format
-  eventLocation?: string;
-  allDay?: boolean;
-  eventRecurrence?: {
-    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-    interval?: number;
-    endDate?: string;
-    daysOfWeek?: number[];
-    dayOfMonth?: number;
+  const timestamps: ContentDoc['timestamps'] = {
+    created: partial.timestamps?.created || now,
+    updated: partial.timestamps?.updated || now
   };
 
-  // Canva integration for design creation
-  canvaDesign?: CanvaDesign;
+  // Only add published timestamp if it exists
+  if (partial.timestamps?.published) {
+    timestamps.published = partial.timestamps.published;
+  }
 
-  // Brand Templates and Autofill integration
-  canvaTemplateId?: string; // ID of the Brand Template used
-  autoFillData?: Record<string, unknown>; // Key-value pairs for Autofill
-
-  // Print workflow integration
-  printJob?: PrintJob;
+  return {
+    title: partial.title,
+    description: partial.description,
+    authorId: partial.authorId,
+    authorName: partial.authorName,
+    tags: partial.tags || [],
+    features: partial.features || {},
+    status: partial.status || 'draft',
+    timestamps
+  };
 }
