@@ -211,6 +211,9 @@ const emit = defineEmits<{
 // Computed properties
 const hasCanvaExportPermission = computed(() => isEditor.value);
 
+// Safe wrapper for isExportingContent function
+const isExportingContent = computed(() => props.isExportingContent || (() => false));
+
 // Helper method to handle toggle featured
 const handleToggleFeatured = (id: string, featured: boolean) => {
   emit('toggle-featured', id, featured);
