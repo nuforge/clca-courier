@@ -118,7 +118,30 @@ const isOpen = computed({
 
       <!-- Bottom section with Auth, Admin, and Settings - Always at bottom -->
       <div class="bottom-section">
-        <!-- Authentication Section -->
+
+        <!-- Language Selector -->
+        <div class="q-pa-sm">
+          <LanguageSelector
+            :mini="isMini"
+            :dropdown="true"
+            size="sm"
+          />
+        </div>
+
+        <!-- Admin Links (when authenticated) -->
+        <div v-if="auth.isAuthenticated.value">
+          <NavigationItem
+            v-for="item in adminItems"
+            :key="item.title"
+            :item="item"
+            :mini="isMini"
+          />
+        </div>
+
+        <!-- Settings Link -->
+        <NavigationItem :item="settingsItem" :mini="isMini" />
+
+         <!-- Authentication Section -->
         <div v-if="!auth.isAuthenticated.value" class="q-pa-sm">
           <q-btn
             v-if="!isMini"
@@ -170,6 +193,7 @@ const isOpen = computed({
             />
           </div>
           <div v-else class="text-center">
+            <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" round size="xs" class="text-grey-4" />
             <q-avatar size="32px" class="q-mb-xs">
               <img
                 v-if="auth.currentUser.value?.photoURL"
@@ -180,30 +204,7 @@ const isOpen = computed({
               />
               <q-icon v-else :name="UI_ICONS.account" />
             </q-avatar>
-            <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" round size="xs" class="text-grey-4" />
           </div>
-        </div>
-
-        <!-- Admin Links (when authenticated) -->
-        <div v-if="auth.isAuthenticated.value">
-          <NavigationItem
-            v-for="item in adminItems"
-            :key="item.title"
-            :item="item"
-            :mini="isMini"
-          />
-        </div>
-
-        <!-- Settings Link -->
-        <NavigationItem :item="settingsItem" :mini="isMini" />
-
-        <!-- Language Selector -->
-        <div class="q-pa-sm">
-          <LanguageSelector
-            :mini="isMini"
-            :dropdown="true"
-            size="sm"
-          />
         </div>
       </div>
     </div>
