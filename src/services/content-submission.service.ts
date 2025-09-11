@@ -9,14 +9,12 @@ import {
 } from '../types/core/content.types';
 import type { ContentFeatures } from '../types/core/content.types';
 import { logger } from '../utils/logger';
+import { firebaseContentService } from './firebase-content.service';
 import {
-  collection,
-  addDoc,
   serverTimestamp,
   type Timestamp
 } from 'firebase/firestore';
 import { getAuth, type User } from 'firebase/auth';
-import { firestore as db } from '../config/firebase.config';
 
 class ContentSubmissionService {
   /**
@@ -88,10 +86,11 @@ class ContentSubmissionService {
         authorName: currentUser.displayName || 'Unknown User',
         tags,
         features,
-        status: 'draft', // New content starts as draft
+        status: 'published', // New content starts as published for immediate visibility
         timestamps: {
           created: serverTimestamp() as Timestamp,
-          updated: serverTimestamp() as Timestamp
+          updated: serverTimestamp() as Timestamp,
+          published: serverTimestamp() as Timestamp
         }
       });
 
@@ -102,19 +101,18 @@ class ContentSubmissionService {
         featuresKeys: Object.keys(contentDoc.features)
       });
 
-      // Write to main 'content' collection in Firestore
-      const contentCollection = collection(db, 'content');
-      const docRef = await addDoc(contentCollection, contentDoc);
+      // Use the new Firebase ContentDoc service
+      const contentId = await firebaseContentService.createContent(contentDoc);
 
-      logger.info('Content successfully created in Firestore', {
-        contentId: docRef.id,
+      logger.info('Content successfully created in ContentDoc collection', {
+        contentId,
         contentType,
         title: title.substring(0, 50),
         authorId: currentUser.uid,
         featuresCount: Object.keys(features).length
       });
 
-      return docRef.id;
+      return contentId;
 
     } catch (error) {
       logger.error('Failed to create content', {

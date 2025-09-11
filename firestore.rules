@@ -176,6 +176,35 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
 
+    // ContentDoc collection - NEW UNIFIED CONTENT ARCHITECTURE
+    match /content/{contentId} {
+      // Allow anyone to read published content (public access)
+      allow read: if resource.data.status == 'published';
+      
+      // Allow authenticated users with editor+ role to read ALL content (admin interface)
+      allow read: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
+      
+      // Allow authors to read their own content regardless of status
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.authorId;
+      
+      // Allow authenticated users to create content (must be the author)
+      allow create: if isAuthenticated() && 
+        request.auth.uid == request.resource.data.authorId &&
+        request.resource.data.status in ['draft', 'published'];
+      
+      // Allow authors to update their own content, editors+ to change status
+      allow update: if isAuthenticated() && (
+        // Authors can update their own content but not change status
+        (request.auth.uid == resource.data.authorId && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])) ||
+        // Editors+ can update status and moderate content
+        hasRole(request.auth.uid, 'editor')
+      );
+      
+      // Allow editors+ to delete content
+      allow delete: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
+    }
+
     // App configuration collection - Public read for templates, admin write only
     match /app/{configId} {
       // Allow anyone to read app configuration (for public template access)

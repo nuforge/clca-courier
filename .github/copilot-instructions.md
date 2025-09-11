@@ -157,6 +157,8 @@
 
 **AI MUST REFUSE TO PROCEED IF ANY OF THESE ARE VIOLATED:**
 
+- **❌ WRONG DEV COMMAND**: ALWAYS use `npm run dev` for Quasar projects, NEVER `quasar dev`
+- **❌ WRONG LINT COMMAND**: ALWAYS use `npm run lint` for ESLint checking, NEVER any other lint command
 - **❌ RE-DOWNLOADING PROCESSED FILES**: NEVER download/fetch a PDF file that was just processed during import - USE THE ORIGINAL FILE DATA
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`) - configured in `quasar.config.ts`
 - **❌ Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data - use dynamic discovery only

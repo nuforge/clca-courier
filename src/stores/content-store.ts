@@ -11,10 +11,10 @@ import { defineStore } from 'pinia';
 import { ref, computed, onUnmounted } from 'vue';
 import { useUserSettings } from '../composables/useUserSettings';
 import { logger } from '../utils/logger';
-import { firestoreService } from '../services/firebase-firestore.service';
+import { firebaseContentService } from '../services/firebase-content.service';
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
-import type { Unsubscribe, Timestamp } from 'firebase/firestore';
+import type { Unsubscribe } from 'firebase/firestore';
 
 // Import JSON data for stats
 import communityStatsData from '../data/community-stats.json';
@@ -136,14 +136,13 @@ export const useContentStore = defineStore('content', () => {
 
   const refreshContent = async (): Promise<void> => {
     try {
-      logger.debug('Refreshing content from Firebase');
+      logger.debug('Refreshing content from Firebase ContentDoc collection');
 
-      // Fetch published UserContent from Firebase and convert to ContentDoc
-      const publishedUserContent = await firestoreService.getPublishedContent();
-      const convertedContent = publishedUserContent.map(uc => convertUserContentToContentDoc(uc as unknown as Record<string, unknown>));
-      contentItems.value = convertedContent;
+      // Fetch published content from the new ContentDoc collection
+      const publishedContent = await firebaseContentService.getPublishedContent();
+      contentItems.value = publishedContent;
 
-      logger.success(`Loaded ${contentItems.value.length} published content items from Firebase`);
+      logger.success(`Loaded ${contentItems.value.length} published content items from ContentDoc collection`);
     } catch (error) {
       logger.error('Failed to refresh content:', error);
       contentItems.value = [];
@@ -152,22 +151,15 @@ export const useContentStore = defineStore('content', () => {
 
   const subscribeToContent = (): void => {
     try {
-      logger.debug('Setting up real-time content subscription');
+      logger.debug('Setting up real-time ContentDoc subscription');
 
-      // Use Firebase real-time subscription for published UserContent
-      // NOTE: This temporarily uses the UserContent collection until we fully migrate to ContentDoc collection
-      contentSubscription = firestoreService.subscribeToPendingContent((userContentArray) => {
-        // Convert UserContent to ContentDoc format temporarily
-        // TODO: Replace with direct ContentDoc subscription once collection is migrated
-        const convertedContent: ContentDoc[] = userContentArray
-          .filter(uc => uc.status === 'published')
-          .map(uc => convertUserContentToContentDoc(uc as unknown as Record<string, unknown>));
-
-        contentItems.value = convertedContent;
-        logger.debug(`Real-time update: received ${convertedContent.length} content items`);
+      // Use the new Firebase ContentDoc service for real-time updates
+      contentSubscription = firebaseContentService.subscribeToPublishedContent((contentDocs) => {
+        contentItems.value = contentDocs;
+        logger.debug(`Real-time update: received ${contentDocs.length} ContentDoc items`);
       });
 
-      logger.success('Content subscription established');
+      logger.success('ContentDoc subscription established');
     } catch (error) {
       logger.error('Failed to setup content subscription:', error);
     }
@@ -259,40 +251,6 @@ export const useContentStore = defineStore('content', () => {
  * Converts legacy UserContent to ContentDoc format during migration.
  * TODO: Remove once we fully migrate to ContentDoc collection
  */
-function convertUserContentToContentDoc(userContent: Record<string, unknown>): ContentDoc {
-  // Basic ContentDoc structure with type assertions for temporary compatibility
-  const contentDoc: ContentDoc = {
-    id: (userContent.id as string) || '',
-    title: (userContent.title as string) || '',
-    description: (userContent.content as string) || '',
-    authorId: (userContent.authorId as string) || '',
-    authorName: (userContent.authorName as string) || '',
-    tags: [`content-type:${String(userContent.type) || 'article'}`],
-    features: {},
-    status: 'published', // Legacy content is published
-    timestamps: {
-      created: (userContent.submissionDate as Timestamp) || ({} as Timestamp),
-      updated: (userContent.submissionDate as Timestamp) || ({} as Timestamp),
-    }
-  };
-
-  // Add date feature for events
-  if (userContent.type === 'event' && userContent.eventDate) {
-    contentDoc.features['feat:date'] = {
-      start: ({} as Timestamp), // Type assertion for legacy compatibility
-      isAllDay: true
-    };
-
-    if (userContent.eventLocation) {
-      contentDoc.features['feat:location'] = {
-        address: ({} as string) // Type assertion for legacy compatibility
-      };
-    }
-  }
-
-  return contentDoc;
-}
-
 /**
  * Legacy compatibility alias - DEPRECATED
  * Provides temporary compatibility for existing components.
