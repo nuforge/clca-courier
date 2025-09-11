@@ -8,7 +8,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, Timestamp } from 'firebase/firestore';
 
 // Firebase configuration (from .env)
 const firebaseConfig = {
@@ -39,8 +39,8 @@ const sampleTemplates = [
     },
     thumbnailUrl: null,
     isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
   },
   {
     id: 'TPL_EVENT_FLYER',
@@ -56,8 +56,8 @@ const sampleTemplates = [
     },
     thumbnailUrl: null,
     isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
   },
   {
     id: 'TPL_CLASSIFIED_AD',
@@ -72,8 +72,8 @@ const sampleTemplates = [
     },
     thumbnailUrl: null,
     isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
   }
 ];
 
@@ -85,7 +85,7 @@ async function setupTemplates() {
     const configRef = doc(db, 'app/config');
     await setDoc(configRef, {
       canvaTemplates: sampleTemplates,
-      updatedAt: new Date(),
+      updatedAt: Timestamp.now(),
       updatedBy: 'setup-script'
     }, { merge: true });
 

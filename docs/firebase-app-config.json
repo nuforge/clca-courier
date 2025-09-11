@@ -1,0 +1,53 @@
+{
+  "canvaTemplates": [
+    {
+      "id": "sample-newsletter-template",
+      "name": "Community Newsletter",
+      "description": "Standard newsletter template for community content",
+      "type": "newsletter",
+      "canvaDesignId": null,
+      "thumbnailUrl": null,
+      "isActive": true,
+      "fields": [
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "placeholder": "Newsletter Title"
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "placeholder": "Main content"
+        }
+      ]
+    },
+    {
+      "id": "sample-announcement-template",
+      "name": "Community Announcement",
+      "description": "Template for community announcements and notices",
+      "type": "announcement",
+      "canvaDesignId": null,
+      "thumbnailUrl": null,
+      "isActive": true,
+      "fields": [
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "placeholder": "Announcement Title"
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "required": true,
+          "placeholder": "Announcement message"
+        }
+      ]
+    }
+  ],
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-11T09:15:00.000Z",
+  "created": "2025-09-11T09:15:00.000Z"
+}

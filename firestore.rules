@@ -111,5 +111,14 @@ service cloud.firestore {
     match /approvalQueue/{queueId} {
       allow read, write: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
+
+    // App configuration collection - Public read for templates, admin write only
+    match /app/{configId} {
+      // Allow anyone to read app configuration (for public template access)
+      allow read: if true;
+      
+      // Only allow admins to write app configuration
+      allow write: if isAuthenticated() && hasRole(request.auth.uid, 'admin');
+    }
   }
 }
