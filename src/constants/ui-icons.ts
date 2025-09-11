@@ -92,6 +92,10 @@ export const UI_ICONS = {
   help: 'mdi-help-circle',
   target: 'mdi-target',
   shield: 'mdi-shield-crown',
+
+  // Brand integrations
+  canva: 'canva-icon', // Custom Canva icon component identifier
+  canvaType: 'canva-type', // Canva type logo identifier
 } as const;
 
 export type UIIconKey = keyof typeof UI_ICONS;

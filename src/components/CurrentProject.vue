@@ -123,8 +123,9 @@ const openProject = () => {
           </div>
 
           <div class="text-caption text-white q-mb-xs">
-            <q-btn @click.stop="openProject" color="accent" class="full-width line-clamp-2 " size="xs" >
-              <q-icon :name="UI_ICONS.tools" class="q-mr-sm" />Canva
+            <q-btn @click.stop="openProject" color="accent" class="full-width line-clamp-2" size="xs">
+              <CanvaIcon name="canva-icon" :size="16" class="q-mr-sm" />
+              Canva
             </q-btn>
           </div>
 
