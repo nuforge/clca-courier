@@ -85,6 +85,59 @@ export default {
     }
   },
 
+  // Theme Editor Page
+  themeEditor: {
+    title: 'Editor de Tema del Sitio',
+    subtitle: 'Personaliza la apariencia de tu sitio con vista previa en vivo',
+    actions: {
+      unsavedChanges: 'Cambios No Guardados',
+      resetToDefaults: 'Restablecer a Predeterminados',
+      saveTheme: 'Guardar Tema',
+      copyToClipboard: 'Copiar al Portapapeles',
+      clearLocalStorage: 'Limpiar localStorage'
+    },
+    tabs: {
+      contentTypes: 'Tipos de Contenido',
+      categories: 'Categorías',
+      colors: 'Colores',
+      status: 'Estado'
+    },
+    fields: {
+      displayLabel: 'Etiqueta de Visualización',
+      icon: 'Icono',
+      iconHint: 'Haz clic para abrir el selector de iconos',
+      color: 'Color',
+      description: 'Descripción',
+      label: 'Etiqueta'
+    },
+    sections: {
+      categoryMappings: 'Mapeos de Categorías',
+      categories: 'categorías',
+      debugInfo: 'Información de Depuración',
+      debugInfoNotAvailable: 'Información de depuración no disponible'
+    },
+    colors: {
+      primary: 'Primario',
+      secondary: 'Secundario',
+      accent: 'Acento',
+      positive: 'Positivo',
+      negative: 'Negativo',
+      warning: 'Advertencia'
+    },
+    notifications: {
+      themeSaved: 'Tema guardado exitosamente',
+      themeSaveFailed: 'Error al guardar el tema',
+      themeReset: 'Tema restablecido a los predeterminados',
+      debugCopied: 'Información de depuración copiada al portapapeles',
+      debugCopyFailed: 'Error al copiar al portapapeles',
+      localStorageCleared: 'localStorage limpiado. Actualiza para recargar los predeterminados.'
+    },
+    confirmations: {
+      resetTitle: 'Restablecer Tema',
+      resetMessage: '¿Estás seguro de que quieres restablecer el tema a los predeterminados? Esto deshará todas tus personalizaciones.'
+    }
+  },
+
   // About & Contact Page
   about: {
     title: 'Acerca de Nosotros y Contacto',

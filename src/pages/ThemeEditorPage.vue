@@ -10,10 +10,10 @@
         <div class="col">
           <h4 class="q-my-none">
             <q-icon :name="UI_ICONS.palette" class="q-mr-sm" />
-            Site Theme Editor
+            {{ $t('pages.themeEditor.title') }}
           </h4>
           <p class="text-body2 text-grey-6 q-my-none">
-            Customize your site's appearance with live preview
+            {{ $t('pages.themeEditor.subtitle') }}
           </p>
         </div>
         <div class="col-auto">
@@ -24,19 +24,19 @@
               text-color="black"
               :icon="UI_ICONS.saveAlert"
             >
-              Unsaved Changes
+              {{ $t('pages.themeEditor.actions.unsavedChanges') }}
             </q-chip>
             <q-btn
               color="grey"
               :icon="UI_ICONS.restore"
-              label="Reset to Defaults"
+              :label="$t('pages.themeEditor.actions.resetToDefaults')"
               @click="confirmReset"
               flat
             />
             <q-btn
               color="primary"
               :icon="UI_ICONS.save"
-              label="Save Theme"
+              :label="$t('pages.themeEditor.actions.saveTheme')"
               @click="saveTheme"
               :loading="isSaving"
               :disable="!hasUnsavedChanges"
@@ -47,23 +47,23 @@
 
       <!-- Debug Panel -->
       <div class="q-mb-md">
-        <q-expansion-item icon="mdi-bug" label="Debug Info" class="bg-grey-1">
+        <q-expansion-item icon="mdi-bug" :label="$t('pages.themeEditor.sections.debugInfo')" class="bg-grey-1">
           <q-card flat>
             <q-card-section>
-              <div class="text-caption text-grey-6 q-mb-sm">Theme Store Debug Info:</div>
-              <pre class="text-caption">{{ debugInfo ? JSON.stringify(debugInfo, null, 2) : 'Debug info not available' }}</pre>
+              <div class="text-caption text-grey-6 q-mb-sm">{{ $t('pages.themeEditor.sections.debugInfo') }}:</div>
+              <pre class="text-caption">{{ debugInfo ? JSON.stringify(debugInfo, null, 2) : $t('pages.themeEditor.sections.debugInfoNotAvailable') }}</pre>
               <div class="q-mt-md">
                 <q-btn
                   size="sm"
                   icon="mdi-content-copy"
-                  label="Copy to Clipboard"
+                  :label="$t('pages.themeEditor.actions.copyToClipboard')"
                   @click="copyDebugInfo"
                   outline
                 />
                 <q-btn
                   size="sm"
                   icon="mdi-delete"
-                  label="Clear localStorage"
+                  :label="$t('pages.themeEditor.actions.clearLocalStorage')"
                   @click="clearLocalStorage"
                   color="negative"
                   outline
@@ -81,10 +81,10 @@
         <div class="col-12 col-lg-6">
           <q-card>
             <q-tabs v-model="activeTab" class="text-grey-6" dense>
-              <q-tab name="contentTypes" label="Content Types" :icon="UI_ICONS.fileMultiple" />
-              <q-tab name="categories" label="Categories" :icon="UI_ICONS.tagMultiple" />
-              <q-tab name="colors" label="Colors" :icon="UI_ICONS.paletteOutline" />
-              <q-tab name="status" label="Status" :icon="UI_ICONS.circleOutline" />
+              <q-tab name="contentTypes" :label="$t('pages.themeEditor.tabs.contentTypes')" :icon="UI_ICONS.fileMultiple" />
+              <q-tab name="categories" :label="$t('pages.themeEditor.tabs.categories')" :icon="UI_ICONS.tagMultiple" />
+              <q-tab name="colors" :label="$t('pages.themeEditor.tabs.colors')" :icon="UI_ICONS.paletteOutline" />
+              <q-tab name="status" :label="$t('pages.themeEditor.tabs.status')" :icon="UI_ICONS.circleOutline" />
             </q-tabs>
 
             <q-separator />
@@ -92,7 +92,7 @@
             <q-tab-panels v-model="activeTab" animated>
               <!-- Content Types Tab -->
               <q-tab-panel name="contentTypes" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">Content Types</div>
+                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.contentTypes') }}</div>
 
                 <q-expansion-item
                   v-for="(config, type) in editableTheme.contentTypes"
@@ -106,7 +106,7 @@
                       <div class="col-12 col-md-6">
                         <q-input
                           v-model="config.label"
-                          label="Display Label"
+                          :label="$t('pages.themeEditor.fields.displayLabel')"
                           outlined
                           dense
                         />
@@ -114,15 +114,15 @@
                       <div class="col-12 col-md-6">
                         <IconPicker
                           v-model="config.icon"
-                          label="Icon"
-                          hint="Click to open icon picker"
+                          :label="$t('pages.themeEditor.fields.icon')"
+                          :hint="$t('pages.themeEditor.fields.iconHint')"
                         />
                       </div>
                       <div class="col-12 col-md-6">
                         <q-select
                           v-model="config.color"
                           :options="getColorOptionsForField()"
-                          label="Color"
+                          :label="$t('pages.themeEditor.fields.color')"
                           outlined
                           dense
                           option-value="value"
@@ -156,7 +156,7 @@
                       <div class="col-12">
                         <q-input
                           v-model="config.description"
-                          label="Description"
+                          :label="$t('pages.themeEditor.fields.description')"
                           type="textarea"
                           outlined
                           dense
@@ -170,7 +170,7 @@
 
               <!-- Categories Tab -->
               <q-tab-panel name="categories" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">Category Mappings</div>
+                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.sections.categoryMappings') }}</div>
 
                 <q-expansion-item
                   v-for="(mappings, contentType) in editableTheme.categoryMappings"
@@ -285,31 +285,31 @@
 
               <!-- Colors Tab -->
               <q-tab-panel name="colors" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">Color Palette</div>
+                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.colors') }}</div>
 
                 <!-- Primary Colors -->
                 <q-card class="q-mb-md">
                   <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">Primary Colors</div>
+                    <div class="text-subtitle2 q-mb-md">{{ $t('pages.themeEditor.colors.primary') }}</div>
                     <div class="row q-col-gutter-sm">
                       <div class="col-12 col-md-4">
                         <ColorPicker
                           v-model="editableTheme.colors.primary"
-                          label="Primary"
+                          :label="$t('pages.themeEditor.colors.primary')"
                           :default-value="DEFAULT_SITE_THEME.colors.primary"
                         />
                       </div>
                       <div class="col-12 col-md-4">
                         <ColorPicker
                           v-model="editableTheme.colors.secondary"
-                          label="Secondary"
+                          :label="$t('pages.themeEditor.colors.secondary')"
                           :default-value="DEFAULT_SITE_THEME.colors.secondary"
                         />
                       </div>
                       <div class="col-12 col-md-4">
                         <ColorPicker
                           v-model="editableTheme.colors.accent"
-                          label="Accent"
+                          :label="$t('pages.themeEditor.colors.accent')"
                           :default-value="DEFAULT_SITE_THEME.colors.accent"
                         />
                       </div>
@@ -320,7 +320,7 @@
                 <!-- Content Type Colors -->
                 <q-card>
                   <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">Content Type Colors</div>
+                    <div class="text-subtitle2 q-mb-md">{{ $t('pages.themeEditor.tabs.contentTypes') }}</div>
                     <div class="row q-col-gutter-sm">
                       <div
                         v-for="(color, type) in editableTheme.colors.contentTypes"
@@ -340,7 +340,7 @@
 
               <!-- Status Tab -->
               <q-tab-panel name="status" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">Status Icons</div>
+                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.status') }}</div>
 
                 <div class="row q-col-gutter-md">
                   <div
@@ -373,7 +373,7 @@
                       <q-card flat class="q-pa-md">
                         <q-input
                           v-model="config.label"
-                          label="Label"
+                          :label="$t('pages.themeEditor.fields.label')"
                           outlined
                           dense
                           class="q-mb-sm"
@@ -381,7 +381,7 @@
 
                         <IconPicker
                           v-model="config.icon"
-                          label="Icon"
+                          :label="$t('pages.themeEditor.fields.icon')"
                           dense
                           class="q-mb-sm"
                         />
@@ -389,7 +389,7 @@
                         <q-select
                           v-model="config.color"
                           :options="getColorOptionsForField()"
-                          label="Color"
+                          :label="$t('pages.themeEditor.fields.color')"
                           outlined
                           dense
                           class="q-mb-sm"
@@ -423,7 +423,7 @@
 
                         <q-input
                           v-model="config.description"
-                          label="Description"
+                          :label="$t('pages.themeEditor.fields.description')"
                           outlined
                           dense
                         />

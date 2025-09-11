@@ -160,7 +160,7 @@ function importSettings() {
         <div class="col-12 col-md-10 col-lg-8">
           <div class="text-h4 q-mb-md">
             <q-icon name="mdi-cog" class="q-mr-sm" />
-            Settings
+            {{ $t('settingsPage.title') }}
           </div>
 
           <!-- Language Settings -->
@@ -216,25 +216,25 @@ function importSettings() {
           </q-expansion-item>
 
           <!-- Theme Settings -->
-          <q-expansion-item v-model="settingsExpanded.theme" icon="mdi-palette" label="Theme & Appearance"
+          <q-expansion-item v-model="settingsExpanded.theme" icon="mdi-palette" :label="$t('settingsPage.themeSettings')"
             default-opened class="q-mb-md">
             <q-card>
               <q-card-section>
-                <div class="text-h6 q-mb-md">Theme Selection</div>
+                <div class="text-h6 q-mb-md">{{ $t('settingsPage.themeSettings') }}</div>
 
                 <q-option-group :model-value="currentTheme" @update:model-value="handleThemeChange" :options="[
-                  { label: 'Light Mode', value: 'light', icon: 'mdi-brightness-7' },
-                  { label: 'Dark Mode', value: 'dark', icon: 'mdi-brightness-4' },
-                  { label: 'Auto (System)', value: 'auto', icon: 'mdi-brightness-auto' }
+                  { label: $t('settingsPage.lightTheme'), value: 'light', icon: 'mdi-brightness-7' },
+                  { label: $t('settingsPage.darkTheme'), value: 'dark', icon: 'mdi-brightness-4' },
+                  { label: $t('settingsPage.autoTheme'), value: 'auto', icon: 'mdi-brightness-auto' }
                 ]" color="primary" type="radio" />
 
                 <q-separator class="q-my-md" />
 
                 <div class="text-body2 text-grey-6">
-                  Current mode: <strong>{{ isDarkMode ? 'Dark' : 'Light' }}</strong>
+                  {{ $t('settingsPage.themeDescription') }}: <strong>{{ isDarkMode ? $t('settingsPage.darkTheme') : $t('settingsPage.lightTheme') }}</strong>
                   <q-chip :color="isDarkMode ? 'deep-purple' : 'amber'"
                     :icon="isDarkMode ? 'mdi-brightness-4' : 'mdi-brightness-7'" size="sm" class="q-ml-sm">
-                    {{ currentTheme === 'auto' ? 'Auto' : (isDarkMode ? 'Dark' : 'Light') }}
+                    {{ currentTheme === 'auto' ? $t('settingsPage.autoTheme') : (isDarkMode ? $t('settingsPage.darkTheme') : $t('settingsPage.lightTheme')) }}
                   </q-chip>
                 </div>
               </q-card-section>
@@ -242,11 +242,11 @@ function importSettings() {
           </q-expansion-item>
 
           <!-- Notification Settings -->
-          <q-expansion-item v-model="settingsExpanded.notifications" icon="mdi-bell" label="Notifications"
+          <q-expansion-item v-model="settingsExpanded.notifications" icon="mdi-bell" :label="$t('settingsPage.notificationSettings')"
             class="q-mb-md">
             <q-card>
               <q-card-section>
-                <div class="text-h6 q-mb-md">Notification Preferences</div>
+                <div class="text-h6 q-mb-md">{{ $t('settingsPage.notificationSettings') }}</div>
 
                 <div class="column ">
                   <q-toggle :model-value="userSettings.notificationSettings.value.browser"
