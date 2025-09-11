@@ -330,6 +330,136 @@ export const TRANSLATION_KEYS = {
     RESET_SETTINGS: 'settings.resetSettings'
   },
 
+  // Home/Index Page
+  HOME: {
+    HERO: {
+      TITLE: 'pages.home.hero.title',
+      SUBTITLE: 'pages.home.hero.subtitle',
+      LATEST_NEWS: 'pages.home.hero.latestNews',
+      CONTRIBUTE: 'pages.home.hero.contribute'
+    },
+    QUICK_LINKS: {
+      SECTION_TITLE: 'pages.home.quickLinks.sectionTitle',
+      NEWS_UPDATES: {
+        TITLE: 'pages.home.quickLinks.newsUpdates.title',
+        DESCRIPTION: 'pages.home.quickLinks.newsUpdates.description'
+      },
+      CLASSIFIEDS_ADS: {
+        TITLE: 'pages.home.quickLinks.classifiedsAds.title',
+        DESCRIPTION: 'pages.home.quickLinks.classifiedsAds.description'
+      },
+      COMMUNITY_CALENDAR: {
+        TITLE: 'pages.home.quickLinks.communityCalendar.title',
+        DESCRIPTION: 'pages.home.quickLinks.communityCalendar.description'
+      },
+      ISSUE_ARCHIVE: {
+        TITLE: 'pages.home.quickLinks.issueArchive.title',
+        DESCRIPTION: 'pages.home.quickLinks.issueArchive.description'
+      },
+      CONTRIBUTE: {
+        TITLE: 'pages.home.quickLinks.contribute.title',
+        DESCRIPTION: 'pages.home.quickLinks.contribute.description'
+      },
+      ABOUT_CONTACT: {
+        TITLE: 'pages.home.quickLinks.aboutContact.title',
+        DESCRIPTION: 'pages.home.quickLinks.aboutContact.description'
+      }
+    },
+    CONTENT_PREVIEW: {
+      LATEST_CONTENT: 'pages.home.contentPreview.latestContent',
+      UPCOMING_EVENTS: 'pages.home.contentPreview.upcomingEvents',
+      DATE_TBD: 'pages.home.contentPreview.dateTbd',
+      LATEST_UPDATES: 'pages.home.contentPreview.latestUpdates',
+      RECENT_CLASSIFIEDS: 'pages.home.contentPreview.recentClassifieds',
+      VIEW_ALL_EVENTS: 'pages.home.contentPreview.viewAllEvents',
+      BROWSE_CLASSIFIEDS: 'pages.home.contentPreview.browseClassifieds',
+      NO_CONTENT_AVAILABLE: 'pages.home.contentPreview.noContentAvailable'
+    },
+    COMMUNITY_STATS: {
+      TITLE: 'pages.home.communityStats.title',
+      HOUSEHOLDS: 'pages.home.communityStats.households',
+      LAKES: 'pages.home.communityStats.lakes',
+      YEARS: 'pages.home.communityStats.years',
+      ISSUES_PER_YEAR: 'pages.home.communityStats.issuesPerYear'
+    }
+  },
+
+  // Community Content Page
+  COMMUNITY: {
+    TITLE: 'pages.community.title',
+    SUBTITLE: 'pages.community.subtitle',
+    FILTERS: {
+      ALL_CATEGORIES: 'pages.community.filters.allCategories',
+      SEARCH: 'pages.community.filters.search',
+      CLEAR_FILTERS: 'pages.community.filters.clearFilters',
+      SORT_NEWEST_FIRST: 'pages.community.filters.sortNewestFirst',
+      SORT_OLDEST_FIRST: 'pages.community.filters.sortOldestFirst'
+    },
+    VIEW_MODES: {
+      LIST: 'pages.community.viewModes.list',
+      CARD: 'pages.community.viewModes.card'
+    },
+    SECTIONS: {
+      FEATURED_CONTENT: 'pages.community.sections.featuredContent',
+      ALL_CONTENT: 'pages.community.sections.allContent',
+      NO_CONTENT: 'pages.community.sections.noContent',
+      NO_CONTENT_DESCRIPTION: 'pages.community.sections.noContentDescription'
+    }
+  },
+
+  // Theme Editor Page
+  THEME_EDITOR: {
+    TITLE: 'pages.themeEditor.title',
+    SUBTITLE: 'pages.themeEditor.subtitle',
+    ACTIONS: {
+      UNSAVED_CHANGES: 'pages.themeEditor.actions.unsavedChanges',
+      RESET_TO_DEFAULTS: 'pages.themeEditor.actions.resetToDefaults',
+      SAVE_THEME: 'pages.themeEditor.actions.saveTheme',
+      COPY_TO_CLIPBOARD: 'pages.themeEditor.actions.copyToClipboard',
+      CLEAR_LOCAL_STORAGE: 'pages.themeEditor.actions.clearLocalStorage'
+    },
+    TABS: {
+      CONTENT_TYPES: 'pages.themeEditor.tabs.contentTypes',
+      CATEGORIES: 'pages.themeEditor.tabs.categories',
+      COLORS: 'pages.themeEditor.tabs.colors',
+      STATUS: 'pages.themeEditor.tabs.status'
+    },
+    FIELDS: {
+      DISPLAY_LABEL: 'pages.themeEditor.fields.displayLabel',
+      ICON: 'pages.themeEditor.fields.icon',
+      ICON_HINT: 'pages.themeEditor.fields.iconHint',
+      COLOR: 'pages.themeEditor.fields.color',
+      DESCRIPTION: 'pages.themeEditor.fields.description',
+      LABEL: 'pages.themeEditor.fields.label'
+    },
+    SECTIONS: {
+      CATEGORY_MAPPINGS: 'pages.themeEditor.sections.categoryMappings',
+      CATEGORIES: 'pages.themeEditor.sections.categories',
+      DEBUG_INFO: 'pages.themeEditor.sections.debugInfo',
+      DEBUG_INFO_NOT_AVAILABLE: 'pages.themeEditor.sections.debugInfoNotAvailable'
+    },
+    COLORS: {
+      PRIMARY: 'pages.themeEditor.colors.primary',
+      SECONDARY: 'pages.themeEditor.colors.secondary',
+      ACCENT: 'pages.themeEditor.colors.accent',
+      POSITIVE: 'pages.themeEditor.colors.positive',
+      NEGATIVE: 'pages.themeEditor.colors.negative',
+      WARNING: 'pages.themeEditor.colors.warning'
+    },
+    NOTIFICATIONS: {
+      THEME_SAVED: 'pages.themeEditor.notifications.themeSaved',
+      THEME_SAVE_FAILED: 'pages.themeEditor.notifications.themeSaveFailed',
+      THEME_RESET: 'pages.themeEditor.notifications.themeReset',
+      DEBUG_COPIED: 'pages.themeEditor.notifications.debugCopied',
+      DEBUG_COPY_FAILED: 'pages.themeEditor.notifications.debugCopyFailed',
+      LOCAL_STORAGE_CLEARED: 'pages.themeEditor.notifications.localStorageCleared'
+    },
+    CONFIRMATIONS: {
+      RESET_TITLE: 'pages.themeEditor.confirmations.resetTitle',
+      RESET_MESSAGE: 'pages.themeEditor.confirmations.resetMessage'
+    }
+  },
+
   // Footer and Legal
   FOOTER: {
     COPYRIGHT: 'footer.copyright',
@@ -349,6 +479,25 @@ export const TRANSLATION_KEYS = {
     MISSION_DESCRIPTION: 'about.missionDescription',
     WHAT_WE_DO: 'about.whatWeDo',
     WHAT_WE_DO_DESCRIPTION: 'about.whatWeDoDescription',
+    WHAT_WE_COVER: 'about.whatWeCover',
+    COVERAGE: {
+      COMMUNITY_EVENTS: {
+        TITLE: 'about.coverage.communityEvents.title',
+        DESCRIPTION: 'about.coverage.communityEvents.description'
+      },
+      LOCAL_NEWS: {
+        TITLE: 'about.coverage.localNews.title',
+        DESCRIPTION: 'about.coverage.localNews.description'
+      },
+      LAKE_ACTIVITIES: {
+        TITLE: 'about.coverage.lakeActivities.title',
+        DESCRIPTION: 'about.coverage.lakeActivities.description'
+      },
+      RESIDENT_SPOTLIGHTS: {
+        TITLE: 'about.coverage.residentSpotlights.title',
+        DESCRIPTION: 'about.coverage.residentSpotlights.description'
+      }
+    },
     HOW_TO_HELP: 'about.howToHelp',
     HOW_TO_HELP_DESCRIPTION: 'about.howToHelpDescription',
     VOLUNTEER: 'about.volunteer',

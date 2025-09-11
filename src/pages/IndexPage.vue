@@ -3,10 +3,13 @@ import { useTheme } from '../composables/useTheme';
 import { useContentStore } from '../stores/content-store';
 import { getPublicPath } from '../utils/path-utils';
 import { normalizeDate } from '../utils/date-formatter';
+import { useI18n } from 'vue-i18n';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import type { ContentDoc } from '../types/core/content.types';
 
 const { cardClasses, textClasses } = useTheme();
 const contentStore = useContentStore();
+const { t } = useI18n();
 
 // Helper function to format event dates safely
 const formatEventDate = (event: ContentDoc): string => {
@@ -20,7 +23,7 @@ const formatEventDate = (event: ContentDoc): string => {
       });
     }
   }
-  return 'Date TBD';
+  return t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.DATE_TBD);
 };
 
 // Google Drive image downloaded locally - WORKING SOLUTION!
@@ -30,14 +33,14 @@ const heroBackgroundImage = getPublicPath('images/hero-background.jpg');
 // Hero actions
 const heroActions = [
   {
-    label: 'Latest News',
+    label: t(TRANSLATION_KEYS.HOME.HERO.LATEST_NEWS),
     icon: 'mdi-newspaper',
     color: 'primary',
     to: '/community',
     size: 'lg'
   },
   {
-    label: 'Contribute',
+    label: t(TRANSLATION_KEYS.HOME.HERO.CONTRIBUTE),
     icon: 'mdi-pencil',
     color: 'secondary',
     to: '/contribute',
@@ -56,43 +59,43 @@ interface QuickLink {
 
 const quickLinks: QuickLink[] = [
   {
-    title: 'News & Updates',
-    description: 'Stay informed with community news and announcements',
+    title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.NEWS_UPDATES.TITLE),
+    description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.NEWS_UPDATES.DESCRIPTION),
     icon: 'mdi-newspaper',
     color: 'primary',
     link: '/community'
   },
   {
-    title: 'Classifieds & Ads',
-    description: 'Browse community marketplace and services',
+    title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CLASSIFIEDS_ADS.TITLE),
+    description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CLASSIFIEDS_ADS.DESCRIPTION),
     icon: 'mdi-bulletin-board',
     color: 'secondary',
     link: '/community'
   },
   {
-    title: 'Community Calendar',
-    description: 'Stay updated on community events and activities',
+    title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.COMMUNITY_CALENDAR.TITLE),
+    description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.COMMUNITY_CALENDAR.DESCRIPTION),
     icon: 'mdi-calendar',
     color: 'yellow-9',
     link: '/calendar'
   },
   {
-    title: 'Issue Archive',
-    description: 'Access past issues and historical content',
+    title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ISSUE_ARCHIVE.TITLE),
+    description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ISSUE_ARCHIVE.DESCRIPTION),
     icon: 'mdi-bookshelf',
     color: 'accent',
     link: '/archive'
   },
   {
-    title: 'Contribute',
-    description: 'Share your stories and help build our community',
+    title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CONTRIBUTE.TITLE),
+    description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CONTRIBUTE.DESCRIPTION),
     icon: 'mdi-pencil',
     color: 'positive',
     link: '/contribute'
   },
   {
-    title: 'About & Contact',
-    description: 'Learn about our mission and get in touch',
+    title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ABOUT_CONTACT.TITLE),
+    description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ABOUT_CONTACT.DESCRIPTION),
     icon: 'mdi-comment-question',
     color: 'info',
     link: '/about'
@@ -120,8 +123,8 @@ const quickLinks: QuickLink[] = [
 
       <!-- Content -->
       <div class="relative-position text-center text-white q-pa-lg">
-        <h1 class="text-h2 text-weight-bold q-mb-md">Welcome to The Courier</h1>
-        <p class="text-h5 text-weight-light q-mb-lg">Your source for Conashaugh Lakes community news and updates</p>
+        <h1 class="text-h2 text-weight-bold q-mb-md">{{ t(TRANSLATION_KEYS.HOME.HERO.TITLE) }}</h1>
+        <p class="text-h5 text-weight-light q-mb-lg">{{ t(TRANSLATION_KEYS.HOME.HERO.SUBTITLE) }}</p>
 
         <!-- Actions -->
         <div class="">
@@ -136,7 +139,7 @@ const quickLinks: QuickLink[] = [
       <!-- Quick Links Section -->
       <div class="row justify-center q-mb-xl">
         <div class="col-12 col-md-10 col-lg-8">
-          <div class="text-h5 text-center q-mb-lg">Explore Our Sections</div>
+          <div class="text-h5 text-center q-mb-lg">{{ t(TRANSLATION_KEYS.HOME.QUICK_LINKS.SECTION_TITLE) }}</div>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-sm-6 col-md-4" v-for="item in quickLinks" :key="item.title">
               <q-card :class="cardClasses" class="cursor-pointer full-height" @click="$router.push(item.link)" v-ripple>
@@ -154,14 +157,14 @@ const quickLinks: QuickLink[] = [
       <!-- Featured Content Section -->
       <div class="row justify-center q-mb-xl">
         <div class="col-12 col-md-10 col-lg-8">
-          <div class="text-h5 text-center q-mb-lg">Latest Updates</div>
+          <div class="text-h5 text-center q-mb-lg">{{ t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.LATEST_UPDATES) }}</div>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
               <q-card :class="cardClasses">
                 <q-card-section>
                   <div class="text-h6 q-mb-sm">
                     <q-icon name="mdi-calendar" class="q-mr-sm" />
-                    Upcoming Events
+                    {{ t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.UPCOMING_EVENTS) }}
                   </div>
                   <q-list separator>
                     <q-item v-for="event in contentStore.events.slice(0, 2)" :key="event.id">
@@ -172,7 +175,7 @@ const quickLinks: QuickLink[] = [
                     </q-item>
                   </q-list>
                   <div class="text-center q-mt-md">
-                    <q-btn color="primary" label="View All Events" size="sm" outline to="/community" />
+                    <q-btn color="primary" :label="t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.VIEW_ALL_EVENTS)" size="sm" outline to="/community" />
                   </div>
                 </q-card-section>
               </q-card>
@@ -183,7 +186,7 @@ const quickLinks: QuickLink[] = [
                 <q-card-section>
                   <div class="text-h6 q-mb-sm">
                     <q-icon name="mdi-bulletin-board" class="q-mr-sm" />
-                    Recent Classifieds
+                    {{ t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.RECENT_CLASSIFIEDS) }}
                   </div>
                   <q-list separator>
                     <q-item v-for="classified in contentStore.classifieds.slice(0, 2)" :key="classified.id">
@@ -195,7 +198,7 @@ const quickLinks: QuickLink[] = [
                     </q-item>
                   </q-list>
                   <div class="text-center q-mt-md">
-                    <q-btn color="secondary" label="Browse Classifieds" size="sm" outline to="/community?type=classifieds" />
+                    <q-btn color="secondary" :label="t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.BROWSE_CLASSIFIEDS)" size="sm" outline to="/community?type=classifieds" />
                   </div>
                 </q-card-section>
               </q-card>
@@ -209,23 +212,23 @@ const quickLinks: QuickLink[] = [
         <div class="col-12 col-md-10 col-lg-8">
           <q-card flat :class="cardClasses">
             <q-card-section>
-              <div class="text-h6 text-center q-mb-md">Our Community</div>
+              <div class="text-h6 text-center q-mb-md">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.TITLE) }}</div>
               <div class="row text-center">
                 <div class="col-3">
                   <div class="text-h4 text-primary">500+</div>
-                  <div class="text-caption">Households</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.HOUSEHOLDS) }}</div>
                 </div>
                 <div class="col-3">
                   <div class="text-h4 text-blue">16</div>
-                  <div class="text-caption">Lakes</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.LAKES) }}</div>
                 </div>
                 <div class="col-3">
                   <div class="text-h4 text-green">25+</div>
-                  <div class="text-caption">Years</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.YEARS) }}</div>
                 </div>
                 <div class="col-3">
                   <div class="text-h4 text-orange">12</div>
-                  <div class="text-caption">Issues/Year</div>
+                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.ISSUES_PER_YEAR) }}</div>
                 </div>
               </div>
             </q-card-section>

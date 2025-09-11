@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useContentStore } from '../stores/content-store';
-// import { useRoleAuth } from '../composables/useRoleAuth'; // Preserved for future admin features
 import { useTheme } from '../composables/useTheme';
+import { useI18n } from 'vue-i18n';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
+// import { useRoleAuth } from '../composables/useRoleAuth'; // Preserved for future admin features
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
 import { logger } from '../utils/logger';
@@ -13,6 +15,7 @@ import { UI_ICONS } from '../constants/ui-icons';
 
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
 const contentStore = useContentStore();
+const { t } = useI18n();
 // const { isEditor } = useRoleAuth(); // Preserved for future admin features
 const { cardClasses, isDarkMode } = useTheme();
 
@@ -56,7 +59,7 @@ const categoryOptions = computed(() => {
     color: string;
   }> = [
     {
-      label: 'All Categories',
+      label: t(TRANSLATION_KEYS.COMMUNITY.FILTERS.ALL_CATEGORIES),
       value: 'all',
       icon: UI_ICONS.filter,
       color: 'grey'
@@ -79,12 +82,12 @@ const categoryOptions = computed(() => {
 // Sort options for dropdown
 const sortOptions = computed(() => [
   {
-    label: 'Newest First',
+    label: t(TRANSLATION_KEYS.COMMUNITY.FILTERS.SORT_NEWEST_FIRST),
     value: 'desc',
     icon: 'mdi-sort-calendar-descending'
   },
   {
-    label: 'Oldest First',
+    label: t(TRANSLATION_KEYS.COMMUNITY.FILTERS.SORT_OLDEST_FIRST),
     value: 'asc',
     icon: 'mdi-sort-calendar-ascending'
   }
@@ -188,9 +191,9 @@ onMounted((): void => {
       <!-- Header Section -->
       <div class="row justify-between items-center q-mb-md">
         <div class="col">
-          <h1 class="text-h4 q-my-none">Community Content</h1>
+          <h1 class="text-h4 q-my-none">{{ t(TRANSLATION_KEYS.COMMUNITY.TITLE) }}</h1>
           <p class="text-body2" :class="greyTextClass">
-            Stay connected with your community
+            {{ t(TRANSLATION_KEYS.COMMUNITY.SUBTITLE) }}
           </p>
         </div>
 

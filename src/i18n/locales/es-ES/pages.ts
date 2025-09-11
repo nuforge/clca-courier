@@ -8,6 +8,83 @@
  */
 
 export default {
+  // Home/Index Page
+  home: {
+    hero: {
+      title: 'Bienvenido a The Courier',
+      subtitle: 'Tu fuente de noticias y actualizaciones de la comunidad de Conashaugh Lakes',
+      latestNews: 'Últimas Noticias',
+      contribute: 'Contribuir'
+    },
+    quickLinks: {
+      sectionTitle: 'Explora Nuestras Secciones',
+      newsUpdates: {
+        title: 'Noticias y Actualizaciones',
+        description: 'Mantente informado con noticias y anuncios comunitarios'
+      },
+      classifiedsAds: {
+        title: 'Clasificados y Anuncios',
+        description: 'Navega por el mercado y servicios comunitarios'
+      },
+      communityCalendar: {
+        title: 'Calendario Comunitario',
+        description: 'Mantente al día con eventos y actividades comunitarias'
+      },
+      issueArchive: {
+        title: 'Archivo de Ediciones',
+        description: 'Accede a ediciones pasadas y contenido histórico'
+      },
+      contribute: {
+        title: 'Contribuir',
+        description: 'Comparte tus historias y ayuda a construir nuestra comunidad'
+      },
+      aboutContact: {
+        title: 'Acerca de Nosotros y Contacto',
+        description: 'Conoce nuestra misión y ponte en contacto'
+      }
+    },
+    contentPreview: {
+      latestContent: 'Último Contenido',
+      upcomingEvents: 'Próximos Eventos',
+      dateTbd: 'Fecha Por Determinar',
+      latestUpdates: 'Últimas Actualizaciones',
+      recentClassifieds: 'Clasificados Recientes',
+      viewAllEvents: 'Ver Todos los Eventos',
+      browseClassifieds: 'Explorar Clasificados',
+      noContentAvailable: 'No hay contenido disponible'
+    },
+    communityStats: {
+      title: 'Nuestra Comunidad',
+      households: 'Hogares',
+      lakes: 'Lagos',
+      years: 'Años',
+      issuesPerYear: 'Ediciones/Año'
+    }
+  },
+
+  // Community Content Page
+  community: {
+    title: 'Contenido Comunitario',
+    subtitle: 'Mantente conectado con tu comunidad',
+    filters: {
+      allCategories: 'Todas las Categorías',
+      search: 'Buscar contenido...',
+      clearFilters: 'Limpiar Filtros',
+      sortNewestFirst: 'Más Recientes Primero',
+      sortOldestFirst: 'Más Antiguos Primero'
+    },
+    viewModes: {
+      list: 'Vista de Lista',
+      card: 'Vista de Tarjeta'
+    },
+    sections: {
+      featuredContent: 'Contenido Destacado',
+      allContent: 'Todo el Contenido',
+      noContent: 'No se encontró contenido',
+      noContentDescription: 'Intenta ajustar tu búsqueda o filtros'
+    }
+  },
+
   // About & Contact Page
   about: {
     title: 'Acerca de Nosotros y Contacto',
@@ -18,6 +95,25 @@ export default {
     missionDescription: 'Fomentar la conexión comunitaria compartiendo noticias, eventos e historias que importan a los residentes de Conashaugh Lakes. Creemos en el poder de la comunicación para construir vecindarios más fuertes.',
     whatWeDo: 'Lo Que Hacemos',
     whatWeDoDescription: 'Publicamos boletines mensuales con noticias comunitarias, historias de residentes, anuncios de eventos y actualizaciones importantes de la asociación. Nuestra plataforma digital facilita mantenerse informado y comprometido.',
+    whatWeCover: 'Lo Que Cubrimos',
+    coverage: {
+      communityEvents: {
+        title: 'Eventos Comunitarios',
+        description: 'Reuniones, actividades y celebraciones'
+      },
+      localNews: {
+        title: 'Noticias Locales',
+        description: 'Actualizaciones y anuncios'
+      },
+      lakeActivities: {
+        title: 'Actividades del Lago',
+        description: 'Recreación y conservación'
+      },
+      residentSpotlights: {
+        title: 'Destacados de Residentes',
+        description: 'Características de miembros de la comunidad'
+      }
+    },
     howToHelp: 'Cómo Puedes Ayudar',
     howToHelpDescription: 'The Courier prospera con la participación comunitaria. Ya sea que estés interesado en escribir, fotografía o ayudar con la distribución, hay un lugar para ti en nuestro equipo.',
     volunteer: 'Voluntariado',

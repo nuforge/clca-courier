@@ -145,7 +145,7 @@ async function onSubmit() {
                 <q-card-section>
                   <div class="text-h6 q-mb-md">
                     <q-icon name="mdi-eye" class="q-mr-sm" />
-                    What We Cover
+                    {{ t(TRANSLATION_KEYS.ABOUT.WHAT_WE_COVER) }}
                   </div>
                   <div class="row q-col-gutter-md">
                     <div class="col-12 col-sm-6 col-md-3">
@@ -154,8 +154,8 @@ async function onSubmit() {
                           <q-icon name="mdi-calendar" color="primary" />
                         </q-item-section>
                         <q-item-section>
-                          <q-item-label class="text-weight-medium">Community Events</q-item-label>
-                          <q-item-label caption>Meetings, activities, and celebrations</q-item-label>
+                          <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.COMMUNITY_EVENTS.TITLE) }}</q-item-label>
+                          <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.COMMUNITY_EVENTS.DESCRIPTION) }}</q-item-label>
                         </q-item-section>
                       </q-item>
                     </div>
@@ -165,8 +165,8 @@ async function onSubmit() {
                           <q-icon name="mdi-newspaper" color="primary" />
                         </q-item-section>
                         <q-item-section>
-                          <q-item-label class="text-weight-medium">Local News</q-item-label>
-                          <q-item-label caption>Updates and announcements</q-item-label>
+                          <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.LOCAL_NEWS.TITLE) }}</q-item-label>
+                          <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.LOCAL_NEWS.DESCRIPTION) }}</q-item-label>
                         </q-item-section>
                       </q-item>
                     </div>
@@ -176,8 +176,8 @@ async function onSubmit() {
                           <q-icon name="mdi-nature" color="primary" />
                         </q-item-section>
                         <q-item-section>
-                          <q-item-label class="text-weight-medium">Lake Activities</q-item-label>
-                          <q-item-label caption>Recreation and conservation</q-item-label>
+                          <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.LAKE_ACTIVITIES.TITLE) }}</q-item-label>
+                          <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.LAKE_ACTIVITIES.DESCRIPTION) }}</q-item-label>
                         </q-item-section>
                       </q-item>
                     </div>
@@ -187,8 +187,8 @@ async function onSubmit() {
                           <q-icon name="mdi-account-group" color="primary" />
                         </q-item-section>
                         <q-item-section>
-                          <q-item-label class="text-weight-medium">Resident Spotlights</q-item-label>
-                          <q-item-label caption>Community member features</q-item-label>
+                          <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.RESIDENT_SPOTLIGHTS.TITLE) }}</q-item-label>
+                          <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.COVERAGE.RESIDENT_SPOTLIGHTS.DESCRIPTION) }}</q-item-label>
                         </q-item-section>
                       </q-item>
                     </div>

@@ -8,6 +8,136 @@
  */
 
 export default {
+  // Home/Index Page
+  home: {
+    hero: {
+      title: 'Welcome to The Courier',
+      subtitle: 'Your source for Conashaugh Lakes community news and updates',
+      latestNews: 'Latest News',
+      contribute: 'Contribute'
+    },
+    quickLinks: {
+      sectionTitle: 'Explore Our Sections',
+      newsUpdates: {
+        title: 'News & Updates',
+        description: 'Stay informed with community news and announcements'
+      },
+      classifiedsAds: {
+        title: 'Classifieds & Ads',
+        description: 'Browse community marketplace and services'
+      },
+      communityCalendar: {
+        title: 'Community Calendar',
+        description: 'Stay updated on community events and activities'
+      },
+      issueArchive: {
+        title: 'Issue Archive',
+        description: 'Access past issues and historical content'
+      },
+      contribute: {
+        title: 'Contribute',
+        description: 'Share your stories and help build our community'
+      },
+      aboutContact: {
+        title: 'About & Contact',
+        description: 'Learn about our mission and get in touch'
+      }
+    },
+    contentPreview: {
+      latestContent: 'Latest Content',
+      upcomingEvents: 'Upcoming Events',
+      dateTbd: 'Date TBD',
+      latestUpdates: 'Latest Updates',
+      recentClassifieds: 'Recent Classifieds',
+      viewAllEvents: 'View All Events',
+      browseClassifieds: 'Browse Classifieds',
+      noContentAvailable: 'No content available'
+    },
+    communityStats: {
+      title: 'Our Community',
+      households: 'Households',
+      lakes: 'Lakes',
+      years: 'Years',
+      issuesPerYear: 'Issues/Year'
+    }
+  },
+
+  // Community Content Page
+  community: {
+    title: 'Community Content',
+    subtitle: 'Stay connected with your community',
+    filters: {
+      allCategories: 'All Categories',
+      search: 'Search content...',
+      clearFilters: 'Clear Filters',
+      sortNewestFirst: 'Newest First',
+      sortOldestFirst: 'Oldest First'
+    },
+    viewModes: {
+      list: 'List View',
+      card: 'Card View'
+    },
+    sections: {
+      featuredContent: 'Featured Content',
+      allContent: 'All Content',
+      noContent: 'No content found',
+      noContentDescription: 'Try adjusting your search or filters'
+    }
+  },
+
+  // Theme Editor Page
+  themeEditor: {
+    title: 'Site Theme Editor',
+    subtitle: 'Customize your site\'s appearance with live preview',
+    actions: {
+      unsavedChanges: 'Unsaved Changes',
+      resetToDefaults: 'Reset to Defaults',
+      saveTheme: 'Save Theme',
+      copyToClipboard: 'Copy to Clipboard',
+      clearLocalStorage: 'Clear localStorage'
+    },
+    tabs: {
+      contentTypes: 'Content Types',
+      categories: 'Categories',
+      colors: 'Colors',
+      status: 'Status'
+    },
+    fields: {
+      displayLabel: 'Display Label',
+      icon: 'Icon',
+      iconHint: 'Click to open icon picker',
+      color: 'Color',
+      description: 'Description',
+      label: 'Label'
+    },
+    sections: {
+      categoryMappings: 'Category Mappings',
+      categories: 'categories',
+      debugInfo: 'Debug Info',
+      debugInfoNotAvailable: 'Debug info not available'
+    },
+    colors: {
+      primary: 'Primary',
+      secondary: 'Secondary',
+      accent: 'Accent',
+      positive: 'Positive',
+      negative: 'Negative',
+      warning: 'Warning'
+    },
+    notifications: {
+      themeSaved: 'Theme saved successfully',
+      themeSaveFailed: 'Failed to save theme',
+      themeReset: 'Theme reset to defaults',
+      debugCopied: 'Debug info copied to clipboard',
+      debugCopyFailed: 'Failed to copy to clipboard',
+      localStorageCleared: 'localStorage cleared. Refresh to reload defaults.'
+    },
+    confirmations: {
+      resetTitle: 'Reset Theme',
+      resetMessage: 'Are you sure you want to reset the theme to defaults? This will undo all your customizations.'
+    }
+  },
+
   // About & Contact Page
   about: {
     title: 'About & Contact',
@@ -18,6 +148,25 @@ export default {
     missionDescription: 'To foster community connection by sharing news, events, and stories that matter to Conashaugh Lakes residents. We believe in the power of communication to build stronger neighborhoods.',
     whatWeDo: 'What We Do',
     whatWeDoDescription: 'We publish monthly newsletters featuring community news, resident stories, event announcements, and important association updates. Our digital platform makes it easy to stay informed and engaged.',
+    whatWeCover: 'What We Cover',
+    coverage: {
+      communityEvents: {
+        title: 'Community Events',
+        description: 'Meetings, activities, and celebrations'
+      },
+      localNews: {
+        title: 'Local News',
+        description: 'Updates and announcements'
+      },
+      lakeActivities: {
+        title: 'Lake Activities',
+        description: 'Recreation and conservation'
+      },
+      residentSpotlights: {
+        title: 'Resident Spotlights',
+        description: 'Community member features'
+      }
+    },
     howToHelp: 'How You Can Help',
     howToHelpDescription: 'The Courier thrives on community participation. Whether you\'re interested in writing, photography, or helping with distribution, there\'s a place for you on our team.',
     volunteer: 'Volunteer with Us',
