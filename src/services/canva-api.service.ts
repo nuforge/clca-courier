@@ -15,6 +15,7 @@ import type {
   CanvaDesign,
   CanvaConfig,
   CanvaCreateDesignResponse,
+  CanvaAutofillDesignResponse,
   CanvaExportResponse,
   CanvaGetDesignResponse
 } from './canva/types';
@@ -189,6 +190,101 @@ export class CanvaApiService {
         }
       } else {
         logger.error('Unexpected error creating design:', { templateId, error });
+        throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  }
+
+  /**
+   * Create a new design from a template with autofill data
+   *
+   * @param templateId - The ID of the Canva Brand Template to use
+   * @param autofillData - Key-value pairs for autofilling template placeholders
+   * @returns Promise resolving to design ID and edit URL
+   * @throws Error if the API call fails or returns invalid data
+   */
+  async createDesignWithAutofill(
+    templateId: string,
+    autofillData: Record<string, unknown>
+  ): Promise<{ designId: string; editUrl: string }> {
+    if (!templateId || typeof templateId !== 'string') {
+      const error = new Error('Template ID is required and must be a string');
+      logger.error('Invalid template ID provided for autofill:', { templateId });
+      throw error;
+    }
+
+    if (!autofillData || typeof autofillData !== 'object') {
+      const error = new Error('Autofill data is required and must be an object');
+      logger.error('Invalid autofill data provided:', { autofillData });
+      throw error;
+    }
+
+    logger.info('Creating Canva design with autofill:', {
+      templateId,
+      autofillKeys: Object.keys(autofillData)
+    });
+
+    try {
+      // Structure request according to Canva's Autofill API documentation
+      const requestBody = {
+        design_type: 'presentation', // Default to presentation type
+        template_id: templateId,
+        autofill: autofillData
+      };
+
+      const response: AxiosResponse<CanvaAutofillDesignResponse> = await this.axiosInstance.post(
+        '/designs?autofill=true',
+        requestBody
+      );
+
+      // Validate response structure
+      if (!response.data?.design?.id || !response.data?.design?.urls?.edit_url) {
+        logger.error('Invalid response from Canva Autofill API:', { response: response.data });
+        throw new Error('Invalid response from Canva API: missing required fields');
+      }
+
+      const design = response.data.design;
+
+      logger.success('Canva design created with autofill successfully:', {
+        designId: design.id,
+        templateId,
+        editUrl: design.urls.edit_url
+      });
+
+      return {
+        designId: design.id,
+        editUrl: design.urls.edit_url
+      };
+
+    } catch (error) {
+      const errorMessage = `Failed to create design with autofill from template ${templateId}`;
+
+      if (axios.isAxiosError(error)) {
+        if (isCanvaApiError(error.response?.data)) {
+          const canvaError = error.response.data;
+          logger.error('Canva API error with autofill:', {
+            templateId,
+            autofillKeys: Object.keys(autofillData),
+            code: canvaError.error.code,
+            message: canvaError.error.message,
+            details: canvaError.error.details
+          });
+          throw new Error(`${errorMessage}: ${canvaError.error.message}`);
+        } else {
+          logger.error('HTTP error creating design with autofill:', {
+            templateId,
+            autofillKeys: Object.keys(autofillData),
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          });
+          throw new Error(`${errorMessage}: HTTP ${error.response?.status}`);
+        }
+      } else {
+        logger.error('Unexpected error creating design with autofill:', {
+          templateId,
+          autofillKeys: Object.keys(autofillData),
+          error
+        });
         throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }

@@ -83,6 +83,18 @@ export interface CanvaCreateDesignResponse {
 }
 
 /**
+ * Response from Canva API when creating a design with autofill
+ */
+export interface CanvaAutofillDesignResponse {
+  design: {
+    id: string;
+    urls: {
+      edit_url: string;
+    };
+  };
+}
+
+/**
  * Response from Canva API when requesting design export
  */
 export interface CanvaExportResponse {
