@@ -6,6 +6,7 @@ import { useTheme } from '../composables/useTheme';
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
 import { logger } from '../utils/logger';
+import { normalizeDate } from '../utils/date-formatter';
 import ContentCard from '../components/ContentCard.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { UI_ICONS } from '../constants/ui-icons';
@@ -114,8 +115,13 @@ const filteredContent = computed(() => {
   // Apply sorting
   if (sortBy.value === 'date') {
     filtered = filtered.sort((a, b) => {
-      const aDate = a.timestamps.published?.toDate() || a.timestamps.created.toDate();
-      const bDate = b.timestamps.published?.toDate() || b.timestamps.created.toDate();
+      const aDate = normalizeDate(a.timestamps.published) || normalizeDate(a.timestamps.created);
+      const bDate = normalizeDate(b.timestamps.published) || normalizeDate(b.timestamps.created);
+
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+
       return sortOrder.value === 'desc'
         ? bDate.getTime() - aDate.getTime()
         : aDate.getTime() - bDate.getTime();
@@ -161,7 +167,9 @@ function getContentTypeFromItem(item: ContentDoc): string {
 }
 
 function getDateFromItem(item: ContentDoc): Date {
-  return item.timestamps.published?.toDate() || item.timestamps.created.toDate();
+  const publishedDate = normalizeDate(item.timestamps.published);
+  const createdDate = normalizeDate(item.timestamps.created);
+  return publishedDate || createdDate || new Date();
 }
 
 // Lifecycle

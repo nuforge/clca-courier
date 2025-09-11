@@ -117,6 +117,9 @@ const emit = defineEmits<Emits>();
 const { t } = useI18n();
 const $q = useQuasar();
 
+// State management flags
+const isUpdatingFromProps = ref(false);
+
 // Local state
 const loadingLocation = ref(false);
 const latitude = ref<number | null>(null);
@@ -204,6 +207,9 @@ const getCurrentLocation = () => {
 };
 
 const updateLocationFeature = () => {
+  // Don't emit updates during prop initialization
+  if (isUpdatingFromProps.value) return;
+
   const updatedFeature: LocationFeature = {
     address: localLocationFeature.value.address
   };
@@ -222,7 +228,7 @@ const updateLocationFeature = () => {
   }
 };
 
-// Watch for changes and emit updates
+// Watch for changes and emit updates (avoid recursive updates)
 watch(
   [
     () => localLocationFeature.value.name,
@@ -230,20 +236,29 @@ watch(
     latitude,
     longitude
   ],
-  updateLocationFeature,
+  () => {
+    if (!isUpdatingFromProps.value) {
+      updateLocationFeature();
+    }
+  },
   { deep: true }
 );
 
-// Initialize from prop
+// Initialize from prop - set flag to prevent emission during prop updates
 watch(
   () => props.locationFeature,
   (newFeature) => {
     if (newFeature) {
+      isUpdatingFromProps.value = true;
       localLocationFeature.value = { ...newFeature };
       if (newFeature.geo) {
         latitude.value = newFeature.geo.latitude;
         longitude.value = newFeature.geo.longitude;
       }
+      // Reset flag on next tick
+      setTimeout(() => {
+        isUpdatingFromProps.value = false;
+      }, 0);
     }
   },
   { immediate: true }

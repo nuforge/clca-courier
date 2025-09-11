@@ -2,9 +2,26 @@
 import { useTheme } from '../composables/useTheme';
 import { useContentStore } from '../stores/content-store';
 import { getPublicPath } from '../utils/path-utils';
+import { normalizeDate } from '../utils/date-formatter';
+import type { ContentDoc } from '../types/core/content.types';
 
 const { cardClasses, textClasses } = useTheme();
 const contentStore = useContentStore();
+
+// Helper function to format event dates safely
+const formatEventDate = (event: ContentDoc): string => {
+  if (event.features?.['feat:date']?.start) {
+    const eventDate = normalizeDate(event.features['feat:date'].start);
+    if (eventDate) {
+      return eventDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  }
+  return 'Date TBD';
+};
 
 // Google Drive image downloaded locally - WORKING SOLUTION!
 const heroBackgroundImage = getPublicPath('images/hero-background.jpg');
@@ -150,14 +167,7 @@ const quickLinks: QuickLink[] = [
                     <q-item v-for="event in contentStore.events.slice(0, 2)" :key="event.id">
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ event.title }}</q-item-label>
-                        <q-item-label caption>{{
-                          event.features['feat:date']?.start ?
-                          new Date(event.features['feat:date'].start.toDate()).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }) : 'Date TBD'
-                        }}</q-item-label>
+                        <q-item-label caption>{{ formatEventDate(event) }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>

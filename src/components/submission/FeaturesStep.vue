@@ -40,7 +40,8 @@
         <!-- Location Feature Toggle -->
         <div v-if="optionalFeatures.includes('feat:location')" class="feature-section">
           <q-expansion-item
-            :model-value="!!localFeatures['feat:location']"
+            :model-value="expansionStates['feat:location'] || false"
+            @update:model-value="(val: boolean) => expansionStates['feat:location'] = val"
             :label="$t('content.features.location.label')"
             icon="location_on"
             :caption="$t('content.features.location.description')"
@@ -58,7 +59,8 @@
         <!-- Additional Task Feature (for events) -->
         <div v-if="optionalFeatures.includes('feat:task')" class="feature-section">
           <q-expansion-item
-            :model-value="!!localFeatures['feat:task']"
+            :model-value="expansionStates['feat:task'] || false"
+            @update:model-value="(val: boolean) => expansionStates['feat:task'] = val"
             :label="$t('content.features.task.label')"
             icon="assignment"
             :caption="$t('content.features.task.description')"
@@ -76,7 +78,8 @@
         <!-- Additional Date Feature (for announcements) -->
         <div v-if="optionalFeatures.includes('feat:date')" class="feature-section">
           <q-expansion-item
-            :model-value="!!localFeatures['feat:date']"
+            :model-value="expansionStates['feat:date'] || false"
+            @update:model-value="(val: boolean) => expansionStates['feat:date'] = val"
             :label="$t('content.features.date.label')"
             icon="event"
             :caption="$t('content.features.date.description')"
@@ -94,7 +97,8 @@
         <!-- Canva Integration Feature -->
         <div v-if="optionalFeatures.includes('integ:canva')" class="feature-section">
           <q-expansion-item
-            :model-value="!!localFeatures['integ:canva']"
+            :model-value="expansionStates['integ:canva'] || false"
+            @update:model-value="(val: boolean) => expansionStates['integ:canva'] = val"
             :label="$t('content.features.canva.label')"
             icon="design_services"
             :caption="$t('content.features.canva.description')"
@@ -135,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { ContentFeatures } from '../../types/core/content.types';
 
 // Type aliases for easier reference
@@ -197,6 +201,25 @@ const contentTypeConfig = {
 // Local features state - use direct props reference to avoid computed setter loops
 const localFeatures = computed(() => props.features);
 
+// Expansion panel state management to prevent reactive loops
+const expansionStates = ref<Record<string, boolean>>({
+  'feat:location': false,
+  'feat:task': false,
+  'feat:date': false,
+  'integ:canva': false
+});
+
+// Initialize expansion states based on existing features
+const initializeExpansionStates = () => {
+  expansionStates.value['feat:location'] = !!localFeatures.value['feat:location'];
+  expansionStates.value['feat:task'] = !!localFeatures.value['feat:task'];
+  expansionStates.value['feat:date'] = !!localFeatures.value['feat:date'];
+  expansionStates.value['integ:canva'] = !!localFeatures.value['integ:canva'];
+};
+
+// Initialize on component mount
+initializeExpansionStates();
+
 // Computed properties
 const requiredFeatures = computed(() => {
   if (!props.contentType) return [];
@@ -254,8 +277,10 @@ const updateFeature = (featureKey: keyof ContentFeatures, value: unknown) => {
 };
 
 const initializeFeatureIfNeeded = (featureKey: keyof ContentFeatures) => {
-  // Guard against multiple initialization calls
-  if (localFeatures.value[featureKey]) {
+  // Guard against multiple initialization calls - more robust checking
+  if (localFeatures.value[featureKey] && Object.keys(localFeatures.value[featureKey] as Record<string, unknown>).length > 0) {
+    // Feature already exists with content, just open the expansion panel
+    expansionStates.value[featureKey] = true;
     return;
   }
 
@@ -292,6 +317,9 @@ const initializeFeatureIfNeeded = (featureKey: keyof ContentFeatures) => {
         };
         break;
     }
+
+    // Update expansion state
+    expansionStates.value[featureKey] = true;
 
     emit('update:features', newFeatures);
   } finally {

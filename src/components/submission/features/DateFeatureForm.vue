@@ -105,6 +105,9 @@ const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
 
+// State management flags
+const isUpdatingFromProps = ref(false);
+
 // Local state
 const hasEndDate = ref(false);
 const startDate = ref('');
@@ -132,14 +135,16 @@ const validateEndDate = (val: string): boolean | string => {
 
 const formatDatePreview = (): string => {
   try {
-    const start = localDateFeature.value.start.toDate();
+    const start = toDate(localDateFeature.value.start);
+    if (!start) return '';
+
     let preview = '';
 
     if (localDateFeature.value.isAllDay) {
       preview = date.formatDate(start, 'MMMM D, YYYY');
       if (localDateFeature.value.end) {
-        const end = localDateFeature.value.end.toDate();
-        if (!date.isSameDate(start, end)) {
+        const end = toDate(localDateFeature.value.end);
+        if (end && !date.isSameDate(start, end)) {
           preview += ` - ${date.formatDate(end, 'MMMM D, YYYY')}`;
         }
       }
@@ -147,11 +152,13 @@ const formatDatePreview = (): string => {
     } else {
       preview = date.formatDate(start, 'MMMM D, YYYY [at] h:mm A');
       if (localDateFeature.value.end) {
-        const end = localDateFeature.value.end.toDate();
-        if (date.isSameDate(start, end)) {
-          preview += ` - ${date.formatDate(end, 'h:mm A')}`;
-        } else {
-          preview += ` - ${date.formatDate(end, 'MMMM D, YYYY [at] h:mm A')}`;
+        const end = toDate(localDateFeature.value.end);
+        if (end) {
+          if (date.isSameDate(start, end)) {
+            preview += ` - ${date.formatDate(end, 'h:mm A')}`;
+          } else {
+            preview += ` - ${date.formatDate(end, 'MMMM D, YYYY [at] h:mm A')}`;
+          }
         }
       }
     }
@@ -165,7 +172,8 @@ const formatDatePreview = (): string => {
 
 const updateDateFeature = () => {
   try {
-    if (!startDate.value) return;
+    // Don't emit updates during prop initialization
+    if (isUpdatingFromProps.value || !startDate.value) return;
 
     let startDateTime: Date;
     if (localDateFeature.value.isAllDay) {
@@ -191,35 +199,74 @@ const updateDateFeature = () => {
 
     localDateFeature.value = updatedFeature;
     emit('update:dateFeature', updatedFeature);
+    logger.debug('Date feature updated', updatedFeature);
   } catch (error) {
     logger.error('Failed to update date feature', error);
   }
 };
 
-// Initialize form values from prop
+// Helper function to safely convert timestamps to Date objects
+const toDate = (timestamp: Date | Timestamp | null | undefined): Date | null => {
+  if (!timestamp) return null;
+
+  // If it's already a Date object, return it
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+
+  // If it's a Firebase Timestamp, convert it
+  if (typeof timestamp === 'object' && 'toDate' in timestamp) {
+    return timestamp.toDate();
+  }
+
+  // Fallback: try to create a Date from the value
+  try {
+    return new Date(timestamp);
+  } catch (error) {
+    logger.error('Failed to convert timestamp to Date', { timestamp, error });
+    return null;
+  }
+};
+
+// Initialize from prop - set flag to prevent emission during prop updates
 watch(
   () => props.dateFeature,
   (newFeature) => {
     if (newFeature) {
+      isUpdatingFromProps.value = true;
       localDateFeature.value = { ...newFeature };
-      const startDateTime = newFeature.start.toDate();
-      startDate.value = date.formatDate(startDateTime, 'YYYY-MM-DD');
-      startTime.value = date.formatDate(startDateTime, 'HH:mm');
+
+      const startDateTime = toDate(newFeature.start);
+      if (startDateTime) {
+        startDate.value = date.formatDate(startDateTime, 'YYYY-MM-DD');
+        startTime.value = date.formatDate(startDateTime, 'HH:mm');
+      }
 
       if (newFeature.end) {
         hasEndDate.value = true;
-        const endDateTime = newFeature.end.toDate();
-        endDate.value = date.formatDate(endDateTime, 'YYYY-MM-DD');
-        endTime.value = date.formatDate(endDateTime, 'HH:mm');
+        const endDateTime = toDate(newFeature.end);
+        if (endDateTime) {
+          endDate.value = date.formatDate(endDateTime, 'YYYY-MM-DD');
+          endTime.value = date.formatDate(endDateTime, 'HH:mm');
+        }
       }
+
+      // Reset flag on next tick
+      setTimeout(() => {
+        isUpdatingFromProps.value = false;
+      }, 0);
     }
   },
   { immediate: true }
 );
 
-// Watch for changes and update the feature
+// Watch for changes and update the feature (avoid recursive updates)
 watch([startDate, startTime, endDate, endTime, hasEndDate, () => localDateFeature.value.isAllDay],
-  updateDateFeature,
+  () => {
+    if (!isUpdatingFromProps.value) {
+      updateDateFeature();
+    }
+  },
   { deep: true }
 );
 

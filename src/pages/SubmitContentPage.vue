@@ -202,17 +202,46 @@ const saveAsDraft = async () => {
 
     logger.debug('Starting auto-save operation');
 
+    // Filter out incomplete features for draft saving
+    const validFeatures: Record<string, unknown> = {};
+
+    // Only include location feature if it has an address
+    if (wizardState.value.features['feat:location']) {
+      const locationFeature = wizardState.value.features['feat:location'] as { address?: string };
+      if (locationFeature.address && locationFeature.address.trim().length > 0) {
+        validFeatures['feat:location'] = wizardState.value.features['feat:location'];
+      }
+    }
+
+    // Only include task feature if it has required fields
+    if (wizardState.value.features['feat:task']) {
+      const taskFeature = wizardState.value.features['feat:task'] as { category?: string; qty?: number; unit?: string };
+      if (taskFeature.category && taskFeature.qty && taskFeature.qty > 0 && taskFeature.unit) {
+        validFeatures['feat:task'] = wizardState.value.features['feat:task'];
+      }
+    }
+
+    // Include date feature if present (less strict validation for dates)
+    if (wizardState.value.features['feat:date']) {
+      validFeatures['feat:date'] = wizardState.value.features['feat:date'];
+    }
+
+    // Include canva feature if present
+    if (wizardState.value.features['integ:canva']) {
+      validFeatures['integ:canva'] = wizardState.value.features['integ:canva'];
+    }
+
     if (draftId.value) {
       // Update existing draft
       logger.debug('Updating existing draft', { draftId: draftId.value });
       // TODO: Implement update draft method in service
     } else {
-      // Create new draft
+      // Create new draft with filtered features
       const id = await contentSubmissionService.createContent(
         previewContentDoc.value.title,
         previewContentDoc.value.description,
         wizardState.value.contentType!,
-        wizardState.value.features,
+        validFeatures,
         []
       );
       draftId.value = id;

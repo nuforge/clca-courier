@@ -12,6 +12,7 @@ import { ref, computed, onUnmounted } from 'vue';
 import { useUserSettings } from '../composables/useUserSettings';
 import { logger } from '../utils/logger';
 import { firebaseContentService } from '../services/firebase-content.service';
+import { normalizeDate } from '../utils/date-formatter';
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
 import type { Unsubscribe } from 'firebase/firestore';
@@ -82,8 +83,8 @@ export const useContentStore = defineStore('content', () => {
         if (contentUtils.hasFeature(content, 'feat:date')) {
           const dateFeature = contentUtils.getFeature(content, 'feat:date');
           if (dateFeature) {
-            const eventDate = dateFeature.start.toDate();
-            return eventDate > new Date();
+            const eventDate = normalizeDate(dateFeature.start);
+            return eventDate ? eventDate > new Date() : true;
           }
         }
         return true; // Include events without dates
