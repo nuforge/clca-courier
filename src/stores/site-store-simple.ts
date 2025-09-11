@@ -44,7 +44,7 @@ export const useSiteStore = defineStore('site', () => {
 
   // Actions
   const toggleDarkMode = () => {
-    userSettings.toggleDarkMode();
+    void userSettings.toggleDarkMode();
   };
 
   const toggleMenu = () => {
@@ -55,7 +55,7 @@ export const useSiteStore = defineStore('site', () => {
     isMenuOpen.value = false;
   };
 
-  const loadInitialData = async (): Promise<void> => {
+  const loadInitialData = (): void => {
     try {
       isLoading.value = true;
       logger.debug('Site store disabled - loadInitialData is a no-op');
@@ -66,23 +66,23 @@ export const useSiteStore = defineStore('site', () => {
     }
   };
 
-  const refreshArchivedIssues = async (): Promise<void> => {
+  const refreshArchivedIssues = (): void => {
     logger.debug('Site store disabled - refreshArchivedIssues is a no-op');
   };
 
-  const refreshNewsItems = async (): Promise<void> => {
+  const refreshNewsItems = (): void => {
     logger.debug('Site store disabled - refreshNewsItems is a no-op');
   };
 
-  const refreshClassifieds = async (): Promise<void> => {
+  const refreshClassifieds = (): void => {
     logger.debug('Site store disabled - refreshClassifieds is a no-op');
   };
 
-  const refreshEvents = async (): Promise<void> => {
+  const refreshEvents = (): void => {
     logger.debug('Site store disabled - refreshEvents is a no-op');
   };
 
-  const refreshAll = async (): Promise<void> => {
+  const refreshAll = (): void => {
     logger.debug('Site store disabled - refreshAll is a no-op');
   };
 

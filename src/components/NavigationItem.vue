@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useTheme } from '../composables/useTheme';
 import type { NavigationItem } from '../types/navigation';
 
 interface Props {
@@ -10,13 +10,13 @@ interface Props {
 
 defineProps<Props>();
 
-const siteStore = useSiteStore();
+const { textClasses } = useTheme();
 
 const navItemClasses = computed(() => [
   'nav-item',
   'nav-menu-font',
   'q-ml-md',
-  { 'dark-mode': siteStore.isDarkMode }
+  { 'dark-mode': textClasses.value.primary === 'text-white' }
 ]);
 </script>
 

@@ -48,11 +48,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
-import { useSiteStore } from '../stores/site-store-simple'
+import { useContentStore } from '../stores/content-store'
 import PdfViewer from './PdfViewer.vue'
 
 const $q = useQuasar()
-const siteStore = useSiteStore()
+const contentStore = useContentStore()
 
 // Basic PDF viewer state (simplified)
 const showViewer = ref(false)
@@ -92,7 +92,7 @@ const retryLoadDocument = () => {
 }
 
 // Get available documents from the store
-const availableDocuments = computed(() => siteStore.archivedIssues)
+const availableDocuments = computed(() => contentStore.archivedIssues)
 </script>
 
 <style scoped>

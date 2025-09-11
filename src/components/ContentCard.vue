@@ -127,13 +127,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useTheme } from '../composables/useTheme';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { formatDate } from '../utils/date-formatter';
 import { logger } from '../utils/logger';
 import {
-  type ContentDoc,
-  contentUtils
+  contentUtils,
+  type ContentDoc
 } from '../types/core/content.types';// Import placeholder widget components (these will be empty for now)
 import EventDateWidget from './widgets/EventDateWidget.vue';
 import TaskWidget from './widgets/TaskWidget.vue';
@@ -162,8 +162,8 @@ const emit = defineEmits<Emits>();
 
 // Composables
 const { t } = useI18n();
-const siteStore = useSiteStore();
 const { getContentIcon } = useSiteTheme();
+const { cardClasses: themeCardClasses } = useTheme();
 
 // Local state
 const showActionsMenu = ref(false);
@@ -198,15 +198,11 @@ const displayTags = computed(() => {
 
 const cardClasses = computed(() => {
   const baseClasses = 'content-card';
-  const themeClasses = siteStore.isDarkMode
-    ? 'bg-dark text-white q-dark hover:bg-grey-9'
-    : 'bg-white text-dark hover:bg-grey-1';
-
   const variantClasses = props.variant === 'featured'
     ? 'q-pa-lg border-left-4 border-primary'
     : '';
 
-  return `${baseClasses} ${themeClasses} ${variantClasses}`;
+  return `${baseClasses} ${themeCardClasses.value} ${variantClasses}`;
 });
 
 // Methods

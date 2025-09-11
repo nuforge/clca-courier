@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSiteStore } from '../stores/site-store-simple';
-import type { NewsItem, ClassifiedAd } from '../types/core/content.types';
-import ContentItemCard from './ContentItemCard.vue';
+import { useTheme } from '../composables/useTheme';
+import type { ContentDoc } from '../types/core/content.types';
+import ContentCard from './ContentCard.vue';
 
-// Following copilot instructions: Unified Newsletter types, proper TypeScript
+// Following copilot instructions: Unified ContentDoc types, proper TypeScript
 interface Props {
-  items: Array<NewsItem | ClassifiedAd>;
+  items: Array<ContentDoc>;
   variant?: 'card' | 'list' | 'featured';
   showActions?: boolean;
   emptyMessage?: string;
@@ -14,9 +14,9 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'item-click', item: NewsItem | ClassifiedAd): void;
-  (e: 'item-edit', item: NewsItem | ClassifiedAd): void;
-  (e: 'item-delete', item: NewsItem | ClassifiedAd): void;
+  (e: 'item-click', item: ContentDoc): void;
+  (e: 'item-edit', item: ContentDoc): void;
+  (e: 'item-delete', item: ContentDoc): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -31,31 +31,23 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-const siteStore = useSiteStore();
+const { cardClasses, isDarkMode } = useTheme();
 
 // Theme-aware classes - following copilot instructions: Theme awareness
-const cardClasses = computed(() => {
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
-
 const greyTextClass = computed(() =>
-  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
+  isDarkMode.value ? 'text-grey-4' : 'text-grey-7'
 );
 
 // Event handlers - following copilot instructions: Proper TypeScript typing
-function handleItemClick(item: NewsItem | ClassifiedAd): void {
+function handleItemClick(item: ContentDoc): void {
   emit('item-click', item);
 }
 
-function handleItemEdit(item: NewsItem | ClassifiedAd): void {
+function handleItemEdit(item: ContentDoc): void {
   emit('item-edit', item);
 }
 
-function handleItemDelete(item: NewsItem | ClassifiedAd): void {
+function handleItemDelete(item: ContentDoc): void {
   emit('item-delete', item);
 }
 </script>
@@ -68,8 +60,8 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
       :key="item.id"
       :class="props.variant === 'featured' ? 'col-12 col-md-6 col-lg-4' : 'col-12 col-md-6'"
     >
-      <ContentItemCard
-        :item="item"
+      <ContentCard
+        :content="item"
         :variant="props.variant"
         :show-actions="props.showActions ?? false"
         @click="handleItemClick"
@@ -103,10 +95,10 @@ function handleItemDelete(item: NewsItem | ClassifiedAd): void {
 
     <q-card-section v-else class="q-pa-none">
       <q-list separator>
-        <ContentItemCard
+        <ContentCard
           v-for="item in props.items"
           :key="item.id"
-          :item="item"
+          :content="item"
           variant="list"
           :show-actions="props.showActions ?? false"
           @click="handleItemClick"

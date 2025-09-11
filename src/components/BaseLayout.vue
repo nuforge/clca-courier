@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useSiteStore } from '../stores/site-store-simple';
+import { ref, computed } from 'vue';
+import { useTheme } from '../composables/useTheme';
 import AppHeader from './AppHeader.vue';
 import AppNavigation from './AppNavigation.vue';
 import AppFooter from './AppFooter.vue';
@@ -27,13 +27,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-const siteStore = useSiteStore();
+const { cardClasses } = useTheme();
 const drawerOpen = ref(false);
 
-// Initialize store data when layout mounts
-onMounted(() => {
-  void siteStore.loadInitialData();
-});
+// Store initialization removed - handled by app-level initialization
 
 // Search value management
 const searchValue = computed({
@@ -43,7 +40,7 @@ const searchValue = computed({
 
 // Page container classes based on theme
 const pageContainerClasses = computed(() =>
-  siteStore.isDarkMode ? 'bg-dark-page' : 'bg-white'
+  cardClasses.value.includes('bg-dark') ? 'bg-dark-page' : 'bg-white'
 );
 
 const toggleDrawer = () => {

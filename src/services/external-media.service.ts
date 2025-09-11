@@ -13,7 +13,7 @@ interface MediaValidationResult {
   isValid: boolean;
   url: string;
   type: 'image' | 'video' | 'unknown';
-  provider?: 'imgur' | 'flickr' | 'dropbox' | 'google_drive' | 'generic';
+  provider?: 'imgur' | 'flickr' | 'dropbox' | 'google_drive' | 'google_photos' | 'instagram' | 'facebook' | 'generic';
   thumbnailUrl?: string;
   error?: string;
 }

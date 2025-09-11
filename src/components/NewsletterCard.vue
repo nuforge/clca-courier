@@ -154,7 +154,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useTheme } from '../composables/useTheme';
 import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import { logger } from '../utils/logger';
@@ -177,7 +177,7 @@ const emit = defineEmits<{
 // Composables
 const { t } = useI18n();
 const $q = useQuasar();
-const siteStore = useSiteStore();
+const { isDarkMode, cardClasses: themeCardClasses } = useTheme();
 
 // State
 const loading = ref(false);
@@ -191,15 +191,9 @@ const maxVisibleTags = 2;
 const maxDescriptionLength = 100;
 
 // Computed properties
-const isDarkMode = computed(() => siteStore.isDarkMode);
-
 const cardClasses = computed(() => {
   const base = 'newsletter-card';
-  if (isDarkMode.value) {
-    return `${base} bg-dark text-white q-dark`;
-  } else {
-    return `${base} bg-white text-dark`;
-  }
+  return `${base} ${themeCardClasses.value}`;
 });
 
 const cardStyle = computed(() => ({

@@ -1,20 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useQuasar } from 'quasar'
-import { useSiteStore } from '../stores/site-store-simple'
+import { useTheme } from '../composables/useTheme'
 import { DiscordIcon } from '../components/BrandIcons'
 
 const $q = useQuasar()
-const siteStore = useSiteStore()
-
-// Computed property for card theme classes
-const cardClasses = computed(() => {
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
+const { cardClasses } = useTheme()
 
 const form = ref({
   name: '',

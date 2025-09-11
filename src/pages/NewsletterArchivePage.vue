@@ -401,7 +401,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useTheme } from '../composables/useTheme';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
 import NewsletterCard from '../components/NewsletterCard.vue';
@@ -416,7 +416,7 @@ interface AccessibilityReport {
 }
 
 // Store
-const siteStore = useSiteStore();
+const { cardClasses, textClasses } = useTheme();
 
 // Translation function
 const { t } = useI18n();
@@ -466,19 +466,9 @@ const filters = ref({
   hasThumbnail: null as boolean | null
 });
 
-// Theme computed properties
-const isDarkMode = computed(() => siteStore.isDarkMode);
-const cardClasses = computed(() => {
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
-
-const greyTextClass = computed(() =>
-  siteStore.isDarkMode ? 'text-grey-4' : 'text-grey-7'
-);
+// Additional theme computed properties
+const isDarkMode = computed(() => textClasses.value.primary === 'text-white');
+const greyTextClass = computed(() => textClasses.value.secondary);
 
 // Admin access check - use proper role-based authorization
 const { isEditor } = useRoleAuth();

@@ -27,9 +27,8 @@ import { firebaseAuthService } from './firebase-auth.service';
 import { newsletterVersioningService } from './newsletter-versioning.service';
 import { logger } from '../utils/logger';
 import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
-import { sortByDateDesc, sortByDateAsc, normalizeDate } from '../utils/date-formatter';
+import { sortByDateDesc, sortByDateAsc } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
-import type { ContentDoc } from '../types/core/content.types';
 import type { CanvaDesign } from '../services/canva/types';
 
 // Newsletter metadata interface (Firebase Storage with future flexibility)

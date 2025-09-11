@@ -5,7 +5,7 @@
                 <div class="col-12 col-md-10 col-lg-8">
                     <!-- Back Button -->
                     <q-btn flat icon="mdi-arrow-left" label="Back to Archive" @click="goBackToArchive" class="q-mb-md"
-                        :color="isDarkMode ? 'white' : 'primary'" />
+                        :color="textClasses.primary === 'text-white' ? 'white' : 'primary'" />
 
                     <!-- Loading State -->
                     <div v-if="isLoading" class="row justify-center q-pa-lg">
@@ -225,7 +225,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useTheme } from '../composables/useTheme';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
@@ -234,7 +234,7 @@ import { logger } from '../utils/logger';
 const route = useRoute();
 const router = useRouter();
 const $q = useQuasar();
-const siteStore = useSiteStore();
+const { cardClasses, textClasses } = useTheme();
 
 // Archive composable
 const { getNewsletterById, newsletters } = useFirebaseNewsletterArchive();
@@ -246,17 +246,6 @@ const error = ref<string | null>(null);
 const thumbnailError = ref(false);
 const viewLoading = ref(false);
 const downloadLoading = ref(false);
-
-// Computed properties
-const isDarkMode = computed(() => siteStore.isDarkMode);
-
-const cardClasses = computed(() => {
-    if (isDarkMode.value) {
-        return 'bg-dark text-white q-dark';
-    } else {
-        return 'bg-white text-dark';
-    }
-});
 
 const formattedDate = computed(() => {
     if (!newsletter.value) return '';

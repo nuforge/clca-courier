@@ -387,6 +387,92 @@ class ContentSubmissionService {
       errors
     };
   }
+
+  // Legacy compatibility methods for existing ContentSubmissionForm
+  createMetadataTemplate(contentType: string): Record<string, unknown> {
+    logger.debug('Creating metadata template for content type', { contentType });
+
+    // Return empty metadata template - forms can customize as needed
+    const template: Record<string, unknown> = {};
+
+    switch (contentType) {
+      case 'event':
+        template.eventDate = '';
+        template.eventTime = '';
+        template.location = '';
+        break;
+      case 'classified':
+        template.price = '';
+        template.condition = '';
+        template.category = '';
+        break;
+      case 'article':
+        template.category = '';
+        template.readingTime = '';
+        break;
+      default:
+        // Generic template
+        break;
+    }
+
+    return template;
+  }
+
+  getPredefinedCategories(): string[] {
+    return [
+      'Community News',
+      'Events',
+      'Announcements',
+      'For Sale',
+      'Services',
+      'Lost & Found',
+      'Free Items',
+      'General',
+    ];
+  }
+
+  getUserDefinedCategories(): string[] {
+    // TODO: Implement user-defined categories from Firebase
+    return [];
+  }
+
+  async submitContent(formData: Record<string, unknown>): Promise<string> {
+    logger.debug('Legacy submitContent called', { formData });
+
+    // Extract form data
+    const title = formData.title as string || '';
+    const description = formData.content as string || '';
+    const contentType = formData.type as string || 'article';
+
+    // Build features from metadata
+    const features: Partial<ContentFeatures> = {};
+    const metadata = formData.metadata as Record<string, unknown> || {};
+
+    // Convert legacy metadata to features
+    if (contentType === 'event' && metadata.eventDate) {
+      features['feat:date'] = {
+        start: new Date(metadata.eventDate as string) as unknown as Timestamp,
+        isAllDay: true
+      };
+
+      if (metadata.location) {
+        features['feat:location'] = {
+          address: metadata.location as string
+        };
+      }
+    }
+
+    // Use the modern createContent method
+    return this.createContent(title, description, contentType, features);
+  }
+
+  attachCanvaDesign(contentId: string, canvaDesign: unknown): void {
+    logger.debug('Legacy attachCanvaDesign called', { contentId, canvaDesign });
+
+    // TODO: Implement Canva design attachment
+    // This would update the content document with Canva integration features
+    logger.warn('Canva design attachment not yet implemented in new service');
+  }
 }
 
 export const contentSubmissionService = new ContentSubmissionService();

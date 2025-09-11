@@ -1,17 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useSiteStore } from '../stores/site-store-simple'
+import { useTheme } from '../composables/useTheme'
 
-const siteStore = useSiteStore()
-
-// Computed property for card theme classes
-const cardClasses = computed(() => {
-    if (siteStore.isDarkMode) {
-        return 'bg-dark text-white q-dark';
-    } else {
-        return 'bg-white text-dark';
-    }
-});
+const { cardClasses } = useTheme()
 </script>
 
 <template>

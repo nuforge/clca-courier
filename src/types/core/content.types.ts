@@ -262,7 +262,7 @@ export interface ContentAttachment {
   /** The external URL of the media */
   externalUrl: string;
   /** Optional hosting provider for URL optimization */
-  hostingProvider?: 'imgur' | 'flickr' | 'dropbox' | 'google_drive' | 'generic';
+  hostingProvider?: 'imgur' | 'flickr' | 'dropbox' | 'google_drive' | 'google_photos' | 'instagram' | 'facebook' | 'generic';
   /** Optional caption for the media */
   caption?: string;
   /** Optional alt text for accessibility */

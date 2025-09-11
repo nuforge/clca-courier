@@ -422,13 +422,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useSiteStore } from '../stores/site-store-simple'
+import { useTheme } from '../composables/useTheme'
 import { useSiteTheme } from '../composables/useSiteTheme'
 
 const router = useRouter()
-const siteStore = useSiteStore()
+const { cardClasses } = useTheme()
 const { getContentIcon } = useSiteTheme()
 
 // Helper function to match old API
@@ -447,15 +447,6 @@ const checklist = ref({
   images: false,
   details: false
 })
-
-// Computed property for card theme classes
-const cardClasses = computed(() => {
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
 
 // Content type definitions with detailed guidance - using centralized icon system
 const contentTypes = [

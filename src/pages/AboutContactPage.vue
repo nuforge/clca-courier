@@ -1,25 +1,15 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useSiteStore } from '../stores/site-store-simple'
+import { useTheme } from '../composables/useTheme'
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys'
 
 const $q = useQuasar()
 const router = useRouter()
-const siteStore = useSiteStore()
+const { cardClasses } = useTheme()
 const { t } = useI18n()
-
-// Computed property for card theme classes
-const cardClasses = computed(() => {
-  // Use specific classes that ensure proper theming for all child components
-  if (siteStore.isDarkMode) {
-    return 'bg-dark text-white q-dark';
-  } else {
-    return 'bg-white text-dark';
-  }
-});
 
 // About section functions
 function volunteer() {

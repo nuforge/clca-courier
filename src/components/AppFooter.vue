@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useTheme } from '../composables/useTheme';
 
-const siteStore = useSiteStore();
+const { textClasses } = useTheme();
 const emailSubscription = ref('');
 const currentYear = new Date().getFullYear();
 
 const footerClasses = computed(() =>
-  siteStore.isDarkMode ? 'bg-dark text-white' : 'bg-grey text-white'
+  textClasses.value.primary === 'text-white' ? 'bg-dark text-white' : 'bg-grey text-white'
 );
 
 const quickLinks = [
