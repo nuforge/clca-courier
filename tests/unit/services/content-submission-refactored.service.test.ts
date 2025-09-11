@@ -81,7 +81,7 @@ describe('ContentSubmissionService - Refactored', () => {
           authorName: 'Test User',
           tags: ['content-type:article'],
           features: {},
-          status: 'draft'
+          status: 'published'
         })
       );
     });

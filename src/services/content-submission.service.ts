@@ -65,23 +65,40 @@ class ContentSubmissionService {
     });
 
     try {
+      // Validate input data before processing
+      const validation = this.validateContentData(title, description, features);
+      if (!validation.isValid) {
+        const errorMessage = `Content validation failed: ${validation.errors.join(', ')}`;
+        logger.error(errorMessage, { validation });
+        throw new Error(errorMessage);
+      }
+
       // Get current user from Firebase Auth
       const auth = getAuth();
       const currentUser: User | null = auth.currentUser;
 
       if (!currentUser) {
-        throw new Error('User must be authenticated to create content');
+        const errorMessage = 'User must be authenticated to create content';
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Validate content type
+      if (!contentType || contentType.trim().length === 0) {
+        const errorMessage = 'Content type is required and cannot be empty';
+        logger.error(errorMessage, { contentType });
+        throw new Error(errorMessage);
       }
 
       // Build tags array - always starts with content-type tag
-      const tags = [`content-type:${contentType}`, ...additionalTags];
+      const tags = [`content-type:${contentType.trim()}`, ...additionalTags];
 
       logger.debug('Content tags prepared', { tags });
 
       // Create ContentDoc using the factory function
       const contentDoc = createContentDoc({
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         authorId: currentUser.uid,
         authorName: currentUser.displayName || 'Unknown User',
         tags,
@@ -120,7 +137,13 @@ class ContentSubmissionService {
         contentType,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
-      throw error;
+
+      // Re-throw with enhanced error context if needed
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error('An unexpected error occurred while creating content');
+      }
     }
   }
 
@@ -384,6 +407,213 @@ class ContentSubmissionService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  /**
+   * Batch create multiple content items.
+   * Useful for importing content or creating multiple items at once.
+   *
+   * @param contentItems - Array of content creation data
+   * @returns Array of created content IDs
+   */
+  async batchCreateContent(
+    contentItems: Array<{
+      title: string;
+      description: string;
+      contentType: string;
+      features?: Partial<ContentFeatures>;
+      additionalTags?: string[];
+    }>
+  ): Promise<string[]> {
+    logger.info('Starting batch content creation', {
+      count: contentItems.length
+    });
+
+    const results: string[] = [];
+    const errors: Array<{ index: number; error: string; title: string }> = [];
+
+    for (let i = 0; i < contentItems.length; i++) {
+      const item = contentItems[i];
+
+      // Add null check for TypeScript strict mode
+      if (!item) {
+        const errorMessage = 'Content item is null or undefined';
+        errors.push({
+          index: i,
+          error: errorMessage,
+          title: 'Unknown'
+        });
+        logger.error('Batch item is null', { index: i });
+        continue;
+      }
+
+      try {
+        const contentId = await this.createContent(
+          item.title,
+          item.description,
+          item.contentType,
+          item.features || {},
+          item.additionalTags || []
+        );
+        results.push(contentId);
+
+        logger.debug('Batch item created successfully', {
+          index: i,
+          contentId,
+          title: item.title.substring(0, 30)
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        errors.push({
+          index: i,
+          error: errorMessage,
+          title: item.title.substring(0, 30)
+        });
+
+        logger.error('Batch item creation failed', {
+          index: i,
+          title: item.title.substring(0, 30),
+          error: errorMessage
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      logger.warn('Batch creation completed with errors', {
+        successful: results.length,
+        failed: errors.length,
+        errors
+      });
+    } else {
+      logger.info('Batch creation completed successfully', {
+        count: results.length
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * Update existing content with new features or data.
+   *
+   * @param contentId - ID of the content to update
+   * @param updates - Partial content updates
+   * @returns Promise that resolves when update is complete
+   */
+  async updateContent(
+    contentId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      features?: Partial<ContentFeatures>;
+      additionalTags?: string[];
+      status?: 'draft' | 'published' | 'archived';
+    }
+  ): Promise<void> {
+    logger.debug('Updating content', {
+      contentId,
+      updateKeys: Object.keys(updates)
+    });
+
+    try {
+      // Get current user for authorization
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        throw new Error('User must be authenticated to update content');
+      }
+
+      // Validate updated data if provided
+      if (updates.title || updates.description || updates.features) {
+        const validation = this.validateContentData(
+          updates.title || 'Valid Title', // Use current title if not updating
+          updates.description || 'Valid Description', // Use current description if not updating
+          updates.features || {}
+        );
+
+        if (!validation.isValid) {
+          throw new Error(`Content validation failed: ${validation.errors.join(', ')}`);
+        }
+      }
+
+      // TODO: Implementation depends on FirebaseContentService having an update method
+      // For now, we'll use the status update method if only status is being changed
+      if (updates.status && Object.keys(updates).length === 1) {
+        await firebaseContentService.updateContentStatus(contentId, updates.status);
+      } else {
+        logger.warn('Full content updates not yet implemented', {
+          contentId,
+          updates: Object.keys(updates)
+        });
+        throw new Error('Full content updates not yet implemented - only status updates are supported');
+      }
+
+      logger.info('Content updated successfully', {
+        contentId,
+        updateKeys: Object.keys(updates)
+      });
+
+    } catch (error) {
+      logger.error('Failed to update content', {
+        contentId,
+        updateKeys: Object.keys(updates),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get content creation statistics for analytics.
+   *
+   * @returns Statistics about content creation
+   */
+  async getContentStats(): Promise<{
+    totalPublished: number;
+    byType: Record<string, number>;
+    byAuthor: Record<string, number>;
+    recent: number;
+  }> {
+    logger.debug('Fetching content statistics');
+
+    try {
+      const publishedContent = await firebaseContentService.getPublishedContent();
+
+      const stats = {
+        totalPublished: publishedContent.length,
+        byType: {} as Record<string, number>,
+        byAuthor: {} as Record<string, number>,
+        recent: 0
+      };
+
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      for (const content of publishedContent) {
+        // Count by type
+        const contentType = content.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'unknown';
+        stats.byType[contentType] = (stats.byType[contentType] || 0) + 1;
+
+        // Count by author
+        const authorName = content.authorName || 'Unknown';
+        stats.byAuthor[authorName] = (stats.byAuthor[authorName] || 0) + 1;
+
+        // Count recent content
+        if (content.timestamps.created.toDate() > oneWeekAgo) {
+          stats.recent++;
+        }
+      }
+
+      logger.info('Content statistics generated', stats);
+      return stats;
+
+    } catch (error) {
+      logger.error('Failed to fetch content statistics', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
   }
 
   // Legacy compatibility methods for existing ContentSubmissionForm
