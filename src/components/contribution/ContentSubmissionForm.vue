@@ -82,14 +82,28 @@
 
       <!-- Canva Integration -->
       <div class="canva-integration q-mb-lg">
+        <!-- Template Selection -->
+        <div v-if="!formData.canvaDesign" class="template-selection-section q-mb-md">
+          <CanvaTemplateSelector
+            v-model="selectedTemplateId"
+            :content-type="formData.type"
+            @template-selected="onTemplateSelected"
+            @template-cleared="onTemplateCleared"
+          />
+        </div>
+
+        <!-- Design Creation/Management -->
         <q-card flat bordered class="q-pa-md">
           <div class="row items-center q-col-gutter-md">
             <div class="col-12 col-md-8">
               <div class="text-subtitle2 q-mb-xs">
-                {{ $t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA) }}
+                {{ selectedTemplate ? $t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA) : $t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA) }}
               </div>
               <p class="text-caption text-grey-7 q-ma-none">
-                Create professional designs for your content using Canva's templates and tools.
+                {{ selectedTemplate
+                  ? `Using template: ${selectedTemplate.name}. Your content will be automatically populated.`
+                  : 'Create professional designs for your content using Canva\'s templates and tools.'
+                }}
               </p>
               <div v-if="formData.canvaDesign" class="q-mt-sm">
                 <q-chip
@@ -118,10 +132,10 @@
                 v-if="!formData.canvaDesign"
                 color="primary"
                 :icon="UI_ICONS.create"
-                :label="$t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA)"
-                :loading="canvaLoading"
+                :label="selectedTemplate ? 'Create with Template' : $t(TRANSLATION_KEYS.CANVA.CREATE_WITH_CANVA)"
+                :loading="canvaLoading || isCreatingWithAutofill"
                 :disable="!formData.title"
-                @click="createCanvaDesign"
+                @click="selectedTemplate ? createCanvaDesignWithAutofill() : createCanvaDesign()"
                 class="full-width-mobile"
               />
               <q-btn
@@ -182,13 +196,15 @@ import { useI18n } from 'vue-i18n';
 import { contentSubmissionService } from '../../services/content-submission.service';
 import { useCanvaAuth } from '../../composables/useCanvaAuth';
 import { canvaApiService } from '../../services/canva-api.service';
+import { logger } from '../../utils/logger';
+import { Timestamp } from 'firebase/firestore';
 import type {
   ContentType,
   ContentSubmissionData,
   BaseContentItem,
   EventMetadata,
 } from '../../types/core/content.types';
-import type { CanvaDesign } from '../../services/canva/types';
+import type { CanvaDesign, CanvaTemplateConfig } from '../../services/canva/types';
 import { TRANSLATION_KEYS } from '../../i18n/utils/translation-keys';
 import { UI_ICONS } from '../../constants/ui-icons';
 
@@ -202,6 +218,7 @@ import ProjectMetadataFields from './metadata/ProjectMetadataFields.vue';
 import ClassifiedMetadataFields from './metadata/ClassifiedMetadataFields.vue';
 import PhotoStoryMetadataFields from './metadata/PhotoStoryMetadataFields.vue';
 import AnnouncementMetadataFields from './metadata/AnnouncementMetadataFields.vue';
+import CanvaTemplateSelector from '../canva/CanvaTemplateSelector.vue';
 
 interface Props {
   editMode?: boolean;
@@ -242,6 +259,11 @@ const savingDraft = ref(false);
 const showPreview = ref(false);
 const showTargetIssue = ref(true);
 const canvaLoading = ref(false);
+
+// Canva template selection state
+const selectedTemplateId = ref<string | undefined>(undefined);
+const selectedTemplate = ref<CanvaTemplateConfig | undefined>(undefined);
+const isCreatingWithAutofill = ref(false);
 
 // Update form metadata and handle event-specific calendar fields
 function updateFormMetadata(metadata: Record<string, unknown>) {
@@ -791,7 +813,160 @@ async function createCanvaDesign(): Promise<void> {
   } finally {
     canvaLoading.value = false;
   }
-}async function downloadCanvaDesign(): Promise<void> {
+}
+
+// Template selection handlers
+function onTemplateSelected(template: CanvaTemplateConfig): void {
+  selectedTemplate.value = template;
+  logger.debug('Template selected for content submission:', {
+    templateId: template.id,
+    templateName: template.name,
+    contentType: formData.value.type,
+    fieldMapping: template.fieldMapping
+  });
+}
+
+function onTemplateCleared(): void {
+  selectedTemplate.value = undefined;
+  selectedTemplateId.value = undefined;
+  logger.debug('Template selection cleared');
+}
+
+// Create design with autofill using selected template
+async function createCanvaDesignWithAutofill(): Promise<void> {
+  if (!selectedTemplate.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please select a template first',
+    });
+    return;
+  }
+
+  if (!formData.value.title) {
+    $q.notify({
+      type: 'warning',
+      message: t('canva.authRequired'),
+    });
+    return;
+  }
+
+  // Check if user is authenticated with Canva
+  if (!isCanvaAuthenticated.value) {
+    try {
+      initiateOAuth();
+      return; // OAuth will redirect, function will be called again after callback
+    } catch {
+      $q.notify({
+        type: 'negative',
+        message: t('canva.authFailed'),
+      });
+      return;
+    }
+  }
+
+  isCreatingWithAutofill.value = true;
+
+  try {
+    $q.notify({
+      type: 'info',
+      message: t(TRANSLATION_KEYS.CANVA.DESIGN_CREATING),
+      timeout: 1000,
+    });
+
+    // Prepare autofill data based on template field mapping
+    const autofillData = prepareAutofillData(selectedTemplate.value);
+
+    logger.debug('Creating Canva design with autofill:', {
+      templateId: selectedTemplate.value.id,
+      autofillData
+    });
+
+    // Call the autofill API method
+    const result = await canvaApiService.createDesignWithAutofill(
+      selectedTemplate.value.id,
+      autofillData
+    );
+
+    // Create CanvaDesign object from result
+    const design: CanvaDesign = {
+      id: result.designId,
+      editUrl: result.editUrl,
+      exportUrl: null,
+      status: 'draft',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+
+    formData.value.canvaDesign = design;
+
+    // Update the content submission data with template info
+    formData.value.canvaTemplateId = selectedTemplate.value.id;
+    formData.value.autoFillData = autofillData;
+
+    $q.notify({
+      type: 'positive',
+      message: t('canva.designCreated'),
+      timeout: 3000,
+      actions: [
+        {
+          label: t('canva.openDesign'),
+          color: 'white',
+          handler: () => openCanvaDesign(design.editUrl),
+        },
+      ],
+    });
+
+  } catch (canvaApiError) {
+    logger.error('Failed to create Canva design with autofill:', canvaApiError);
+    $q.notify({
+      type: 'negative',
+      message: canvaApiError instanceof Error ? canvaApiError.message : t('canva.connectionError'),
+    });
+  } finally {
+    isCreatingWithAutofill.value = false;
+  }
+}
+
+// Prepare autofill data based on template field mapping
+function prepareAutofillData(template: CanvaTemplateConfig): Record<string, unknown> {
+  const autofillData: Record<string, unknown> = {};
+
+  if (!template.fieldMapping) {
+    return autofillData;
+  }
+
+  // Map form data to template fields
+  for (const [templateField, formField] of Object.entries(template.fieldMapping)) {
+    let value: unknown;
+
+    // Handle nested field paths (e.g., "metadata.eventDate")
+    if (formField.includes('.')) {
+      const fieldPath = formField.split('.');
+      value = fieldPath.reduce((obj: unknown, key: string) => {
+        return obj && typeof obj === 'object' && key in obj
+          ? (obj as Record<string, unknown>)[key]
+          : undefined;
+      }, formData.value);
+    } else {
+      // Direct field mapping
+      value = (formData.value as Record<string, unknown>)[formField];
+    }
+
+    // Only include non-empty values
+    if (value !== undefined && value !== null && value !== '') {
+      autofillData[templateField] = value;
+    }
+  }
+
+  logger.debug('Prepared autofill data:', {
+    templateMapping: template.fieldMapping,
+    resultData: autofillData
+  });
+
+  return autofillData;
+}
+
+async function downloadCanvaDesign(): Promise<void> {
   if (!formData.value.canvaDesign) return;
 
   try {

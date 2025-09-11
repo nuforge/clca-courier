@@ -62,7 +62,9 @@ export const TRANSLATION_KEYS = {
     PRINT: 'common.print',
     EXPAND: 'common.expand',
     COLLAPSE: 'common.collapse',
-    TOGGLE: 'common.toggle'
+    TOGGLE: 'common.toggle',
+    RETRY: 'common.retry',
+    CLEAR_SELECTION: 'common.clearSelection'
   },
 
   // Forms and Validation
@@ -167,6 +169,19 @@ export const TRANSLATION_KEYS = {
     DOWNLOAD_DESIGN: 'canva.downloadDesign',
     PROCESSING: 'canva.processing',
     READY_FOR_DOWNLOAD: 'canva.readyForDownload',
+    // Template Selection
+    SELECT_TEMPLATE: 'canva.selectTemplate',
+    SELECT_TEMPLATE_DESCRIPTION: 'canva.selectTemplateDescription',
+    LOADING_TEMPLATES: 'canva.loadingTemplates',
+    NO_TEMPLATES_AVAILABLE: 'canva.noTemplatesAvailable',
+    TEMPLATE_INACTIVE: 'canva.templateInactive',
+    TEMPLATE_INACTIVE_WARNING: 'canva.templateInactiveWarning',
+    TEMPLATE_SELECTED: 'canva.templateSelected',
+    NO_DESCRIPTION: 'canva.noDescription',
+    MAPPED_FIELDS: 'canva.mappedFields',
+    FIELD_MAPPING_DETAILS: 'canva.fieldMappingDetails',
+    LOAD_TEMPLATES_ERROR: 'canva.loadTemplatesError',
+    DESIGN_CREATING: 'canva.designCreating',
     // OAuth specific keys
     OAUTH_INITIATED: 'canva.oauthInitiated',
     OAUTH_SUCCESS: 'canva.oauthSuccess',

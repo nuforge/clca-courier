@@ -43,5 +43,7 @@ export default {
   print: 'Print',
   expand: 'Expand',
   collapse: 'Collapse',
-  toggle: 'Toggle'
+  toggle: 'Toggle',
+  retry: 'Retry',
+  clearSelection: 'Clear Selection'
 };

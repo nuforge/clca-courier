@@ -43,5 +43,7 @@ export default {
   print: 'Imprimir',
   expand: 'Expandir',
   collapse: 'Contraer',
-  toggle: 'Alternar'
+  toggle: 'Alternar',
+  retry: 'Reintentar',
+  clearSelection: 'Limpiar Selección'
 };

@@ -1337,6 +1337,28 @@ class FirebaseFirestoreService {
       throw error;
     }
   }
+
+  /**
+   * Get a document by its path
+   * @param documentPath - The path to the document (e.g., 'app/config')
+   * @returns The document data or null if not found
+   */
+  async getDocument(documentPath: string): Promise<Record<string, unknown> | null> {
+    try {
+      const docRef = doc(firestore, documentPath);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        return docSnap.data() as Record<string, unknown>;
+      } else {
+        logger.debug(`Document not found: ${documentPath}`);
+        return null;
+      }
+    } catch (error) {
+      logger.error(`Error getting document ${documentPath}:`, error);
+      throw error;
+    }
+  }
 }
 
 // Export Firebase utilities

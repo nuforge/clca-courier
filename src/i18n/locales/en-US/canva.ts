@@ -19,6 +19,20 @@ export const canva = {
   processing: 'Processing...',
   readyForDownload: 'Ready for download',
 
+  // Template Selection
+  selectTemplate: 'Select Canva Template',
+  selectTemplateDescription: 'Choose a brand template to automatically populate with your content',
+  loadingTemplates: 'Loading available templates...',
+  noTemplatesAvailable: 'No templates are currently available',
+  templateInactive: 'Inactive',
+  templateInactiveWarning: 'This template is currently inactive and cannot be used',
+  templateSelected: 'Template "{name}" selected',
+  noDescription: 'No description available',
+  mappedFields: 'Mapped Fields',
+  fieldMappingDetails: 'Field Mapping Details',
+  loadTemplatesError: 'Failed to load templates: {error}',
+  designCreating: 'Creating your design...',
+
   // Authentication
   authRequired: 'Please sign in to connect with Canva',
   authFailed: 'Failed to connect to Canva. Please try again.',

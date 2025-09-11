@@ -19,6 +19,20 @@ export const canva = {
   processing: 'Procesando...',
   readyForDownload: 'Listo para descargar',
 
+  // Template Selection
+  selectTemplate: 'Seleccionar Plantilla de Canva',
+  selectTemplateDescription: 'Elige una plantilla de marca para rellenar automáticamente con tu contenido',
+  loadingTemplates: 'Cargando plantillas disponibles...',
+  noTemplatesAvailable: 'No hay plantillas disponibles actualmente',
+  templateInactive: 'Inactiva',
+  templateInactiveWarning: 'Esta plantilla está actualmente inactiva y no se puede usar',
+  templateSelected: 'Plantilla "{name}" seleccionada',
+  noDescription: 'Sin descripción disponible',
+  mappedFields: 'Campos Mapeados',
+  fieldMappingDetails: 'Detalles del Mapeo de Campos',
+  loadTemplatesError: 'Error al cargar plantillas: {error}',
+  designCreating: 'Creando tu diseño...',
+
   // Authentication
   authRequired: 'Por favor inicia sesión para conectar con Canva',
   authFailed: 'Error al conectar con Canva. Por favor intenta de nuevo.',

@@ -9,7 +9,6 @@
  */
 
 import type { Timestamp } from 'firebase/firestore';
-import type { ContentType } from '../../types/core/content.types';
 
 /**
  * Canva design status literal union type
@@ -179,27 +178,27 @@ export interface CanvaTemplateConfig {
   name: string;
 
   /** Description of the template's purpose and design */
-  description: string;
+  description?: string;
 
-  /** Links to our internal content type system */
-  contentType: ContentType;
+  /** Links to our internal content type system - can support multiple types */
+  contentTypes?: string[];
 
   /**
    * Field mapping for autofill functionality
    * Maps Canva template placeholders to content data paths
    * e.g., { "eventTitle": "title", "eventDate": "metadata.eventDate" }
    */
-  fieldMapping: Record<string, string>;
+  fieldMapping?: Record<string, string>;
 
   /** Optional thumbnail URL for template preview */
   thumbnailUrl?: string;
 
   /** Whether this template is active and available for use */
-  isActive: boolean;
+  isActive?: boolean;
 
   /** Creation timestamp (Firebase Timestamp) */
-  createdAt: Timestamp;
+  createdAt?: Timestamp;
 
   /** Last updated timestamp (Firebase Timestamp) */
-  updatedAt: Timestamp;
+  updatedAt?: Timestamp;
 }
