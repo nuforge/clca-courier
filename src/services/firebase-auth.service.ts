@@ -99,13 +99,19 @@ class FirebaseAuthService {
       this.avatarCache.set(cacheKey, dataUrl);
       this.avatarCacheExpiry.set(cacheKey, now + this.AVATAR_CACHE_TTL);
 
-      // Update the current user's photoURL with cached version
+      // Update the entire auth state to ensure Vue reactivity works
       if (this.authState.user && this.authState.user.uid === cacheKey) {
-        // Create a new user object to ensure Vue reactivity works
-        this.authState.user = {
+        // Create completely new state objects for Vue reactivity
+        const updatedUser = {
           ...this.authState.user,
           photoURL: dataUrl
         };
+
+        this.authState = {
+          ...this.authState,
+          user: updatedUser
+        };
+
         this.notifyListeners(); // Trigger UI update
         logger.success('Avatar cached successfully and UI updated');
       }
@@ -147,25 +153,30 @@ class FirebaseAuthService {
       const originalPhotoURL = user.photoURL;
       const cacheKey = user.uid;
 
+      logger.debug('Processing avatar for user:', { uid: user.uid, originalPhotoURL });
+
       if (this.avatarCache.has(cacheKey) && this.avatarCacheExpiry.has(cacheKey)) {
         const now = Date.now();
         const expiry = this.avatarCacheExpiry.get(cacheKey)!;
         if (now < expiry) {
           // Use valid cached version
           cachedPhotoURL = this.avatarCache.get(cacheKey)!;
+          logger.debug('Using valid cached avatar');
         } else {
           // Cache expired, use cached version while updating in background
           cachedPhotoURL = this.avatarCache.get(cacheKey)!;
+          logger.debug('Cache expired, refreshing avatar');
           void this.cacheAvatarImage(originalPhotoURL, cacheKey);
         }
       } else {
         // No cache entry, show default icon while caching in background
         cachedPhotoURL = null;
+        logger.debug('No cached avatar found, starting background caching');
         void this.cacheAvatarImage(originalPhotoURL, cacheKey);
       }
     }
 
-    return {
+    const transformedUser = {
       uid: user.uid,
       email: user.email,
       displayName: user.displayName,
@@ -184,6 +195,9 @@ class FirebaseAuthService {
         photoURL: provider.photoURL,
       })),
     };
+
+    logger.debug('Transformed user:', { uid: transformedUser.uid, hasPhotoURL: !!transformedUser.photoURL });
+    return transformedUser;
   }
 
   /**

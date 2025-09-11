@@ -47,6 +47,15 @@ watch(isMini, (mini: boolean) => {
   void setSideMenuCollapsed(mini);
 });
 
+// Debug watcher for auth state changes
+watch(() => auth.currentUser.value?.photoURL, (newPhotoURL, oldPhotoURL) => {
+  console.log('Avatar URL changed:', {
+    old: oldPhotoURL?.substring(0, 50),
+    new: newPhotoURL?.substring(0, 50),
+    hasData: newPhotoURL?.startsWith('data:')
+  });
+}, { immediate: true });
+
 // Settings navigation item
 const settingsItem = computed((): NavigationItemType => ({
   title: t(TRANSLATION_KEYS.NAVIGATION.SETTINGS),
@@ -137,7 +146,13 @@ const isOpen = computed({
           <div v-if="!isMini" class="bg-dark text-white rounded-borders q-pa-sm">
             <div class="row items-center">
               <q-avatar size="24px" class="q-mr-sm">
-                <img v-if="auth.currentUser.value?.photoURL && auth.currentUser.value.photoURL.startsWith('data:')" :src="auth.currentUser.value.photoURL" />
+                <img
+                  v-if="auth.currentUser.value?.photoURL"
+                  :src="auth.currentUser.value.photoURL"
+                  alt="User Avatar"
+                  @load="() => console.log('Avatar loaded:', auth.currentUser.value?.photoURL?.substring(0, 50))"
+                  @error="() => console.log('Avatar failed to load')"
+                />
                 <q-icon v-else :name="UI_ICONS.account" />
               </q-avatar>
               <div class="col">
@@ -156,7 +171,13 @@ const isOpen = computed({
           </div>
           <div v-else class="text-center">
             <q-avatar size="32px" class="q-mb-xs">
-              <img v-if="auth.currentUser.value?.photoURL && auth.currentUser.value.photoURL.startsWith('data:')" :src="auth.currentUser.value.photoURL" />
+              <img
+                v-if="auth.currentUser.value?.photoURL"
+                :src="auth.currentUser.value.photoURL"
+                alt="User Avatar"
+                @load="() => console.log('Mini avatar loaded:', auth.currentUser.value?.photoURL?.substring(0, 50))"
+                @error="() => console.log('Mini avatar failed to load')"
+              />
               <q-icon v-else :name="UI_ICONS.account" />
             </q-avatar>
             <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" round size="xs" class="text-grey-4" />
