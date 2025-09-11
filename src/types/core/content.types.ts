@@ -325,4 +325,8 @@ export interface ContentSubmissionData {
 
   // Canva integration for design creation
   canvaDesign?: CanvaDesign;
+
+  // Brand Templates and Autofill integration
+  canvaTemplateId?: string; // ID of the Brand Template used
+  autoFillData?: Record<string, unknown>; // Key-value pairs for Autofill
 }

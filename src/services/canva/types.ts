@@ -9,6 +9,7 @@
  */
 
 import type { Timestamp } from 'firebase/firestore';
+import type { ContentType } from '../../types/core/content.types';
 
 /**
  * Canva design status literal union type
@@ -150,4 +151,43 @@ export interface CanvaAuthTokens {
   refreshToken: string;
   expiresAt: number; // Unix timestamp
   scope: string[];
+}
+
+/**
+ * Brand Template Configuration Interface
+ *
+ * Maps Canva Brand Templates to content types with field mappings for autofill.
+ * Stored in admin-configurable collection to avoid creating new top-level collections.
+ */
+export interface CanvaTemplateConfig {
+  /** Canva's Brand Template ID */
+  id: string;
+
+  /** Human-readable name for the template */
+  name: string;
+
+  /** Description of the template's purpose and design */
+  description: string;
+
+  /** Links to our internal content type system */
+  contentType: ContentType;
+
+  /**
+   * Field mapping for autofill functionality
+   * Maps Canva template placeholders to content data paths
+   * e.g., { "eventTitle": "title", "eventDate": "metadata.eventDate" }
+   */
+  fieldMapping: Record<string, string>;
+
+  /** Optional thumbnail URL for template preview */
+  thumbnailUrl?: string;
+
+  /** Whether this template is active and available for use */
+  isActive: boolean;
+
+  /** Creation timestamp (Firebase Timestamp) */
+  createdAt: Timestamp;
+
+  /** Last updated timestamp (Firebase Timestamp) */
+  updatedAt: Timestamp;
 }
