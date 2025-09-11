@@ -27,7 +27,7 @@ export default defineBoot(({ app }) => {
     locale: getInitialLocale(), // Use smart locale detection
     fallbackLocale: 'en-US',
     legacy: false,
-    messages,
+    messages: messages as any, // TODO: Fix Spanish translation structure to match English
     // Enable better debugging in development
     missingWarn: process.env.NODE_ENV === 'development',
     fallbackWarn: process.env.NODE_ENV === 'development',

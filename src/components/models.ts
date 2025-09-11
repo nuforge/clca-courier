@@ -4,8 +4,8 @@
  * Import types from src/types instead
  */
 
-// Re-export from centralized types for backward compatibility
-export type { Meta, NewsItem, ClassifiedAd as Classified, Event } from '../types';
+// Legacy interfaces have been removed - use ContentDoc from @/types/core/content.types
+// This file is kept for backward compatibility but exports are disabled
 
-// Note: This file will be removed in a future version
-// Please update imports to use: import { NewsItem, Event, ClassifiedAd } from '@/types'
+// TODO: Remove this file once all imports are updated to use ContentDoc
+// Please update imports to use: import { ContentDoc } from '@/types/core/content.types'

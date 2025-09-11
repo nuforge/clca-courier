@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useTheme } from '../composables/useTheme';
-import { useSiteStore } from '../stores/site-store-simple';
+import { useContentStore } from '../stores/content-store';
 import { getPublicPath } from '../utils/path-utils';
 
 const { cardClasses, textClasses } = useTheme();
-const siteStore = useSiteStore();
+const contentStore = useContentStore();
 
 // Google Drive image downloaded locally - WORKING SOLUTION!
 const heroBackgroundImage = getPublicPath('images/hero-background.jpg');
@@ -147,14 +147,17 @@ const quickLinks: QuickLink[] = [
                     Upcoming Events
                   </div>
                   <q-list separator>
-                    <q-item v-for="event in siteStore.upcomingEvents.slice(0, 2)" :key="event.id">
+                    <q-item v-for="event in contentStore.events.slice(0, 2)" :key="event.id">
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ event.title }}</q-item-label>
-                        <q-item-label caption>{{ new Date(event.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }) }} • {{ event.time }}</q-item-label>
+                        <q-item-label caption>{{
+                          event.features['feat:date']?.start ?
+                          new Date(event.features['feat:date'].start.toDate()).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }) : 'Date TBD'
+                        }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -173,12 +176,11 @@ const quickLinks: QuickLink[] = [
                     Recent Classifieds
                   </div>
                   <q-list separator>
-                    <q-item v-for="classified in siteStore.recentClassifieds.slice(0, 2)" :key="classified.id">
+                    <q-item v-for="classified in contentStore.classifieds.slice(0, 2)" :key="classified.id">
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ classified.title }}</q-item-label>
                         <q-item-label caption>{{ classified.description.length > 50 ?
-                          classified.description.substring(0, 50) + '...' : classified.description }} {{
-                            classified.price ? '• ' + classified.price : '' }}</q-item-label>
+                          classified.description.substring(0, 50) + '...' : classified.description }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -200,19 +202,19 @@ const quickLinks: QuickLink[] = [
               <div class="text-h6 text-center q-mb-md">Our Community</div>
               <div class="row text-center">
                 <div class="col-3">
-                  <div class="text-h4 text-primary">{{ siteStore.communityStats.households }}+</div>
+                  <div class="text-h4 text-primary">500+</div>
                   <div class="text-caption">Households</div>
                 </div>
                 <div class="col-3">
-                  <div class="text-h4 text-blue">{{ siteStore.communityStats.lakes }}</div>
+                  <div class="text-h4 text-blue">16</div>
                   <div class="text-caption">Lakes</div>
                 </div>
                 <div class="col-3">
-                  <div class="text-h4 text-green">{{ siteStore.communityStats.yearsPublished }}</div>
+                  <div class="text-h4 text-green">25+</div>
                   <div class="text-caption">Years</div>
                 </div>
                 <div class="col-3">
-                  <div class="text-h4 text-orange">{{ siteStore.communityStats.issuesPerYear }}</div>
+                  <div class="text-h4 text-orange">12</div>
                   <div class="text-caption">Issues/Year</div>
                 </div>
               </div>

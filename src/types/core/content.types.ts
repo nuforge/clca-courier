@@ -251,6 +251,27 @@ export function isContentDoc(obj: unknown): obj is ContentDoc {
 }
 
 /**
+ * External media attachment interface for handling user-provided images and media.
+ * Used by external-media.service.ts for processing external URLs.
+ */
+export interface ContentAttachment {
+  /** Unique identifier for the attachment */
+  id: string;
+  /** Type of attachment - image or video */
+  type: 'external_image' | 'external_video';
+  /** The external URL of the media */
+  externalUrl: string;
+  /** Optional hosting provider for URL optimization */
+  hostingProvider?: 'imgur' | 'flickr' | 'dropbox' | 'google_drive' | 'generic';
+  /** Optional caption for the media */
+  caption?: string;
+  /** Optional alt text for accessibility */
+  alt?: string;
+  /** Whether this is user-hosted content (true for external URLs) */
+  isUserHosted: boolean;
+}
+
+/**
  * Create a new ContentDoc with default values and proper timestamp initialization.
  * Useful for creating new content objects with consistent structure.
  *

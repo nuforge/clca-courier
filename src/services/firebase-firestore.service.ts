@@ -29,7 +29,7 @@ import { logger } from '../utils/logger';
 import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
 import { sortByDateDesc, sortByDateAsc, normalizeDate } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
-import type { NewsItem, ClassifiedAd, Event } from '../types/core/content.types';
+import type { ContentDoc } from '../types/core/content.types';
 import type { CanvaDesign } from '../services/canva/types';
 
 // Newsletter metadata interface (Firebase Storage with future flexibility)
@@ -712,6 +712,12 @@ class FirebaseFirestoreService {
     }
   }
 
+  // ========================================
+  // LEGACY CONVERSION METHODS - COMMENTED OUT FOR MIGRATION
+  // These will be replaced with ContentDoc queries
+  // ========================================
+
+  /*
   // Convert UserContent to NewsItem for display
   convertUserContentToNewsItem(userContent: UserContent): NewsItem {
     // Map content type to category
@@ -893,6 +899,11 @@ class FirebaseFirestoreService {
       },
     );
   }
+  */
+
+  // ========================================
+  // END LEGACY METHODS
+  // ========================================
 
   // User profile operations
   async createUserProfile(profile: Omit<UserProfile, 'createdAt' | 'lastLoginAt'>): Promise<void> {

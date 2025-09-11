@@ -13,7 +13,7 @@ interface MediaValidationResult {
   isValid: boolean;
   url: string;
   type: 'image' | 'video' | 'unknown';
-  provider?: 'google_photos' | 'google_drive' | 'instagram' | 'facebook' | 'other';
+  provider?: 'imgur' | 'flickr' | 'dropbox' | 'google_drive' | 'generic';
   thumbnailUrl?: string;
   error?: string;
 }
@@ -214,12 +214,12 @@ class ExternalMediaService {
   private detectProvider(url: string): ContentAttachment['hostingProvider'] {
     const hostname = new URL(url).hostname.toLowerCase();
 
+    if (hostname.includes('drive.google.com') || hostname.includes('dropbox.com')) return 'dropbox';
+    if (hostname.includes('imgur.com')) return 'imgur';
+    if (hostname.includes('flickr.com')) return 'flickr';
     if (hostname.includes('drive.google.com')) return 'google_drive';
-    if (hostname.includes('photos.google.com')) return 'google_photos';
-    if (hostname.includes('instagram.com')) return 'instagram';
-    if (hostname.includes('facebook.com')) return 'facebook';
 
-    return 'other';
+    return 'generic';
   }
 
   /**
@@ -248,8 +248,10 @@ class ExternalMediaService {
         // Already normalized in normalizeUrl
         return url;
 
-      case 'google_photos':
-        // Google Photos requires special handling
+      case 'imgur':
+      case 'flickr':
+      case 'dropbox':
+        // Return URL as-is for these providers
         return url;
 
       default:
@@ -306,7 +308,7 @@ class ExternalMediaService {
    */
   getOptimalImageUrl(attachment: ContentAttachment, maxWidth?: number, maxHeight?: number): string {
     if (!attachment.externalUrl) {
-      return attachment.firebaseUrl || '';
+      return '';
     }
 
     // If proxy is enabled, use it for optimization

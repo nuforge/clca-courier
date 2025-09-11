@@ -239,5 +239,35 @@ export default {
     feedbackSupport: 'Comentarios y Soporte',
     legalInfo: 'Información Legal',
     contactInfo: 'Información de Contacto'
+  },
+
+  // Test Content V2 Page
+  testContentV2: {
+    title: 'Página de Prueba de Arquitectura de Contenido',
+    description: 'Esta página demuestra la nueva arquitectura de contenido componible con renderizado basado en características.',
+    createEvent: 'Crear Evento de Muestra',
+    createTask: 'Crear Tarea de Muestra',
+    createHybrid: 'Crear Contenido Híbrido',
+    refresh: 'Actualizar',
+    totalContent: 'Total de Contenido',
+    withFeatures: 'Con Características',
+    contentList: 'Lista de Contenido',
+    showFeaturedOnly: 'Mostrar Solo Destacados',
+    loading: 'Cargando contenido...',
+    noContent: 'No hay contenido disponible. Crea contenido de muestra para comenzar.',
+    noFilteredContent: 'Ningún contenido coincide con el filtro actual.',
+    createFirst: 'Crear Tu Primer Contenido',
+    contentCreated: '¡Contenido creado exitosamente! ID: {id}',
+    eventCreated: '¡Evento de muestra creado exitosamente!',
+    taskCreated: '¡Tarea de muestra creada exitosamente!',
+    hybridCreated: '¡Contenido híbrido de muestra creado exitosamente!',
+    createError: 'Error al crear contenido',
+    loadError: 'Error al cargar contenido',
+    contentClicked: 'Contenido "{title}" clicado',
+    editNotImplemented: 'Funcionalidad de edición aún no implementada',
+    confirmDelete: 'Confirmar Eliminación',
+    deleteMessage: '¿Estás seguro de que quieres eliminar "{title}"?',
+    deleteNotImplemented: 'Funcionalidad de eliminación aún no implementada',
+    taskClaimed: '¡Tarea "{title}" reclamada exitosamente!'
   }
 };

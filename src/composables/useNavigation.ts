@@ -65,9 +65,29 @@ export const useNavigation = () => {
     },
   ]);
 
+  // Development/Testing items for authenticated users
+  const developmentItems = computed((): NavigationItem[] => {
+    if (!isAuthenticatedUser.value) return [];
+
+    return [
+      {
+        title: 'Test Content V2',
+        icon: 'mdi-test-tube',
+        link: '/test-content-v2',
+      },
+    ];
+  });
+
   // Navigation items without admin items (admin items are now in bottom section)
   const navigationItems = computed(() => {
-    return baseNavigationItems.value;
+    const items = [...baseNavigationItems.value];
+
+    // Add development items for authenticated users
+    if (isAuthenticatedUser.value) {
+      items.push(...developmentItems.value);
+    }
+
+    return items;
   });
 
   return {

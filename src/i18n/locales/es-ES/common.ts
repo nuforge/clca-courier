@@ -46,5 +46,18 @@ export default {
   toggle: 'Alternar',
   retry: 'Reintentar',
   clearSelection: 'Limpiar Selección',
-  by: 'Por'
+  by: 'Por',
+
+  accessibility: {
+    showActions: 'Mostrar menú de acciones',
+    claimTask: 'Reclamar esta tarea',
+    openMap: 'Abrir ubicación en mapa',
+    editCanvaDesign: 'Editar diseño de Canva',
+    downloadCanvaExport: 'Descargar exportación de Canva'
+  },
+
+  actions: {
+    edit: 'Editar',
+    delete: 'Eliminar'
+  }
 };

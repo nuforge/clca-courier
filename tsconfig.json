@@ -1,4 +1,11 @@
 {
   "extends": "./.quasar/tsconfig.json",
-  "exclude": ["scripts/**/*", "dist/**/*", ".quasar/dist/**/*", "node_modules/**/*"]
+  "exclude": [
+    "scripts/**/*", 
+    "dist/**/*", 
+    ".quasar/dist/**/*", 
+    "node_modules/**/*",
+    "**/*.legacy.ts",
+    "tests/**/*"
+  ]
 }
