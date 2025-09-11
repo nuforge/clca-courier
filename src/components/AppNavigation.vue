@@ -168,6 +168,14 @@ const isOpen = computed({
         <div v-else class="q-pa-sm">
           <div v-if="!isMini" class="bg-dark text-white rounded-borders q-pa-sm">
             <div class="row items-center">
+            <q-btn
+              @click="auth.signOut"
+              flat
+              :icon="UI_ICONS.logout"
+              :label="t(TRANSLATION_KEYS.AUTH.SIGN_OUT)"
+              size="xs"
+              class="full-width q-mt-xs text-grey-4"
+            />
               <q-avatar size="24px" class="q-mr-sm">
                 <img
                   v-if="auth.currentUser.value?.photoURL"
@@ -183,14 +191,6 @@ const isOpen = computed({
                 <div class="text-caption text-grey-4">{{ auth.currentUser.value?.email }}</div>
               </div>
             </div>
-            <q-btn
-              @click="auth.signOut"
-              flat
-              :icon="UI_ICONS.logout"
-              :label="t(TRANSLATION_KEYS.AUTH.SIGN_OUT)"
-              size="xs"
-              class="full-width q-mt-xs text-grey-4"
-            />
           </div>
           <div v-else class="text-center">
             <q-btn @click="auth.signOut" flat :icon="UI_ICONS.logout" round size="xs" class="text-grey-4" />
