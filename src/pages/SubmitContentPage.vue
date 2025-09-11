@@ -61,6 +61,8 @@
               :content-type="wizardState.contentType"
               @next="handleNext"
               @back="handleBack"
+              @initializing-feature="handleInitializingFeature"
+              @feature-initialized="handleFeatureInitialized"
             />
           </q-step>
 
@@ -129,6 +131,7 @@ const isSubmitting = ref(false);
 const autoSaveStatus = ref<'idle' | 'saving' | 'saved'>('idle');
 const draftId = ref<string | null>(null);
 const isSaving = ref(false); // Prevent recursive saves
+const isInitializingFeatures = ref(false); // Prevent auto-save during feature initialization
 
 // Wizard state
 const wizardState = ref({
@@ -266,6 +269,15 @@ const handleBack = () => {
   stepper.value?.previous();
 };
 
+// Feature initialization handlers
+const handleInitializingFeature = () => {
+  isInitializingFeatures.value = true;
+};
+
+const handleFeatureInitialized = () => {
+  isInitializingFeatures.value = false;
+};
+
 const handleSubmit = async () => {
   if (!previewContentDoc.value) {
     $q.notify({
@@ -311,8 +323,8 @@ const handleSubmit = async () => {
 watch(
   () => wizardState.value.basicData,
   () => {
-    // Don't trigger auto-save if we're currently saving
-    if (!isSaving.value) {
+    // Don't trigger auto-save if we're currently saving, submitting, or initializing features
+    if (!isSaving.value && !isSubmitting.value && !isInitializingFeatures.value) {
       debouncedAutoSave();
     }
   },
@@ -322,8 +334,8 @@ watch(
 watch(
   () => wizardState.value.features,
   () => {
-    // Don't trigger auto-save if we're currently saving
-    if (!isSaving.value) {
+    // Don't trigger auto-save if we're currently saving, submitting, or initializing features
+    if (!isSaving.value && !isSubmitting.value && !isInitializingFeatures.value) {
       debouncedAutoSave();
     }
   },

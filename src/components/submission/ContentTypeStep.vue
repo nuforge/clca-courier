@@ -5,7 +5,7 @@
       {{ $t('content.submission.steps.contentType.description') }}
     </p>
 
-    <div class="row q-gutter-md">
+    <div class="row q-col-gutter-md">
       <div
         v-for="contentType in availableContentTypes"
         :key="contentType.type"

@@ -105,6 +105,9 @@ const localTaskFeature = ref<TaskFeature>({
   ...(props.taskFeature || {})
 });
 
+// Flag to prevent emission during prop updates
+const isUpdatingFromProps = ref(false);
+
 // Task category options
 const taskCategories = computed(() => [
   { label: t('features.task.categories.setup'), value: 'setup' },
@@ -153,7 +156,8 @@ const formatTaskPreview = (): string => {
 watch(
   localTaskFeature,
   (newFeature) => {
-    if (newFeature.category && newFeature.qty > 0 && newFeature.unit) {
+    // Only emit if this isn't a prop update and feature is valid
+    if (!isUpdatingFromProps.value && newFeature.category && newFeature.qty > 0 && newFeature.unit) {
       emit('update:taskFeature', { ...newFeature });
       logger.debug('Task feature updated', newFeature);
     }
@@ -161,12 +165,17 @@ watch(
   { deep: true }
 );
 
-// Initialize from prop
+// Initialize from prop - set flag to prevent emission during prop updates
 watch(
   () => props.taskFeature,
   (newFeature) => {
     if (newFeature) {
+      isUpdatingFromProps.value = true;
       localTaskFeature.value = { ...newFeature };
+      // Reset flag on next tick
+      setTimeout(() => {
+        isUpdatingFromProps.value = false;
+      }, 0);
     }
   },
   { immediate: true }

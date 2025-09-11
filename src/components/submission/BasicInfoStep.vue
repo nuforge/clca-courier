@@ -40,7 +40,7 @@
       />
 
       <!-- Content Type Display -->
-      <q-card flat bordered class="bg-grey-1">
+      <q-card flat >
         <q-card-section class="row items-center">
           <q-icon :name="contentTypeIcon" :color="contentTypeColor" size="md" class="q-mr-md" />
           <div>

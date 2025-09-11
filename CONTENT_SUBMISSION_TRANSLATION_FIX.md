@@ -101,7 +101,6 @@ $t('common.actions.submit')            // "Submit"
 
 ```scss
 // KEPT: These respect theme system
-.bg-grey-1                 // Background only, lets theme set text color
 .text-info                 // Text color only, lets theme set background
 q-card.flat.bordered       // Quasar components handle theme automatically
 ```

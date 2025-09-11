@@ -159,6 +159,8 @@ interface Emits {
   (e: 'update:features', value: Partial<ContentFeatures>): void;
   (e: 'next'): void;
   (e: 'back'): void;
+  (e: 'initializing-feature'): void;
+  (e: 'feature-initialized'): void;
 }
 
 const props = defineProps<Props>();
@@ -192,11 +194,8 @@ const contentTypeConfig = {
   }
 };
 
-// Local features state
-const localFeatures = computed({
-  get: () => props.features,
-  set: (value) => emit('update:features', value)
-});
+// Local features state - use direct props reference to avoid computed setter loops
+const localFeatures = computed(() => props.features);
 
 // Computed properties
 const requiredFeatures = computed(() => {
@@ -255,7 +254,15 @@ const updateFeature = (featureKey: keyof ContentFeatures, value: unknown) => {
 };
 
 const initializeFeatureIfNeeded = (featureKey: keyof ContentFeatures) => {
-  if (!localFeatures.value[featureKey]) {
+  // Guard against multiple initialization calls
+  if (localFeatures.value[featureKey]) {
+    return;
+  }
+
+  // Emit start of initialization to prevent auto-save
+  emit('initializing-feature');
+
+  try {
     // Initialize with default values when user expands the section
     const newFeatures = { ...localFeatures.value };
 
@@ -287,6 +294,11 @@ const initializeFeatureIfNeeded = (featureKey: keyof ContentFeatures) => {
     }
 
     emit('update:features', newFeatures);
+  } finally {
+    // Always emit completion, even if there was an error
+    setTimeout(() => {
+      emit('feature-initialized');
+    }, 0);
   }
 };
 
