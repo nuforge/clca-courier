@@ -101,7 +101,12 @@ class FirebaseAuthService {
 
       // Update the current user's photoURL with cached version
       if (this.authState.user && this.authState.user.uid === cacheKey) {
-        this.authState.user.photoURL = dataUrl;
+        // Create a new user object to ensure Vue reactivity works
+        this.authState.user = {
+          ...this.authState.user,
+          photoURL: dataUrl
+        };
+        this.notifyListeners(); // Trigger UI update
         logger.success('Avatar cached successfully and UI updated');
       }
     } catch (error) {

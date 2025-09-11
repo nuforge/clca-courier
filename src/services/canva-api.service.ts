@@ -183,7 +183,7 @@ export class CanvaApiService {
     operation: () => Promise<T>,
     operationName: string
   ): Promise<T> {
-    let lastError: Error | unknown;
+    let lastError: unknown;
 
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
       try {
@@ -445,7 +445,19 @@ export class CanvaApiService {
       } else {
         // For other types, convert to string and sanitize
         logger.info('Converting autofill value to string:', { key, type: typeof value });
-        const stringValue = String(value);
+        let stringValue: string;
+
+        if (typeof value === 'object' && value !== null) {
+          // Handle objects by converting to JSON
+          stringValue = JSON.stringify(value);
+        } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          // Handle primitives that have reliable toString()
+          stringValue = String(value);
+        } else {
+          // Handle edge cases (functions, symbols, etc.) safely
+          stringValue = `[${typeof value}]`;
+        }
+
         sanitized[key] = stringValue.substring(0, 1000); // Shorter limit for converted values
       }
     }
