@@ -25,11 +25,22 @@ import { isCanvaApiError } from './canva/types';
  * Canva API Service Class
  *
  * Handles all interactions with the Canva Connect API including design creation,
- * export functionality, and design retrieval with comprehensive error handling.
+ * export functionality, and design retrieval with comprehensive error handling,
+ * retry logic, and rate limiting.
  */
 export class CanvaApiService {
   private readonly axiosInstance: AxiosInstance;
   private readonly config: CanvaConfig;
+  private readonly rateLimitState: {
+    requestCount: number;
+    windowStart: number;
+    maxRequestsPerMinute: number;
+  };
+  private readonly retryConfig: {
+    maxRetries: number;
+    baseDelayMs: number;
+    maxDelayMs: number;
+  };
 
   constructor() {
     // Load configuration from environment variables following project patterns
@@ -37,6 +48,20 @@ export class CanvaApiService {
       apiBaseUrl: import.meta.env.VITE_CANVA_API_BASE_URL || 'https://api.canva.com/rest/v1',
       appId: import.meta.env.VITE_CANVA_APP_ID || '',
       redirectUri: import.meta.env.VITE_CANVA_API_REDIRECT_URI || ''
+    };
+
+    // Initialize rate limiting state
+    this.rateLimitState = {
+      requestCount: 0,
+      windowStart: Date.now(),
+      maxRequestsPerMinute: 100 // Conservative limit for Canva API
+    };
+
+    // Configure retry behavior
+    this.retryConfig = {
+      maxRetries: 3,
+      baseDelayMs: 1000, // 1 second base delay
+      maxDelayMs: 30000  // 30 second max delay
     };
 
     // Validate required configuration
@@ -52,9 +77,12 @@ export class CanvaApiService {
       }
     });
 
-    // Add request interceptor for authentication
+    // Add request interceptor for authentication and rate limiting
     this.axiosInstance.interceptors.request.use(
-      (config) => {
+      async (config) => {
+        // Apply rate limiting
+        await this.checkRateLimit();
+
         // TODO: Add OAuth token to headers when authentication is implemented
         // config.headers.Authorization = `Bearer ${accessToken}`;
         logger.debug('Canva API request:', {
@@ -117,6 +145,92 @@ export class CanvaApiService {
   }
 
   /**
+   * Check and enforce rate limits
+   * @private
+   */
+  private async checkRateLimit(): Promise<void> {
+    const now = Date.now();
+    const windowDuration = 60000; // 1 minute window
+
+    // Reset window if needed
+    if (now - this.rateLimitState.windowStart >= windowDuration) {
+      this.rateLimitState.requestCount = 0;
+      this.rateLimitState.windowStart = now;
+    }
+
+    // Check if we're at the limit
+    if (this.rateLimitState.requestCount >= this.rateLimitState.maxRequestsPerMinute) {
+      const waitTime = windowDuration - (now - this.rateLimitState.windowStart);
+      logger.warn('Rate limit exceeded, waiting:', { waitTimeMs: waitTime });
+
+      // Wait until the window resets
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+
+      // Reset for new window
+      this.rateLimitState.requestCount = 0;
+      this.rateLimitState.windowStart = Date.now();
+    }
+
+    // Increment request count
+    this.rateLimitState.requestCount++;
+  }
+
+  /**
+   * Execute API request with retry logic
+   * @private
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    let lastError: Error | unknown;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = Math.min(
+            this.retryConfig.baseDelayMs * Math.pow(2, attempt - 1),
+            this.retryConfig.maxDelayMs
+          );
+          logger.info(`Retrying ${operationName} (attempt ${attempt + 1}/${this.retryConfig.maxRetries + 1}) after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        return await operation();
+
+      } catch (error) {
+        lastError = error;
+
+        // Don't retry on certain error types
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status;
+
+          // Don't retry on client errors (4xx) except rate limit (429)
+          if (status && status >= 400 && status < 500 && status !== 429) {
+            logger.error(`${operationName} failed with non-retryable error:`, { status, attempt: attempt + 1 });
+            throw error;
+          }
+
+          // Don't retry on authentication errors
+          if (status === 401 || status === 403) {
+            logger.error(`${operationName} failed with authentication error:`, { status, attempt: attempt + 1 });
+            throw error;
+          }
+        }
+
+        logger.warn(`${operationName} attempt ${attempt + 1} failed:`, {
+          error: error instanceof Error ? error.message : String(error),
+          willRetry: attempt < this.retryConfig.maxRetries
+        });
+      }
+    }
+
+    // All retries exhausted
+    logger.error(`${operationName} failed after ${this.retryConfig.maxRetries + 1} attempts`);
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
+
+  /**
    * Create a new design from a template
    *
    * @param templateId - The ID of the Canva template to use
@@ -132,7 +246,7 @@ export class CanvaApiService {
 
     logger.info('Creating Canva design from template:', { templateId });
 
-    try {
+    return this.executeWithRetry(async () => {
       const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
         '/designs',
         {
@@ -167,7 +281,7 @@ export class CanvaApiService {
 
       return canvaDesign;
 
-    } catch (error) {
+    }, `createDesignFromTemplate(${templateId})`).catch((error) => {
       const errorMessage = `Failed to create design from template ${templateId}`;
 
       if (axios.isAxiosError(error)) {
@@ -192,7 +306,7 @@ export class CanvaApiService {
         logger.error('Unexpected error creating design:', { templateId, error });
         throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    }
+    });
   }
 
   /**
@@ -219,17 +333,20 @@ export class CanvaApiService {
       throw error;
     }
 
+    // Validate and sanitize autofill data for security
+    const sanitizedAutofillData = this.sanitizeAutofillData(autofillData);
+
     logger.info('Creating Canva design with autofill:', {
       templateId,
-      autofillKeys: Object.keys(autofillData)
+      autofillKeys: Object.keys(sanitizedAutofillData)
     });
 
-    try {
+    return this.executeWithRetry(async () => {
       // Structure request according to Canva's Autofill API documentation
       const requestBody = {
         design_type: 'presentation', // Default to presentation type
         template_id: templateId,
-        autofill: autofillData
+        autofill: sanitizedAutofillData
       };
 
       const response: AxiosResponse<CanvaAutofillDesignResponse> = await this.axiosInstance.post(
@@ -256,7 +373,7 @@ export class CanvaApiService {
         editUrl: design.urls.edit_url
       };
 
-    } catch (error) {
+    }, `createDesignWithAutofill(${templateId})`).catch((error) => {
       const errorMessage = `Failed to create design with autofill from template ${templateId}`;
 
       if (axios.isAxiosError(error)) {
@@ -264,7 +381,7 @@ export class CanvaApiService {
           const canvaError = error.response.data;
           logger.error('Canva API error with autofill:', {
             templateId,
-            autofillKeys: Object.keys(autofillData),
+            autofillKeys: Object.keys(sanitizedAutofillData),
             code: canvaError.error.code,
             message: canvaError.error.message,
             details: canvaError.error.details
@@ -273,7 +390,7 @@ export class CanvaApiService {
         } else {
           logger.error('HTTP error creating design with autofill:', {
             templateId,
-            autofillKeys: Object.keys(autofillData),
+            autofillKeys: Object.keys(sanitizedAutofillData),
             status: error.response?.status,
             statusText: error.response?.statusText
           });
@@ -282,12 +399,58 @@ export class CanvaApiService {
       } else {
         logger.error('Unexpected error creating design with autofill:', {
           templateId,
-          autofillKeys: Object.keys(autofillData),
+          autofillKeys: Object.keys(sanitizedAutofillData),
           error
         });
         throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+    });
+  }
+
+  /**
+   * Sanitize autofill data to prevent injection attacks
+   * @private
+   */
+  private sanitizeAutofillData(data: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      // Validate key
+      if (typeof key !== 'string' || key.length === 0 || key.length > 100) {
+        logger.warn('Invalid autofill key skipped:', { key });
+        continue;
+      }
+
+      // Sanitize value based on type
+      if (typeof value === 'string') {
+        // Remove potentially harmful content
+        const sanitizedValue = value
+          .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
+          .replace(/javascript:/gi, '') // Remove javascript: protocols
+          .replace(/on\w+\s*=/gi, '') // Remove event handlers
+          .trim();
+
+        if (sanitizedValue.length <= 10000) { // Reasonable length limit
+          sanitized[key] = sanitizedValue;
+        } else {
+          logger.warn('Autofill value too long, truncated:', { key, originalLength: value.length });
+          sanitized[key] = sanitizedValue.substring(0, 10000);
+        }
+      } else if (typeof value === 'number' && isFinite(value)) {
+        sanitized[key] = value;
+      } else if (typeof value === 'boolean') {
+        sanitized[key] = value;
+      } else if (value === null || value === undefined) {
+        sanitized[key] = '';
+      } else {
+        // For other types, convert to string and sanitize
+        logger.info('Converting autofill value to string:', { key, type: typeof value });
+        const stringValue = String(value);
+        sanitized[key] = stringValue.substring(0, 1000); // Shorter limit for converted values
+      }
     }
+
+    return sanitized;
   }
 
   /**
@@ -306,7 +469,7 @@ export class CanvaApiService {
 
     logger.info('Exporting Canva design:', { designId });
 
-    try {
+    return this.executeWithRetry(async () => {
       const response: AxiosResponse<CanvaExportResponse> = await this.axiosInstance.post(
         `/designs/${designId}/export`,
         {
@@ -348,7 +511,7 @@ export class CanvaApiService {
       logger.warn('Unexpected export status:', { designId, status: job.status });
       throw new Error(`Export status: ${job.status}. Please try again later.`);
 
-    } catch (error) {
+    }, `exportDesign(${designId})`).catch((error) => {
       const errorMessage = `Failed to export design ${designId}`;
 
       if (axios.isAxiosError(error)) {
@@ -373,7 +536,7 @@ export class CanvaApiService {
         logger.error('Unexpected error exporting design:', { designId, error });
         throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    }
+    });
   }
 
   /**
@@ -392,7 +555,7 @@ export class CanvaApiService {
 
     logger.info('Retrieving Canva design:', { designId });
 
-    try {
+    return this.executeWithRetry(async () => {
       const response: AxiosResponse<CanvaGetDesignResponse> = await this.axiosInstance.get(
         `/designs/${designId}`
       );
@@ -420,7 +583,7 @@ export class CanvaApiService {
 
       return canvaDesign;
 
-    } catch (error) {
+    }, `getDesign(${designId})`).catch((error) => {
       const errorMessage = `Failed to retrieve design ${designId}`;
 
       if (axios.isAxiosError(error)) {
@@ -450,7 +613,7 @@ export class CanvaApiService {
         logger.error('Unexpected error retrieving design:', { designId, error });
         throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    }
+    });
   }
 
   /**

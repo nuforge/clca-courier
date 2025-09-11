@@ -307,13 +307,22 @@ class ContentSubmissionService {
     logger.info('Attaching Canva design to content', { contentId, designId: canvaDesign.id });
 
     try {
+      // Validate Canva design object
+      const validationResult = this.validateCanvaDesign(canvaDesign);
+      if (!validationResult.isValid) {
+        throw new Error(`Invalid Canva design: ${validationResult.errors.join(', ')}`);
+      }
+
+      // Sanitize the design data before storing
+      const sanitizedDesign = this.sanitizeCanvaDesign(canvaDesign);
+
       // Update the content document with the Canva design
-      await firestoreService.updateUserContent(contentId, { canvaDesign });
+      await firestoreService.updateUserContent(contentId, { canvaDesign: sanitizedDesign });
 
       logger.success('Canva design attached successfully', {
         contentId,
-        designId: canvaDesign.id,
-        designStatus: canvaDesign.status
+        designId: sanitizedDesign.id,
+        designStatus: sanitizedDesign.status
       });
     } catch (error) {
       logger.error('Error attaching Canva design to content:', {
@@ -323,6 +332,177 @@ class ContentSubmissionService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Validate Canva design object for security and integrity
+   * @private
+   */
+  private validateCanvaDesign(design: CanvaDesign): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Validate required fields
+    if (!design.id || typeof design.id !== 'string') {
+      errors.push('Design ID is required and must be a string');
+    }
+
+    if (!design.editUrl || typeof design.editUrl !== 'string') {
+      errors.push('Edit URL is required and must be a string');
+    }
+
+    if (!design.status || !['draft', 'pending_export', 'exported', 'failed'].includes(design.status)) {
+      errors.push('Valid design status is required');
+    }
+
+    // Validate URLs for security
+    if (design.editUrl && !this.isValidCanvaUrl(design.editUrl)) {
+      errors.push('Edit URL must be a valid Canva URL');
+    }
+
+    if (design.exportUrl && !this.isValidUrl(design.exportUrl)) {
+      errors.push('Export URL must be a valid URL');
+    }
+
+    // Validate timestamps
+    if (!design.createdAt || typeof design.createdAt !== 'object') {
+      errors.push('Created timestamp is required');
+    }
+
+    if (!design.updatedAt || typeof design.updatedAt !== 'object') {
+      errors.push('Updated timestamp is required');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Sanitize Canva design object to prevent XSS and ensure data integrity
+   * @private
+   */
+  private sanitizeCanvaDesign(design: CanvaDesign): CanvaDesign {
+    return {
+      id: this.sanitizeString(design.id),
+      editUrl: this.sanitizeUrl(design.editUrl),
+      exportUrl: design.exportUrl ? this.sanitizeUrl(design.exportUrl) : null,
+      status: design.status, // Already validated in validateCanvaDesign
+      createdAt: design.createdAt, // Timestamp object, no sanitization needed
+      updatedAt: design.updatedAt  // Timestamp object, no sanitization needed
+    };
+  }
+
+  /**
+   * Check if URL is a valid Canva URL
+   * @private
+   */
+  private isValidCanvaUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'www.canva.com' || urlObj.hostname === 'canva.com';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if URL is valid
+   * @private
+   */
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Sanitize string values
+   * @private
+   */
+  private sanitizeString(value: string): string {
+    return value
+      .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
+      .replace(/javascript:/gi, '') // Remove javascript: protocols
+      .replace(/on\w+\s*=/gi, '') // Remove event handlers
+      .trim();
+  }
+
+  /**
+   * Sanitize URL values
+   * @private
+   */
+  private sanitizeUrl(url: string): string {
+    const sanitized = this.sanitizeString(url);
+
+    // Additional URL-specific sanitization
+    if (!this.isValidUrl(sanitized)) {
+      logger.warn('Invalid URL detected during sanitization:', { original: url, sanitized });
+      return '';
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Validate and process Canva template configuration
+   * @param templateConfig - Template configuration to validate
+   * @returns Validated template configuration
+   */
+  validateCanvaTemplate(templateConfig: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+
+    // Validate template ID
+    if (templateConfig.id && typeof templateConfig.id === 'string') {
+      sanitized.id = this.sanitizeString(templateConfig.id);
+    }
+
+    // Validate template name
+    if (templateConfig.name && typeof templateConfig.name === 'string') {
+      sanitized.name = this.sanitizeString(templateConfig.name);
+    }
+
+    // Validate description
+    if (templateConfig.description && typeof templateConfig.description === 'string') {
+      sanitized.description = this.sanitizeString(templateConfig.description);
+    }
+
+    // Validate thumbnail URL
+    if (templateConfig.thumbnailUrl && typeof templateConfig.thumbnailUrl === 'string') {
+      const thumbnailUrl = this.sanitizeUrl(templateConfig.thumbnailUrl);
+      if (thumbnailUrl && this.isValidUrl(thumbnailUrl)) {
+        sanitized.thumbnailUrl = thumbnailUrl;
+      }
+    }
+
+    // Validate fields array
+    if (Array.isArray(templateConfig.fields)) {
+      sanitized.fields = templateConfig.fields
+        .filter((field): field is Record<string, unknown> =>
+          typeof field === 'object' && field !== null
+        )
+        .map(field => ({
+          name: typeof field.name === 'string' ? this.sanitizeString(field.name) : '',
+          type: typeof field.type === 'string' ? this.sanitizeString(field.type) : 'text',
+          required: typeof field.required === 'boolean' ? field.required : false,
+          placeholder: typeof field.placeholder === 'string' ? this.sanitizeString(field.placeholder) : ''
+        }));
+    }
+
+    // Validate boolean flags
+    if (typeof templateConfig.isActive === 'boolean') {
+      sanitized.isActive = templateConfig.isActive;
+    }
+
+    logger.debug('Template configuration validated and sanitized:', {
+      originalKeys: Object.keys(templateConfig),
+      sanitizedKeys: Object.keys(sanitized)
+    });
+
+    return sanitized;
   }
 }
 
