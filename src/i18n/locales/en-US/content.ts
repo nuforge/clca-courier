@@ -41,7 +41,30 @@ export default {
     publish: 'Publish',
     unpublish: 'Unpublish',
     feature: 'Feature',
-    unfeature: 'Remove Feature'
+    unfeature: 'Remove Feature',
+    approveSuccess: 'Content approved successfully',
+    approveError: 'Failed to approve content'
+  },
+
+  print: {
+    autoExportSuccess: 'Content approved and design exported for printing',
+    autoExportFailed: 'Content approved, but design export failed. You can retry export manually.',
+    printReady: 'Ready for Print',
+    claimed: 'Claimed for Printing',
+    completed: 'Print Completed',
+    claimJob: 'Claim Print Job',
+    completeJob: 'Mark as Completed',
+    printQueue: 'Print Queue',
+    noPrintJobs: 'No print jobs available',
+    quantity: 'Print Quantity',
+    queueDescription: 'View and claim content ready for printing',
+    noPrintJobsDescription: 'No content is currently ready for printing',
+    myClaimedJobs: 'My Claimed Print Jobs',
+    claimedAt: 'Claimed:',
+    jobClaimed: 'Print job claimed successfully',
+    claimError: 'Failed to claim print job',
+    jobCompleted: 'Print job marked as completed',
+    completeError: 'Failed to complete print job'
   },
 
   management: 'Content Management',

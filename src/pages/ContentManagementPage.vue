@@ -403,19 +403,50 @@ const loadAllContent = async () => {
 
 const approveContent = async (contentId: string) => {
   try {
+    // First, approve the content
     await firestoreService.updateContentStatus(contentId, 'approved');
 
-    $q.notify({
-      type: 'positive',
-      message: 'Content approved successfully'
-    });
+    // Find the content item to check if it has a Canva design
+    const contentItem = allContent.value.find(item => item.id === contentId);
+
+    if (contentItem?.canvaDesign?.id) {
+      logger.info(`Content ${contentId} has Canva design, initiating auto-export for print workflow`);
+
+      try {
+        // Auto-export the Canva design for print
+        await exportDesignForPrint(contentItem);
+
+        // Set up print job with default quantity
+        await firestoreService.setPrintJobReady(contentId, 1);
+
+        $q.notify({
+          type: 'positive',
+          message: t(TRANSLATION_KEYS.CONTENT.PRINT.AUTO_EXPORT_SUCCESS) || 'Content approved and design exported for printing',
+          timeout: 5000
+        });
+      } catch (exportError) {
+        logger.warn(`Auto-export failed for content ${contentId}:`, exportError);
+        // Still show success for approval, but note the export issue
+        $q.notify({
+          type: 'warning',
+          message: t(TRANSLATION_KEYS.CONTENT.PRINT.AUTO_EXPORT_FAILED) || 'Content approved, but design export failed. You can retry export manually.',
+          timeout: 7000
+        });
+      }
+    } else {
+      // No Canva design, just show standard approval message
+      $q.notify({
+        type: 'positive',
+        message: t(TRANSLATION_KEYS.CONTENT.ACTIONS.APPROVE_SUCCESS) || 'Content approved successfully'
+      });
+    }
 
     await loadAllContent();
   } catch (error) {
     logger.error('Error approving content:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to approve content'
+      message: t(TRANSLATION_KEYS.CONTENT.ACTIONS.APPROVE_ERROR) || 'Failed to approve content'
     });
   }
 };

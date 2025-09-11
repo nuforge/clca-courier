@@ -73,6 +73,15 @@ export const UI_ICONS = {
   // Files & Documents
   filePdf: 'mdi-file-pdf-box',
 
+  // Print Workflow
+  print: 'mdi-printer',
+  printQueue: 'mdi-printer-pos',
+  claim: 'mdi-hand-okay',
+  claimed: 'mdi-hand-okay',
+  complete: 'mdi-check-circle',
+  quantity: 'mdi-counter',
+  date: 'mdi-calendar-clock',
+
   // Settings
   cog: 'mdi-cog',
   tools: 'mdi-tools',

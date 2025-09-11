@@ -4,6 +4,7 @@
  */
 
 import type { CanvaDesign } from '../../services/canva/types';
+import type { Timestamp } from 'firebase/firestore';
 
 /**
  * News item interface - consolidated from models.ts and site-store.ts
@@ -294,6 +295,18 @@ export type ContentMetadata =
   | AnnouncementMetadata;
 
 /**
+ * Print job status tracking for content with Canva designs
+ */
+export interface PrintJob {
+  status: 'not_required' | 'print_ready' | 'claimed' | 'completed';
+  quantity?: number;
+  claimedBy?: string; // Reference to user's UID
+  claimedAt?: Timestamp;
+  exportedAt?: Timestamp; // When the design was exported
+  completedAt?: Timestamp; // When the print job was completed
+}
+
+/**
  * Content submission form data interface
  */
 export interface ContentSubmissionData {
@@ -329,4 +342,7 @@ export interface ContentSubmissionData {
   // Brand Templates and Autofill integration
   canvaTemplateId?: string; // ID of the Brand Template used
   autoFillData?: Record<string, unknown>; // Key-value pairs for Autofill
+
+  // Print workflow integration
+  printJob?: PrintJob;
 }

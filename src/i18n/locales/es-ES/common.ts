@@ -45,5 +45,6 @@ export default {
   collapse: 'Contraer',
   toggle: 'Alternar',
   retry: 'Reintentar',
-  clearSelection: 'Limpiar Selección'
+  clearSelection: 'Limpiar Selección',
+  by: 'Por'
 };

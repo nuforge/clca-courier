@@ -18,6 +18,7 @@ import {
   addDoc,
   onSnapshot,
   serverTimestamp,
+  Timestamp,
   type Unsubscribe,
   type FieldValue,
 } from 'firebase/firestore';
@@ -142,6 +143,16 @@ export interface UserContent {
 
   // Canva integration for design collaboration
   canvaDesign?: CanvaDesign;
+
+  // Print workflow integration
+  printJob?: {
+    status: 'not_required' | 'print_ready' | 'claimed' | 'completed';
+    quantity?: number;
+    claimedBy?: string; // Reference to user's UID
+    claimedAt?: Timestamp;
+    exportedAt?: Timestamp; // When the design was exported
+    completedAt?: Timestamp; // When the print job was completed
+  };
 
   attachments: Array<{
     filename: string;
@@ -1356,6 +1367,123 @@ class FirebaseFirestoreService {
       }
     } catch (error) {
       logger.error(`Error getting document ${documentPath}:`, error);
+      throw error;
+    }
+  }
+
+  // ===========================
+  // Print Job Management Methods
+  // ===========================
+
+  /**
+   * Get all content items ready for printing
+   */
+  async getPrintReadyContent(): Promise<UserContent[]> {
+    try {
+      logger.debug('Fetching print-ready content...');
+      const q = query(
+        collection(firestore, this.COLLECTIONS.USER_CONTENT),
+        where('printJob.status', '==', 'print_ready')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const results = querySnapshot.docs.map(
+        (doc): UserContent =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          }) as UserContent,
+      );
+
+      logger.success(`Retrieved ${results.length} print-ready content items`);
+      return results;
+    } catch (error) {
+      logger.error('Error getting print-ready content:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get content items claimed by a specific user
+   */
+  async getClaimedPrintJobs(userId: string): Promise<UserContent[]> {
+    try {
+      logger.debug(`Fetching claimed print jobs for user: ${userId}`);
+      const q = query(
+        collection(firestore, this.COLLECTIONS.USER_CONTENT),
+        where('printJob.claimedBy', '==', userId),
+        where('printJob.status', '==', 'claimed')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const results = querySnapshot.docs.map(
+        (doc): UserContent =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          }) as UserContent,
+      );
+
+      logger.success(`Retrieved ${results.length} claimed print jobs for user ${userId}`);
+      return results;
+    } catch (error) {
+      logger.error('Error getting claimed print jobs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Claim a print job for a user
+   */
+  async claimPrintJob(contentId: string, userId: string): Promise<void> {
+    try {
+      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
+      await updateDoc(docRef, {
+        'printJob.status': 'claimed',
+        'printJob.claimedBy': userId,
+        'printJob.claimedAt': Timestamp.now(),
+      });
+
+      logger.success(`Print job claimed: ${contentId} by user ${userId}`);
+    } catch (error) {
+      logger.error('Error claiming print job:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark a print job as completed
+   */
+  async completePrintJob(contentId: string): Promise<void> {
+    try {
+      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
+      await updateDoc(docRef, {
+        'printJob.status': 'completed',
+        'printJob.completedAt': Timestamp.now(),
+      });
+
+      logger.success(`Print job completed: ${contentId}`);
+    } catch (error) {
+      logger.error('Error completing print job:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set print job status to print_ready (typically called after export)
+   */
+  async setPrintJobReady(contentId: string, quantity: number = 1): Promise<void> {
+    try {
+      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
+      await updateDoc(docRef, {
+        'printJob.status': 'print_ready',
+        'printJob.quantity': quantity,
+        'printJob.exportedAt': Timestamp.now(),
+      });
+
+      logger.success(`Print job set to ready: ${contentId} with quantity ${quantity}`);
+    } catch (error) {
+      logger.error('Error setting print job ready:', error);
       throw error;
     }
   }

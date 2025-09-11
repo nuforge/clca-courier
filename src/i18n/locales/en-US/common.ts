@@ -45,5 +45,6 @@ export default {
   collapse: 'Collapse',
   toggle: 'Toggle',
   retry: 'Retry',
-  clearSelection: 'Clear Selection'
+  clearSelection: 'Clear Selection',
+  by: 'By'
 };

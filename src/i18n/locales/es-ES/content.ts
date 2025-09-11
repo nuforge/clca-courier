@@ -41,7 +41,30 @@ export default {
     publish: 'Publicar',
     unpublish: 'Despublicar',
     feature: 'Destacar',
-    unfeature: 'Quitar Destaque'
+    unfeature: 'Quitar Destaque',
+    approveSuccess: 'Contenido aprobado exitosamente',
+    approveError: 'Error al aprobar contenido'
+  },
+
+  print: {
+    autoExportSuccess: 'Contenido aprobado y diseño exportado para impresión',
+    autoExportFailed: 'Contenido aprobado, pero falló la exportación del diseño. Puedes reintentar la exportación manualmente.',
+    printReady: 'Listo para Imprimir',
+    claimed: 'Reclamado para Impresión',
+    completed: 'Impresión Completada',
+    claimJob: 'Reclamar Trabajo de Impresión',
+    completeJob: 'Marcar como Completado',
+    printQueue: 'Cola de Impresión',
+    noPrintJobs: 'No hay trabajos de impresión disponibles',
+    quantity: 'Cantidad de Impresión',
+    queueDescription: 'Ver y reclamar contenido listo para impresión',
+    noPrintJobsDescription: 'No hay contenido actualmente listo para impresión',
+    myClaimedJobs: 'Mis Trabajos de Impresión Reclamados',
+    claimedAt: 'Reclamado:',
+    jobClaimed: 'Trabajo de impresión reclamado exitosamente',
+    claimError: 'Error al reclamar trabajo de impresión',
+    jobCompleted: 'Trabajo de impresión marcado como completado',
+    completeError: 'Error al completar trabajo de impresión'
   },
 
   management: 'Gestión de Contenido',

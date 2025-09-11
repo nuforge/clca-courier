@@ -69,7 +69,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.authorId;
       
       // Allow authors to update their own content (but not status), or editors+ to update status
-      // Special handling for Canva design fields
+      // Special handling for Canva design fields and print job claiming
       allow update: if isAuthenticated() && (
         (request.auth.uid == resource.data.authorId && 
          !resource.data.diff(request.resource.data).affectedKeys().hasAny(['status', 'reviewedBy']) &&
@@ -80,7 +80,17 @@ service cloud.firestore {
         // Allow admin/editor to update canvaDesign.status to 'exported'
         (hasRole(request.auth.uid, 'admin') && 
          resource.data.diff(request.resource.data).affectedKeys().hasOnly(['canvaDesign']) &&
-         request.resource.data.canvaDesign.status == 'exported')
+         request.resource.data.canvaDesign.status == 'exported') ||
+        // Allow any authenticated user to claim print jobs
+        (resource.data.diff(request.resource.data).affectedKeys().hasOnly(['printJob']) &&
+         resource.data.printJob.status == 'print_ready' &&
+         request.resource.data.printJob.status == 'claimed' &&
+         request.resource.data.printJob.claimedBy == request.auth.uid) ||
+        // Allow claimed user to mark their print job as completed
+        (resource.data.diff(request.resource.data).affectedKeys().hasOnly(['printJob']) &&
+         resource.data.printJob.status == 'claimed' &&
+         resource.data.printJob.claimedBy == request.auth.uid &&
+         request.resource.data.printJob.status == 'completed')
       );
       
       // Allow editors+ to delete content

@@ -64,7 +64,8 @@ export const TRANSLATION_KEYS = {
     COLLAPSE: 'common.collapse',
     TOGGLE: 'common.toggle',
     RETRY: 'common.retry',
-    CLEAR_SELECTION: 'common.clearSelection'
+    CLEAR_SELECTION: 'common.clearSelection',
+    BY: 'common.by'
   },
 
   // Forms and Validation
@@ -147,7 +148,21 @@ export const TRANSLATION_KEYS = {
       PUBLISH: 'content.actions.publish',
       UNPUBLISH: 'content.actions.unpublish',
       FEATURE: 'content.actions.feature',
-      UNFEATURE: 'content.actions.unfeature'
+      UNFEATURE: 'content.actions.unfeature',
+      APPROVE_SUCCESS: 'content.actions.approveSuccess',
+      APPROVE_ERROR: 'content.actions.approveError'
+    },
+    PRINT: {
+      AUTO_EXPORT_SUCCESS: 'content.print.autoExportSuccess',
+      AUTO_EXPORT_FAILED: 'content.print.autoExportFailed',
+      PRINT_READY: 'content.print.printReady',
+      CLAIMED: 'content.print.claimed',
+      COMPLETED: 'content.print.completed',
+      CLAIM_JOB: 'content.print.claimJob',
+      COMPLETE_JOB: 'content.print.completeJob',
+      PRINT_QUEUE: 'content.print.printQueue',
+      NO_PRINT_JOBS: 'content.print.noPrintJobs',
+      QUANTITY: 'content.print.quantity'
     }
   },
 
