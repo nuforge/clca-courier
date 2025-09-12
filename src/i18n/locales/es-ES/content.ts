@@ -33,10 +33,68 @@ export default {
     classified: 'Clasificado',
     article: 'Artículo',
     news: 'Noticias',
+    photo: 'Historia Fotográfica',
     unknown: 'Desconocido'
   },
 
+  difficulty: {
+    easy: 'Fácil',
+    medium: 'Medio',
+    hard: 'Difícil'
+  },
+
   byAuthor: 'por {author}',
+
+  features: {
+    date: {
+      label: 'Fecha del Evento',
+      description: 'Añade información de fecha y hora a tu contenido',
+      allDay: 'Todo el Día',
+      startDate: 'Fecha de Inicio',
+      startTime: 'Hora de Inicio',
+      endDate: 'Fecha de Finalización',
+      endTime: 'Hora de Finalización',
+      hasEndDate: 'Este evento tiene fecha/hora de finalización',
+      endAfterStart: 'La fecha de finalización debe ser posterior a la de inicio',
+      invalidDate: 'Fecha inválida',
+      validationError: 'Por favor establece una fecha de inicio válida para este evento'
+    },
+    task: {
+      label: 'Tarea',
+      description: 'Añade detalles de tarea para voluntarios de la comunidad',
+      category: 'Categoría de Tarea',
+      quantity: '{qty} {unit} necesarios',
+      quantityRange: 'La cantidad debe estar entre 1 y 999',
+      unit: 'Unidad',
+      status: 'Estado de Tarea',
+      statusHelp: 'Las tareas comienzan como no reclamadas y pueden ser reclamadas por miembros de la comunidad',
+      claim: 'Reclamar',
+      claimedBy: 'Reclamado por {user}',
+      incompleteTask: 'Por favor completa todos los detalles de la tarea',
+      previewFormat: '{qty} {unit} necesarios para {category}',
+      validationError: 'Por favor completa la categoría de tarea, cantidad y unidad'
+    },
+    location: {
+      label: 'Ubicación',
+      description: 'Añade información de ubicación a tu contenido',
+      name: 'Nombre de Ubicación',
+      nameHint: 'Opcional: Un nombre amigable para esta ubicación',
+      address: 'Dirección',
+      addressHint: 'La dirección o descripción de la ubicación',
+      coordinates: 'Coordenadas (Opcional)',
+      coordinatesHelp: 'Añade coordenadas precisas para mapeo',
+      coordinatesDisplay: 'Lat: {lat}, Lng: {lng}',
+      latitude: 'Latitud',
+      longitude: 'Longitud',
+      invalidLatitude: 'La latitud debe estar entre -90 y 90',
+      invalidLongitude: 'La longitud debe estar entre -180 y 180',
+      getCurrentLocation: 'Usar Ubicación Actual',
+      geolocationNotSupported: 'La geolocalización no es compatible con este navegador',
+      locationObtained: 'Ubicación obtenida exitosamente',
+      locationError: 'Error al obtener la ubicación actual',
+      incompleteLocation: 'Por favor ingresa al menos una dirección'
+    }
+  },
 
   categories: {
     general: 'General',
@@ -133,6 +191,9 @@ export default {
       },
       article: {
         description: 'Comparte artículos y contenido educativo'
+      },
+      photo: {
+        description: 'Comparte historias fotográficas y contenido visual'
       }
     },
     autoSave: {

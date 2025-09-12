@@ -95,6 +95,66 @@
             {{ $t(`content.submission.autoSave.${autoSaveStatus}`) }}
           </q-chip>
         </div>
+
+        <!-- Help Resources Section -->
+        <q-card flat class="q-mt-xl">
+          <q-card-section>
+            <div class="text-h6 q-mb-sm">
+              <q-icon name="mdi-help-circle" class="q-mr-sm" />
+              {{ $t('content.needHelp') }}
+            </div>
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-4">
+                <div class="text-center">
+                  <q-icon name="mdi-book-open" color="primary" size="1.5rem" class="q-mb-sm" />
+                  <div class="text-subtitle2 q-mb-xs">{{ $t('content.contentGuidelines') }}</div>
+                  <p class="text-caption text-grey-7 q-mb-sm">
+                    {{ $t('content.guidelinesDescription') }}
+                  </p>
+                  <q-btn
+                    color="primary"
+                    outline
+                    size="sm"
+                    :label="$t('content.viewGuidelines')"
+                    to="/contribute/guide"
+                  />
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="text-center">
+                  <q-icon name="mdi-image" color="secondary" size="1.5rem" class="q-mb-sm" />
+                  <div class="text-subtitle2 q-mb-xs">{{ $t('content.imageHosting') }}</div>
+                  <p class="text-caption text-grey-7 q-mb-sm">
+                    {{ $t('content.imageHostingDescription') }}
+                  </p>
+                  <q-btn
+                    color="secondary"
+                    outline
+                    size="sm"
+                    :label="$t('content.imageGuide')"
+                    to="/contribute/guide#images"
+                  />
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="text-center">
+                  <q-icon name="mdi-headset" color="accent" size="1.5rem" class="q-mb-sm" />
+                  <div class="text-subtitle2 q-mb-xs">{{ $t('content.getSupport') }}</div>
+                  <p class="text-caption text-grey-7 q-mb-sm">
+                    {{ $t('content.supportDescription') }}
+                  </p>
+                  <q-btn
+                    color="accent"
+                    outline
+                    size="sm"
+                    :label="$t('common.actions.contact')"
+                    to="/about#contact"
+                  />
+                </div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
       </div>
     </div>
   </q-page>

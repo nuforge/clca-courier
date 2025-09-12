@@ -33,7 +33,14 @@ export default {
     classified: 'Classified',
     article: 'Article',
     news: 'News',
+    photo: 'Photo Story',
     unknown: 'Unknown'
+  },
+
+  difficulty: {
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard'
   },
 
   byAuthor: 'by {author}',
@@ -186,6 +193,9 @@ export default {
 
   // Content Submission Workflow
   submission: {
+    title: 'Submit Content',
+    subtitle: 'Share your story with the community',
+    description: 'Contribute news, events, photos, and more to help keep our community connected.',
     steps: {
       contentType: {
         title: 'Content Type',
@@ -242,6 +252,9 @@ export default {
       },
       article: {
         description: 'Share articles and educational content'
+      },
+      photo: {
+        description: 'Share photo stories and visual content'
       }
     },
     autoSave: {

@@ -256,6 +256,13 @@ export default {
     proceedToForm: 'Proceed to Submission Form',
     backToSelection: 'Back to Content Selection',
     helpResources: 'Help & Resources',
+    description: 'Share your stories, photos, events, and ideas with our community. Follow our guided process to ensure your content reaches fellow residents effectively.',
+    quickActions: {
+      title: 'Quick Actions',
+      submitContent: 'Submit Content',
+      viewGuide: 'View Guide',
+      getHelp: 'Get Help'
+    },
     processSteps: {
       select: {
         title: 'Choose Content Type',
