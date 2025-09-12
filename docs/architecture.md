@@ -52,10 +52,9 @@ interface UnifiedNewsletter {
 }
 ```
 
-#### Community Content
+#### Community Content (Current Implementation)
 ```typescript
-interface CommunityContent {
-  id: string;
+interface ContentSubmissionData {
   type: 'news' | 'event' | 'classified' | 'announcement';
   title: string;
   content: string;
@@ -64,6 +63,24 @@ interface CommunityContent {
   createdAt: Timestamp;
   publishedAt?: Timestamp;
   featured?: boolean;
+  canvaDesign?: CanvaDesign; // Canva integration
+  canvaTemplateId?: string;  // Brand template tracking
+  autoFillData?: Record<string, unknown>; // Autofill data
+}
+```
+
+#### ContentDoc Architecture (Work in Progress)
+```typescript
+interface ContentDoc {
+  id: string;
+  title: string;
+  description: string;
+  authorId: string;
+  authorName: string;
+  tags: string[];           // [namespace:value] format
+  features: ContentFeatures; // Composable feature system
+  status: 'draft' | 'published' | 'archived';
+  timestamps: { created: Timestamp; updated: Timestamp; published?: Timestamp };
 }
 ```
 
