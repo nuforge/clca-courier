@@ -58,7 +58,7 @@ async function onSubmit() {
 
   $q.notify({
     message: t(TRANSLATION_KEYS.SUCCESS.SENT),
-    caption: t('about.contactFormDescription'),
+    caption: t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DESCRIPTION),
     color: 'positive',
     icon: 'mdi-check-circle'
   })
@@ -200,34 +200,34 @@ async function onSubmit() {
 
           <q-card flat :class="cardClasses" class="q-mt-lg">
             <q-card-section>
-              <div class="text-h6 q-mb-md">Community Statistics</div>
+              <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.COMMUNITY_STATS.TITLE) }}</div>
               <div class="row q-col-gutter-md text-center">
                 <div class="col-12 col-sm-6 col-md-3">
                   <q-card :class="cardClasses" class="q-pa-md">
                     <q-icon name="mdi-home-group" size="2em" color="primary" />
                     <div class="text-h5 text-weight-bold q-mt-sm">450+</div>
-                    <div class="text-caption">Households</div>
+                    <div class="text-caption">{{ t(TRANSLATION_KEYS.ABOUT.COMMUNITY_STATS.HOUSEHOLDS) }}</div>
                   </q-card>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
                   <q-card :class="cardClasses" class="q-pa-md">
                     <q-icon name="mdi-water" size="2em" color="blue" />
                     <div class="text-h5 text-weight-bold q-mt-sm">3</div>
-                    <div class="text-caption">Beautiful Lakes</div>
+                    <div class="text-caption">{{ t(TRANSLATION_KEYS.ABOUT.COMMUNITY_STATS.BEAUTIFUL_LAKES) }}</div>
                   </q-card>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
                   <q-card :class="cardClasses" class="q-pa-md">
                     <q-icon name="mdi-calendar-multiple" size="2em" color="green" />
                     <div class="text-h5 text-weight-bold q-mt-sm">12</div>
-                    <div class="text-caption">Issues Per Year</div>
+                    <div class="text-caption">{{ t(TRANSLATION_KEYS.ABOUT.COMMUNITY_STATS.ISSUES_PER_YEAR) }}</div>
                   </q-card>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
                   <q-card :class="cardClasses" class="q-pa-md">
                     <q-icon name="mdi-clock" size="2em" color="orange" />
                     <div class="text-h5 text-weight-bold q-mt-sm">29</div>
-                    <div class="text-caption">Years Publishing</div>
+                    <div class="text-caption">{{ t(TRANSLATION_KEYS.ABOUT.COMMUNITY_STATS.YEARS_PUBLISHING) }}</div>
                   </q-card>
                 </div>
               </div>
@@ -236,15 +236,14 @@ async function onSubmit() {
 
           <q-card :class="cardClasses" class="q-mt-lg">
             <q-card-section>
-              <div class="text-h6 q-mb-md">Get Involved</div>
+              <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.GET_INVOLVED.TITLE) }}</div>
               <p class="text-body2 q-mb-md">
-                The Courier is made possible by dedicated volunteers from our community.
-                We're always looking for new contributors and helpers.
+                {{ t(TRANSLATION_KEYS.ABOUT.GET_INVOLVED.DESCRIPTION) }}
               </p>
               <div class="text-center">
-                <q-btn color="primary" icon="mdi-hand-heart" label="Volunteer with Us" @click="volunteer"
+                <q-btn color="primary" icon="mdi-hand-heart" :label="t(TRANSLATION_KEYS.ABOUT.GET_INVOLVED.VOLUNTEER_BUTTON)" @click="volunteer"
                   class="q-mr-sm" />
-                <q-btn color="secondary" icon="mdi-pencil" label="Contribute Content" @click="contribute" />
+                <q-btn color="secondary" icon="mdi-pencil" :label="t(TRANSLATION_KEYS.ABOUT.GET_INVOLVED.CONTRIBUTE_BUTTON)" @click="contribute" />
               </div>
             </q-card-section>
           </q-card>
@@ -254,11 +253,10 @@ async function onSubmit() {
             <q-card-section>
               <div class="text-h4 q-mb-md">
                 <q-icon name="mdi-message" class="q-mr-sm" />
-                Contact Us
+                {{ t(TRANSLATION_KEYS.ABOUT.CONTACT_SECTION) }}
               </div>
               <p class="text-body1">
-                Get in touch with The Courier team. We're here to help with questions, submissions,
-                and community inquiries.
+                {{ t(TRANSLATION_KEYS.ABOUT.CONTACT_DESCRIPTION) }}
               </p>
             </q-card-section>
           </q-card>
@@ -267,7 +265,7 @@ async function onSubmit() {
             <div class="col-12 col-md-6">
               <q-card :class="cardClasses">
                 <q-card-section>
-                  <div class="text-h6 q-mb-md">Contact Information</div>
+                  <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO) }}</div>
 
                   <q-list>
                     <q-item>
@@ -275,8 +273,8 @@ async function onSubmit() {
                         <q-icon name="mdi-email" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">Email</q-item-label>
-                        <q-item-label caption>courier@conashaughlakes.com</q-item-label>
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.EMAIL) }}</q-item-label>
+                        <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.EMAIL_VALUE) }}</q-item-label>
                       </q-item-section>
                     </q-item>
 
@@ -285,8 +283,8 @@ async function onSubmit() {
                         <q-icon name="mdi-phone" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">Phone</q-item-label>
-                        <q-item-label caption>(570) 555-0100</q-item-label>
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.PHONE) }}</q-item-label>
+                        <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.PHONE_VALUE) }}</q-item-label>
                       </q-item-section>
                     </q-item>
 
@@ -295,11 +293,8 @@ async function onSubmit() {
                         <q-icon name="mdi-map-marker" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">Address</q-item-label>
-                        <q-item-label caption>
-                          Conashaugh Lakes Community Center<br>
-                          123 Lake Drive<br>
-                          Milford, PA 18337
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.ADDRESS) }}</q-item-label>
+                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.ADDRESS_VALUE)">
                         </q-item-label>
                       </q-item-section>
                     </q-item>
@@ -309,11 +304,8 @@ async function onSubmit() {
                         <q-icon name="mdi-clock" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">Office Hours</q-item-label>
-                        <q-item-label caption>
-                          Monday - Friday: 9:00 AM - 5:00 PM<br>
-                          Saturday: 10:00 AM - 2:00 PM<br>
-                          Sunday: Closed
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.OFFICE_HOURS) }}</q-item-label>
+                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.OFFICE_HOURS_VALUE)">
                         </q-item-label>
                       </q-item-section>
                     </q-item>
@@ -325,38 +317,38 @@ async function onSubmit() {
             <div class="col-12 col-md-6">
               <q-card :class="cardClasses">
                 <q-card-section>
-                  <div class="text-h6 q-mb-md">Send us a Message</div>
+                  <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.TITLE) }}</div>
 
                   <q-form @submit="onSubmit" class="q-col-gutter-md">
-                    <q-input v-model="form.name" label="Your Name" filled :rules="[val => !!val || 'Name is required']">
+                    <q-input v-model="form.name" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.NAME_LABEL)" filled :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.NAME_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-account" />
                       </template>
                     </q-input>
 
-                    <q-input v-model="form.email" label="Email Address" type="email" filled
-                      :rules="[val => !!val || 'Email is required']">
+                    <q-input v-model="form.email" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.EMAIL_LABEL)" type="email" filled
+                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.EMAIL_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-email" />
                       </template>
                     </q-input>
 
-                    <q-select v-model="form.subject" :options="subjectOptions" label="Subject" filled
-                      :rules="[val => !!val || 'Subject is required']">
+                    <q-select v-model="form.subject" :options="subjectOptions" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.SUBJECT_LABEL)" filled
+                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.SUBJECT_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-tag" />
                       </template>
                     </q-select>
 
-                    <q-input v-model="form.message" label="Message" type="textarea" rows="4" filled
-                      :rules="[val => !!val || 'Message is required']">
+                    <q-input v-model="form.message" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.MESSAGE_LABEL)" type="textarea" rows="4" filled
+                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.MESSAGE_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-message-text" />
                       </template>
                     </q-input>
 
                     <div class="text-center">
-                      <q-btn type="submit" color="primary" icon="mdi-send" label="Send Message" :loading="submitting" />
+                      <q-btn type="submit" color="primary" icon="mdi-send" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.SEND_BUTTON)" :loading="submitting" />
                     </div>
                   </q-form>
                 </q-card-section>
@@ -366,7 +358,7 @@ async function onSubmit() {
 
           <q-card :class="cardClasses" class="q-mt-lg">
             <q-card-section>
-              <div class="text-h6 q-mb-md">Editorial Team</div>
+              <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.EDITORIAL_TEAM.TITLE) }}</div>
               <div class="row q-col-gutter-md">
                 <div class="col-12 col-sm-6 col-md-4">
                   <q-item>
@@ -375,7 +367,7 @@ async function onSubmit() {
                     </q-item-section>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">Sarah Johnson</q-item-label>
-                      <q-item-label caption>Editor-in-Chief</q-item-label>
+                      <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.EDITORIAL_TEAM.EDITOR_IN_CHIEF) }}</q-item-label>
                     </q-item-section>
                   </q-item>
                 </div>
@@ -386,7 +378,7 @@ async function onSubmit() {
                     </q-item-section>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">Mike Roberts</q-item-label>
-                      <q-item-label caption>Photography Editor</q-item-label>
+                      <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.EDITORIAL_TEAM.PHOTOGRAPHY_EDITOR) }}</q-item-label>
                     </q-item-section>
                   </q-item>
                 </div>
@@ -397,7 +389,7 @@ async function onSubmit() {
                     </q-item-section>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">Lisa Chen</q-item-label>
-                      <q-item-label caption>Community Reporter</q-item-label>
+                      <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.EDITORIAL_TEAM.COMMUNITY_REPORTER) }}</q-item-label>
                     </q-item-section>
                   </q-item>
                 </div>

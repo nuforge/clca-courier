@@ -186,6 +186,47 @@ export default {
       technical: 'Technical Issue',
       feedback: 'Feedback',
       other: 'Other'
+    },
+    communityStats: {
+      title: 'Community Statistics',
+      households: 'Households',
+      beautifulLakes: 'Beautiful Lakes',
+      issuesPerYear: 'Issues Per Year',
+      yearsPublishing: 'Years Publishing'
+    },
+    getInvolved: {
+      title: 'Get Involved',
+      description: 'The Courier is made possible by dedicated volunteers from our community. We\'re always looking for new contributors and helpers.',
+      volunteerButton: 'Volunteer with Us',
+      contributeButton: 'Contribute Content'
+    },
+    contactForm: {
+      title: 'Send us a Message',
+      nameLabel: 'Your Name',
+      emailLabel: 'Email Address',
+      subjectLabel: 'Subject',
+      messageLabel: 'Message',
+      sendButton: 'Send Message',
+      nameRequired: 'Name is required',
+      emailRequired: 'Email is required',
+      subjectRequired: 'Subject is required',
+      messageRequired: 'Message is required'
+    },
+    contactInfo: {
+      email: 'Email',
+      phone: 'Phone',
+      address: 'Address',
+      officeHours: 'Office Hours',
+      emailValue: 'courier@conashaughlakes.com',
+      phoneValue: '(570) 555-0100',
+      addressValue: 'Conashaugh Lakes Community Center<br>123 Lake Drive<br>Milford, PA 18337',
+      officeHoursValue: 'Monday - Friday: 9:00 AM - 5:00 PM<br>Saturday: 10:00 AM - 2:00 PM<br>Sunday: Closed'
+    },
+    editorialTeam: {
+      title: 'Editorial Team',
+      editorInChief: 'Editor-in-Chief',
+      photographyEditor: 'Photography Editor',
+      communityReporter: 'Community Reporter'
     }
   },
 

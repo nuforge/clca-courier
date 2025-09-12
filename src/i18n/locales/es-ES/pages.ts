@@ -186,6 +186,47 @@ export default {
       technical: 'Problema Técnico',
       feedback: 'Comentarios',
       other: 'Otro'
+    },
+    communityStats: {
+      title: 'Estadísticas de la Comunidad',
+      households: 'Hogares',
+      beautifulLakes: 'Hermosos Lagos',
+      issuesPerYear: 'Ediciones por Año',
+      yearsPublishing: 'Años Publicando'
+    },
+    getInvolved: {
+      title: 'Involúcrate',
+      description: 'The Courier es posible gracias a voluntarios dedicados de nuestra comunidad. Siempre estamos buscando nuevos colaboradores y ayudantes.',
+      volunteerButton: 'Voluntariado',
+      contributeButton: 'Contribuir Contenido'
+    },
+    contactForm: {
+      title: 'Envíanos un Mensaje',
+      nameLabel: 'Tu Nombre',
+      emailLabel: 'Dirección de Correo',
+      subjectLabel: 'Asunto',
+      messageLabel: 'Mensaje',
+      sendButton: 'Enviar Mensaje',
+      nameRequired: 'El nombre es requerido',
+      emailRequired: 'El correo es requerido',
+      subjectRequired: 'El asunto es requerido',
+      messageRequired: 'El mensaje es requerido'
+    },
+    contactInfo: {
+      email: 'Correo',
+      phone: 'Teléfono',
+      address: 'Dirección',
+      officeHours: 'Horario de Oficina',
+      emailValue: 'courier@conashaughlakes.com',
+      phoneValue: '(570) 555-0100',
+      addressValue: 'Centro Comunitario de Conashaugh Lakes<br>123 Lake Drive<br>Milford, PA 18337',
+      officeHoursValue: 'Lunes - Viernes: 9:00 AM - 5:00 PM<br>Sábado: 10:00 AM - 2:00 PM<br>Domingo: Cerrado'
+    },
+    editorialTeam: {
+      title: 'Equipo Editorial',
+      editorInChief: 'Editor en Jefe',
+      photographyEditor: 'Editor de Fotografía',
+      communityReporter: 'Reportero Comunitario'
     }
   },
 

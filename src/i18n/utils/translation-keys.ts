@@ -676,6 +676,47 @@ export const TRANSLATION_KEYS = {
       TECHNICAL: 'pages.about.subjectOptions.technical',
       FEEDBACK: 'pages.about.subjectOptions.feedback',
       OTHER: 'pages.about.subjectOptions.other'
+    },
+    COMMUNITY_STATS: {
+      TITLE: 'pages.about.communityStats.title',
+      HOUSEHOLDS: 'pages.about.communityStats.households',
+      BEAUTIFUL_LAKES: 'pages.about.communityStats.beautifulLakes',
+      ISSUES_PER_YEAR: 'pages.about.communityStats.issuesPerYear',
+      YEARS_PUBLISHING: 'pages.about.communityStats.yearsPublishing'
+    },
+    GET_INVOLVED: {
+      TITLE: 'pages.about.getInvolved.title',
+      DESCRIPTION: 'pages.about.getInvolved.description',
+      VOLUNTEER_BUTTON: 'pages.about.getInvolved.volunteerButton',
+      CONTRIBUTE_BUTTON: 'pages.about.getInvolved.contributeButton'
+    },
+    CONTACT_FORM: {
+      TITLE: 'pages.about.contactForm.title',
+      NAME_LABEL: 'pages.about.contactForm.nameLabel',
+      EMAIL_LABEL: 'pages.about.contactForm.emailLabel',
+      SUBJECT_LABEL: 'pages.about.contactForm.subjectLabel',
+      MESSAGE_LABEL: 'pages.about.contactForm.messageLabel',
+      SEND_BUTTON: 'pages.about.contactForm.sendButton',
+      NAME_REQUIRED: 'pages.about.contactForm.nameRequired',
+      EMAIL_REQUIRED: 'pages.about.contactForm.emailRequired',
+      SUBJECT_REQUIRED: 'pages.about.contactForm.subjectRequired',
+      MESSAGE_REQUIRED: 'pages.about.contactForm.messageRequired'
+    },
+    CONTACT_INFO: {
+      EMAIL: 'pages.about.contactInfo.email',
+      PHONE: 'pages.about.contactInfo.phone',
+      ADDRESS: 'pages.about.contactInfo.address',
+      OFFICE_HOURS: 'pages.about.contactInfo.officeHours',
+      EMAIL_VALUE: 'pages.about.contactInfo.emailValue',
+      PHONE_VALUE: 'pages.about.contactInfo.phoneValue',
+      ADDRESS_VALUE: 'pages.about.contactInfo.addressValue',
+      OFFICE_HOURS_VALUE: 'pages.about.contactInfo.officeHoursValue'
+    },
+    EDITORIAL_TEAM: {
+      TITLE: 'pages.about.editorialTeam.title',
+      EDITOR_IN_CHIEF: 'pages.about.editorialTeam.editorInChief',
+      PHOTOGRAPHY_EDITOR: 'pages.about.editorialTeam.photographyEditor',
+      COMMUNITY_REPORTER: 'pages.about.editorialTeam.communityReporter'
     }
   },
 
