@@ -26,29 +26,50 @@
             :newsletters-with-thumbnails="store.newslettersWithThumbnails" :total-file-size="store.totalFileSize" />
 
           <!-- Filters Component -->
-          <NewsletterFilters :filters="store.filters" :available-years="store.availableYears"
-            :available-seasons="store.availableSeasons" :available-months="store.availableMonths"
-            @update:filters="store.updateFilters" @clear-filters="store.resetFilters" />
+          <NewsletterFilters :newsletters="store.newsletters" :filters="store.filters"
+            @update:filters="store.updateFilters" />
 
           <!-- Workflow Toolbar Component -->
-          <WorkflowToolbar :has-drafts="store.hasDrafts" :draft-count="store.draftNewsletters.length"
-            :is-loading="store.isLoading" :is-uploading="store.isUploading" :is-syncing="store.isSyncing"
-            :is-extracting-text="store.isExtractingText" :is-generating-thumbs="store.isGeneratingThumbs"
-            :is-extracting-page-count="store.isExtractingPageCount"
-            :is-extracting-file-size="store.isExtractingFileSize" :is-extracting-dates="store.isExtractingDates"
-            :is-generating-keywords="store.isGeneratingKeywords"
-            :is-generating-descriptions="store.isGeneratingDescriptions"
-            :is-generating-titles="store.isGeneratingTitles" :total-newsletters="store.totalNewsletters"
-            :newsletters-with-text="store.newslettersWithText"
-            :newsletters-with-thumbnails="store.newslettersWithThumbnails" :total-file-size="store.totalFileSizeBytes"
-            :expanded="store.workflowToolbarExpanded" @import-pdfs="handleImportPdfs"
-            @upload-drafts="uploadDraftsToCloud" @clear-drafts="clearLocalDrafts"
-            @refresh-data="store.refreshNewsletters" @sync-all="syncAllToFirebase" @backup-data="backupData"
-            @extract-all-text="extractAllTextToFirebase" @extract-page-count="extractPageCountForSelected"
-            @extract-file-size="extractFileSizeForSelected" @extract-dates="extractDatesForSelected"
-            @generate-keywords="generateKeywordsForSelected" @generate-descriptions="generateDescriptionsForSelected"
-            @generate-titles="generateTitlesForSelected" @generate-thumbnails="generateAllThumbnails"
-            @toggle-expanded="store.toggleWorkflowToolbar" />
+          <WorkflowToolbar
+            :processing-states="{
+              isImporting: store.isLoading,
+              isCreatingRecords: false,
+              isClearingCache: false,
+              isFixingUrls: false,
+              isRebuildingDatabase: false,
+              isEnhancingDates: store.isExtractingDates,
+              isExtractingAllText: store.isExtractingText,
+              isExtracting: store.isExtractingText,
+              isExtractingPageCount: store.isExtractingPageCount,
+              isExtractingFileSize: store.isExtractingFileSize,
+              isExtractingDates: store.isExtractingDates,
+              isGeneratingThumbs: store.isGeneratingThumbs,
+              isGeneratingKeywords: store.isGeneratingKeywords,
+              isGeneratingDescriptions: store.isGeneratingDescriptions,
+              isGeneratingTitles: store.isGeneratingTitles
+            }"
+            :has-drafts="store.hasDrafts"
+            :draft-count="store.draftNewsletters.length"
+            :newsletters-needing-extraction="0"
+            @import-data="handleImportPdfs"
+            @upload-drafts="uploadDraftsToCloud"
+            @clear-drafts="clearLocalDrafts"
+            @create-records="() => {}"
+            @clear-cache="() => {}"
+            @fix-urls="() => {}"
+            @rebuild-database="() => {}"
+            @enhance-dates="extractDatesForSelected"
+            @extract-text="extractAllTextToFirebase"
+            @generate-thumbnails="generateAllThumbnails"
+            @generate-keywords="generateKeywordsForSelected"
+            @generate-descriptions="generateDescriptionsForSelected"
+            @generate-titles="generateTitlesForSelected"
+            @publish-all="() => {}"
+            @unpublish-all="() => {}"
+            @backup-data="backupData"
+            @restore-data="() => {}"
+            @sync-all="syncAllToFirebase"
+            @refresh-data="store.refreshNewsletters" />
 
           <!-- Newsletter Management Table -->
           <NewsletterManagementTable :newsletters="store.filteredNewsletters"
@@ -100,8 +121,8 @@ watch(isAuthReady, (ready: boolean) => {
 
 // Components
 import StatisticsCards from '../components/content-management/StatisticsCards.vue';
-import NewsletterFilters from '../components/newsletter-management/NewsletterFilters.vue';
-import WorkflowToolbar from '../components/newsletter-management/WorkflowToolbar.vue';
+import NewsletterFilters from '../components/content-management/NewsletterFilters.vue';
+import WorkflowToolbar from '../components/content-management/WorkflowToolbar.vue';
 import NewsletterManagementTable from '../components/content-management/NewsletterManagementTable.vue';
 import NewsletterImportDialog from '../components/content-management/NewsletterImportDialog.vue';
 import NewsletterEditDialog from '../components/content-management/NewsletterEditDialog.vue';
@@ -249,58 +270,6 @@ function generateAllThumbnails(): void {
 // METADATA OPERATIONS
 // =============================================
 
-function extractPageCountForSelected(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isExtractingPageCount = true;
-  try {
-    logger.info(`Extracting page count for ${store.selectedNewsletters.length} newsletters...`);
-
-    store.selectedNewsletters.forEach(newsletter => {
-      if (!newsletter.pageCount) {
-        newsletter.pageCount = newsletter.year && newsletter.year > 2015 ?
-          Math.floor(Math.random() * 8) + 12 :
-          Math.floor(Math.random() * 6) + 8;
-      }
-    });
-
-    $q.notify({
-      type: 'positive',
-      message: `Page count extracted for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isExtractingPageCount = false;
-  }
-}
-
-function extractFileSizeForSelected(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isExtractingFileSize = true;
-  try {
-    logger.info(`Extracting file size for ${store.selectedNewsletters.length} newsletters...`);
-
-    store.selectedNewsletters.forEach(newsletter => {
-      if (!newsletter.fileSize && newsletter.pageCount) {
-        const baseSize = newsletter.pageCount * (newsletter.year && newsletter.year > 2010 ? 500000 : 200000);
-        newsletter.fileSize = baseSize + Math.floor(Math.random() * 200000);
-      }
-    });
-
-    $q.notify({
-      type: 'positive',
-      message: `File size extracted for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isExtractingFileSize = false;
-  }
-}
 
 function extractDatesForSelected(): void {
   if (store.selectedNewsletters.length === 0) {

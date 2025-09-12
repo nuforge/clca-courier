@@ -5,7 +5,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useContentManagement } from './composables/useContentManagement';
-import { calendarEventsService } from './services/calendar-events.service';
 
 const contentManagement = useContentManagement();
 
@@ -19,7 +18,7 @@ interface WindowWithDebugFunctions extends Window {
   syncNewsletterMetadata: (filename: string, direction?: 'upload' | 'download' | 'auto') => Promise<void>;
   inspectLocalStorage: () => void;
   inspectDrafts: () => Array<unknown> | undefined;
-  debugCalendarEvents: () => Promise<void>;
+  debugCalendarEvents: () => void;
 }
 
 onMounted(() => {
@@ -71,7 +70,10 @@ onMounted(() => {
   };
 
   // Add calendar debugging function
-  windowWithDebug.debugCalendarEvents = calendarEventsService.debugCalendarEvents.bind(calendarEventsService);
+  windowWithDebug.debugCalendarEvents = () => {
+    console.log('🔍 DEBUG: Calendar events debugging not available in new architecture');
+    console.log('Use the calendar page to view events or check Firebase directly');
+  };
 
   console.log('🧪 ENHANCED SYNC DEBUG FUNCTIONS AVAILABLE:');
   console.log('📊 Data Analysis:');
