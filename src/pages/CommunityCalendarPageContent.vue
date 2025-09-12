@@ -130,7 +130,7 @@
             :key="calendarKey"
             v-model="calendarModel"
             :events="calendarEvents"
-            event-color="primary"
+            :event-color="getEventColorForDate"
             today-btn
             class="full-width"
             @update:model-value="onDateSelect"
@@ -485,6 +485,34 @@ const applyFilters = () => {
 
   // Apply filters using the composable method
   setFilters(newFilters);
+};
+
+const getEventColorForDate = (date: string): string => {
+  // Convert from YYYY/MM/DD to YYYY-MM-DD
+  const dateKey = date.replace(/\//g, '-');
+
+  // Get events for this date
+  const eventsForDate = getEventsForDate(dateKey);
+
+  if (eventsForDate.length === 0) {
+    return 'primary'; // Default color if no events
+  }
+
+  // If there's only one event, use its color
+  if (eventsForDate.length === 1) {
+    const event = eventsForDate[0];
+    return event ? getEventColor(event) : 'primary';
+  }
+
+  // If there are multiple events, prioritize featured events, then use the first event's color
+  const featuredEvent = eventsForDate.find(event => event.featured);
+  if (featuredEvent) {
+    return getEventColor(featuredEvent);
+  }
+
+  // Use the first event's color as fallback
+  const firstEvent = eventsForDate[0];
+  return firstEvent ? getEventColor(firstEvent) : 'primary';
 };
 
 const formatSelectedDate = (dateStr: string) => {

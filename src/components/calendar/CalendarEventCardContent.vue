@@ -418,6 +418,10 @@ const copyToClipboard = () => {
   border-left-color: var(--q-secondary);
 }
 
+.border-left-accent {
+  border-left-color: var(--q-accent);
+}
+
 .border-left-info {
   border-left-color: var(--q-info);
 }
@@ -428,6 +432,14 @@ const copyToClipboard = () => {
 
 .border-left-positive {
   border-left-color: var(--q-positive);
+}
+
+.border-left-negative {
+  border-left-color: var(--q-negative);
+}
+
+.border-left-orange {
+  border-left-color: #ff9800;
 }
 
 .border-left-grey-6 {

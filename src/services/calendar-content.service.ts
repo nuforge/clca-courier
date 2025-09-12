@@ -372,13 +372,13 @@ class CalendarContentService {
   getEventTypeColor(contentType: string): string {
     switch (contentType) {
       case 'event':
-        return 'accent';
+        return 'primary';
       case 'announcement':
         return 'positive';
       case 'article':
-        return 'primary';
+        return 'info';
       case 'classified':
-        return 'orange';
+        return 'warning';
       case 'photo':
         return 'secondary';
       default:
