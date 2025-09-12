@@ -290,5 +290,52 @@ export default {
   quickUploadDescription: 'Streamlined submission for quick sharing',
   guidedSubmission: 'Guided Submission Process',
   guidedSubmissionDescription: "You're following our step-by-step guide for the best results",
-  backToGuide: 'Back to Guide'
+  backToGuide: 'Back to Guide',
+
+  // Calendar-specific content
+  calendar: {
+    title: 'Community Calendar',
+    subtitle: 'Stay up to date with community events and activities',
+    noEvents: 'No events scheduled',
+    noEventsForDate: 'No events scheduled for this date',
+    noEventsForMonth: 'No events scheduled for this month',
+    upcomingEvents: 'Upcoming Events',
+    allUpcomingEvents: 'All Upcoming Events',
+    eventsOnDate: 'Events on {date}',
+    viewAllUpcoming: 'View All Upcoming',
+    today: 'Today',
+    allDay: 'All Day',
+    eventDetails: 'Event Details',
+    exportToCalendar: 'Export to Calendar',
+    shareEvent: 'Share Event',
+    copyDetails: 'Copy Details',
+    contactOrganizer: 'Contact Organizer',
+    viewOnMap: 'View on Map',
+    eventExported: 'Event exported to calendar',
+    eventShared: 'Event details copied to clipboard',
+    eventCopied: 'Event details copied to clipboard',
+    eventCopyFailed: 'Failed to copy event details',
+    filters: {
+      eventTypes: 'Event Types',
+      featuredOnly: 'Featured Only',
+      clearFilters: 'Clear Filters',
+      applyFilters: 'Apply Filters'
+    },
+    navigation: {
+      previousMonth: 'Previous Month',
+      nextMonth: 'Next Month',
+      goToToday: 'Go to Today'
+    },
+    recurrence: {
+      none: 'No Recurrence',
+      daily: 'Daily',
+      weekly: 'Weekly',
+      monthly: 'Monthly',
+      yearly: 'Yearly',
+      everyNDays: 'Every {n} days',
+      everyNWeeks: 'Every {n} weeks',
+      everyNMonths: 'Every {n} months',
+      everyNYears: 'Every {n} years'
+    }
+  }
 };

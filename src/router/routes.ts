@@ -8,7 +8,7 @@ const routes: RouteRecordRaw[] = [
       // Main public pages
       { path: '', component: () => import('pages/IndexPage.vue') },
       { path: '/community', component: () => import('pages/CommunityContentPage.vue') },
-      { path: '/calendar', component: () => import('pages/CommunityCalendarPage.vue') },
+      { path: '/calendar', component: () => import('pages/CommunityCalendarPageContent.vue') },
       { path: '/about', component: () => import('pages/AboutContactPage.vue') },
       { path: '/contact', redirect: '/about' }, // Redirect old contact route to about page
       { path: '/map', component: () => import('pages/InteractiveMapPage.vue') },

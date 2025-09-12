@@ -274,6 +274,53 @@ export const TRANSLATION_KEYS = {
       PRINT_QUEUE: 'content.print.printQueue',
       NO_PRINT_JOBS: 'content.print.noPrintJobs',
       QUANTITY: 'content.print.quantity'
+    },
+
+    // Calendar-specific content
+    CALENDAR: {
+      TITLE: 'content.calendar.title',
+      SUBTITLE: 'content.calendar.subtitle',
+      NO_EVENTS: 'content.calendar.noEvents',
+      NO_EVENTS_FOR_DATE: 'content.calendar.noEventsForDate',
+      NO_EVENTS_FOR_MONTH: 'content.calendar.noEventsForMonth',
+      UPCOMING_EVENTS: 'content.calendar.upcomingEvents',
+      ALL_UPCOMING_EVENTS: 'content.calendar.allUpcomingEvents',
+      EVENTS_ON_DATE: 'content.calendar.eventsOnDate',
+      VIEW_ALL_UPCOMING: 'content.calendar.viewAllUpcoming',
+      TODAY: 'content.calendar.today',
+      ALL_DAY: 'content.calendar.allDay',
+      EVENT_DETAILS: 'content.calendar.eventDetails',
+      EXPORT_TO_CALENDAR: 'content.calendar.exportToCalendar',
+      SHARE_EVENT: 'content.calendar.shareEvent',
+      COPY_DETAILS: 'content.calendar.copyDetails',
+      CONTACT_ORGANIZER: 'content.calendar.contactOrganizer',
+      VIEW_ON_MAP: 'content.calendar.viewOnMap',
+      EVENT_EXPORTED: 'content.calendar.eventExported',
+      EVENT_SHARED: 'content.calendar.eventShared',
+      EVENT_COPIED: 'content.calendar.eventCopied',
+      EVENT_COPY_FAILED: 'content.calendar.eventCopyFailed',
+      FILTERS: {
+        EVENT_TYPES: 'content.calendar.filters.eventTypes',
+        FEATURED_ONLY: 'content.calendar.filters.featuredOnly',
+        CLEAR_FILTERS: 'content.calendar.filters.clearFilters',
+        APPLY_FILTERS: 'content.calendar.filters.applyFilters'
+      },
+      NAVIGATION: {
+        PREVIOUS_MONTH: 'content.calendar.navigation.previousMonth',
+        NEXT_MONTH: 'content.calendar.navigation.nextMonth',
+        GO_TO_TODAY: 'content.calendar.navigation.goToToday'
+      },
+      RECURRENCE: {
+        NONE: 'content.calendar.recurrence.none',
+        DAILY: 'content.calendar.recurrence.daily',
+        WEEKLY: 'content.calendar.recurrence.weekly',
+        MONTHLY: 'content.calendar.recurrence.monthly',
+        YEARLY: 'content.calendar.recurrence.yearly',
+        EVERY_N_DAYS: 'content.calendar.recurrence.everyNDays',
+        EVERY_N_WEEKS: 'content.calendar.recurrence.everyNWeeks',
+        EVERY_N_MONTHS: 'content.calendar.recurrence.everyNMonths',
+        EVERY_N_YEARS: 'content.calendar.recurrence.everyNYears'
+      }
     }
   },
 

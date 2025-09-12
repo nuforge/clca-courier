@@ -229,5 +229,52 @@ export default {
   quickUploadDescription: 'Envío simplificado para compartir rápidamente',
   guidedSubmission: 'Proceso de Envío Guiado',
   guidedSubmissionDescription: 'Estás siguiendo nuestra guía paso a paso para obtener los mejores resultados',
-  backToGuide: 'Volver a la Guía'
+  backToGuide: 'Volver a la Guía',
+
+  // Calendar-specific content
+  calendar: {
+    title: 'Calendario Comunitario',
+    subtitle: 'Mantente al día con eventos y actividades de la comunidad',
+    noEvents: 'No hay eventos programados',
+    noEventsForDate: 'No hay eventos programados para esta fecha',
+    noEventsForMonth: 'No hay eventos programados para este mes',
+    upcomingEvents: 'Próximos Eventos',
+    allUpcomingEvents: 'Todos los Próximos Eventos',
+    eventsOnDate: 'Eventos el {date}',
+    viewAllUpcoming: 'Ver Todos los Próximos',
+    today: 'Hoy',
+    allDay: 'Todo el Día',
+    eventDetails: 'Detalles del Evento',
+    exportToCalendar: 'Exportar al Calendario',
+    shareEvent: 'Compartir Evento',
+    copyDetails: 'Copiar Detalles',
+    contactOrganizer: 'Contactar Organizador',
+    viewOnMap: 'Ver en Mapa',
+    eventExported: 'Evento exportado al calendario',
+    eventShared: 'Detalles del evento copiados al portapapeles',
+    eventCopied: 'Detalles del evento copiados al portapapeles',
+    eventCopyFailed: 'Error al copiar detalles del evento',
+    filters: {
+      eventTypes: 'Tipos de Eventos',
+      featuredOnly: 'Solo Destacados',
+      clearFilters: 'Limpiar Filtros',
+      applyFilters: 'Aplicar Filtros'
+    },
+    navigation: {
+      previousMonth: 'Mes Anterior',
+      nextMonth: 'Mes Siguiente',
+      goToToday: 'Ir a Hoy'
+    },
+    recurrence: {
+      none: 'Sin Repetición',
+      daily: 'Diario',
+      weekly: 'Semanal',
+      monthly: 'Mensual',
+      yearly: 'Anual',
+      everyNDays: 'Cada {n} días',
+      everyNWeeks: 'Cada {n} semanas',
+      everyNMonths: 'Cada {n} meses',
+      everyNYears: 'Cada {n} años'
+    }
+  }
 };
