@@ -24,7 +24,8 @@ export default {
     photo: 'Foto',
     newsletter: 'Boletín',
     task: 'Tarea',
-    article: 'Artículo'
+    article: 'Artículo',
+    unknown: 'Desconocido'
   },
 
   contentType: {

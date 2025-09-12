@@ -183,7 +183,7 @@ const canClaimTask = computed(() => {
 
 const getContentTypeLabel = computed(() => {
   const contentType = contentUtils.getContentType(props.content);
-  return contentType ? t(`contentType.${contentType}`) : t('contentType.unknown');
+  return contentType ? t(`content.types.${contentType}`) : t('content.types.unknown');
 });
 
 const getContentTypeIcon = computed(() => {
