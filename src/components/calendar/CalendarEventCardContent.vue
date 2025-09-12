@@ -314,7 +314,7 @@ const exportToCalendar = () => {
     endDate.setHours(endDate.getHours() + 1); // Default 1 hour
   }
 
-  const formatDate = (date: Date) => {
+  const formatDateForICS = (date: Date) => {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   };
 
@@ -323,8 +323,8 @@ const exportToCalendar = () => {
     'VERSION:2.0',
     'PRODID:-//CLCA Courier//Calendar Event//EN',
     'BEGIN:VEVENT',
-    `DTSTART:${formatDate(startDate)}`,
-    `DTEND:${formatDate(endDate)}`,
+    `DTSTART:${formatDateForICS(startDate)}`,
+    `DTEND:${formatDateForICS(endDate)}`,
     `SUMMARY:${event.title}`,
     `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}`,
     ...(event.eventLocation ? [`LOCATION:${event.eventLocation}`] : []),

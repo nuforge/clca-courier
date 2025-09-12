@@ -166,7 +166,8 @@
                   :key="dayGroup.date"
                   :label="formatDayGroupLabel(dayGroup)"
                   :caption="`${dayGroup.events.length} ${dayGroup.events.length === 1 ? $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENT) : $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS)}`"
-                  :default-opened="dayGroup.date === selectedDateModel?.replace(/\//g, '-')"
+                  :model-value="isExpansionOpen(dayGroup.date)"
+                  @update:model-value="(isOpen) => onExpansionChange(dayGroup.date, isOpen)"
                   header-class="text-weight-medium"
                   class="monthly-events-group"
                 >
@@ -359,7 +360,7 @@ import { useCalendarContent } from '../composables/useCalendarContent';
 import type { CalendarEvent } from '../services/calendar-content.service';
 import CalendarEventCardContent from '../components/calendar/CalendarEventCardContent.vue';
 import { logger } from '../utils/logger';
-import { formatDate, getCurrentYear, getCurrentMonth } from '../utils/date-formatter';
+import { formatDate, getCurrentYear, getCurrentMonth, parseDateOnly } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const { t } = useI18n();
@@ -401,6 +402,10 @@ const showFeaturedOnly = ref(false);
 const selectedEvent = ref<CalendarEvent | null>(null);
 const calendarRef = ref();
 const isNavigating = ref(false); // Flag to track when we're navigating months
+
+// Expansion panel state management
+const expansionState = ref<Record<string, boolean>>({}); // Track which days are manually closed
+const autoOpenedDays = ref<Set<string>>(new Set()); // Track days opened by calendar selection
 
 // Computed properties
 const calendarEvents = computed(() => {
@@ -451,6 +456,22 @@ const monthlyEventsGrouped = computed(() => {
   // Sort groups by date
   return grouped.sort((a, b) => a.date.localeCompare(b.date));
 });
+
+// Computed to determine if an expansion item should be open
+const isExpansionOpen = (date: string): boolean => {
+  // If user manually closed this day, respect that
+  if (expansionState.value[date] === false) {
+    return false;
+  }
+
+  // If user manually opened this day, respect that
+  if (expansionState.value[date] === true) {
+    return true;
+  }
+
+  // Default to open for all days (unless manually closed)
+  return true;
+};
 
 // Reactive state to force calendar updates
 const calendarUpdateTrigger = ref(0);
@@ -508,6 +529,9 @@ const onCalendarNavigation = (view: { year: number; month: number }) => {
   // Load events for the new month
   void loadEventsForMonth(view.year, view.month);
 
+  // Don't clear expansion state - let user preferences persist across months
+  // This allows users to close a day and have it stay closed when navigating back
+
   // Clear navigation flag after a short delay to allow calendar to update
   void nextTick(() => {
     isNavigating.value = false;
@@ -549,6 +573,9 @@ const onDateSelect = (date: string | string[] | null) => {
       selectedDateModel.value = date as string;
     }
 
+    // Open the corresponding expansion panel for this date
+    openExpansionForDate(selectedDate);
+
     // Debug the events for this date
     const eventsForDate = getEventsForDate(selectedDate);
     logger.debug('🗓️ Events found for date:', {
@@ -561,6 +588,33 @@ const onDateSelect = (date: string | string[] | null) => {
 
 const onEventClick = (event: CalendarEvent) => {
   selectedEvent.value = event;
+};
+
+// Handle expansion panel state changes
+const onExpansionChange = (date: string, isOpen: boolean) => {
+  logger.debug('🗓️ Expansion state changed:', { date, isOpen });
+
+  // Track user's manual state changes
+  expansionState.value[date] = isOpen;
+
+  // Remove from auto-opened set if user manually closes
+  if (!isOpen) {
+    autoOpenedDays.value.delete(date);
+  }
+};
+
+// Handle calendar date selection to open corresponding expansion panel
+const openExpansionForDate = (date: string) => {
+  logger.debug('🗓️ Opening expansion for date:', date);
+
+  // Only auto-open if the user hasn't manually closed this day
+  // If expansionState[date] is explicitly false, respect that choice
+  if (expansionState.value[date] !== false) {
+    autoOpenedDays.value.add(date);
+    expansionState.value[date] = true;
+  } else {
+    logger.debug('🗓️ Respecting user preference to keep date closed:', date);
+  }
 };
 
 const refreshEvents = () => {
@@ -638,7 +692,13 @@ const formatSelectedDate = (dateStr: string) => {
 };
 
 const formatDayGroupLabel = (dayGroup: { date: string; events: CalendarEvent[] }) => {
-  const date = new Date(dayGroup.date);
+  // Use centralized date parsing to avoid timezone issues
+  const date = parseDateOnly(dayGroup.date);
+  if (!date) {
+    logger.warn('Invalid date in formatDayGroupLabel:', dayGroup.date);
+    return 'Invalid Date';
+  }
+
   const today = new Date();
   const isToday = date.toDateString() === today.toDateString();
 
@@ -685,7 +745,7 @@ const exportToCalendar = (event: CalendarEvent) => {
     endDate.setHours(endDate.getHours() + 1); // Default 1 hour
   }
 
-  const formatDate = (date: Date) => {
+  const formatDateForICS = (date: Date) => {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   };
 
@@ -694,8 +754,8 @@ const exportToCalendar = (event: CalendarEvent) => {
     'VERSION:2.0',
     'PRODID:-//CLCA Courier//Calendar Event//EN',
     'BEGIN:VEVENT',
-    `DTSTART:${formatDate(startDate)}`,
-    `DTEND:${formatDate(endDate)}`,
+    `DTSTART:${formatDateForICS(startDate)}`,
+    `DTEND:${formatDateForICS(endDate)}`,
     `SUMMARY:${event.title}`,
     `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}`,
     ...(event.eventLocation ? [`LOCATION:${event.eventLocation}`] : []),
