@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useTheme } from '../composables/useTheme'
 import { DiscordIcon } from '../components/BrandIcons'
 
 const $q = useQuasar()
+const { t } = useI18n()
 const { cardClasses } = useTheme()
 
 const form = ref({
@@ -235,7 +237,7 @@ function openForum() {
                   <q-form @submit="onSubmit" class="q-col-gutter-md">
                     <div class="row q-col-gutter-md">
                       <div class="col-12 col-sm-6">
-                        <q-input v-model="form.name" label="Your Name" filled
+                        <q-input v-model="form.name" :label="t('forms.commonFields.name')" filled
                           :rules="[val => !!val || 'Name is required']">
                           <template v-slot:prepend>
                             <q-icon name="mdi-account" />
@@ -244,7 +246,7 @@ function openForum() {
                       </div>
 
                       <div class="col-12 col-sm-6">
-                        <q-input v-model="form.email" label="Email Address" type="email" filled
+                        <q-input v-model="form.email" :label="t('forms.commonFields.email')" type="email" filled
                           :rules="[val => !!val || 'Email is required']">
                           <template v-slot:prepend>
                             <q-icon name="mdi-email" />
@@ -253,7 +255,7 @@ function openForum() {
                       </div>
                     </div>
 
-                    <q-input v-model="form.phone" label="Phone Number (Optional)" filled>
+                    <q-input v-model="form.phone" :label="t('forms.commonFields.phone')" filled>
                       <template v-slot:prepend>
                         <q-icon name="mdi-phone" />
                       </template>
@@ -261,7 +263,7 @@ function openForum() {
 
                     <div class="row q-col-gutter-md">
                       <div class="col-12 col-sm-6">
-                        <q-select v-model="form.ideaType" :options="ideaTypeOptions" label="Idea Category" filled
+                        <q-select v-model="form.ideaType" :options="ideaTypeOptions" :label="t('forms.commonFields.category')" filled
                           :rules="[val => !!val || 'Category is required']">
                           <template v-slot:prepend>
                             <q-icon name="mdi-tag" />
@@ -278,14 +280,14 @@ function openForum() {
                       </div>
                     </div>
 
-                    <q-input v-model="form.ideaTitle" label="Idea Title/Summary" filled
+                    <q-input v-model="form.ideaTitle" :label="t('forms.commonFields.title')" filled
                       hint="Brief title that describes your idea" :rules="[val => !!val || 'Title is required']">
                       <template v-slot:prepend>
                         <q-icon name="mdi-format-title" />
                       </template>
                     </q-input>
 
-                    <q-input v-model="form.description" label="Detailed Description" type="textarea" rows="6" filled
+                    <q-input v-model="form.description" :label="t('forms.commonFields.description')" type="textarea" rows="6" filled
                       hint="Explain your idea in detail - what is it, how would it work, why is it needed?"
                       :rules="[val => !!val || 'Description is required']">
                       <template v-slot:prepend>
@@ -322,7 +324,7 @@ function openForum() {
                     </q-input>
 
                     <div class="text-center q-mt-md">
-                      <q-btn type="submit" color="positive" icon="mdi-send" label="Submit Ideas" :loading="submitting"
+                      <q-btn type="submit" color="positive" icon="mdi-send" :label="t('common.actions.submitIdeas')" :loading="submitting"
                         size="lg" />
                     </div>
 

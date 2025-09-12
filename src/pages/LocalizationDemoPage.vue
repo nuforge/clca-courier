@@ -31,7 +31,7 @@ const navigationKeys = computed(() =>
 );
 
 const commonActionKeys = computed(() =>
-  ['SAVE', 'CANCEL', 'DELETE', 'EDIT', 'REFRESH', 'DOWNLOAD', 'UPLOAD'] as Array<keyof typeof TRANSLATION_KEYS.COMMON>
+  ['SAVE', 'CANCEL', 'DELETE', 'EDIT'] as Array<keyof typeof TRANSLATION_KEYS.COMMON.ACTIONS>
 );
 
 const statusKeys = computed(() =>
@@ -179,8 +179,8 @@ const demoStats = computed(() => ({
           <q-btn
             v-for="actionKey in commonActionKeys"
             :key="actionKey"
-            :label="t(TRANSLATION_KEYS.COMMON[actionKey])"
-            :icon="`mdi-${actionKey === 'SAVE' ? 'content-save' : actionKey === 'CANCEL' ? 'close' : actionKey === 'DELETE' ? 'delete' : actionKey === 'EDIT' ? 'pencil' : actionKey === 'REFRESH' ? 'reload' : actionKey === 'DOWNLOAD' ? 'download' : 'upload'}`"
+            :label="t(TRANSLATION_KEYS.COMMON.ACTIONS[actionKey])"
+            :icon="`mdi-${actionKey === 'SAVE' ? 'content-save' : actionKey === 'CANCEL' ? 'close' : actionKey === 'DELETE' ? 'delete' : actionKey === 'EDIT' ? 'pencil' : 'help'}`"
             outline
             no-caps
           />

@@ -30,6 +30,43 @@ export default {
   },
   required: 'This field is required',
 
+  // Standardized Common Fields (Phase 2 Consolidation)
+  commonFields: {
+    name: 'Name',
+    yourName: 'Your Name',
+    fullName: 'Full Name',
+    email: 'Email',
+    emailAddress: 'Email Address',
+    title: 'Title',
+    description: 'Description',
+    detailedDescription: 'Detailed Description',
+    category: 'Category',
+    contentCategory: 'Content Category',
+    ideaCategory: 'Idea Category',
+    photoCategory: 'Photo Category',
+    date: 'Date',
+    dateTaken: 'Date Taken',
+    time: 'Time',
+    location: 'Location',
+    photoLocation: 'Photo Location',
+    priority: 'Priority',
+    priorityLevel: 'Priority Level',
+    phone: 'Phone',
+    phoneNumber: 'Phone Number',
+    message: 'Message',
+    additionalInfo: 'Additional Information',
+    photoTitle: 'Photo Title',
+    ideaTitle: 'Idea Title'
+  },
+
+  labels: {
+    required: 'Required',
+    optional: 'Optional',
+    selectOption: 'Select an option',
+    chooseFile: 'Choose file',
+    uploadImage: 'Upload image'
+  },
+
   // Legacy fields for compatibility
   content: 'Content',
   email: 'Email',

@@ -27,6 +27,7 @@ export const TRANSLATION_KEYS = {
 
   // Common UI Elements
   COMMON: {
+    // Core Actions
     SAVE: 'common.save',
     CANCEL: 'common.cancel',
     DELETE: 'common.delete',
@@ -65,11 +66,81 @@ export const TRANSLATION_KEYS = {
     TOGGLE: 'common.toggle',
     RETRY: 'common.retry',
     CLEAR_SELECTION: 'common.clearSelection',
-    BY: 'common.by'
+    BY: 'common.by',
+
+    // Extended Actions (Phase 1 Consolidation)
+    ACTIONS: {
+      SAVE: 'common.actions.save',
+      SAVE_CHANGES: 'common.actions.saveChanges',
+      SAVE_SETTINGS: 'common.actions.saveSettings',
+      SAVE_THEME: 'common.actions.saveTheme',
+      CANCEL: 'common.actions.cancel',
+      SUBMIT: 'common.actions.submit',
+      SUBMIT_IDEAS: 'common.actions.submitIdeas',
+      SUBMIT_CONTENT: 'common.actions.submitContent',
+      EDIT: 'common.actions.edit',
+      DELETE: 'common.actions.delete',
+      REMOVE: 'common.actions.remove',
+      CONTINUE: 'common.actions.continue',
+      BACK: 'common.actions.back',
+      NEXT: 'common.actions.next',
+      PREVIOUS: 'common.actions.previous',
+      RESET: 'common.actions.reset',
+      RESET_TO_DEFAULTS: 'common.actions.resetToDefaults',
+      CONFIRM: 'common.actions.confirm',
+      VIEW: 'common.actions.view',
+      OPEN: 'common.actions.open',
+      CLOSE: 'common.actions.close',
+      COPY: 'common.actions.copy',
+      COPY_TO_CLIPBOARD: 'common.actions.copyToClipboard',
+      CLEAR: 'common.actions.clear',
+      CLEAR_LOCAL_STORAGE: 'common.actions.clearLocalStorage',
+      EXPORT: 'common.actions.export',
+      EXPORT_SETTINGS: 'common.actions.exportSettings',
+      IMPORT: 'common.actions.import',
+      IMPORT_SETTINGS: 'common.actions.importSettings',
+      UPDATE: 'common.actions.update',
+      MODIFY: 'common.actions.modify',
+      APPROVE: 'common.actions.approve',
+      REJECT: 'common.actions.reject',
+      PUBLISH: 'common.actions.publish',
+      UNPUBLISH: 'common.actions.unpublish'
+    },
+
+    // Status and States (Phase 3 preparation)
+    STATUS: {
+      PENDING: 'common.status.pending',
+      APPROVED: 'common.status.approved',
+      PUBLISHED: 'common.status.published',
+      REJECTED: 'common.status.rejected',
+      DRAFT: 'common.status.draft',
+      ACTIVE: 'common.status.active',
+      INACTIVE: 'common.status.inactive',
+      LOADING: 'common.status.loading',
+      PROCESSING: 'common.status.processing',
+      COMPLETED: 'common.status.completed',
+      FAILED: 'common.status.failed',
+      SUCCESS: 'common.status.success',
+      ERROR: 'common.status.error',
+      WARNING: 'common.status.warning'
+    },
+
+    // Accessibility Labels
+    ACCESSIBILITY: {
+      CLOSE_DIALOG: 'common.accessibility.closeDialog',
+      OPEN_MENU: 'common.accessibility.openMenu',
+      TOGGLE_THEME: 'common.accessibility.toggleTheme',
+      EXPAND_SECTION: 'common.accessibility.expandSection',
+      COLLAPSE_SECTION: 'common.accessibility.collapseSection',
+      CLAIM_TASK: 'common.accessibility.claimTask',
+      NAVIGATE_BACK: 'common.accessibility.navigateBack',
+      NAVIGATE_FORWARD: 'common.accessibility.navigateForward'
+    }
   },
 
   // Forms and Validation
   FORMS: {
+    // Legacy Form Fields (maintained for compatibility)
     TITLE: 'forms.title',
     DESCRIPTION: 'forms.description',
     CONTENT: 'forms.content',
@@ -85,6 +156,45 @@ export const TRANSLATION_KEYS = {
     TAGS: 'forms.tags',
     FEATURED: 'forms.featured',
     PUBLISHED: 'forms.published',
+
+    // Standardized Common Fields (Phase 2 Consolidation)
+    COMMON_FIELDS: {
+      NAME: 'forms.commonFields.name',
+      YOUR_NAME: 'forms.commonFields.yourName',
+      FULL_NAME: 'forms.commonFields.fullName',
+      EMAIL: 'forms.commonFields.email',
+      EMAIL_ADDRESS: 'forms.commonFields.emailAddress',
+      TITLE: 'forms.commonFields.title',
+      DESCRIPTION: 'forms.commonFields.description',
+      DETAILED_DESCRIPTION: 'forms.commonFields.detailedDescription',
+      CATEGORY: 'forms.commonFields.category',
+      CONTENT_CATEGORY: 'forms.commonFields.contentCategory',
+      IDEA_CATEGORY: 'forms.commonFields.ideaCategory',
+      PHOTO_CATEGORY: 'forms.commonFields.photoCategory',
+      DATE: 'forms.commonFields.date',
+      DATE_TAKEN: 'forms.commonFields.dateTaken',
+      TIME: 'forms.commonFields.time',
+      LOCATION: 'forms.commonFields.location',
+      PHOTO_LOCATION: 'forms.commonFields.photoLocation',
+      PRIORITY: 'forms.commonFields.priority',
+      PRIORITY_LEVEL: 'forms.commonFields.priorityLevel',
+      PHONE: 'forms.commonFields.phone',
+      PHONE_NUMBER: 'forms.commonFields.phoneNumber',
+      MESSAGE: 'forms.commonFields.message',
+      ADDITIONAL_INFO: 'forms.commonFields.additionalInfo',
+      PHOTO_TITLE: 'forms.commonFields.photoTitle',
+      IDEA_TITLE: 'forms.commonFields.ideaTitle'
+    },
+
+    // Form Labels and Hints
+    LABELS: {
+      REQUIRED: 'forms.labels.required',
+      OPTIONAL: 'forms.labels.optional',
+      SELECT_OPTION: 'forms.labels.selectOption',
+      CHOOSE_FILE: 'forms.labels.chooseFile',
+      UPLOAD_IMAGE: 'forms.labels.uploadImage'
+    },
+
     VALIDATION: {
       REQUIRED: 'forms.validation.required',
       EMAIL_INVALID: 'forms.validation.emailInvalid',

@@ -8,6 +8,42 @@
  */
 
 export default {
+  commonFields: {
+    name: 'Nombre',
+    yourName: 'Su Nombre',
+    fullName: 'Nombre Completo',
+    email: 'Correo Electrónico',
+    emailAddress: 'Dirección de Correo Electrónico',
+    title: 'Título',
+    description: 'Descripción',
+    detailedDescription: 'Descripción Detallada',
+    category: 'Categoría',
+    contentCategory: 'Categoría de Contenido',
+    ideaCategory: 'Categoría de Idea',
+    photoCategory: 'Categoría de Foto',
+    date: 'Fecha',
+    dateTaken: 'Fecha Tomada',
+    time: 'Hora',
+    location: 'Ubicación',
+    photoLocation: 'Ubicación de la Foto',
+    priority: 'Prioridad',
+    priorityLevel: 'Nivel de Prioridad',
+    phone: 'Teléfono',
+    phoneNumber: 'Número de Teléfono',
+    message: 'Mensaje',
+    additionalInfo: 'Información Adicional',
+    photoTitle: 'Título de la Foto',
+    ideaTitle: 'Título de la Idea'
+  },
+
+  labels: {
+    required: 'Requerido',
+    optional: 'Opcional',
+    selectOption: 'Seleccione una opción',
+    chooseFile: 'Elegir archivo',
+    uploadImage: 'Subir imagen'
+  },
+
   title: {
     label: 'Título',
     hint: 'Ingrese un título claro y descriptivo para su contenido',

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useTheme } from '../composables/useTheme'
 import { DiscordIcon } from '../components/BrandIcons'
 import { getGoogleDriveFolderUrl } from '../config/google-cloud-config'
 
 const $q = useQuasar()
+const { t } = useI18n()
 const { cardClasses } = useTheme()
 
 const form = ref({
@@ -221,7 +223,7 @@ function openDiscord() {
                                     <q-form @submit="onSubmit" class="q-col-gutter-md">
                                         <div class="row q-col-gutter-md">
                                             <div class="col-12 col-sm-6">
-                                                <q-input v-model="form.name" label="Your Name" filled
+                                                <q-input v-model="form.name" :label="t('forms.commonFields.name')" filled
                                                     :rules="[val => !!val || 'Name is required']">
                                                     <template v-slot:prepend>
                                                         <q-icon name="mdi-account" />
@@ -230,7 +232,7 @@ function openDiscord() {
                                             </div>
 
                                             <div class="col-12 col-sm-6">
-                                                <q-input v-model="form.email" label="Email Address" type="email" filled
+                                                <q-input v-model="form.email" :label="t('forms.commonFields.email')" type="email" filled
                                                     :rules="[val => !!val || 'Email is required']">
                                                     <template v-slot:prepend>
                                                         <q-icon name="mdi-email" />
@@ -239,7 +241,7 @@ function openDiscord() {
                                             </div>
                                         </div>
 
-                                        <q-input v-model="form.phone" label="Phone Number (Optional)" filled>
+                                        <q-input v-model="form.phone" :label="t('forms.commonFields.phone')" filled>
                                             <template v-slot:prepend>
                                                 <q-icon name="mdi-phone" />
                                             </template>
@@ -247,7 +249,7 @@ function openDiscord() {
 
                                         <div class="row q-col-gutter-md">
                                             <div class="col-12 col-sm-6">
-                                                <q-input v-model="form.photoTitle" label="Photo Title/Caption" filled
+                                                <q-input v-model="form.photoTitle" :label="t('forms.commonFields.title')" filled
                                                     :rules="[val => !!val || 'Photo title is required']">
                                                     <template v-slot:prepend>
                                                         <q-icon name="mdi-format-title" />
@@ -257,7 +259,7 @@ function openDiscord() {
 
                                             <div class="col-12 col-sm-6">
                                                 <q-select v-model="form.category" :options="categoryOptions"
-                                                    label="Photo Category" filled
+                                                    :label="t('forms.commonFields.category')" filled
                                                     :rules="[val => !!val || 'Category is required']">
                                                     <template v-slot:prepend>
                                                         <q-icon name="mdi-tag" />
@@ -268,7 +270,7 @@ function openDiscord() {
 
                                         <div class="row q-col-gutter-md">
                                             <div class="col-12 col-sm-6">
-                                                <q-input v-model="form.location" label="Photo Location" filled
+                                                <q-input v-model="form.location" :label="t('forms.commonFields.location')" filled
                                                     hint="Where was this photo taken?">
                                                     <template v-slot:prepend>
                                                         <q-icon name="mdi-map-marker" />
@@ -277,7 +279,7 @@ function openDiscord() {
                                             </div>
 
                                             <div class="col-12 col-sm-6">
-                                                <q-input v-model="form.date" label="Date Taken" filled
+                                                <q-input v-model="form.date" :label="t('forms.commonFields.date')" filled
                                                     hint="When was this photo taken?">
                                                     <template v-slot:prepend>
                                                         <q-icon name="mdi-calendar" />
@@ -286,7 +288,7 @@ function openDiscord() {
                                             </div>
                                         </div>
 
-                                        <q-input v-model="form.description" label="Photo Description" type="textarea"
+                                        <q-input v-model="form.description" :label="t('forms.commonFields.description')" type="textarea"
                                             rows="4" filled
                                             hint="Describe what's happening in the photo, any interesting details, or the story behind it"
                                             :rules="[val => !!val || 'Description is required']">
@@ -305,7 +307,7 @@ function openDiscord() {
 
                                         <div class="text-center q-mt-md">
                                             <q-btn type="submit" color="secondary" icon="mdi-send"
-                                                label="Submit Photo Details" :loading="submitting" size="lg" />
+                                                :label="t('common.actions.submit')" :loading="submitting" size="lg" />
                                         </div>
 
                                         <div class="text-center q-mt-sm">
