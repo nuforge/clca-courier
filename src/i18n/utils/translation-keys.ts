@@ -67,6 +67,7 @@ export const TRANSLATION_KEYS = {
     RETRY: 'common.retry',
     CLEAR_SELECTION: 'common.clearSelection',
     BY: 'common.by',
+    BACK_TO_TOP: 'common.backToTop',
 
     // Extended Actions (Phase 1 Consolidation)
     ACTIONS: {

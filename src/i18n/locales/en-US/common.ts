@@ -47,6 +47,7 @@ export default {
   retry: 'Retry',
   clearSelection: 'Clear Selection',
   by: 'By',
+  backToTop: 'Back to Top',
 
   accessibility: {
     showActions: 'Show actions menu',

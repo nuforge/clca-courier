@@ -48,6 +48,7 @@ export default {
   clearSelection: 'Limpiar Selección',
   by: 'Por',
   preview: 'Vista previa',
+  backToTop: 'Volver Arriba',
 
   accessibility: {
     showActions: 'Mostrar menú de acciones',

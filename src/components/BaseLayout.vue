@@ -70,6 +70,33 @@ const toggleDrawer = () => {
           </slot>
         </div>
       </q-page>
+
+      <!-- Back to Top Button -->
+      <q-page-scroller
+        position="bottom-right"
+        :offset="[18, 18]"
+        :scroll-offset="300"
+        :duration="300"
+      >
+        <q-btn
+          round
+          color="primary"
+          icon="keyboard_arrow_up"
+          size="md"
+          class="back-to-top-btn"
+          aria-label="Back to top"
+          :title="$t('common.backToTop')"
+        >
+          <q-tooltip
+            anchor="center left"
+            self="center right"
+            :offset="[10, 0]"
+            class="bg-dark text-white"
+          >
+            {{ $t('common.backToTop') }}
+          </q-tooltip>
+        </q-btn>
+      </q-page-scroller>
     </q-page-container>
   </q-layout>
 </template>
@@ -98,5 +125,57 @@ const toggleDrawer = () => {
 // Ensure pages with padding have proper spacing
 :deep(.q-page[padding]) {
   padding-bottom: 0 !important; // Remove bottom padding so footer sits right
+}
+
+// Back to Top Button Styling
+.back-to-top-btn {
+  // Ensure proper touch target size (minimum 44px for accessibility)
+  min-width: 44px;
+  min-height: 44px;
+
+  // Smooth transitions for better UX
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Enhanced shadow for better visibility
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  // Hover effects
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  // Focus styles for keyboard navigation
+  &:focus {
+    outline: 2px solid var(--q-primary);
+    outline-offset: 2px;
+  }
+
+  // Active state
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  // Ensure icon is properly sized
+  :deep(.q-icon) {
+    font-size: 1.2em;
+  }
+}
+
+// Dark mode adjustments
+:deep(.q-page-scroller) {
+  // Ensure button is visible in both light and dark themes
+  .back-to-top-btn {
+    // Use primary color which adapts to theme
+    background-color: var(--q-primary);
+    color: white;
+
+    // Ensure contrast in dark mode
+    &.q-btn--outline {
+      border-color: var(--q-primary);
+      color: var(--q-primary);
+    }
+  }
 }
 </style>
