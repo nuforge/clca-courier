@@ -551,17 +551,11 @@ watch(() => calendarState.value, (newState) => {
   }
 }, { deep: true });
 
-// Watch for month/year changes and update selectedDateModel to first day of month
+// Watch for month/year changes - keep selected date unchanged for better UX
 watch(() => [calendarState.value.currentYear, calendarState.value.currentMonth], ([year, month]) => {
   logger.debug('🗓️ Month/Year changed:', { year, month });
-
-  // Update selectedDateModel to first day of the new month
-  if (year && month) {
-    const firstDayOfMonth = `${year}/${month.toString().padStart(2, '0')}/01`;
-    if (selectedDateModel.value !== firstDayOfMonth) {
-      selectedDateModel.value = firstDayOfMonth;
-    }
-  }
+  // Note: We intentionally do NOT change the selected date when navigating months
+  // This allows users to keep their selected date when browsing different months
 });
 
 // Watch monthName changes
