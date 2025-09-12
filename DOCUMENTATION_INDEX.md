@@ -51,13 +51,12 @@
 ### **📚 Historical Documentation**
 - **[docs/archive/](docs/archive/)** - Comprehensive project history
   - **LOCALIZATION_OPTIMIZATION.md** - Localization analysis and recommendations
-  - **CANVA_INTEGRATION_FINAL_ANALYSIS.md** - Canva API integration analysis
-  - **CANVA_INTEGRATION_CHECKLIST.md** - Implementation phases and progress
   - **DOCUMENTATION_UPDATE_SUMMARY.md** - Documentation maintenance history
   - Development strategies and methodologies
   - Testing strategies and achievements
   - System analysis reports
   - Enhancement recommendations
+  - **[obsolete-docs/](docs/archive/obsolete-docs/)** - Archived obsolete documentation
 
 ### **📊 Legacy Implementation Records**
 - **[docs/archive/refactor-legacy/](docs/archive/refactor-legacy/)** - Original refactor planning and progress
