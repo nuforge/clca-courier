@@ -1,67 +1,85 @@
 # CLCA Courier - Documentation Index
 **Updated:** September 11, 2025  
-**Status:** 🚧 **IN DEVELOPMENT** - ContentDoc Architecture Work in Progress
+**Status:** 🚧 **IN DEVELOPMENT** - ContentDoc Architecture Work in Progress  
+**Organization:** ✅ **CLEAN** - Documentation reorganized for next development phase
 
 ---
 
-## 📚 CURRENT DOCUMENTATION
+## 📚 CURRENT ACTIVE DOCUMENTATION
 
-### **System Status & Architecture**
-- **[REFACTOR_STATUS_CURRENT.md](REFACTOR_STATUS_CURRENT.md)** ⭐ **PRIMARY** - Current status of ContentDoc refactor work
-- **[PROJECT_STATUS_SEPTEMBER_11_2025.md](PROJECT_STATUS_SEPTEMBER_11_2025.md)** - Overall project status
-- **[ERROR_RESOLUTION_SUMMARY.md](ERROR_RESOLUTION_SUMMARY.md)** - Recent bug fixes and resolution
-- **[PHASE_1_COMPLETION_SUMMARY.md](PHASE_1_COMPLETION_SUMMARY.md)** - Legacy migration work progress
+### **📊 Current Project Status**
+- **[docs/current-status/REFACTOR_STATUS_CURRENT.md](docs/current-status/REFACTOR_STATUS_CURRENT.md)** ⭐ **PRIMARY** - Current ContentDoc refactor status
+- **[docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md](docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md)** - Overall project status
+- **[docs/current-status/NEXT_PRIORITIES_SEPTEMBER_11_2025.md](docs/current-status/NEXT_PRIORITIES_SEPTEMBER_11_2025.md)** - Next development priorities
 
-### **Implementation & Features**
-- **[CANVA_INTEGRATION_PRODUCTION_READY.md](CANVA_INTEGRATION_PRODUCTION_READY.md)** - Complete Canva API integration
-- **[CANVA_INTEGRATION_CHECKLIST.md](CANVA_INTEGRATION_CHECKLIST.md)** - Implementation phases and progress
-- **[CONTENT_SUBMISSION_TRANSLATION_FIX.md](CONTENT_SUBMISSION_TRANSLATION_FIX.md)** - UI/UX fixes and translations
+### **🏗️ Architecture & Design**
+- **[docs/architecture.md](docs/architecture.md)** - System architecture overview
+- **[docs/content-management.md](docs/content-management.md)** - Content management system design
+- **[docs/security-audit.md](docs/security-audit.md)** - Security implementation overview
 
-### **Deployment & Production**
-- **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - GitHub Pages deployment guide
+### **🚀 Setup & Deployment**
+- **[docs/procedures/DEPLOYMENT_CHECKLIST.md](docs/procedures/DEPLOYMENT_CHECKLIST.md)** - GitHub Pages deployment guide
+- **[docs/procedures/quickstart.md](docs/procedures/quickstart.md)** - Development environment setup
+- **[docs/procedures/firebase-setup.md](docs/procedures/firebase-setup.md)** - Backend configuration
+- **[docs/procedures/deployment.md](docs/procedures/deployment.md)** - Production deployment
+
+### **🛠️ Development Resources**
 - **[README.md](README.md)** - Primary project documentation
-- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Development guidelines
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - AI development guidelines
+- **[docs/localization-quick-reference.md](docs/localization-quick-reference.md)** - i18n development guide
+- **[docs/TESTING_STRATEGY_COMPLETE.md](docs/TESTING_STRATEGY_COMPLETE.md)** - Testing framework overview
 
 ---
 
 ## 🗂️ ARCHIVED DOCUMENTATION
 
-### **Legacy Refactor Documentation**
-- **[docs/archive/refactor-legacy/](docs/archive/refactor-legacy/)** - Original refactor planning and progress
-  - `REFACTOR_DATA_STRUCTURE_ORIGINAL.md` - Original refactor specification
-  - `CONTENT_REFACTOR_PROGRESS_ARCHIVE.md` - Migration progress tracking
-  - `MIGRATION_ISSUES_LOG_ARCHIVE.md` - Technical issues and resolutions
-
-### **Completed Phases**
+### **📁 Recently Completed Work**
 - **[docs/archive/completed-phases/](docs/archive/completed-phases/)** - All completed implementation phases
+  - **LOCALIZATION_OPTIMIZATION_IMPLEMENTATION_COMPLETE.md** - Localization standardization achievement
+  - **ERROR_RESOLUTION_SUMMARY.md** - Critical bug resolution summary
+  - **PHASE_1_COMPLETION_SUMMARY.md** - Legacy migration completion
+  - **CONTENT_SUBMISSION_TRANSLATION_FIX.md** - UI/UX translation fixes
+  - **CANVA_INTEGRATION_PRODUCTION_READY.md** - Complete Canva API integration
   - Canva integration phases 1-10
   - Theme system implementation
   - Icon system overhaul
   - Testing strategy completion
 
-### **Historical Documentation**
+### **📚 Historical Documentation**
 - **[docs/archive/](docs/archive/)** - Comprehensive project history
-  - Development strategies
-  - Testing methodologies  
+  - **LOCALIZATION_OPTIMIZATION.md** - Localization analysis and recommendations
+  - **CANVA_INTEGRATION_FINAL_ANALYSIS.md** - Canva API integration analysis
+  - **CANVA_INTEGRATION_CHECKLIST.md** - Implementation phases and progress
+  - **DOCUMENTATION_UPDATE_SUMMARY.md** - Documentation maintenance history
+  - Development strategies and methodologies
+  - Testing strategies and achievements
   - System analysis reports
   - Enhancement recommendations
+
+### **📊 Legacy Implementation Records**
+- **[docs/archive/refactor-legacy/](docs/archive/refactor-legacy/)** - Original refactor planning and progress
+  - `REFACTOR_DATA_STRUCTURE_ORIGINAL.md` - Original refactor specification
+  - `CONTENT_REFACTOR_PROGRESS_ARCHIVE.md` - Migration progress tracking
+  - `MIGRATION_ISSUES_LOG_ARCHIVE.md` - Technical issues and resolutions
+- **[docs/archive/testing-legacy/](docs/archive/testing-legacy/)** - Legacy testing strategies and achievements
 
 ---
 
 ## 🚀 GETTING STARTED REFERENCES
 
-### **For Developers**
-1. **[README.md](README.md)** - Quick start and deployment
-2. **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Production setup
-3. **[docs/quickstart.md](docs/quickstart.md)** - Development environment setup
+### **For New Developers**
+1. **[README.md](README.md)** - Project overview and quick start
+2. **[docs/procedures/quickstart.md](docs/procedures/quickstart.md)** - Development environment setup
+3. **[docs/current-status/REFACTOR_STATUS_CURRENT.md](docs/current-status/REFACTOR_STATUS_CURRENT.md)** - Current development status
 
 ### **For Content Managers**
 1. **[docs/content-management.md](docs/content-management.md)** - Content workflow guide
-2. **[PROJECT_STATUS_SEPTEMBER_11_2025.md](PROJECT_STATUS_SEPTEMBER_11_2025.md)** - Current capabilities
+2. **[docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md](docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md)** - Current capabilities
 
 ### **For System Administrators**
-1. **[docs/firebase-setup.md](docs/firebase-setup.md)** - Backend configuration
-2. **[docs/security-audit.md](docs/security-audit.md)** - Security implementation
+1. **[docs/procedures/firebase-setup.md](docs/procedures/firebase-setup.md)** - Backend configuration
+2. **[docs/procedures/DEPLOYMENT_CHECKLIST.md](docs/procedures/DEPLOYMENT_CHECKLIST.md)** - Production deployment
+3. **[docs/security-audit.md](docs/security-audit.md)** - Security implementation
 
 ---
 
@@ -76,21 +94,36 @@
 - **Unit Tests**: [tests/unit/content-types.test.ts](tests/unit/content-types.test.ts)
 - **Service Tests**: [tests/unit/services/](tests/unit/services/)
 
-### **Validation**
+### **Validation & Development Tools**
 - **Test Page**: [src/pages/TestContentV2Page.vue](src/pages/TestContentV2Page.vue)
 - **Content Creation**: [scripts/create-test-content.js](scripts/create-test-content.js)
+- **Development Guidelines**: [.github/copilot-instructions.md](.github/copilot-instructions.md)
 
 ---
 
-## 📊 PROJECT METRICS
+## � DOCUMENTATION MAINTENANCE
 
-### **Current Status**
-- **TypeScript Errors**: Unknown (needs checking)
-- **ESLint Warnings**: Unknown (needs checking)
-- **Test Coverage**: Partial
-- **Production Readiness**: ❌ **NOT READY**
+### **Next Phase Preparation**
+This documentation structure is organized for the upcoming **ContentDoc Architecture completion phase**. All legacy documentation has been properly archived while keeping active development resources easily accessible.
 
-### **Architecture Progress**
+### **Quick Reference for Common Tasks**
+- **Deployment**: Start with [docs/procedures/DEPLOYMENT_CHECKLIST.md](docs/procedures/DEPLOYMENT_CHECKLIST.md)
+- **Development Setup**: See [docs/procedures/quickstart.md](docs/procedures/quickstart.md)
+- **Current Status**: Check [docs/current-status/](docs/current-status/) folder
+- **Bug Fixes**: Review [docs/archive/completed-phases/ERROR_RESOLUTION_SUMMARY.md](docs/archive/completed-phases/ERROR_RESOLUTION_SUMMARY.md)
+- **Recent Achievements**: See [docs/archive/completed-phases/](docs/archive/completed-phases/) for completed work
+
+### **Documentation Organization Standards**
+- **Current Status**: `/docs/current-status/` - Active development status and priorities
+- **Procedures**: `/docs/procedures/` - Setup, deployment, and operational guides  
+- **Archive**: `/docs/archive/` - Historical documentation and completed phases
+- **Core Docs**: `/docs/` root - Architecture, content management, and reference materials
+
+---
+
+## 🎯 READY FOR NEXT DEVELOPMENT PHASE
+
+The documentation is now **cleanly organized** for the next stage of the comprehensive refactor. All completed work has been properly archived, current status is clearly documented, and development resources are easily accessible for continued ContentDoc architecture implementation.
 - **ContentDoc Migration**: 🚧 **IN PROGRESS**
 - **Legacy Code Removal**: ❌ **NOT STARTED**
 - **Feature Widget System**: ⚠️ **PARTIALLY IMPLEMENTED**

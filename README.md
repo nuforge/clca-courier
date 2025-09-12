@@ -2,8 +2,9 @@
 
 **A production-ready community content management platform for the Conashaugh Lakes Community Association**
 
-Built with- **[🚀 Deployment Guide](docs/deployment.md)** - GitHub Pages deployment instructions
-- **[📄 System Analysis Report](SYSTEM_ANALYSIS_REPORT.md)** - Comprehensive technical analysisVue 3, Quasar Framework, and Firebase backend for managing newsletters, community content, and member engagement.
+Built with- **[� Documentation Index](DOCUMENTATION_INDEX.md)** - Complete documentation navigation
+- **[📊 Current Project Status](docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md)** - Latest development status
+- **[� Deployment Guide](docs/procedures/DEPLOYMENT_CHECKLIST.md)** - GitHub Pages deployment instructionsVue 3, Quasar Framework, and Firebase backend for managing newsletters, community content, and member engagement.
 
 **Current Status:** ✅ **Production Ready** - Launched September 2025 (ContentDoc Architecture Work in Progress)
 
