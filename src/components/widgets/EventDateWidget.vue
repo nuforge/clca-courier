@@ -1,5 +1,5 @@
 <template>
-  <div class="event-date-widget q-pa-sm bg-blue-1 rounded-borders">
+  <div class="event-date-widget q-pa-sm rounded-borders">
     <div class="row items-center q-gutter-sm">
       <q-icon name="event" color="primary" size="sm" />
       <div class="col">
