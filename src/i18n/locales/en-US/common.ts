@@ -99,7 +99,8 @@ export default {
     approve: 'Approve',
     reject: 'Reject',
     publish: 'Publish',
-    unpublish: 'Unpublish'
+    unpublish: 'Unpublish',
+    contact: 'Contact Us'
   },
 
   status: {

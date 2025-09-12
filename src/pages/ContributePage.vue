@@ -147,7 +147,7 @@
                     color="accent"
                     outline
                     size="sm"
-                    :label="$t('common.actions.contact')"
+                    :label="$t(TRANSLATION_KEYS.COMMON.ACTIONS.CONTACT)"
                     to="/about#contact"
                   />
                 </div>
@@ -163,11 +163,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { getAuth } from 'firebase/auth';
 import { logger } from '../utils/logger';
 import { contentSubmissionService } from '../services/content-submission.service';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import {
   createContentDoc,
   type ContentFeatures
@@ -181,7 +181,6 @@ import PreviewStep from '../components/submission/PreviewStep.vue';
 
 // Composables
 const { t } = useI18n();
-const router = useRouter();
 const $q = useQuasar();
 
 // State
@@ -395,8 +394,18 @@ const handleSubmit = async () => {
       timeout: 5000
     });
 
-    // Navigate to content management or success page
-    await router.push('/admin/content');
+    // Reset the form for new submission instead of redirecting
+    // Most users won't have admin permissions, so stay on the contribute page
+    currentStep.value = 1;
+    wizardState.value = {
+      contentType: null,
+      basicData: {
+        title: '',
+        description: ''
+      },
+      features: {}
+    };
+    draftId.value = null;
   } catch (error) {
     logger.error('Failed to submit content', error);
     $q.notify({

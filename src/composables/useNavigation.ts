@@ -70,11 +70,7 @@ export const useNavigation = () => {
     if (!isAuthenticatedUser.value) return [];
 
     return [
-      {
-        title: 'Test Content V2',
-        icon: 'mdi-test-tube',
-        link: '/test-content-v2',
-      },
+      // Test page removed - was causing 404 errors
     ];
   });
 

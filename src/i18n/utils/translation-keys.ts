@@ -105,7 +105,8 @@ export const TRANSLATION_KEYS = {
       APPROVE: 'common.actions.approve',
       REJECT: 'common.actions.reject',
       PUBLISH: 'common.actions.publish',
-      UNPUBLISH: 'common.actions.unpublish'
+      UNPUBLISH: 'common.actions.unpublish',
+      CONTACT: 'common.actions.contact'
     },
 
     // Status and States (Phase 3 preparation)

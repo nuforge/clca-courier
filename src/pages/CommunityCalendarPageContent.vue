@@ -284,7 +284,7 @@
                 <div class="q-mb-md">
                   <div class="text-subtitle2 q-mb-xs">
                     <q-icon name="mdi-text" class="q-mr-xs" />
-                    {{ $t(TRANSLATION_KEYS.FORMS.DESCRIPTION) }}
+                    {{ $t(TRANSLATION_KEYS.FORMS.COMMON_FIELDS.DESCRIPTION) }}
                   </div>
                   <div class="text-body1" style="white-space: pre-line;">
                     {{ selectedEvent.description }}

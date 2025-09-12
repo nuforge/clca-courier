@@ -148,9 +148,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ContentFeatures } from '../../types/core/content.types';
+import { logger } from '../../utils/logger';
 
 // Type aliases for easier reference
 type DateFeature = NonNullable<ContentFeatures['feat:date']>;
@@ -392,6 +393,30 @@ const initializeFeatureIfNeeded = (featureKey: keyof ContentFeatures) => {
 const handleNext = () => {
   emit('next');
 };
+
+// Auto-initialize required features
+const initializeRequiredFeatures = () => {
+  for (const featureKey of requiredFeatures.value) {
+    if (!localFeatures.value[featureKey as keyof ContentFeatures]) {
+      logger.debug('Auto-initializing required feature:', featureKey);
+      initializeFeatureIfNeeded(featureKey as keyof ContentFeatures);
+    }
+  }
+};
+
+// Watch for content type changes to initialize required features
+watch(() => props.contentType, () => {
+  if (props.contentType) {
+    initializeRequiredFeatures();
+  }
+}, { immediate: true });
+
+// Initialize required features on mount
+onMounted(() => {
+  if (props.contentType) {
+    initializeRequiredFeatures();
+  }
+});
 </script>
 
 <style lang="scss" scoped>
