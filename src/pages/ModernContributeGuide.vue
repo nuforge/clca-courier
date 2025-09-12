@@ -20,9 +20,10 @@
                   color="primary"
                   size="lg"
                   no-caps
-                  icon="mdi-plus"
-                  label="Start Contributing"
+                  :icon="UI_ICONS.documentPlus"
+                  :label="$t('pages.contribute.quickSubmit')"
                   class="full-width"
+                  :aria-label="$t('pages.contribute.quickSubmit')"
                 />
               </div>
             </div>
@@ -34,7 +35,7 @@
           <q-card-section>
             <h2 class="text-h6 q-mb-md">Quick Navigation</h2>
             <div class="row q-col-gutter-sm">
-              <div class="col-6 col-sm-3" v-for="(section, index) in quickNavSections" :key="index">
+              <div class="col-6 col-sm-3" v-for="(section, index) in navigationSections" :key="index">
                 <q-btn
                   flat
                   no-caps
@@ -42,55 +43,71 @@
                   :label="section.label"
                   class="full-width"
                   @click="scrollToSection(section.id)"
+                  :aria-label="`Navigate to ${section.label}`"
                 />
               </div>
             </div>
           </q-card-section>
         </q-card>
 
-        <!-- Overview -->
+        <!-- Process Overview -->
         <q-card flat :class="cardClasses" class="q-mb-lg">
           <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="overview">{{ $t('pages.contributeGuide.overview') }}</h2>
-            <p class="text-body1">
-              Welcome to The Courier's contributor guide! This comprehensive resource will help you understand our content submission process,
-              quality standards, and best practices for sharing your stories with the community.
-            </p>
-          </q-card-section>
-        </q-card>
+            <div class="row q-col-gutter-md items-center q-mb-md">
+              <div class="col">
+                <h2 class="text-h5 q-ma-none" id="process">
+                  {{ $t('pages.contributeGuide.process') }}
+                </h2>
+              </div>
+              <div class="col-auto">
+                <q-icon :name="UI_ICONS.info" size="md" color="primary" />
+              </div>
+            </div>
 
-        <!-- Process Steps Timeline -->
-        <q-card flat :class="cardClasses" class="q-mb-lg">
-          <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="process">{{ $t('pages.contributeGuide.process') }}</h2>
-
-            <q-timeline layout="comfortable">
-              <q-timeline-entry
+            <div class="row q-col-gutter-lg">
+              <div
                 v-for="(step, index) in processSteps"
                 :key="index"
-                :title="`${step.number}. ${step.title}`"
-                :color="step.color"
-                :icon="`mdi-numeric-${step.number}-circle`"
+                class="col-12 col-md-6 col-lg-4"
               >
-                <div class="text-body1 q-mb-sm">{{ step.description }}</div>
-                <div class="text-body2 text-grey-7 q-mb-sm">{{ step.details.join(' • ') }}</div>
-                <q-banner dense rounded class="bg-info text-white">
-                  <template v-slot:avatar>
-                    <q-icon name="mdi-lightbulb" />
-                  </template>
-                  {{ step.tip }}
-                </q-banner>
-              </q-timeline-entry>
-            </q-timeline>
+                <div class="process-step">
+                  <div class="row q-col-gutter-sm items-center q-mb-sm">
+                    <div class="col-auto">
+                      <q-avatar :color="step.color" text-color="white" size="md">
+                        {{ index + 1 }}
+                      </q-avatar>
+                    </div>
+                    <div class="col">
+                      <h3 class="text-subtitle1 text-weight-medium q-ma-none">
+                        {{ step.title }}
+                      </h3>
+                    </div>
+                  </div>
+                  <p class="text-body2 text-grey-7 q-ml-lg">
+                    {{ step.description }}
+                  </p>
+                  <div v-if="step.tip" class="q-ml-lg">
+                    <q-banner dense rounded class="bg-info text-white">
+                      <template v-slot:avatar>
+                        <q-icon :name="UI_ICONS.info" />
+                      </template>
+                      {{ step.tip }}
+                    </q-banner>
+                  </div>
+                </div>
+              </div>
+            </div>
           </q-card-section>
         </q-card>
 
-        <!-- Content Types Grid -->
+        <!-- Content Types -->
         <q-card flat :class="cardClasses" class="q-mb-lg">
           <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="content-types">Content Types</h2>
+            <h2 class="text-h5 q-mb-md" id="content-types">
+              Content Types
+            </h2>
             <p class="text-body2 text-grey-7 q-mb-lg">
-              Choose the content type that best matches what you want to share with the community.
+              {{ $t('content.submission.steps.contentType.description') }}
             </p>
 
             <div class="row q-col-gutter-md">
@@ -103,7 +120,11 @@
                   <q-card-section>
                     <div class="row q-col-gutter-sm items-center q-mb-sm">
                       <div class="col-auto">
-                        <q-icon :name="contentType.icon" size="lg" :color="contentType.color" />
+                        <q-icon
+                          :name="getContentIcon(contentType.type)"
+                          size="lg"
+                          :color="getContentTypeTheme(contentType.type).color"
+                        />
                       </div>
                       <div class="col">
                         <h3 class="text-subtitle1 text-weight-medium q-ma-none">
@@ -118,20 +139,27 @@
 
                     <div class="row q-col-gutter-xs q-mb-sm">
                       <div class="col-auto">
-                        <q-chip size="sm" color="grey-3" text-color="grey-8" dense>
-                          <q-icon name="mdi-clock" size="xs" class="q-mr-xs" />
-                          {{ contentType.timeEstimate }}
+                        <q-chip
+                          size="sm"
+                          :color="contentType.difficultyColor"
+                          text-color="white"
+                          dense
+                        >
+                          {{ contentType.difficulty }}
                         </q-chip>
                       </div>
                       <div class="col-auto">
-                        <q-chip size="sm" :color="contentType.difficultyColor" text-color="white" dense>
-                          {{ contentType.difficulty }}
+                        <q-chip size="sm" color="grey-3" text-color="grey-8" dense>
+                          <q-icon :name="UI_ICONS.clock" size="xs" class="q-mr-xs" />
+                          {{ contentType.timeEstimate }}
                         </q-chip>
                       </div>
                     </div>
 
                     <div class="q-mb-sm">
-                      <p class="text-caption text-weight-medium q-mb-xs">Requirements:</p>
+                      <p class="text-caption text-weight-medium q-mb-xs">
+                        {{ $t('pages.contribute.requirements') }}:
+                      </p>
                       <ul class="text-body2 text-grey-7 q-ma-none q-pl-md">
                         <li v-for="requirement in contentType.requirements" :key="requirement">
                           {{ requirement }}
@@ -144,11 +172,12 @@
                     <q-btn
                       flat
                       no-caps
-                      :color="contentType.color"
+                      :color="getContentTypeTheme(contentType.type).color"
                       :to="`/contribute/submit?type=${contentType.type}`"
+                      :aria-label="`${$t('pages.contribute.quickSubmit')} ${contentType.title}`"
                     >
-                      Quick Submit
-                      <q-icon name="mdi-chevron-right" right />
+                      {{ $t('pages.contribute.quickSubmit') }}
+                      <q-icon :name="UI_ICONS.chevronRight" right />
                     </q-btn>
                   </q-card-actions>
                 </q-card>
@@ -157,10 +186,12 @@
           </q-card-section>
         </q-card>
 
-        <!-- Guidelines Section -->
+        <!-- Guidelines -->
         <q-card flat :class="cardClasses" class="q-mb-lg">
           <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="guidelines">{{ $t('pages.contributeGuide.guidelines') }}</h2>
+            <h2 class="text-h5 q-mb-md" id="guidelines">
+              {{ $t('pages.contributeGuide.guidelines') }}
+            </h2>
 
             <div class="row q-col-gutter-lg">
               <!-- Positive Guidelines -->
@@ -169,7 +200,7 @@
                   <q-card-section>
                     <div class="row q-col-gutter-sm items-center q-mb-md">
                       <div class="col-auto">
-                        <q-icon name="mdi-check-circle" size="md" color="positive" />
+                        <q-icon :name="UI_ICONS.checkCircle" size="md" color="positive" />
                       </div>
                       <div class="col">
                         <h3 class="text-subtitle1 text-weight-medium text-positive q-ma-none">
@@ -193,7 +224,7 @@
                   <q-card-section>
                     <div class="row q-col-gutter-sm items-center q-mb-md">
                       <div class="col-auto">
-                        <q-icon name="mdi-close-circle" size="md" color="negative" />
+                        <q-icon :name="UI_ICONS.error" size="md" color="negative" />
                       </div>
                       <div class="col">
                         <h3 class="text-subtitle1 text-weight-medium text-negative q-ma-none">
@@ -217,10 +248,16 @@
         <!-- Quality Standards -->
         <q-card flat :class="cardClasses" class="q-mb-lg">
           <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="quality">{{ $t('pages.contributeGuide.qualityStandards') }}</h2>
+            <h2 class="text-h5 q-mb-md" id="quality">
+              {{ $t('pages.contributeGuide.qualityStandards') }}
+            </h2>
 
             <div class="row q-col-gutter-md">
-              <div v-for="standard in qualityStandards" :key="standard.category" class="col-12 col-md-4">
+              <div
+                v-for="standard in qualityStandards"
+                :key="standard.category"
+                class="col-12 col-md-4"
+              >
                 <q-card flat bordered class="full-height">
                   <q-card-section>
                     <div class="row q-col-gutter-sm items-center q-mb-sm">
@@ -249,7 +286,9 @@
         <!-- Review Process -->
         <q-card flat :class="cardClasses" class="q-mb-lg">
           <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="review">{{ $t('pages.contributeGuide.reviewPhases') }}</h2>
+            <h2 class="text-h5 q-mb-md" id="review">
+              {{ $t('pages.contributeGuide.reviewPhases') }}
+            </h2>
 
             <q-timeline layout="comfortable">
               <q-timeline-entry
@@ -264,7 +303,7 @@
                   {{ phase.description }}
                 </div>
                 <div v-if="phase.duration" class="text-caption text-grey-6 q-mt-xs">
-                  <q-icon name="mdi-clock" size="xs" class="q-mr-xs" />
+                  <q-icon :name="UI_ICONS.clock" size="xs" class="q-mr-xs" />
                   {{ phase.duration }}
                 </div>
               </q-timeline-entry>
@@ -272,10 +311,12 @@
           </q-card-section>
         </q-card>
 
-        <!-- FAQ Section -->
+        <!-- FAQ -->
         <q-card flat :class="cardClasses" class="q-mb-lg">
           <q-card-section>
-            <h2 class="text-h5 q-mb-md" id="faq">{{ $t('pages.contributeGuide.faq') }}</h2>
+            <h2 class="text-h5 q-mb-md" id="faq">
+              {{ $t('pages.contributeGuide.faq') }}
+            </h2>
 
             <q-list separator>
               <q-expansion-item
@@ -297,16 +338,89 @@
           </q-card-section>
         </q-card>
 
+        <!-- Help Resources -->
+        <q-card flat :class="cardClasses" class="q-mb-lg">
+          <q-card-section>
+            <h2 class="text-h5 q-mb-md">{{ $t('pages.contribute.helpResources') }}</h2>
+
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-4">
+                <q-card flat bordered class="full-height">
+                  <q-card-section class="text-center">
+                    <q-icon :name="UI_ICONS.fileMultiple" size="xl" color="primary" class="q-mb-sm" />
+                    <h3 class="text-subtitle1 text-weight-medium q-ma-none q-mb-xs">
+                      {{ $t('content.contentGuidelines') }}
+                    </h3>
+                    <p class="text-body2 text-grey-7 q-mb-md">
+                      {{ $t('content.guidelinesDescription') }}
+                    </p>
+                    <q-btn
+                      flat
+                      color="primary"
+                      :label="$t('content.viewGuidelines')"
+                      no-caps
+                      @click="scrollToSection('guidelines')"
+                    />
+                  </q-card-section>
+                </q-card>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <q-card flat bordered class="full-height">
+                  <q-card-section class="text-center">
+                    <q-icon :name="UI_ICONS.eye" size="xl" color="secondary" class="q-mb-sm" />
+                    <h3 class="text-subtitle1 text-weight-medium q-ma-none q-mb-xs">
+                      {{ $t('content.imageHosting') }}
+                    </h3>
+                    <p class="text-body2 text-grey-7 q-mb-md">
+                      {{ $t('content.imageHostingDescription') }}
+                    </p>
+                    <q-btn
+                      flat
+                      color="secondary"
+                      :label="$t('content.imageGuide')"
+                      no-caps
+                      href="https://support.google.com/photos/"
+                      target="_blank"
+                    />
+                  </q-card-section>
+                </q-card>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <q-card flat bordered class="full-height">
+                  <q-card-section class="text-center">
+                    <q-icon :name="UI_ICONS.help" size="xl" color="accent" class="q-mb-sm" />
+                    <h3 class="text-subtitle1 text-weight-medium q-ma-none q-mb-xs">
+                      {{ $t('content.getSupport') }}
+                    </h3>
+                    <p class="text-body2 text-grey-7 q-mb-md">
+                      {{ $t('content.supportDescription') }}
+                    </p>
+                    <q-btn
+                      flat
+                      color="accent"
+                      label="Contact Us"
+                      no-caps
+                      :to="'/about'"
+                    />
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
         <!-- Call to Action -->
         <q-card flat :class="cardClasses" class="text-center">
           <q-card-section>
             <div class="row q-col-gutter-md justify-center items-center">
               <div class="col-12 col-md-8">
                 <h2 class="text-h6 q-ma-none q-mb-sm">
-                  Ready to Share Your Story?
+                  {{ $t('pages.contribute.description') }}
                 </h2>
                 <p class="text-body2 text-grey-7 q-ma-none q-mb-md">
-                  Start the submission process and help keep our community connected.
+                  {{ $t('content.submission.subtitle') }}
                 </p>
               </div>
               <div class="col-12 col-md-4">
@@ -315,8 +429,8 @@
                   color="primary"
                   size="lg"
                   no-caps
-                  icon="mdi-plus"
-                  label="Submit Content"
+                  :icon="UI_ICONS.create"
+                  :label="$t('content.submission.title')"
                   class="full-width"
                 />
               </div>
@@ -329,140 +443,149 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useTheme } from '../composables/useTheme';
+import { useSiteThemeStore } from '../stores/site-theme.store';
+import { UI_ICONS } from '../constants/ui-icons';
 
 // Composables
 const { t } = useI18n();
 const { cardClasses } = useTheme();
+const themeStore = useSiteThemeStore();
 
-// Quick navigation sections
-const quickNavSections = [
-  { id: 'overview', label: t('pages.contributeGuide.overview'), icon: 'mdi-information' },
-  { id: 'process', label: t('pages.contributeGuide.process'), icon: 'mdi-timeline-clock' },
-  { id: 'content-types', label: 'Content Types', icon: 'mdi-file-document-multiple' },
-  { id: 'guidelines', label: t('pages.contributeGuide.guidelines'), icon: 'mdi-check-all' },
-  { id: 'quality', label: t('pages.contributeGuide.qualityStandards'), icon: 'mdi-star' },
-  { id: 'review', label: t('pages.contributeGuide.reviewPhases'), icon: 'mdi-timeline' },
-  { id: 'faq', label: t('pages.contributeGuide.faq'), icon: 'mdi-help-circle' }
-];
+// Helper functions
+const getContentIcon = (type: string) => themeStore.getContentIcon(type).icon;
+const getContentTypeTheme = (type: string) => themeStore.getContentIcon(type);
 
-// Process steps with detailed information
-const processSteps = [
+// Navigation sections for quick access
+const navigationSections = computed(() => [
+  { id: 'process', label: t('pages.contributeGuide.process'), icon: UI_ICONS.timeline },
+  { id: 'content-types', label: 'Content Types', icon: UI_ICONS.fileMultiple },
+  { id: 'guidelines', label: t('pages.contributeGuide.guidelines'), icon: UI_ICONS.checkAll },
+  { id: 'quality', label: t('pages.contributeGuide.qualityStandards'), icon: UI_ICONS.checkCircle },
+  { id: 'review', label: t('pages.contributeGuide.reviewPhases'), icon: UI_ICONS.timeline },
+  { id: 'faq', label: t('pages.contributeGuide.faq'), icon: UI_ICONS.help }
+]);
+
+// Process steps with enhanced visual design
+const processSteps = computed(() => [
   {
-    number: 1,
-    title: 'Choose Content Type',
-    description: 'Select the type of content you want to share with the community.',
-    color: 'primary',
-    details: ['News articles', 'Event announcements', 'Photos', 'Classifieds'],
-    tip: 'Not sure which type? Start with "Community News" for general announcements.'
+    title: t('pages.contribute.processSteps.select.title'),
+    description: t('pages.contribute.processSteps.select.description'),
+    tip: t('content.submission.steps.contentType.validationError'),
+    color: 'primary'
   },
   {
-    number: 2,
-    title: 'Prepare Your Content',
-    description: 'Gather all materials and review our content guidelines.',
-    color: 'secondary',
-    details: ['Write your content', 'Gather images', 'Check guidelines', 'Verify information'],
-    tip: 'Use our preparation checklist to ensure you have everything ready.'
+    title: t('pages.contribute.processSteps.prepare.title'),
+    description: t('pages.contribute.processSteps.prepare.description'),
+    tip: t('pages.contribute.preparationChecklist'),
+    color: 'secondary'
   },
   {
-    number: 3,
-    title: 'Submit for Review',
-    description: 'Fill out our submission form with your prepared content.',
-    color: 'accent',
-    details: ['Complete form', 'Add features', 'Preview content', 'Submit'],
-    tip: 'Save drafts as you work to avoid losing your progress.'
+    title: t('pages.contribute.processSteps.submit.title'),
+    description: t('pages.contribute.processSteps.submit.description'),
+    tip: t('content.submission.autoSave.saving'),
+    color: 'accent'
   },
   {
-    number: 4,
-    title: 'Editorial Review',
-    description: 'Our team reviews your submission for quality and community guidelines.',
-    color: 'warning',
-    details: ['Content review', 'Fact checking', 'Style editing', 'Approval decision'],
-    tip: 'Following our guidelines closely speeds up the review process.'
+    title: t('pages.contribute.processSteps.review.title'),
+    description: t('pages.contribute.processSteps.review.description'),
+    tip: '3-5 business days typical review time',
+    color: 'warning'
   },
   {
-    number: 5,
-    title: 'Publication',
-    description: 'Approved content is published in our newsletter and community feed.',
-    color: 'positive',
-    details: ['Newsletter inclusion', 'Website publication', 'Community notification'],
-    tip: 'You\'ll receive notification when your content goes live!'
+    title: t('pages.contribute.processSteps.publish.title'),
+    description: t('pages.contribute.processSteps.publish.description'),
+    tip: t('content.submission.success.submitted'),
+    color: 'positive'
   }
-];
+]);
 
-// Content types with detailed information
-const contentTypes = [
+// Content types with enhanced metadata
+const contentTypes = computed(() => [
   {
     type: 'news',
-    title: 'Community News',
-    description: 'Share news, stories, and updates that matter to our community',
-    icon: 'mdi-newspaper',
-    color: 'primary',
-    timeEstimate: '15-30 min',
-    difficulty: 'Easy',
+    title: t('content.contentType.news'),
+    description: t('content.submission.contentTypes.news.description'),
+    requirements: [
+      '200-800 words preferred',
+      'Community-relevant topic',
+      'Clear, engaging writing'
+    ],
+    difficulty: t('content.difficulty.easy'),
     difficultyColor: 'positive',
-    requirements: ['200-800 words preferred', 'Community-relevant topic', 'Clear, engaging writing']
+    timeEstimate: '15-30 min'
   },
   {
-    type: 'photos',
-    title: 'Photos & Media',
-    description: 'Submit photos from community events, nature shots, or resident spotlights',
-    icon: 'mdi-camera',
-    color: 'secondary',
-    timeEstimate: '20-45 min',
-    difficulty: 'Medium',
+    type: 'event',
+    title: t('content.contentType.event'),
+    description: t('content.submission.contentTypes.event.description'),
+    requirements: [
+      'Event details',
+      'Date and time',
+      'Location or contact info'
+    ],
+    difficulty: t('content.difficulty.easy'),
+    difficultyColor: 'positive',
+    timeEstimate: '10-20 min'
+  },
+  {
+    type: 'announcement',
+    title: t('content.contentType.announcement'),
+    description: t('content.submission.contentTypes.announcement.description'),
+    requirements: [
+      'Clear subject',
+      'Factual information',
+      'Appropriate for all residents'
+    ],
+    difficulty: t('content.difficulty.easy'),
+    difficultyColor: 'positive',
+    timeEstimate: '10-15 min'
+  },
+  {
+    type: 'classified',
+    title: t('content.contentType.classified'),
+    description: t('content.submission.contentTypes.classified.description'),
+    requirements: [
+      'Clear item description',
+      'Contact information',
+      'Fair pricing if applicable'
+    ],
+    difficulty: t('content.difficulty.easy'),
+    difficultyColor: 'positive',
+    timeEstimate: '5-15 min'
+  },
+  {
+    type: 'photo',
+    title: t('content.contentType.photo'),
+    description: t('content.submission.contentTypes.photo.description'),
+    requirements: [
+      'High resolution (300 DPI+)',
+      'Descriptive captions',
+      'Community-appropriate content'
+    ],
+    difficulty: t('content.difficulty.medium'),
     difficultyColor: 'warning',
-    requirements: ['High resolution (300 DPI+)', 'Descriptive captions', 'Community-appropriate content']
+    timeEstimate: '20-45 min'
   },
   {
-    type: 'events',
-    title: 'Events & Activities',
-    description: 'Announce upcoming community events, meetings, or activities',
-    icon: 'mdi-calendar',
-    color: 'accent',
-    timeEstimate: '10-20 min',
-    difficulty: 'Easy',
-    difficultyColor: 'positive',
-    requirements: ['Event details', 'Date and time', 'Location or contact info']
-  },
-  {
-    type: 'announcements',
-    title: 'Announcements',
-    description: 'Share official announcements or important community information',
-    icon: 'mdi-bullhorn',
-    color: 'info',
-    timeEstimate: '10-15 min',
-    difficulty: 'Easy',
-    difficultyColor: 'positive',
-    requirements: ['Clear subject', 'Factual information', 'Appropriate for all residents']
-  },
-  {
-    type: 'classifieds',
-    title: 'Classifieds',
-    description: 'Post items for sale, services offered, or community announcements',
-    icon: 'mdi-tag',
-    color: 'orange',
-    timeEstimate: '5-15 min',
-    difficulty: 'Easy',
-    difficultyColor: 'positive',
-    requirements: ['Clear item description', 'Contact information', 'Fair pricing if applicable']
-  },
-  {
-    type: 'articles',
-    title: 'Articles & Features',
-    description: 'Submit in-depth articles, educational content, or feature stories',
-    icon: 'mdi-file-document-edit',
-    color: 'deep-purple',
-    timeEstimate: '45-90 min',
-    difficulty: 'Advanced',
+    type: 'article',
+    title: t('content.contentType.article'),
+    description: t('content.submission.contentTypes.article.description'),
+    requirements: [
+      '500+ words recommended',
+      'Well-researched content',
+      'Proper citations if needed'
+    ],
+    difficulty: t('content.difficulty.hard'),
     difficultyColor: 'negative',
-    requirements: ['500+ words recommended', 'Well-researched content', 'Proper citations if needed']
+    timeEstimate: '45-90 min'
   }
-];
+]);
 
-// Guidelines
-const positiveGuidelines = [
+// Guidelines data
+const positiveGuidelines = computed(() => [
   'Community-relevant content that serves residents',
   'Family-friendly language and topics',
   'Accurate, verified information',
@@ -470,9 +593,9 @@ const positiveGuidelines = [
   'High-quality images with proper captions',
   'Respect for privacy and permissions',
   'Constructive, positive community spirit'
-];
+]);
 
-const negativeGuidelines = [
+const negativeGuidelines = computed(() => [
   'Personal disputes or complaints',
   'Commercial advertising (unless approved)',
   'Political endorsements or partisan content',
@@ -480,13 +603,13 @@ const negativeGuidelines = [
   'Unverified rumors or gossip',
   'Personal contact information without permission',
   'Copyright-protected material without permission'
-];
+]);
 
 // Quality standards
-const qualityStandards = [
+const qualityStandards = computed(() => [
   {
     category: 'Writing Quality',
-    icon: 'mdi-pencil',
+    icon: UI_ICONS.edit,
     color: 'primary',
     points: [
       'Clear, concise language',
@@ -497,7 +620,7 @@ const qualityStandards = [
   },
   {
     category: 'Visual Content',
-    icon: 'mdi-image',
+    icon: UI_ICONS.eye,
     color: 'secondary',
     points: [
       'High resolution (300+ DPI)',
@@ -508,7 +631,7 @@ const qualityStandards = [
   },
   {
     category: 'Information Accuracy',
-    icon: 'mdi-check-circle',
+    icon: UI_ICONS.checkCircle,
     color: 'accent',
     points: [
       'Fact-checked content',
@@ -517,15 +640,15 @@ const qualityStandards = [
       'Contact details verified'
     ]
   }
-];
+]);
 
 // Review process phases
-const reviewPhases = [
+const reviewPhases = computed(() => [
   {
     title: 'Initial Review',
     subtitle: 'Content screening',
     description: 'Basic compliance and community standards check',
-    icon: 'mdi-magnify',
+    icon: UI_ICONS.search,
     color: 'primary',
     duration: '24-48 hours'
   },
@@ -533,7 +656,7 @@ const reviewPhases = [
     title: 'Editorial Review',
     subtitle: 'Quality assessment',
     description: 'Grammar, clarity, and editorial standards review',
-    icon: 'mdi-pencil',
+    icon: UI_ICONS.edit,
     color: 'secondary',
     duration: '2-3 business days'
   },
@@ -541,7 +664,7 @@ const reviewPhases = [
     title: 'Final Approval',
     subtitle: 'Publication decision',
     description: 'Final approval and scheduling for publication',
-    icon: 'mdi-check-circle',
+    icon: UI_ICONS.checkCircle,
     color: 'positive',
     duration: '1 business day'
   },
@@ -549,14 +672,14 @@ const reviewPhases = [
     title: 'Publication',
     subtitle: 'Content goes live',
     description: 'Your content appears in the community feed and newsletter',
-    icon: 'mdi-web',
+    icon: UI_ICONS.checkCircle,
     color: 'accent',
     duration: 'Immediate'
   }
-];
+]);
 
 // FAQ data
-const faqs = [
+const faqs = computed(() => [
   {
     question: 'How long does the review process take?',
     answer: 'Most submissions are reviewed within 3-5 business days. Complex content requiring fact-checking may take longer. You\'ll receive email updates throughout the process.'
@@ -581,7 +704,7 @@ const faqs = [
     question: 'What happens if my content is rejected?',
     answer: 'We provide detailed feedback for rejected submissions. Most rejections are for minor issues that can be easily addressed. You\'re always welcome to revise and resubmit.'
   }
-];
+]);
 
 // Scroll to section function
 function scrollToSection(sectionId: string) {
@@ -592,12 +715,22 @@ function scrollToSection(sectionId: string) {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+.process-step {
+  border-left: 2px solid transparent;
+  padding-left: 1rem;
+  transition: border-color 0.3s ease;
+
+  &:hover {
+    border-left-color: var(--q-primary);
+  }
+}
+
 .full-height {
   height: 100%;
 }
 
-/* Accessibility improvements */
+// Accessibility improvements
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -606,14 +739,14 @@ function scrollToSection(sectionId: string) {
   }
 }
 
-/* Focus improvements for keyboard navigation */
+// Focus improvements for keyboard navigation
 .q-btn:focus,
 .q-card:focus {
   outline: 2px solid var(--q-primary);
   outline-offset: 2px;
 }
 
-/* High contrast mode support */
+// High contrast mode support
 @media (prefers-contrast: high) {
   .q-card {
     border-width: 2px;

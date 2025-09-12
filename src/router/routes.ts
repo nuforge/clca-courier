@@ -21,6 +21,8 @@ const routes: RouteRecordRaw[] = [
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contribute/submit', component: () => import('pages/SubmitContentPage.vue') },
       { path: '/contribute/guide', component: () => import('pages/ContributeGuide.vue') },
+      { path: '/contribute/guide-modern', component: () => import('pages/ModernContributeGuide.vue') },
+      { path: '/contribute/guide-enhanced', component: () => import('pages/ContributeGuideModern.vue') },
 
       // Canva integration
       { path: '/canva/callback', component: () => import('pages/CanvaCallbackPage.vue') },
