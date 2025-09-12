@@ -200,7 +200,7 @@ export default {
       volunteerButton: 'Volunteer with Us',
       contributeButton: 'Contribute Content'
     },
-    contactForm: {
+    contactFormDetails: {
       title: 'Send us a Message',
       nameLabel: 'Your Name',
       emailLabel: 'Email Address',
@@ -212,7 +212,7 @@ export default {
       subjectRequired: 'Subject is required',
       messageRequired: 'Message is required'
     },
-    contactInfo: {
+    contactInfoDetails: {
       email: 'Email',
       phone: 'Phone',
       address: 'Address',

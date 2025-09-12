@@ -200,7 +200,7 @@ export default {
       volunteerButton: 'Voluntariado',
       contributeButton: 'Contribuir Contenido'
     },
-    contactForm: {
+    contactFormDetails: {
       title: 'Envíanos un Mensaje',
       nameLabel: 'Tu Nombre',
       emailLabel: 'Dirección de Correo',
@@ -212,7 +212,7 @@ export default {
       subjectRequired: 'El asunto es requerido',
       messageRequired: 'El mensaje es requerido'
     },
-    contactInfo: {
+    contactInfoDetails: {
       email: 'Correo',
       phone: 'Teléfono',
       address: 'Dirección',

@@ -690,27 +690,27 @@ export const TRANSLATION_KEYS = {
       VOLUNTEER_BUTTON: 'pages.about.getInvolved.volunteerButton',
       CONTRIBUTE_BUTTON: 'pages.about.getInvolved.contributeButton'
     },
-    CONTACT_FORM: {
-      TITLE: 'pages.about.contactForm.title',
-      NAME_LABEL: 'pages.about.contactForm.nameLabel',
-      EMAIL_LABEL: 'pages.about.contactForm.emailLabel',
-      SUBJECT_LABEL: 'pages.about.contactForm.subjectLabel',
-      MESSAGE_LABEL: 'pages.about.contactForm.messageLabel',
-      SEND_BUTTON: 'pages.about.contactForm.sendButton',
-      NAME_REQUIRED: 'pages.about.contactForm.nameRequired',
-      EMAIL_REQUIRED: 'pages.about.contactForm.emailRequired',
-      SUBJECT_REQUIRED: 'pages.about.contactForm.subjectRequired',
-      MESSAGE_REQUIRED: 'pages.about.contactForm.messageRequired'
+    CONTACT_FORM_DETAILS: {
+      TITLE: 'pages.about.contactFormDetails.title',
+      NAME_LABEL: 'pages.about.contactFormDetails.nameLabel',
+      EMAIL_LABEL: 'pages.about.contactFormDetails.emailLabel',
+      SUBJECT_LABEL: 'pages.about.contactFormDetails.subjectLabel',
+      MESSAGE_LABEL: 'pages.about.contactFormDetails.messageLabel',
+      SEND_BUTTON: 'pages.about.contactFormDetails.sendButton',
+      NAME_REQUIRED: 'pages.about.contactFormDetails.nameRequired',
+      EMAIL_REQUIRED: 'pages.about.contactFormDetails.emailRequired',
+      SUBJECT_REQUIRED: 'pages.about.contactFormDetails.subjectRequired',
+      MESSAGE_REQUIRED: 'pages.about.contactFormDetails.messageRequired'
     },
-    CONTACT_INFO: {
-      EMAIL: 'pages.about.contactInfo.email',
-      PHONE: 'pages.about.contactInfo.phone',
-      ADDRESS: 'pages.about.contactInfo.address',
-      OFFICE_HOURS: 'pages.about.contactInfo.officeHours',
-      EMAIL_VALUE: 'pages.about.contactInfo.emailValue',
-      PHONE_VALUE: 'pages.about.contactInfo.phoneValue',
-      ADDRESS_VALUE: 'pages.about.contactInfo.addressValue',
-      OFFICE_HOURS_VALUE: 'pages.about.contactInfo.officeHoursValue'
+    CONTACT_INFO_DETAILS: {
+      EMAIL: 'pages.about.contactInfoDetails.email',
+      PHONE: 'pages.about.contactInfoDetails.phone',
+      ADDRESS: 'pages.about.contactInfoDetails.address',
+      OFFICE_HOURS: 'pages.about.contactInfoDetails.officeHours',
+      EMAIL_VALUE: 'pages.about.contactInfoDetails.emailValue',
+      PHONE_VALUE: 'pages.about.contactInfoDetails.phoneValue',
+      ADDRESS_VALUE: 'pages.about.contactInfoDetails.addressValue',
+      OFFICE_HOURS_VALUE: 'pages.about.contactInfoDetails.officeHoursValue'
     },
     EDITORIAL_TEAM: {
       TITLE: 'pages.about.editorialTeam.title',

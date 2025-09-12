@@ -273,8 +273,8 @@ async function onSubmit() {
                         <q-icon name="mdi-email" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.EMAIL) }}</q-item-label>
-                        <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.EMAIL_VALUE) }}</q-item-label>
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.EMAIL) }}</q-item-label>
+                        <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.EMAIL_VALUE) }}</q-item-label>
                       </q-item-section>
                     </q-item>
 
@@ -283,8 +283,8 @@ async function onSubmit() {
                         <q-icon name="mdi-phone" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.PHONE) }}</q-item-label>
-                        <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.PHONE_VALUE) }}</q-item-label>
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.PHONE) }}</q-item-label>
+                        <q-item-label caption>{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.PHONE_VALUE) }}</q-item-label>
                       </q-item-section>
                     </q-item>
 
@@ -293,8 +293,8 @@ async function onSubmit() {
                         <q-icon name="mdi-map-marker" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.ADDRESS) }}</q-item-label>
-                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.ADDRESS_VALUE)">
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.ADDRESS) }}</q-item-label>
+                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.ADDRESS_VALUE)">
                         </q-item-label>
                       </q-item-section>
                     </q-item>
@@ -304,8 +304,8 @@ async function onSubmit() {
                         <q-icon name="mdi-clock" color="primary" />
                       </q-item-section>
                       <q-item-section>
-                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.OFFICE_HOURS) }}</q-item-label>
-                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO.OFFICE_HOURS_VALUE)">
+                        <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.OFFICE_HOURS) }}</q-item-label>
+                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.OFFICE_HOURS_VALUE)">
                         </q-item-label>
                       </q-item-section>
                     </q-item>
@@ -317,38 +317,38 @@ async function onSubmit() {
             <div class="col-12 col-md-6">
               <q-card :class="cardClasses">
                 <q-card-section>
-                  <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.TITLE) }}</div>
+                  <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.TITLE) }}</div>
 
                   <q-form @submit="onSubmit" class="q-col-gutter-md">
-                    <q-input v-model="form.name" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.NAME_LABEL)" filled :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.NAME_REQUIRED)]">
+                    <q-input v-model="form.name" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.NAME_LABEL)" filled :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.NAME_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-account" />
                       </template>
                     </q-input>
 
-                    <q-input v-model="form.email" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.EMAIL_LABEL)" type="email" filled
-                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.EMAIL_REQUIRED)]">
+                    <q-input v-model="form.email" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.EMAIL_LABEL)" type="email" filled
+                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.EMAIL_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-email" />
                       </template>
                     </q-input>
 
-                    <q-select v-model="form.subject" :options="subjectOptions" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.SUBJECT_LABEL)" filled
-                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.SUBJECT_REQUIRED)]">
+                    <q-select v-model="form.subject" :options="subjectOptions" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.SUBJECT_LABEL)" filled
+                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.SUBJECT_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-tag" />
                       </template>
                     </q-select>
 
-                    <q-input v-model="form.message" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.MESSAGE_LABEL)" type="textarea" rows="4" filled
-                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.MESSAGE_REQUIRED)]">
+                    <q-input v-model="form.message" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.MESSAGE_LABEL)" type="textarea" rows="4" filled
+                      :rules="[val => !!val || t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.MESSAGE_REQUIRED)]">
                       <template v-slot:prepend>
                         <q-icon name="mdi-message-text" />
                       </template>
                     </q-input>
 
                     <div class="text-center">
-                      <q-btn type="submit" color="primary" icon="mdi-send" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM.SEND_BUTTON)" :loading="submitting" />
+                      <q-btn type="submit" color="primary" icon="mdi-send" :label="t(TRANSLATION_KEYS.ABOUT.CONTACT_FORM_DETAILS.SEND_BUTTON)" :loading="submitting" />
                     </div>
                   </q-form>
                 </q-card-section>
