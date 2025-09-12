@@ -1,7 +1,36 @@
 # CLCA Courier - Next Development Priorities
-*Generated September 11, 2025*
+*Generated January 15, 2025*
 
 ## 🎯 IMMEDIATE PRIORITIES (Next 2-4 Weeks)
+
+### 0. Calendar System Integration - Priority A
+**Status**: Recently completed - needs integration testing
+**Rationale**: New calendar system implemented but needs validation and integration with existing content workflow
+
+**Implementation Plan**:
+- **Phase 1**: Calendar system validation and testing
+  - Test calendar event creation through content submission workflow
+  - Validate ContentDoc integration with date features
+  - Test bilingual calendar interface functionality
+  - Target: 100% calendar functionality validation
+
+- **Phase 2**: Calendar integration with content management
+  - Integrate calendar events with existing content approval workflow
+  - Test calendar event editing and deletion
+  - Validate real-time calendar updates
+  - Target: Seamless calendar-content integration
+
+- **Phase 3**: Calendar system optimization
+  - Performance testing for calendar with large event datasets
+  - Mobile calendar interface optimization
+  - Calendar accessibility testing and improvements
+  - Target: Production-ready calendar system
+
+**Success Metrics**:
+- Calendar events create/edit/delete through content workflow
+- Real-time calendar updates working correctly
+- Bilingual calendar interface fully functional
+- Mobile calendar interface optimized
 
 ### 1. Component Testing Expansion - Priority A
 **Status**: Ready to implement
