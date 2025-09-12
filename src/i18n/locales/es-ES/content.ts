@@ -28,6 +28,8 @@ export default {
     unknown: 'Desconocido'
   },
 
+  tags: 'Etiquetas',
+
   contentType: {
     event: 'Evento',
     task: 'Tarea',
@@ -240,13 +242,20 @@ export default {
     noEvents: 'No hay eventos programados',
     noEventsForDate: 'No hay eventos programados para esta fecha',
     noEventsForMonth: 'No hay eventos programados para este mes',
+    noEventsThisMonth: 'No hay eventos este mes',
+    noEventsThisMonthDesc: 'Vuelve más tarde para ver los próximos eventos de la comunidad',
     upcomingEvents: 'Próximos Eventos',
     allUpcomingEvents: 'Todos los Próximos Eventos',
     eventsOnDate: 'Eventos el {date}',
+    eventsForMonth: 'Eventos para {month} {year}',
     viewAllUpcoming: 'Ver Todos los Próximos',
     today: 'Hoy',
     allDay: 'Todo el Día',
     eventDetails: 'Detalles del Evento',
+    selectEventForDetails: 'Selecciona un evento para ver detalles',
+    selectEventForDetailsDesc: 'Haz clic en cualquier evento del calendario o lista para ver sus detalles aquí',
+    event: 'evento',
+    events: 'eventos',
     exportToCalendar: 'Exportar al Calendario',
     shareEvent: 'Compartir Evento',
     copyDetails: 'Copiar Detalles',

@@ -28,6 +28,8 @@ export default {
     unknown: 'Unknown'
   },
 
+  tags: 'Tags',
+
   contentType: {
     event: 'Event',
     task: 'Task',
@@ -301,13 +303,20 @@ export default {
     noEvents: 'No events scheduled',
     noEventsForDate: 'No events scheduled for this date',
     noEventsForMonth: 'No events scheduled for this month',
+    noEventsThisMonth: 'No events this month',
+    noEventsThisMonthDesc: 'Check back later for upcoming community events',
     upcomingEvents: 'Upcoming Events',
     allUpcomingEvents: 'All Upcoming Events',
     eventsOnDate: 'Events on {date}',
+    eventsForMonth: 'Events for {month} {year}',
     viewAllUpcoming: 'View All Upcoming',
     today: 'Today',
     allDay: 'All Day',
     eventDetails: 'Event Details',
+    selectEventForDetails: 'Select an event for details',
+    selectEventForDetailsDesc: 'Click on any event in the calendar or list to view its details here',
+    event: 'event',
+    events: 'events',
     exportToCalendar: 'Export to Calendar',
     shareEvent: 'Share Event',
     copyDetails: 'Copy Details',
