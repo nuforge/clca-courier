@@ -207,6 +207,22 @@ export function normalizeDate(input: DateInput): Date | null {
         const timestampLike = input as { _seconds: number };
         return new Date(timestampLike._seconds * 1000);
       }
+
+      // Check if it's a serialized Timestamp with seconds and nanoseconds
+      if ('seconds' in input && 'nanoseconds' in input &&
+          typeof input.seconds === 'number' && typeof input.nanoseconds === 'number') {
+        const timestamp = input as { seconds: number; nanoseconds: number };
+        return new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
+      }
+
+      // Check if it's a Date object that was serialized
+      if ('_isAMomentObject' in input || (input as Record<string, unknown>).constructor?.name === 'Timestamp') {
+        try {
+          return new Date(input as unknown as Date | string | number);
+        } catch {
+          // Fall through to next check
+        }
+      }
     }
 
     logger.warn('Unknown date format in normalizeDate:', { input, type: typeof input });

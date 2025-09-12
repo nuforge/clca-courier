@@ -168,6 +168,8 @@ export default {
     reject: 'Reject',
     publish: 'Publish',
     unpublish: 'Unpublish',
+    archive: 'Archive',
+    restore: 'Restore',
     feature: 'Feature',
     unfeature: 'Remove Feature',
     approveSuccess: 'Content approved successfully',

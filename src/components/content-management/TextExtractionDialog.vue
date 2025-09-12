@@ -125,10 +125,13 @@
                                             <div class="text-h6 q-mb-md">Tags & Categories</div>
                                             <div class="q-mb-md">
                                                 <div class="text-subtitle2 q-mb-sm">Tags:</div>
-                                                <q-chip v-for="tag in newsletter.tags" :key="tag" :label="tag"
-                                                    color="primary" outline size="sm" class="q-mr-xs q-mb-xs" />
-                                                <div v-if="!newsletter.tags?.length" class="text-grey-6">No tags
-                                                    assigned</div>
+                                                <TagDisplay
+                                                    v-if="newsletter.tags?.length"
+                                                    :tags="newsletter.tags"
+                                                    variant="outline"
+                                                    size="sm"
+                                                />
+                                                <div v-else class="text-grey-6">No tags assigned</div>
                                             </div>
                                             <div>
                                                 <div class="text-subtitle2 q-mb-sm">Categories:</div>
@@ -199,6 +202,7 @@
 import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import type { ContentManagementNewsletter } from '../../types';
+import TagDisplay from '../common/TagDisplay.vue';
 
 interface Props {
     modelValue: boolean;

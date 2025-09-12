@@ -304,10 +304,7 @@ export class FirebaseContentService {
       const contentDoc = doc(db, this.collectionName, contentId);
       await updateDoc(contentDoc, {
         tags,
-        timestamps: {
-          created: serverTimestamp() as Timestamp, // Will be ignored by Firestore for existing field
-          updated: serverTimestamp() as Timestamp
-        }
+        'timestamps.updated': serverTimestamp() as Timestamp
       });
 
       logger.info('Content tags updated successfully', {

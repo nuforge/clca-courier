@@ -82,14 +82,12 @@
 
       <!-- Tags -->
       <div v-if="newsletter.tags && newsletter.tags.length > 0" class="q-mb-sm" role="list" aria-label="Tags">
-        <q-chip v-for="tag in visibleTags" :key="tag" size="sm" color="primary" text-color="white" dense
-          class="q-mr-xs q-mb-xs" role="listitem" :aria-label="'Tag: ' + tag">
-          {{ tag }}
-        </q-chip>
-        <q-chip v-if="newsletter.tags.length > maxVisibleTags" size="sm" color="grey" text-color="white" dense
-          class="q-mr-xs q-mb-xs" :aria-label="'And ' + (newsletter.tags.length - maxVisibleTags) + ' more tags'">
-          +{{ newsletter.tags.length - maxVisibleTags }}
-        </q-chip>
+        <TagDisplay
+          :tags="newsletter.tags"
+          variant="default"
+          :max-display="maxVisibleTags"
+          :show-more="true"
+        />
       </div>
     </q-card-section>
 
@@ -158,6 +156,7 @@ import { useTheme } from '../composables/useTheme';
 import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import { logger } from '../utils/logger';
+import TagDisplay from './common/TagDisplay.vue';
 
 // Props
 interface Props {
@@ -250,10 +249,6 @@ const truncatedDescription = computed(() => {
   return props.newsletter.description.substring(0, maxDescriptionLength) + '...';
 });
 
-const visibleTags = computed(() => {
-  if (!props.newsletter.tags) return [];
-  return props.newsletter.tags.slice(0, maxVisibleTags);
-});
 
 // Methods
 const capitalizeFirst = (str: string): string => {

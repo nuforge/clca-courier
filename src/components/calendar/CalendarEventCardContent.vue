@@ -78,19 +78,15 @@
             />
 
             <!-- Additional Tags -->
-            <q-chip
-              v-for="tag in getDisplayTags(event).slice(0, 2)"
-              :key="tag"
-              dense
-              square
-              color="grey-3"
-              text-color="grey-8"
+            <TagDisplay
+              :tags="getDisplayTags(event)"
+              variant="flat"
+              :max-display="2"
+              :show-more="true"
               size="xs"
-              :label="tag"
+              square
+              dense
             />
-            <span v-if="getDisplayTags(event).length > 2" class="text-caption text-grey-6">
-              +{{ getDisplayTags(event).length - 2 }} more
-            </span>
           </div>
 
           <!-- Compact mode time display -->
@@ -172,6 +168,7 @@ import { formatEventDateTime as formatEventDateTimeUtil } from '../../utils/date
 import { parseDateOnly } from '../../utils/date-formatter';
 import { logger } from '../../utils/logger';
 import { TRANSLATION_KEYS } from '../../i18n/utils/translation-keys';
+import TagDisplay from '../common/TagDisplay.vue';
 
 interface Props {
   event: CalendarEvent;

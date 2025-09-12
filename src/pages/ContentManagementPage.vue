@@ -178,161 +178,18 @@
     </div>
 
     <!-- Content Detail Dialog -->
-    <q-dialog v-model="showDetailDialog" position="right" full-height>
-      <q-card style="width: 600px; max-width: 90vw;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ selectedContentItem?.title }}</div>
-          <q-space />
-          <q-btn :icon="UI_ICONS.close" flat round dense v-close-popup />
-        </q-card-section>
-
-        <q-card-section v-if="selectedContentItem">
-          <div class="q-mb-md">
-            <q-badge :color="getStatusIcon(selectedContentItem.status).color"
-              :label="selectedContentItem.status.toUpperCase()" />
-            <q-badge color="grey" :label="contentUtils.getContentType(selectedContentItem)?.toUpperCase() || 'UNKNOWN'" class="q-ml-sm" />
-            <q-badge v-if="contentUtils.hasTag(selectedContentItem, 'featured')" color="orange" label="FEATURED" class="q-ml-sm" />
-          </div>
-
-          <div class="text-body2 q-mb-md">
-            <strong>{{ t(TRANSLATION_KEYS.FORMS.AUTHOR) || 'Author' }}:</strong> {{ selectedContentItem.authorName }}<br>
-            <strong>{{ t(TRANSLATION_KEYS.CONTENT.SUBMITTED) || 'Created' }}:</strong> {{ formatDateTime(selectedContentItem.timestamps.created, 'LONG_WITH_TIME') }}<br>
-            <strong>{{ t(TRANSLATION_KEYS.FORMS.TAGS) }}:</strong> {{ selectedContentItem.tags.join(', ') || t(TRANSLATION_KEYS.COMMON.NONE) || 'None' }}
-          </div>
-
-          <q-separator class="q-my-md" />
-
-          <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.FORMS.CONTENT) }}</div>
-          <div class="text-body1 q-mb-md" style="white-space: pre-line;">{{ selectedContentItem.description }}
-          </div>
-
-          <!-- Content Features Section -->
-          <div v-if="Object.keys(selectedContentItem.features).length > 0">
-            <q-separator class="q-my-md" />
-            <div class="text-h6 q-mb-sm">Content Features</div>
-
-            <!-- Date Feature -->
-            <div v-if="contentUtils.hasFeature(selectedContentItem, 'feat:date')" class="q-mb-md">
-              <q-card flat bordered>
-                <q-card-section>
-                  <div class="text-body2">
-                    <strong>Event Date:</strong> {{ formatDateTime(selectedContentItem.features['feat:date']?.start, 'LONG_WITH_TIME') }}
-                    <span v-if="selectedContentItem.features['feat:date']?.end">
-                      - {{ formatDateTime(selectedContentItem.features['feat:date']?.end, 'LONG_WITH_TIME') }}
-                    </span>
-                    <span v-if="selectedContentItem.features['feat:date']?.isAllDay" class="text-caption"> (All Day)</span>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <!-- Location Feature -->
-            <div v-if="contentUtils.hasFeature(selectedContentItem, 'feat:location')" class="q-mb-md">
-              <q-card flat bordered>
-                <q-card-section>
-                  <div class="text-body2">
-                    <strong>Location:</strong> {{ selectedContentItem.features['feat:location']?.name || 'Unknown' }}
-                    <div class="text-caption">{{ selectedContentItem.features['feat:location']?.address }}</div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <!-- Task Feature -->
-            <div v-if="contentUtils.hasFeature(selectedContentItem, 'feat:task')" class="q-mb-md">
-              <q-card flat bordered>
-                <q-card-section>
-                  <div class="text-body2">
-                    <strong>Task:</strong> {{ selectedContentItem.features['feat:task']?.category }} -
-                    {{ selectedContentItem.features['feat:task']?.qty }} {{ selectedContentItem.features['feat:task']?.unit }}
-                    <div class="text-caption">Status: {{ selectedContentItem.features['feat:task']?.status }}</div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <!-- Canva Feature -->
-            <div v-if="contentUtils.hasFeature(selectedContentItem, 'integ:canva')" class="q-mb-md">
-              <q-card flat bordered>
-                <q-card-section>
-                  <div class="row items-center q-gutter-md">
-                    <div class="col">
-                      <div class="text-body2">
-                        <strong>Canva Design:</strong> {{ selectedContentItem.features['integ:canva']?.designId }}
-                      </div>
-                      <div v-if="selectedContentItem.features['integ:canva']?.exportUrl" class="text-caption">
-                        Export Ready: Yes
-                      </div>
-                    </div>
-                    <div class="col-auto">
-                      <div class="row q-gutter-xs">
-                        <!-- Edit in Canva -->
-                        <q-btn
-                          v-if="selectedContentItem.features['integ:canva']?.editUrl"
-                          flat
-                          round
-                          icon="edit"
-                          color="primary"
-                          @click="openCanvaDesign(selectedContentItem.features['integ:canva']?.editUrl || '')"
-                        >
-                          <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EDIT_IN_CANVA) }}</q-tooltip>
-                        </q-btn>
-
-                        <!-- Export for Print -->
-                        <q-btn
-                          flat
-                          round
-                          icon="print"
-                          color="purple"
-                          @click="handleExportForPrint(selectedContentItem)"
-                          :loading="isExporting(selectedContentItem.id)"
-                          :disable="isExporting(selectedContentItem.id)"
-                        >
-                          <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EXPORT_FOR_PRINT) }}</q-tooltip>
-                        </q-btn>
-
-                        <!-- Download Design -->
-                        <q-btn
-                          v-if="selectedContentItem.features['integ:canva']?.exportUrl"
-                          flat
-                          round
-                          icon="download"
-                          color="green"
-                          @click="handleDownloadDesign(selectedContentItem.features['integ:canva']?.exportUrl || '', `design-${selectedContentItem.features['integ:canva']?.designId}.pdf`)"
-                        >
-                          <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
-                        </q-btn>
-                      </div>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-
-        </q-card-section>
-
-        <q-card-actions align="right" v-if="selectedContentItem?.status === 'draft'">
-          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.ARCHIVE)" color="negative" @click="archiveContentWithDialog(selectedContentItem)" />
-          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.PUBLISH)" color="positive" @click="publishContent(selectedContentItem.id)" />
-        </q-card-actions>
-
-        <q-card-actions align="right" v-if="selectedContentItem?.status === 'published'">
-          <q-toggle :model-value="contentUtils.hasTag(selectedContentItem, 'featured')"
-            @update:model-value="(value: boolean) => selectedContentItem && toggleFeaturedStatus(selectedContentItem.id, value)"
-            color="orange" :label="t(TRANSLATION_KEYS.FORMS.FEATURED)" />
-          <q-space />
-          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.UNPUBLISH)" color="orange"
-            @click="selectedContentItem && unpublishContent(selectedContentItem.id)" />
-          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.ARCHIVE)" color="negative"
-            @click="selectedContentItem && archiveContent(selectedContentItem.id)" />
-        </q-card-actions>
-
-        <q-card-actions align="right" v-if="selectedContentItem?.status === 'archived'">
-          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.RESTORE)" color="positive" @click="selectedContentItem && restoreContent(selectedContentItem.id)" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ContentDetailDialog
+      :content="selectedContentItem"
+      v-model:show-dialog="showDetailDialog"
+      :is-exporting="isExporting"
+      @publish="publishContent"
+      @unpublish="unpublishContent"
+      @archive="archiveContentWithDialog"
+      @restore="restoreContent"
+      @toggle-featured="toggleFeaturedStatus"
+      @export-for-print="handleExportForPrint"
+      @download-design="handleDownloadDesign"
+    />
 
     <!-- Archive Reason Dialog -->
     <q-dialog v-model="showRejectDialog">
@@ -365,8 +222,8 @@ import { firebaseContentService } from '../services/firebase-content.service';
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
 import { logger } from '../utils/logger';
-import { formatDateTime } from '../utils/date-formatter';
 import ContentDocTable from '../components/content-management/ContentDocTable.vue';
+import ContentDetailDialog from '../components/content-management/ContentDetailDialog.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { UI_ICONS } from '../constants/ui-icons';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
@@ -722,10 +579,6 @@ const handleDownloadDesign = (exportUrl: string, filename: string) => {
 //   }
 // };
 
-const openCanvaDesign = (editUrl: string) => {
-  logger.info('Opening Canva design in new tab', { editUrl });
-  window.open(editUrl, '_blank', 'noopener,noreferrer');
-};
 
 // Auto-refresh functionality
 watch(autoRefresh, (newValue) => {

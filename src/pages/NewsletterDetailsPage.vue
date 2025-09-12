@@ -127,10 +127,10 @@
                                         <!-- Tags -->
                                         <div v-if="newsletter.tags && newsletter.tags.length > 0" class="tags-section">
                                             <div class="text-subtitle2 q-mb-sm">Tags</div>
-                                            <q-chip v-for="tag in newsletter.tags" :key="tag" color="primary"
-                                                text-color="white" class="q-mr-sm q-mb-sm">
-                                                {{ tag }}
-                                            </q-chip>
+                                            <TagDisplay
+                                                :tags="newsletter.tags"
+                                                variant="default"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -229,6 +229,7 @@ import { useTheme } from '../composables/useTheme';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
+import TagDisplay from '../components/common/TagDisplay.vue';
 
 // Composables
 const route = useRoute();

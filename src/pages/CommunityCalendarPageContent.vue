@@ -298,15 +298,12 @@
                     {{ $t(TRANSLATION_KEYS.CONTENT.TAGS) }}
                   </div>
                   <div class="q-gutter-xs">
-                    <q-chip
-                      v-for="tag in getDisplayTags(selectedEvent)"
-                      :key="tag"
-                      dense
-                      square
-                      color="grey-3"
-                      text-color="grey-8"
+                    <TagDisplay
+                      :tags="getDisplayTags(selectedEvent)"
+                      variant="flat"
                       size="sm"
-                      :label="tag"
+                      square
+                      dense
                     />
                   </div>
                 </div>
@@ -362,6 +359,7 @@ import CalendarEventCardContent from '../components/calendar/CalendarEventCardCo
 import { logger } from '../utils/logger';
 import { formatDate, getCurrentYear, getCurrentMonth, parseDateOnly } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
+import TagDisplay from '../components/common/TagDisplay.vue';
 
 const { t } = useI18n();
 const $q = useQuasar();

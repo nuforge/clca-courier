@@ -100,18 +100,12 @@
 
     <!-- Footer Section with Tags -->
     <q-card-section v-if="displayTags.length > 0" class="q-pt-none">
-      <div class="row q-gutter-xs">
-        <q-chip
-          v-for="tag in displayTags"
-          :key="tag"
-          dense
-          outline
-          size="sm"
-          :color="getTagColor(tag)"
-        >
-          {{ formatTag(tag) }}
-        </q-chip>
-      </div>
+      <TagDisplay
+        :tags="displayTags"
+        variant="flat"
+        :max-display="3"
+        :show-more="true"
+      />
     </q-card-section>
 
     <!-- Author and Timestamp Footer -->
@@ -139,6 +133,7 @@ import EventDateWidget from './widgets/EventDateWidget.vue';
 import TaskWidget from './widgets/TaskWidget.vue';
 import LocationWidget from './widgets/LocationWidget.vue';
 import CanvaWidget from './widgets/CanvaWidget.vue';
+import TagDisplay from './common/TagDisplay.vue';
 
 interface Props {
   content: ContentDoc;
@@ -216,26 +211,6 @@ const handleClaimTask = () => {
   emit('claim-task', props.content);
 };
 
-const formatTag = (tag: string): string => {
-  // Format namespace:value tags for display
-  const parts = tag.split(':');
-  const value = parts[1];
-  if (value) {
-    return value.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  }
-  return tag.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
-
-const getTagColor = (tag: string): string => {
-  const [namespace] = tag.split(':');
-  switch (namespace) {
-    case 'category': return 'primary';
-    case 'priority': return 'warning';
-    case 'location': return 'secondary';
-    case 'status': return 'info';
-    default: return 'grey-5';
-  }
-};
 </script>
 
 <style lang="scss" scoped>

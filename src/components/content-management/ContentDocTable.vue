@@ -34,22 +34,12 @@
 
           <!-- Feature indicators -->
           <div class="q-mt-xs">
-            <q-chip v-if="contentUtils.hasFeature(props.row, 'feat:date')" size="xs" color="blue" text-color="white" dense>
-              <q-icon name="event" size="xs" class="q-mr-xs" />
-              Event
-            </q-chip>
-            <q-chip v-if="contentUtils.hasFeature(props.row, 'feat:location')" size="xs" color="green" text-color="white" dense>
-              <q-icon name="place" size="xs" class="q-mr-xs" />
-              Location
-            </q-chip>
-            <q-chip v-if="contentUtils.hasFeature(props.row, 'feat:task')" size="xs" color="orange" text-color="white" dense>
-              <q-icon name="task" size="xs" class="q-mr-xs" />
-              Task
-            </q-chip>
-            <q-chip v-if="contentUtils.hasFeature(props.row, 'integ:canva')" size="xs" color="purple" text-color="white" dense>
-              <q-icon name="palette" size="xs" class="q-mr-xs" />
-              Canva
-            </q-chip>
+            <TagDisplay
+              :tags="getFeatureTags(props.row)"
+              variant="default"
+              size="xs"
+              dense
+            />
           </div>
         </q-td>
       </template>
@@ -64,20 +54,14 @@
       <!-- Date column -->
       <template v-slot:body-cell-created="props">
         <q-td :props="props">
-          {{ formatDateUtil(props.value, 'SHORT') }}
+          {{ formatDateTime(props.value, 'SHORT_WITH_TIME') }}
         </q-td>
       </template>
 
       <!-- Tags column -->
       <template v-slot:body-cell-tags="props">
         <q-td :props="props">
-          <div v-if="props.row.tags && props.row.tags.length > 0" class="tag-chips">
-            <q-chip v-for="tag in props.row.tags.slice(0, 3)" :key="tag" size="sm" color="secondary" text-color="white"
-              :label="tag" class="q-ma-xs" />
-            <q-btn v-if="props.row.tags.length > 3" flat dense size="sm" color="secondary"
-              :label="`+${props.row.tags.length - 3}`" />
-          </div>
-          <span v-else class="text-grey-5">No tags</span>
+          <TagDisplay :tags="props.row.tags" :max-display="3" :show-more="true" size="xs" dense/>
         </q-td>
       </template>
 
@@ -187,7 +171,8 @@ import { contentUtils } from '../../types/core/content.types';
 import { useSiteTheme } from '../../composables/useSiteTheme';
 import { useRoleAuth } from '../../composables/useRoleAuth';
 import { TRANSLATION_KEYS } from '../../i18n/utils/translation-keys';
-import { formatDate as formatDateUtil } from '../../utils/date-formatter';
+import { formatDateTime } from '../../utils/date-formatter';
+import TagDisplay from '../common/TagDisplay.vue';
 
 const { getStatusIcon } = useSiteTheme();
 const { isEditor } = useRoleAuth();
@@ -233,6 +218,16 @@ const isExportingContent = computed(() => props.isExportingContent || (() => fal
 // Helper method to handle toggle featured
 const handleToggleFeatured = (id: string, featured: boolean) => {
   emit('toggle-featured', id, featured);
+};
+
+// Helper method to get feature tags
+const getFeatureTags = (content: ContentDoc): string[] => {
+  const featureTags: string[] = [];
+  if (contentUtils.hasFeature(content, 'feat:date')) featureTags.push('feat:date');
+  if (contentUtils.hasFeature(content, 'feat:location')) featureTags.push('feat:location');
+  if (contentUtils.hasFeature(content, 'feat:task')) featureTags.push('feat:task');
+  if (contentUtils.hasFeature(content, 'integ:canva')) featureTags.push('integ:canva');
+  return featureTags;
 };
 
 // Computed for selected content items (convert IDs back to objects for table)
@@ -308,6 +303,7 @@ const truncateText = (text: string, maxLength: number) => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
+
 </script>
 
 <style scoped>

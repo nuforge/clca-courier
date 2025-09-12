@@ -240,10 +240,13 @@
         <q-td :props="props" class="keywords-cell" @mouseenter="hoveredRow = props.row.id"
           @mouseleave="hoveredRow = null">
           <div v-if="props.row.tags && props.row.tags.length > 0" class="keyword-chips">
-            <q-chip v-for="tag in props.row.tags.slice(0, 3)" :key="tag" size="sm" color="secondary" text-color="white"
-              :label="tag" class="q-ma-xs" />
-            <q-btn v-if="props.row.tags.length > 3" flat dense size="sm" color="secondary"
-              :label="`+${props.row.tags.length - 3}`" @click="$emit('show-extracted-content', props.row)" />
+            <TagDisplay
+              :tags="props.row.tags"
+              variant="default"
+              :max-display="3"
+              :show-more="true"
+              size="sm"
+            />
           </div>
           <span v-else class="text-grey-5">No tags</span>
         </q-td>
@@ -316,6 +319,7 @@ import { ref, computed } from 'vue';
 import type { UnifiedNewsletter } from 'src/types/core/newsletter.types';
 import type { ProcessingStates } from 'src/types/core/content-management.types';
 import { useTableSettingsStore } from 'src/stores/table-settings.store';
+import TagDisplay from '../common/TagDisplay.vue';
 
 interface Props {
   newsletters: UnifiedNewsletter[];
