@@ -294,8 +294,8 @@ async function onSubmit() {
                       </q-item-section>
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.ADDRESS) }}</q-item-label>
-                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.ADDRESS_VALUE)">
-                        </q-item-label>
+                        <div class="text-caption text-grey-6" v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.ADDRESS_VALUE)">
+                        </div>
                       </q-item-section>
                     </q-item>
 
@@ -305,8 +305,8 @@ async function onSubmit() {
                       </q-item-section>
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.OFFICE_HOURS) }}</q-item-label>
-                        <q-item-label caption v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.OFFICE_HOURS_VALUE)">
-                        </q-item-label>
+                        <div class="text-caption text-grey-6" v-html="t(TRANSLATION_KEYS.ABOUT.CONTACT_INFO_DETAILS.OFFICE_HOURS_VALUE)">
+                        </div>
                       </q-item-section>
                     </q-item>
                   </q-list>
