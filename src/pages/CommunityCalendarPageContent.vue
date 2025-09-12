@@ -352,14 +352,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useCalendarContent } from '../composables/useCalendarContent';
 import type { CalendarEvent } from '../services/calendar-content.service';
 import CalendarEventCardContent from '../components/calendar/CalendarEventCardContent.vue';
 import { logger } from '../utils/logger';
-import { formatDate } from '../utils/date-formatter';
+import { formatDate, getCurrentYear, getCurrentMonth } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const { t } = useI18n();
@@ -395,11 +395,12 @@ const {
 
 // Local state - initialize with today's date
 const today = new Date();
-const todayFormatted = `${today.getFullYear()}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`;
+const todayFormatted = `${getCurrentYear()}/${getCurrentMonth().toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`;
 const selectedDateModel = ref<string | null>(todayFormatted);
 const showFeaturedOnly = ref(false);
 const selectedEvent = ref<CalendarEvent | null>(null);
 const calendarRef = ref();
+const isNavigating = ref(false); // Flag to track when we're navigating months
 
 // Computed properties
 const calendarEvents = computed(() => {
@@ -469,7 +470,14 @@ const defaultYearMonth = computed(() =>
 const calendarModel = computed({
   get: () => selectedDateModel.value,
   set: (value) => {
-    selectedDateModel.value = value;
+    // Only update the selected date model if we're not navigating months
+    // This prevents the calendar from changing the selected date during navigation
+    if (!isNavigating.value) {
+      selectedDateModel.value = value;
+      logger.debug('🗓️ Updated selectedDateModel from user selection:', value);
+    } else {
+      logger.debug('🗓️ Ignored selectedDateModel update during navigation:', value);
+    }
   }
 });
 
@@ -482,6 +490,12 @@ const onCalendarNavigation = (view: { year: number; month: number }) => {
     currentMonth: calendarState.value.currentMonth
   });
 
+  // Set navigation flag to prevent model updates during navigation
+  isNavigating.value = true;
+
+  // Store the current selected date to preserve it
+  const currentSelectedDate = selectedDateModel.value;
+
   // Update calendar state when user navigates in the q-date component
   calendarState.value.currentYear = view.year;
   calendarState.value.currentMonth = view.month;
@@ -493,6 +507,12 @@ const onCalendarNavigation = (view: { year: number; month: number }) => {
 
   // Load events for the new month
   void loadEventsForMonth(view.year, view.month);
+
+  // Clear navigation flag after a short delay to allow calendar to update
+  void nextTick(() => {
+    isNavigating.value = false;
+    logger.debug('🗓️ Navigation flag cleared, selected date preserved:', currentSelectedDate);
+  });
 };
 
 // Method to force calendar to update its view
@@ -523,7 +543,11 @@ const onDateSelect = (date: string | string[] | null) => {
   if (selectedDate) {
     // Don't switch to day view - keep in month view and just show selected date events
     calendarState.value.selectedDate = selectedDate;
-    selectedDateModel.value = date as string;
+
+    // Only update selectedDateModel if we're not navigating
+    if (!isNavigating.value) {
+      selectedDateModel.value = date as string;
+    }
 
     // Debug the events for this date
     const eventsForDate = getEventsForDate(selectedDate);
@@ -737,12 +761,14 @@ const copyToClipboard = (event: CalendarEvent) => {
 watch(() => calendarState.value, (newState) => {
   logger.debug('🗓️ Calendar state changed:', newState);
 
-  // Update selectedDateModel to match the current calendar view
+  // Only update selectedDateModel if the selectedDate actually changed
+  // Don't update during month navigation
   if (newState.selectedDate) {
     // Convert from YYYY-MM-DD to YYYY/MM/DD for q-date
     const formattedDate = newState.selectedDate.replace(/-/g, '/');
     if (selectedDateModel.value !== formattedDate) {
       selectedDateModel.value = formattedDate;
+      logger.debug('🗓️ Updated selectedDateModel from calendar state:', formattedDate);
     }
   }
 }, { deep: true });
