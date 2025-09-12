@@ -54,7 +54,7 @@
       <!-- Date column -->
       <template v-slot:body-cell-created="props">
         <q-td :props="props">
-          {{ formatDateTime(props.value, 'SHORT_WITH_TIME') }}
+          {{ formatDateTime(props.row.timestamps.created, 'SHORT_WITH_TIME') }}
         </q-td>
       </template>
 
@@ -270,7 +270,7 @@ const tableColumns = computed(() => [
     name: 'created',
     label: 'Created',
     align: 'left' as const,
-    field: 'timestamps.created',
+    field: (row: ContentDoc) => row.timestamps.created,
     sortable: true,
   },
   {
