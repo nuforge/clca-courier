@@ -177,7 +177,7 @@ const emit = defineEmits<{
 // Composables
 const { t } = useI18n();
 const $q = useQuasar();
-const { isDarkMode, cardClasses: themeCardClasses } = useTheme();
+const { cardClasses: themeCardClasses, backgroundClasses } = useTheme();
 
 // State
 const loading = ref(false);
@@ -212,7 +212,7 @@ const fallbackClasses = computed(() => ({
   'flex-center': true,
   'column': true,
   'full-height': true,
-  'bg-grey': !isDarkMode.value
+  [backgroundClasses.value.surface]: true
 }));
 
 const formattedDate = computed(() => {

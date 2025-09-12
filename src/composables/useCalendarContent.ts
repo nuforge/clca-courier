@@ -29,11 +29,14 @@ export const useCalendarContent = () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // Calendar state
+  // Calendar state - initialize to current date
+  const today = new Date();
+  const todayISO = today.toISOString().split('T')[0] ?? '';
+
   const calendarState = ref<CalendarState>({
     currentMonth: getCurrentMonth(), // 1-12
     currentYear: getCurrentYear(),
-    selectedDate: null,
+    selectedDate: todayISO, // Set default to today
     viewMode: 'month',
   });
 
@@ -56,17 +59,23 @@ export const useCalendarContent = () => {
     `${calendarState.value.currentYear}-${calendarState.value.currentMonth.toString().padStart(2, '0')}`
   );
 
-  // Get events for current view
+  // Get events for current view with filters applied
   const currentViewEvents = computed(() => {
+    let viewEvents: CalendarEvent[] = [];
+
     if (calendarState.value.viewMode === 'month') {
-      return getEventsForMonth(calendarState.value.currentYear, calendarState.value.currentMonth);
+      viewEvents = getEventsForMonth(calendarState.value.currentYear, calendarState.value.currentMonth);
     } else if (calendarState.value.viewMode === 'day' && calendarState.value.selectedDate) {
-      return getEventsForDate(calendarState.value.selectedDate);
+      viewEvents = getEventsForDate(calendarState.value.selectedDate);
+    } else {
+      viewEvents = events.value;
     }
-    return events.value;
+
+    // Apply filters
+    return applyFiltersToEvents(viewEvents);
   });
 
-  // Group events by date for calendar display
+  // Group events by date for calendar display (using filtered events)
   const eventsByDate = computed(() => {
     const grouped: Record<string, CalendarEvent[]> = {};
 
@@ -86,14 +95,17 @@ export const useCalendarContent = () => {
     events.value.filter(event => event.featured)
   );
 
-  // Upcoming events (next 7 days)
+  // Upcoming events (next 7 days) - using filtered events
   const upcomingEvents = computed(() => {
     const today = new Date().toISOString().split('T')[0] ?? '';
     const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] ?? '';
 
-    return events.value
+    const upcoming = events.value
       .filter(event => event.eventDate >= today && event.eventDate <= nextWeek)
       .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+
+    // Apply filters to upcoming events
+    return applyFiltersToEvents(upcoming);
   });
 
   // Event type options for filter (using translation keys)
@@ -207,7 +219,7 @@ export const useCalendarContent = () => {
       currentYear -= 1;
       currentMonth = 12;
     } else {
-      currentMonth += 1;
+      currentMonth -= 1;
     }
 
     goToMonth(currentYear, currentMonth);
@@ -215,7 +227,14 @@ export const useCalendarContent = () => {
 
   const goToToday = () => {
     const today = new Date();
-    goToMonth(today.getFullYear(), today.getMonth() + 1);
+    const todayISO = today.toISOString().split('T')[0] ?? '';
+
+    calendarState.value.currentYear = today.getFullYear();
+    calendarState.value.currentMonth = today.getMonth() + 1;
+    calendarState.value.selectedDate = todayISO;
+
+    // Load events for current month
+    void loadEventsForMonth(today.getFullYear(), today.getMonth() + 1);
   };
 
   const selectDate = (date: string) => {
@@ -229,7 +248,15 @@ export const useCalendarContent = () => {
 
   // Filter methods
   const setFilters = (newFilters: Partial<CalendarEventFilters>) => {
+    // Update filters with new values
     filters.value = { ...filters.value, ...newFilters };
+    void loadEvents();
+  };
+
+  const clearFilter = (filterKey: keyof CalendarEventFilters) => {
+    const updatedFilters = { ...filters.value };
+    delete updatedFilters[filterKey];
+    filters.value = updatedFilters;
     void loadEvents();
   };
 
@@ -239,8 +266,32 @@ export const useCalendarContent = () => {
   };
 
   // Helper methods
+  const applyFiltersToEvents = (eventsToFilter: CalendarEvent[]): CalendarEvent[] => {
+    let filteredEvents = [...eventsToFilter];
+
+    // Filter by content types
+    if (filters.value.contentTypes && filters.value.contentTypes.length > 0) {
+      filteredEvents = filteredEvents.filter(event => {
+        const eventContentType = calendarContentService.getEventContentType(event);
+        return eventContentType && filters.value.contentTypes?.includes(eventContentType);
+      });
+    }
+
+    // Filter by featured status
+    if (filters.value.featured !== undefined) {
+      filteredEvents = filteredEvents.filter(event => event.featured === filters.value.featured);
+    }
+
+    return filteredEvents;
+  };
+
   const getEventsForDate = (date: string): CalendarEvent[] => {
     return events.value.filter(event => event.eventDate === date);
+  };
+
+  const getFilteredEventsForDate = (date: string): CalendarEvent[] => {
+    const dateEvents = getEventsForDate(date);
+    return applyFiltersToEvents(dateEvents);
   };
 
   const getEventsForMonth = (year: number, month: number): CalendarEvent[] => {
@@ -318,10 +369,12 @@ export const useCalendarContent = () => {
 
     // Filtering
     setFilters,
+    clearFilter,
     clearFilters,
 
     // Utilities
     getEventsForDate,
+    getFilteredEventsForDate,
     getEventsForMonth,
     hasEventsOnDate,
     getEventCountForDate,

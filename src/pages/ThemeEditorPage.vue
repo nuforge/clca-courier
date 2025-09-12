@@ -47,7 +47,7 @@
 
       <!-- Debug Panel -->
       <div class="q-mb-md">
-        <q-expansion-item icon="mdi-bug" :label="$t('pages.themeEditor.sections.debugInfo')" class="bg-grey-1">
+        <q-expansion-item icon="mdi-bug" :label="$t('pages.themeEditor.sections.debugInfo')" :class="backgroundClasses.surface">
           <q-card flat>
             <q-card-section>
               <div class="text-caption text-grey-6 q-mb-sm">{{ $t('pages.themeEditor.sections.debugInfo') }}:</div>
@@ -637,6 +637,7 @@
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSiteTheme } from '../composables/useSiteTheme';
+import { useTheme } from '../composables/useTheme';
 import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme, getStatusTheme } from '../config/site-theme.config';
 import { logger } from '../utils/logger';
 import { UI_ICONS } from '../constants/ui-icons';
@@ -645,6 +646,7 @@ import IconPicker from '../components/theme/IconPicker.vue';
 import ColorPreview from '../components/theme/ColorPreview.vue';
 
 const $q = useQuasar();
+const { backgroundClasses } = useTheme();
 const {
   theme,
   getThemeForEditing,

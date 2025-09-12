@@ -33,7 +33,7 @@
         icon="my_location"
         class="coordinate-expansion"
       >
-        <div class="q-pa-md bg-grey-1">
+        <div class="q-pa-md" :class="backgroundClasses.surface">
           <div class="text-body2 q-mb-md">{{ $t('content.features.location.coordinatesHelp') }}</div>
 
           <div class="row q-gutter-md">
@@ -74,7 +74,7 @@
       </q-expansion-item>
 
       <!-- Preview -->
-      <q-card flat bordered class="bg-grey-1">
+      <q-card flat bordered :class="backgroundClasses.surface">
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ $t('common.preview') }}</div>
           <div class="text-body2">
@@ -95,6 +95,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { GeoPoint } from 'firebase/firestore';
+import { useTheme } from '../../../composables/useTheme';
 import { logger } from '../../../utils/logger';
 
 interface LocationFeature {
@@ -116,6 +117,7 @@ const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
 const $q = useQuasar();
+const { backgroundClasses } = useTheme();
 
 // State management flags
 const isUpdatingFromProps = ref(false);

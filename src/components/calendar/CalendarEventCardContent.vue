@@ -11,6 +11,11 @@
     ]"
     @click="handleClick"
     :disable="disabled"
+    :aria-label="`${event.title} - ${formatEventDateTime(event)}`"
+    role="button"
+    tabindex="0"
+    @keydown.enter="handleClick"
+    @keydown.space.prevent="handleClick"
   >
     <q-card-section class="q-pa-sm" :class="{ 'q-pa-xs': compact }">
       <div class="row items-start no-wrap">
@@ -58,10 +63,23 @@
             {{ truncatedContent }}
           </div>
 
-          <!-- Event Tags -->
-          <div v-if="!compact && event.tags.length > 0" class="row items-center q-gutter-xs">
+          <!-- Content Type and Tags -->
+          <div v-if="!compact && (getContentTypeDisplay(event) || event.tags.length > 0)" class="row items-center q-gutter-xs q-mt-xs">
+            <!-- Content Type Badge -->
             <q-chip
-              v-for="tag in event.tags.slice(0, 3)"
+              v-if="getContentTypeDisplay(event)"
+              dense
+              square
+              :color="getEventColor(event)"
+              text-color="white"
+              size="xs"
+              :icon="getEventIcon(event)"
+              :label="getContentTypeDisplay(event) || ''"
+            />
+
+            <!-- Additional Tags -->
+            <q-chip
+              v-for="tag in getDisplayTags(event).slice(0, 2)"
               :key="tag"
               dense
               square
@@ -70,8 +88,8 @@
               size="xs"
               :label="tag"
             />
-            <span v-if="event.tags.length > 3" class="text-caption text-grey-6">
-              +{{ event.tags.length - 3 }} more
+            <span v-if="getDisplayTags(event).length > 2" class="text-caption text-grey-6">
+              +{{ getDisplayTags(event).length - 2 }} more
             </span>
           </div>
 
@@ -83,7 +101,14 @@
 
         <!-- Action Menu (Optional) -->
         <div v-if="showActions && !compact" class="col-auto">
-          <q-btn flat round icon="mdi-dots-vertical" size="sm" @click.stop="showMenu = true">
+          <q-btn
+            flat
+            round
+            icon="mdi-dots-vertical"
+            size="sm"
+            @click.stop="showMenu = true"
+            :aria-label="$t(TRANSLATION_KEYS.COMMON.ACCESSIBILITY.OPEN_MENU)"
+          >
             <q-menu v-model="showMenu">
               <q-list>
                 <q-item clickable v-close-popup @click="$emit('view', event)">
@@ -200,6 +225,31 @@ const getEventIcon = (event: CalendarEvent): string => {
 const getEventColor = (event: CalendarEvent): string => {
   return calendarContentService.getEventTypeColor(
     calendarContentService.getEventContentType(event) || 'event'
+  );
+};
+
+const getContentTypeDisplay = (event: CalendarEvent): string | null => {
+  const contentType = calendarContentService.getEventContentType(event);
+  if (!contentType) return null;
+
+  // Map content types to display names
+  const typeMap: Record<string, string> = {
+    'event': t(TRANSLATION_KEYS.CONTENT.TYPES.EVENT),
+    'announcement': t(TRANSLATION_KEYS.CONTENT.TYPES.ANNOUNCEMENT),
+    'article': t(TRANSLATION_KEYS.CONTENT.TYPES.NEWS),
+    'classified': t(TRANSLATION_KEYS.CONTENT.TYPES.CLASSIFIED),
+    'photo': t(TRANSLATION_KEYS.CONTENT.TYPES.PHOTO),
+  };
+
+  return typeMap[contentType] || contentType;
+};
+
+const getDisplayTags = (event: CalendarEvent): string[] => {
+  // Filter out content-type tags and system tags, show only meaningful tags
+  return event.tags.filter(tag =>
+    !tag.startsWith('content-type:') &&
+    !tag.startsWith('featured:') &&
+    !tag.startsWith('status:')
   );
 };
 

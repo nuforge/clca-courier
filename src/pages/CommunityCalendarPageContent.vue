@@ -7,11 +7,27 @@
     <div class="calendar-page">
       <!-- Page Header -->
       <div class="row items-center justify-between q-mb-lg">
-        <div>
-          <h1 class="text-h4 q-ma-none">{{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE) }}</h1>
-          <p class="text-subtitle1 text-grey-6 q-ma-none">
+        <div class="col">
+          <h1 class="text-h4 q-ma-none text-weight-light">
+            <q-icon name="mdi-calendar-month" class="q-mr-sm" />
+            {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE) }}
+          </h1>
+          <p class="text-subtitle1 text-grey-6 q-ma-none q-mt-xs">
             {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.SUBTITLE) }}
           </p>
+        </div>
+        <div class="col-auto">
+          <q-btn
+            flat
+            round
+            icon="mdi-calendar-today"
+            @click="goToToday"
+            :loading="isLoading"
+            :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NAVIGATION.GO_TO_TODAY)"
+            color="primary"
+          >
+            <q-tooltip>{{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.TODAY) }}</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -19,39 +35,17 @@
       <q-card flat class="q-mb-md">
         <q-card-section class="q-pa-md">
           <div class="row items-center justify-between">
-            <!-- Navigation Controls -->
+            <!-- Page Title and Info -->
             <div class="row items-center q-gutter-sm">
-              <q-btn
-                flat
-                round
-                icon="mdi-chevron-left"
-                @click="goToPreviousMonth"
-                :loading="isLoading"
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NAVIGATION.PREVIOUS_MONTH)"
-              />
-
-              <div class="text-h6 q-mx-md">
+              <div class="text-h6">
                 {{ monthName }} {{ calendarState.currentYear }}
               </div>
-
-              <q-btn
-                flat
-                round
-                icon="mdi-chevron-right"
-                @click="goToNextMonth"
-                :loading="isLoading"
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NAVIGATION.NEXT_MONTH)"
-              />
-
-              <q-separator vertical class="q-mx-md" />
-
-              <q-btn
-                flat
-                :label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TODAY)"
-                icon="mdi-calendar-today"
-                @click="goToToday"
-                :disable="isLoading"
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NAVIGATION.GO_TO_TODAY)"
+              <q-chip
+                v-if="filteredEventsCount > 0"
+                color="primary"
+                text-color="white"
+                :label="`${filteredEventsCount} ${$t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_ON_DATE).split(' ')[0]}`"
+                size="sm"
               />
             </div>
 
@@ -70,8 +64,9 @@
                 emit-value
                 map-options
                 clearable
-                style="min-width: 150px"
+                style="min-width: 200px"
                 @update:model-value="applyFilters"
+                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.EVENT_TYPES)"
               >
                 <template v-slot:option="{ itemProps, opt }">
                   <q-item v-bind="itemProps">
@@ -90,6 +85,8 @@
                 v-model="showFeaturedOnly"
                 :label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.FEATURED_ONLY)"
                 @update:model-value="applyFilters"
+                color="amber"
+                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.FEATURED_ONLY)"
               />
 
               <!-- Refresh Button -->
@@ -100,7 +97,10 @@
                 @click="refreshEvents"
                 :loading="isLoading"
                 :aria-label="$t(TRANSLATION_KEYS.COMMON.REFRESH)"
-              />
+                color="primary"
+              >
+                <q-tooltip>{{ $t(TRANSLATION_KEYS.COMMON.REFRESH) }}</q-tooltip>
+              </q-btn>
             </div>
           </div>
         </q-card-section>
@@ -123,12 +123,12 @@
       </q-banner>
 
       <!-- Calendar Grid -->
-      <q-card flat class="calendar-grid">
+      <q-card flat class="calendar-grid shadow-1">
         <q-card-section class="q-pa-none">
           <!-- Calendar Component -->
           <q-date
             :key="calendarKey"
-            v-model="selectedDateModel"
+            v-model="calendarModel"
             :events="calendarEvents"
             event-color="primary"
             today-btn
@@ -140,11 +140,13 @@
             :navigation-min-year-month="`2020/01`"
             :navigation-max-year-month="`2030/12`"
             flat
+            :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
           />
 
           <!-- Events list for selected date -->
-          <div v-if="selectedDateModel && getEventsForSelectedDate().length > 0" class="q-pa-md">
-            <div class="text-subtitle1 q-mb-sm">
+          <div v-if="selectedDateModel && getEventsForSelectedDate().length > 0" class="q-pa-md" :class="backgroundClasses.surface">
+            <div class="text-subtitle1 q-mb-md text-weight-medium">
+              <q-icon name="mdi-calendar-check" class="q-mr-sm" color="primary" />
               {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_ON_DATE, { date: formatSelectedDate(selectedDateModel.replace(/\//g, '-')) }) }}
             </div>
             <div class="q-gutter-sm">
@@ -183,10 +185,10 @@
       </q-card>
 
       <!-- Upcoming Events Sidebar -->
-      <q-card v-if="upcomingEvents.length > 0" flat class="q-mt-md">
+      <q-card v-if="upcomingEvents.length > 0" flat class="q-mt-md shadow-1">
         <q-card-section>
-          <div class="text-h6 q-mb-md">
-            <q-icon name="mdi-calendar-clock" class="q-mr-sm" />
+          <div class="text-h6 q-mb-md text-weight-light">
+            <q-icon name="mdi-calendar-clock" class="q-mr-sm" color="primary" />
             {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.UPCOMING_EVENTS) }}
           </div>
 
@@ -212,11 +214,18 @@
 
       <!-- Event Details Dialog -->
       <q-dialog v-model="showEventDialog" position="right" full-height>
-        <q-card style="width: 500px; max-width: 90vw;">
+        <q-card style="width: 500px; max-width: 90vw;" role="dialog" aria-labelledby="event-dialog-title">
           <q-card-section class="row items-center q-pb-none">
-            <div class="text-h6">{{ selectedEvent?.title }}</div>
+            <div id="event-dialog-title" class="text-h6">{{ selectedEvent?.title }}</div>
             <q-space />
-            <q-btn icon="close" flat round dense v-close-popup />
+            <q-btn
+              icon="close"
+              flat
+              round
+              dense
+              v-close-popup
+              :aria-label="$t(TRANSLATION_KEYS.COMMON.ACCESSIBILITY.CLOSE_DIALOG)"
+            />
           </q-card-section>
 
           <q-card-section v-if="selectedEvent">
@@ -280,9 +289,12 @@
 
       <!-- All Upcoming Events Dialog -->
       <q-dialog v-model="showAllUpcoming">
-        <q-card style="min-width: 400px; max-width: 600px">
+        <q-card style="min-width: 400px; max-width: 600px" role="dialog" aria-labelledby="upcoming-events-title">
           <q-card-section>
-            <div class="text-h6">{{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.ALL_UPCOMING_EVENTS) }}</div>
+            <div id="upcoming-events-title" class="text-h6">
+              <q-icon name="mdi-calendar-clock" class="q-mr-sm" color="primary" />
+              {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.ALL_UPCOMING_EVENTS) }}
+            </div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
@@ -309,6 +321,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCalendarContent } from '../composables/useCalendarContent';
+import { useTheme } from '../composables/useTheme';
 import type { CalendarEvent } from '../services/calendar-content.service';
 import CalendarEventCardContent from '../components/calendar/CalendarEventCardContent.vue';
 import { logger } from '../utils/logger';
@@ -316,6 +329,7 @@ import { formatDate } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const { t } = useI18n();
+const { backgroundClasses } = useTheme();
 
 // Helper function for formatting category names
 const formatCategoryName = (event: CalendarEvent): string => {
@@ -337,17 +351,20 @@ const {
   eventsByDate,
   upcomingEvents,
   eventTypeOptions,
-  goToNextMonth,
-  goToPreviousMonth,
   goToToday,
   loadEventsForMonth,
   getEventsForDate,
+  getFilteredEventsForDate,
   getEventIcon,
   getEventColor,
+  setFilters,
+  clearFilter,
 } = useCalendarContent();
 
-// Local state
-const selectedDateModel = ref<string | null>(null);
+// Local state - initialize with today's date
+const today = new Date();
+const todayFormatted = `${today.getFullYear()}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`;
+const selectedDateModel = ref<string | null>(todayFormatted);
 const showFeaturedOnly = ref(false);
 const showEventDialog = ref(false);
 const selectedEvent = ref<CalendarEvent | null>(null);
@@ -362,14 +379,27 @@ const calendarEvents = computed(() => {
   });
 });
 
-// Computed for calendar view to force updates
+// Computed for filtered events count
+const filteredEventsCount = computed(() => {
+  return Object.values(eventsByDate.value).flat().length;
+});
+
+// Computed for calendar view to force updates - include selected date to force re-render
 const calendarKey = computed(() =>
-  `${calendarState.value.currentYear}-${calendarState.value.currentMonth}`
+  `${calendarState.value.currentYear}-${calendarState.value.currentMonth}-${selectedDateModel.value || 'none'}`
 );
 
 const defaultYearMonth = computed(() =>
   `${calendarState.value.currentYear}/${calendarState.value.currentMonth.toString().padStart(2, '0')}`
 );
+
+// Force calendar to update when month/year changes
+const calendarModel = computed({
+  get: () => selectedDateModel.value,
+  set: (value) => {
+    selectedDateModel.value = value;
+  }
+});
 
 // Methods
 const onCalendarNavigation = (view: { year: number; month: number }) => {
@@ -435,7 +465,7 @@ const getEventsForSelectedDate = (): CalendarEvent[] => {
   if (!selectedDateModel.value) return [];
   // Convert from YYYY/MM/DD to YYYY-MM-DD
   const dateKey = selectedDateModel.value.replace(/\//g, '-');
-  return getEventsForDate(dateKey);
+  return getFilteredEventsForDate(dateKey);
 };
 
 const applyFilters = () => {
@@ -447,10 +477,14 @@ const applyFilters = () => {
 
   if (showFeaturedOnly.value) {
     newFilters.featured = true;
+  } else {
+    // Clear the featured filter when toggle is off
+    clearFilter('featured');
+    return; // Early return since clearFilter already calls loadEvents
   }
 
-  // Apply filters and reload
-  void loadEventsForMonth(calendarState.value.currentYear, calendarState.value.currentMonth);
+  // Apply filters using the composable method
+  setFilters(newFilters);
 };
 
 const formatSelectedDate = (dateStr: string) => {
@@ -475,22 +509,69 @@ const formatSelectedDate = (dateStr: string) => {
   return formatDate(date, 'FULL');
 };
 
-// Watch calendar state changes for debugging
+// Watch calendar state changes and update selectedDateModel accordingly
 watch(() => calendarState.value, (newState) => {
   logger.debug('🗓️ Calendar state changed:', newState);
+
+  // Update selectedDateModel to match the current calendar view
+  if (newState.selectedDate) {
+    // Convert from YYYY-MM-DD to YYYY/MM/DD for q-date
+    const formattedDate = newState.selectedDate.replace(/-/g, '/');
+    if (selectedDateModel.value !== formattedDate) {
+      selectedDateModel.value = formattedDate;
+    }
+  }
 }, { deep: true });
+
+// Watch for month/year changes and update selectedDateModel to first day of month
+watch(() => [calendarState.value.currentYear, calendarState.value.currentMonth], ([year, month]) => {
+  logger.debug('🗓️ Month/Year changed:', { year, month });
+
+  // Update selectedDateModel to first day of the new month
+  if (year && month) {
+    const firstDayOfMonth = `${year}/${month.toString().padStart(2, '0')}/01`;
+    if (selectedDateModel.value !== firstDayOfMonth) {
+      selectedDateModel.value = firstDayOfMonth;
+    }
+  }
+});
 
 // Watch monthName changes
 watch(() => monthName.value, (newMonthName) => {
   logger.debug('🗓️ Month name changed:', newMonthName);
 });
 
-// Initialize calendar to today on mount
+// Initialize calendar on mount
 onMounted(() => {
-  // Set calendar to today's date
-  goToToday();
+  // Ensure calendar state is properly initialized
+  const today = new Date();
+  const todayISO = today.toISOString().split('T')[0] ?? '';
 
-  logger.debug('🗓️ Calendar page mounted and set to today');
+  logger.debug('🗓️ Today date info:', {
+    today: today.toString(),
+    todayISO,
+    year: today.getFullYear(),
+    month: today.getMonth() + 1,
+    day: today.getDate()
+  });
+
+  // Update calendar state to match today
+  calendarState.value.currentYear = today.getFullYear();
+  calendarState.value.currentMonth = today.getMonth() + 1;
+  calendarState.value.selectedDate = todayISO;
+
+  // Update selectedDateModel to match
+  const todayFormatted = `${today.getFullYear()}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`;
+  selectedDateModel.value = todayFormatted;
+
+  // Load events for current month
+  void loadEventsForMonth(today.getFullYear(), today.getMonth() + 1);
+
+  logger.debug('🗓️ Calendar page mounted and initialized with today:', {
+    todayISO,
+    todayFormatted,
+    calendarState: calendarState.value
+  });
 });
 </script>
 

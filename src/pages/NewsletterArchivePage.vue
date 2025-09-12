@@ -61,7 +61,7 @@
               <div class="row q-mb-md">
                 <div class="col-12 col-md-8 q-pa-md">
                   <q-input v-model="searchInput" :label="t(TRANSLATION_KEYS.NEWSLETTER.SEARCH_CONTENT) || 'Search newsletters by title, content, tags, year, or month...'"
-                    outlined dense :class="{ 'bg-grey': !isDarkMode }" clearable :loading="isSearching"
+                    outlined dense clearable :loading="isSearching"
                     @update:model-value="onSearchInput" @keydown.enter="handleSearchSubmit"
                     :aria-label="t('newsletter.searchAriaLabel', { count: stats?.totalNewsletters || 0 }) || `Search through ${stats?.totalNewsletters || 0} newsletters`" role="searchbox"
                     aria-expanded="false" :aria-describedby="searchInput ? 'search-suggestions' : null">
@@ -98,7 +98,7 @@
                 <div class="col-12 col-md-4 q-pa-md">
 
                   <q-select v-model="sortBy" :options="sortOptions" :label="t(TRANSLATION_KEYS.SEARCH.SORT_BY)" outlined dense emit-value
-                    map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onSortChange"
+                    map-options @update:model-value="onSortChange"
                     :aria-label="t('newsletter.sortAriaLabel') || 'Sort newsletters by different criteria'">
                     <template v-slot:prepend>
                       <q-icon name="sort" />
@@ -132,7 +132,7 @@
                     <!-- Year Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.year" :options="yearFilterOptions" :label="t('forms.year') || 'Year'" outlined dense
-                        clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
+                        clearable emit-value map-options
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="event" />
@@ -143,7 +143,7 @@
                     <!-- Month Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.month" :options="monthOptions" :label="t('forms.month') || 'Month'" outlined dense clearable
-                        emit-value map-options :class="{ 'bg-grey': !isDarkMode }" @update:model-value="onFilterChange">
+                        emit-value map-options @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="calendar_month" />
                         </template>
@@ -153,7 +153,7 @@
                     <!-- Page Count Filter -->
                     <div class="col-12 col-sm-6 col-md-3 q-pa-md">
                       <q-select v-model="filters.pageCount" :options="pageCountOptions" :label="t(TRANSLATION_KEYS.NEWSLETTER.PAGE_COUNT)" outlined
-                        dense clearable emit-value map-options :class="{ 'bg-grey': !isDarkMode }"
+                        dense clearable emit-value map-options
                         @update:model-value="onFilterChange">
                         <template v-slot:prepend>
                           <q-icon name="description" />
@@ -467,7 +467,6 @@ const filters = ref({
 });
 
 // Additional theme computed properties
-const isDarkMode = computed(() => textClasses.value.primary === 'text-white');
 const greyTextClass = computed(() => textClasses.value.secondary);
 
 // Admin access check - use proper role-based authorization

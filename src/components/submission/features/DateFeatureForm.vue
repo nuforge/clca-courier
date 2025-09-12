@@ -66,7 +66,7 @@
       </div>
 
       <!-- Preview -->
-      <q-card flat bordered class="bg-grey-1 q-mt-md">
+      <q-card flat bordered :class="[backgroundClasses.surface, 'q-mt-md']">
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ $t('common.preview') }}</div>
           <div class="text-body2">
@@ -84,6 +84,7 @@ import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Timestamp } from 'firebase/firestore';
 import { date } from 'quasar';
+import { useTheme } from '../../../composables/useTheme';
 import { logger } from '../../../utils/logger';
 
 interface DateFeature {
@@ -104,6 +105,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
+const { backgroundClasses } = useTheme();
 
 // State management flags
 const isUpdatingFromProps = ref(false);

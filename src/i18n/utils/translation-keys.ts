@@ -227,6 +227,7 @@ export const TRANSLATION_KEYS = {
       EVENT: 'content.types.event',
       ANNOUNCEMENT: 'content.types.announcement',
       CLASSIFIED: 'content.types.classified',
+      PHOTO: 'content.types.photo',
       NEWSLETTER: 'content.types.newsletter'
     },
     CATEGORIES: {

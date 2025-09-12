@@ -13,7 +13,7 @@
           class="q-mr-md" v-if="availableDocuments.length > 1">
           <q-list>
             <q-item v-for="document in availableDocuments" :key="(document as any)?.id || ''" clickable v-close-popup
-              @click="switchDocument(document)" :class="{ 'bg-grey': selectedDocument?.id === document.id }">
+              @click="switchDocument(document)" :class="{ [backgroundClasses.surface]: selectedDocument?.id === document.id }">
               <q-item-section>
                 <q-item-label>{{ document.title }}</q-item-label>
                 <q-item-label caption>{{ document.date }} • {{ document.pages }} pages</q-item-label>
@@ -49,10 +49,12 @@
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useContentStore } from '../stores/content-store'
+import { useTheme } from '../composables/useTheme'
 import PdfViewer from './PdfViewer.vue'
 
 const $q = useQuasar()
 const contentStore = useContentStore()
+const { backgroundClasses } = useTheme()
 
 // Basic PDF viewer state (simplified)
 const showViewer = ref(false)

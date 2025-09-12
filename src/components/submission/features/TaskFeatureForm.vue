@@ -44,7 +44,7 @@
       </div>
 
       <!-- Task Status (always starts as unclaimed) -->
-      <q-card flat bordered class="bg-grey-1">
+      <q-card flat bordered :class="backgroundClasses.surface">
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ $t('content.features.task.status') }}</div>
           <q-chip color="orange" text-color="white" icon="pending">
@@ -57,7 +57,7 @@
       </q-card>
 
       <!-- Preview -->
-      <q-card flat bordered class="bg-grey-1">
+      <q-card flat bordered :class="backgroundClasses.surface">
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ $t('common.preview') }}</div>
           <div class="text-body2">
@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useTheme } from '../../../composables/useTheme';
 import { logger } from '../../../utils/logger';
 
 interface TaskFeature {
@@ -95,6 +96,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
+const { backgroundClasses } = useTheme();
 
 // Local task feature with defaults
 const localTaskFeature = ref<TaskFeature>({

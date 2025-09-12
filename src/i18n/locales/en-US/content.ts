@@ -21,6 +21,7 @@ export default {
     event: 'Event',
     announcement: 'Announcement',
     classified: 'Classified',
+    photo: 'Photo',
     newsletter: 'Newsletter',
     task: 'Task',
     article: 'Article'
