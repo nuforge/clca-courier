@@ -12,6 +12,7 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
+  getDoc,
   query,
   where,
   orderBy,
@@ -19,6 +20,7 @@ import {
   serverTimestamp,
   type QuerySnapshot,
   type DocumentData,
+  // type DocumentSnapshot,
   type Unsubscribe,
   type Timestamp
 } from 'firebase/firestore';
@@ -290,6 +292,79 @@ export class FirebaseContentService {
         }
       } as ContentDoc;
     });
+  }
+
+  /**
+   * Update content tags (for featured status, etc.)
+   */
+  async updateContentTags(contentId: string, tags: string[]): Promise<void> {
+    try {
+      logger.debug('Updating content tags', { contentId, tagsCount: tags.length });
+
+      const contentDoc = doc(db, this.collectionName, contentId);
+      await updateDoc(contentDoc, {
+        tags,
+        timestamps: {
+          created: serverTimestamp() as Timestamp, // Will be ignored by Firestore for existing field
+          updated: serverTimestamp() as Timestamp
+        }
+      });
+
+      logger.info('Content tags updated successfully', {
+        contentId,
+        tagsCount: tags.length
+      });
+    } catch (error) {
+      logger.error('Failed to update content tags', {
+        contentId,
+        tagsCount: tags.length,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get content by ID
+   */
+  async getContentById(contentId: string): Promise<ContentDoc | null> {
+    try {
+      logger.debug('Fetching content by ID', { contentId });
+
+      const contentDoc = doc(db, this.collectionName, contentId);
+      const docSnapshot = await getDoc(contentDoc);
+
+      if (!docSnapshot.exists()) {
+        logger.warn('Content not found', { contentId });
+        return null;
+      }
+
+      const data = docSnapshot.data();
+      const content = {
+        id: docSnapshot.id,
+        title: data.title || 'Untitled',
+        description: data.description || '',
+        authorId: data.authorId || '',
+        authorName: data.authorName || 'Unknown Author',
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        features: data.features || {},
+        status: data.status || 'draft',
+        timestamps: {
+          created: data.timestamps?.created || data.createdAt || serverTimestamp() as Timestamp,
+          updated: data.timestamps?.updated || data.updatedAt || serverTimestamp() as Timestamp,
+          published: data.timestamps?.published || data.publishedAt || undefined
+        }
+      } as ContentDoc;
+
+      logger.info('Content fetched successfully', { contentId });
+      return content;
+    } catch (error) {
+      logger.error('Failed to fetch content by ID', {
+        contentId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
   }
 
   /**

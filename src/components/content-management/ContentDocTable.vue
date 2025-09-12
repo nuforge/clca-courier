@@ -1,0 +1,328 @@
+<!--
+  ContentDoc Table Component
+  Displays ContentDoc objects in a table format with actions
+  Uses the new ContentDoc architecture with feature-based rendering
+-->
+<template>
+  <div>
+    <q-table :rows="content" :columns="tableColumns" row-key="id" selection="multiple" :selected="selectedContentItems"
+      @update:selected="(value: readonly ContentDoc[]) => $emit('update:selected', value.map(item => item.id))"
+      :pagination="{ rowsPerPage: 10 }" class="full-width">
+
+      <!-- Status column -->
+      <template v-slot:body-cell-status="props">
+        <q-td :props="props">
+          <q-badge :color="getStatusIcon(props.value).color">
+            <q-icon :name="getStatusIcon(props.value).icon" class="q-mr-xs" />
+            {{ props.value.toUpperCase() }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <!-- Type column -->
+      <template v-slot:body-cell-type="props">
+        <q-td :props="props">
+          <q-badge color="grey" :label="(props.value || 'UNKNOWN').toUpperCase()" />
+        </q-td>
+      </template>
+
+      <!-- Title column -->
+      <template v-slot:body-cell-title="props">
+        <q-td :props="props" class="cursor-pointer" @click="$emit('view', props.row)">
+          <div class="text-weight-medium">{{ props.value }}</div>
+          <div class="text-caption text-grey">{{ truncateText(props.row.description, 100) }}</div>
+
+          <!-- Feature indicators -->
+          <div class="q-mt-xs">
+            <q-chip v-if="contentUtils.hasFeature(props.row, 'feat:date')" size="xs" color="blue" text-color="white" dense>
+              <q-icon name="event" size="xs" class="q-mr-xs" />
+              Event
+            </q-chip>
+            <q-chip v-if="contentUtils.hasFeature(props.row, 'feat:location')" size="xs" color="green" text-color="white" dense>
+              <q-icon name="place" size="xs" class="q-mr-xs" />
+              Location
+            </q-chip>
+            <q-chip v-if="contentUtils.hasFeature(props.row, 'feat:task')" size="xs" color="orange" text-color="white" dense>
+              <q-icon name="task" size="xs" class="q-mr-xs" />
+              Task
+            </q-chip>
+            <q-chip v-if="contentUtils.hasFeature(props.row, 'integ:canva')" size="xs" color="purple" text-color="white" dense>
+              <q-icon name="palette" size="xs" class="q-mr-xs" />
+              Canva
+            </q-chip>
+          </div>
+        </q-td>
+      </template>
+
+      <!-- Author column -->
+      <template v-slot:body-cell-author="props">
+        <q-td :props="props">
+          <div>{{ props.row.authorName || 'Unknown Author' }}</div>
+        </q-td>
+      </template>
+
+      <!-- Date column -->
+      <template v-slot:body-cell-created="props">
+        <q-td :props="props">
+          {{ formatDateUtil(props.value, 'SHORT') }}
+        </q-td>
+      </template>
+
+      <!-- Tags column -->
+      <template v-slot:body-cell-tags="props">
+        <q-td :props="props">
+          <div v-if="props.row.tags && props.row.tags.length > 0" class="tag-chips">
+            <q-chip v-for="tag in props.row.tags.slice(0, 3)" :key="tag" size="sm" color="secondary" text-color="white"
+              :label="tag" class="q-ma-xs" />
+            <q-btn v-if="props.row.tags.length > 3" flat dense size="sm" color="secondary"
+              :label="`+${props.row.tags.length - 3}`" />
+          </div>
+          <span v-else class="text-grey-5">No tags</span>
+        </q-td>
+      </template>
+
+      <!-- Featured column -->
+      <template v-slot:body-cell-featured="props">
+        <q-td :props="props">
+          <q-toggle :model-value="contentUtils.hasTag(props.row, 'featured')"
+            @update:model-value="(value: boolean) => handleToggleFeatured(props.row.id, value)" color="orange"
+            :disable="props.row.status !== 'published'">
+            <q-tooltip>
+              {{ props.row.status !== 'published' ? 'Must be published to feature' : 'Toggle featured' }}
+            </q-tooltip>
+          </q-toggle>
+        </q-td>
+      </template>
+
+      <!-- Actions column -->
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <div class="row items-center q-gutter-xs">
+            <q-btn flat round size="sm" icon="visibility" @click="$emit('view', props.row)" color="grey">
+              <q-tooltip>View Details</q-tooltip>
+            </q-btn>
+
+            <!-- Draft actions -->
+            <template v-if="showPublishActions && props.row.status === 'draft'">
+              <q-btn flat round size="sm" icon="publish" @click="$emit('publish', props.row.id)" color="positive">
+                <q-tooltip>Publish</q-tooltip>
+              </q-btn>
+              <q-btn flat round size="sm" icon="block" @click="$emit('reject', props.row.id)" color="orange">
+                <q-tooltip>Reject</q-tooltip>
+              </q-btn>
+              <q-btn flat round size="sm" icon="delete" @click="$emit('delete', props.row.id)" color="negative">
+                <q-tooltip>Delete</q-tooltip>
+              </q-btn>
+            </template>
+
+            <!-- Published actions -->
+            <template v-if="showUnpublishActions && props.row.status === 'published'">
+              <q-btn flat round size="sm" icon="unpublished" @click="$emit('unpublish', props.row.id)" color="orange">
+                <q-tooltip>Unpublish</q-tooltip>
+              </q-btn>
+              <q-btn flat round size="sm" icon="archive" @click="$emit('archive', props.row.id)" color="negative">
+                <q-tooltip>Archive</q-tooltip>
+              </q-btn>
+            </template>
+
+            <!-- Archived actions -->
+            <template v-if="showRestoreActions && props.row.status === 'archived'">
+              <q-btn flat round size="sm" icon="restore" @click="$emit('restore', props.row.id)" color="positive">
+                <q-tooltip>Restore</q-tooltip>
+              </q-btn>
+            </template>
+
+            <template v-if="props.row.status === 'rejected'">
+              <q-btn flat round size="sm" icon="restore" @click="$emit('restore', props.row.id)" color="positive">
+                <q-tooltip>Restore</q-tooltip>
+              </q-btn>
+            </template>
+
+            <template v-if="props.row.status === 'deleted'">
+              <q-btn flat round size="sm" icon="restore" @click="$emit('restore', props.row.id)" color="positive">
+                <q-tooltip>Restore</q-tooltip>
+              </q-btn>
+            </template>
+
+            <!-- Canva Export for Print (Admin/Editor only) -->
+            <template v-if="showCanvaExport && contentUtils.hasFeature(props.row, 'integ:canva') && hasCanvaExportPermission">
+              <!-- Export button when design is ready for export -->
+              <q-btn
+                flat
+                round
+                size="sm"
+                icon="print"
+                @click="$emit('export-for-print', props.row)"
+                color="purple"
+                :loading="isExportingContent(props.row.id)"
+                :disable="isExportingContent(props.row.id)"
+              >
+                <q-tooltip>{{ $t(TRANSLATION_KEYS.CANVA.EXPORT_FOR_PRINT) }}</q-tooltip>
+              </q-btn>
+
+              <!-- Download button when export is complete -->
+              <q-btn
+                v-if="contentUtils.getFeature(props.row, 'integ:canva')?.exportUrl"
+                flat
+                round
+                size="sm"
+                icon="download"
+                @click="$emit('download-design', contentUtils.getFeature(props.row, 'integ:canva')?.exportUrl || '', `design-${contentUtils.getFeature(props.row, 'integ:canva')?.designId || 'unknown'}.pdf`)"
+                color="green"
+              >
+                <q-tooltip>{{ $t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
+              </q-btn>
+            </template>
+          </div>
+        </q-td>
+      </template>
+    </q-table>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import type { ContentDoc } from '../../types/core/content.types';
+import { contentUtils } from '../../types/core/content.types';
+import { useSiteTheme } from '../../composables/useSiteTheme';
+import { useRoleAuth } from '../../composables/useRoleAuth';
+import { TRANSLATION_KEYS } from '../../i18n/utils/translation-keys';
+import { formatDate as formatDateUtil } from '../../utils/date-formatter';
+
+const { getStatusIcon } = useSiteTheme();
+const { isEditor } = useRoleAuth();
+
+interface Props {
+  content: ContentDoc[];
+  selected: string[];
+  showPublishActions?: boolean;
+  showUnpublishActions?: boolean;
+  showRestoreActions?: boolean;
+  showCanvaExport?: boolean;
+  isExportingContent?: (contentId: string) => boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showPublishActions: false,
+  showUnpublishActions: false,
+  showRestoreActions: false,
+  showCanvaExport: false,
+  isExportingContent: () => () => false,
+});
+
+const emit = defineEmits<{
+  'update:selected': [value: string[]];
+  'publish': [id: string];
+  'unpublish': [id: string];
+  'archive': [id: string];
+  'restore': [id: string];
+  'reject': [id: string];
+  'delete': [id: string];
+  'view': [content: ContentDoc];
+  'toggle-featured': [id: string, featured: boolean];
+  'export-for-print': [content: ContentDoc];
+  'download-design': [exportUrl: string, filename: string];
+}>();
+
+// Computed properties
+const hasCanvaExportPermission = computed(() => isEditor.value);
+
+// Safe wrapper for isExportingContent function
+const isExportingContent = computed(() => props.isExportingContent || (() => false));
+
+// Helper method to handle toggle featured
+const handleToggleFeatured = (id: string, featured: boolean) => {
+  emit('toggle-featured', id, featured);
+};
+
+// Computed for selected content items (convert IDs back to objects for table)
+const selectedContentItems = computed(() =>
+  props.content.filter(item => props.selected.includes(item.id))
+);
+
+// Table columns
+const tableColumns = computed(() => [
+  {
+    name: 'status',
+    label: 'Status',
+    align: 'center' as const,
+    field: 'status',
+    sortable: true,
+  },
+  {
+    name: 'type',
+    label: 'Type',
+    align: 'center' as const,
+    field: (row: ContentDoc) => contentUtils.getContentType(row),
+    sortable: true,
+  },
+  {
+    name: 'title',
+    label: 'Title & Content',
+    align: 'left' as const,
+    field: 'title',
+    sortable: true,
+    style: 'width: 40%',
+  },
+  {
+    name: 'author',
+    label: 'Author',
+    align: 'left' as const,
+    field: 'authorName',
+    sortable: true,
+  },
+  {
+    name: 'created',
+    label: 'Created',
+    align: 'left' as const,
+    field: 'timestamps.created',
+    sortable: true,
+  },
+  {
+    name: 'tags',
+    label: 'Tags',
+    align: 'left' as const,
+    field: 'tags',
+    sortable: false,
+    style: 'width: 200px; max-width: 200px;',
+  },
+  {
+    name: 'featured',
+    label: 'Featured',
+    align: 'center' as const,
+    field: 'featured',
+    sortable: true,
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    align: 'center' as const,
+    field: '',
+    sortable: false,
+  },
+]);
+
+// Utility functions - using centralized date formatter
+
+const truncateText = (text: string, maxLength: number) => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+</script>
+
+<style scoped>
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+}
+</style>

@@ -13,8 +13,9 @@ import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { canvaApiService } from '../services/canva-api.service';
-import { firestoreService } from '../services/firebase-firestore.service';
-import type { UserContent } from '../services/firebase-firestore.service';
+// import { firebaseContentService } from '../services/firebase-content.service';
+import type { ContentDoc } from '../types/core/content.types';
+import { contentUtils } from '../types/core/content.types';
 import type { CanvaDesign } from '../services/canva/types';
 import { logger } from '../utils/logger';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
@@ -58,8 +59,8 @@ export function useCanvaExport() {
   /**
    * Start the export process for a Canva design
    */
-  async function exportDesignForPrint(content: UserContent): Promise<void> {
-    if (!content.canvaDesign) {
+  async function exportDesignForPrint(content: ContentDoc): Promise<void> {
+    if (!contentUtils.hasFeature(content, 'integ:canva')) {
       logger.error('Cannot export: No Canva design attached to content', { contentId: content.id });
       $q.notify({
         type: 'negative',
@@ -69,7 +70,17 @@ export function useCanvaExport() {
     }
 
     const { id: contentId } = content;
-    const { id: designId } = content.canvaDesign;
+    const canvaFeature = contentUtils.getFeature(content, 'integ:canva');
+    const designId = canvaFeature?.designId;
+
+    if (!designId) {
+      logger.error('Cannot export: No design ID in Canva feature', { contentId: content.id });
+      $q.notify({
+        type: 'negative',
+        message: t(TRANSLATION_KEYS.CANVA.EXPORT_FAILED)
+      });
+      return;
+    }
 
     logger.info('Starting Canva export for print', { contentId, designId });
 
@@ -91,13 +102,16 @@ export function useCanvaExport() {
       });
 
       // Immediately update Firestore to set status to pending_export
-      const updatedDesign: CanvaDesign = {
-        ...content.canvaDesign,
+      const updatedCanvaFeature = {
+        ...canvaFeature,
         status: 'pending_export'
       };
 
-      await firestoreService.updateUserContent(contentId, {
-        canvaDesign: updatedDesign
+      // TODO: Implement updateContentFeatures method in firebaseContentService
+      // For now, we'll just log the update that would be needed
+      logger.warn('ContentDoc feature update not yet implemented - using placeholder', {
+        contentId,
+        updatedCanvaFeature
       });
 
       logger.debug('Updated design status to pending_export', { contentId, designId });
@@ -115,18 +129,19 @@ export function useCanvaExport() {
       exportStates.value.delete(contentId);
 
       // Update design status to failed
-      if (content.canvaDesign) {
-        const failedDesign: CanvaDesign = {
-          ...content.canvaDesign,
-          status: 'failed'
-        };
+      if (contentUtils.hasFeature(content, 'integ:canva')) {
+        const canvaFeature = contentUtils.getFeature(content, 'integ:canva');
+        if (canvaFeature) {
+          const failedCanvaFeature = {
+            ...canvaFeature,
+            status: 'failed'
+          };
 
-        try {
-          await firestoreService.updateUserContent(contentId, {
-            canvaDesign: failedDesign
+          // TODO: Implement updateContentFeatures method in firebaseContentService
+          logger.warn('ContentDoc feature update not yet implemented for failed status', {
+            contentId,
+            failedCanvaFeature
           });
-        } catch (updateError) {
-          logger.error('Failed to update design status to failed', { contentId, updateError });
         }
       }
 
@@ -182,12 +197,12 @@ export function useCanvaExport() {
 
       if (design.status === 'exported' && design.exportUrl) {
         // Export completed successfully
-        await handleExportComplete(contentId, design);
+        handleExportComplete(contentId, design); // Fixed: removed await
         stopExportPolling(contentId);
 
       } else if (design.status === 'failed') {
         // Export failed
-        await handleExportFailed(contentId, design);
+        handleExportFailed(contentId, design); // Fixed: removed await
         stopExportPolling(contentId);
 
       } else if (state.pollCount >= state.maxPollAttempts) {
@@ -212,13 +227,15 @@ export function useCanvaExport() {
   /**
    * Handle successful export completion
    */
-  async function handleExportComplete(contentId: string, design: CanvaDesign): Promise<void> {
+  function handleExportComplete(contentId: string, design: CanvaDesign): void {
     logger.success('Canva export completed', { contentId, designId: design.id });
 
     try {
+      // TODO: Implement updateContentFeatures method in firebaseContentService
       // Update Firestore with the completed export
-      await firestoreService.updateUserContent(contentId, {
-        canvaDesign: design
+      logger.warn('ContentDoc feature update not yet implemented for completed export', {
+        contentId,
+        design
       });
 
       // Clean up export state
@@ -255,13 +272,15 @@ export function useCanvaExport() {
   /**
    * Handle export failure
    */
-  async function handleExportFailed(contentId: string, design: CanvaDesign): Promise<void> {
+  function handleExportFailed(contentId: string, design: CanvaDesign): void {
     logger.error('Canva export failed', { contentId, designId: design.id });
 
     try {
+      // TODO: Implement updateContentFeatures method in firebaseContentService
       // Update Firestore with failed status
-      await firestoreService.updateUserContent(contentId, {
-        canvaDesign: design
+      logger.warn('ContentDoc feature update not yet implemented for failed export', {
+        contentId,
+        design
       });
 
       // Clean up export state

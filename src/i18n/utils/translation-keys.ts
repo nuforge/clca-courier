@@ -221,7 +221,9 @@ export const TRANSLATION_KEYS = {
       APPROVED: 'content.status.approved',
       PUBLISHED: 'content.status.published',
       REJECTED: 'content.status.rejected',
-      DRAFT: 'content.status.draft'
+      DRAFT: 'content.status.draft',
+      ARCHIVED: 'content.status.archived',
+      DELETED: 'content.status.deleted'
     },
     TYPES: {
       NEWS: 'content.types.news',
@@ -261,10 +263,14 @@ export const TRANSLATION_KEYS = {
       REJECT: 'content.actions.reject',
       PUBLISH: 'content.actions.publish',
       UNPUBLISH: 'content.actions.unpublish',
+      ARCHIVE: 'content.actions.archive',
+      RESTORE: 'content.actions.restore',
       FEATURE: 'content.actions.feature',
       UNFEATURE: 'content.actions.unfeature',
       APPROVE_SUCCESS: 'content.actions.approveSuccess',
-      APPROVE_ERROR: 'content.actions.approveError'
+      APPROVE_ERROR: 'content.actions.approveError',
+      PUBLISH_SUCCESS: 'content.actions.publishSuccess',
+      PUBLISH_ERROR: 'content.actions.publishError'
     },
     PRINT: {
       AUTO_EXPORT_SUCCESS: 'content.print.autoExportSuccess',

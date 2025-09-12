@@ -37,7 +37,7 @@ export interface ContentDoc {
   features: ContentFeatures;
 
   /** Publication status of the content */
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'rejected' | 'deleted';
 
   /** Timestamp tracking for content lifecycle */
   timestamps: {
@@ -244,7 +244,7 @@ export function isContentDoc(obj: unknown): obj is ContentDoc {
     doc.tags.every((tag: unknown) => typeof tag === 'string') &&
     typeof doc.features === 'object' &&
     doc.features !== null &&
-    ['draft', 'published', 'archived'].includes(doc.status as string) &&
+    ['draft', 'published', 'archived', 'rejected', 'deleted'].includes(doc.status as string) &&
     typeof doc.timestamps === 'object' &&
     doc.timestamps !== null
   );

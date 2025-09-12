@@ -22,25 +22,16 @@
 
           <!-- Statistics Cards -->
           <div class="row q-col-gutter-md q-mb-lg">
-            <div class="col-12 col-md-3">
+            <div class="col">
               <q-card class="text-center">
                 <q-card-section>
-                  <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" size="md" class="q-mb-sm" />
-                  <div class="text-h6 text-orange">{{ pendingContent.length }}</div>
-                  <div class="text-caption">{{ t(TRANSLATION_KEYS.CONTENT.STATUS.PENDING) }}</div>
+                  <q-icon :name="getStatusIcon('draft').icon" :color="getStatusIcon('draft').color" size="md" class="q-mb-sm" />
+                  <div class="text-h6 text-orange">{{ draftContent.length }}</div>
+                  <div class="text-caption">Draft</div>
                 </q-card-section>
               </q-card>
             </div>
-            <div class="col-12 col-md-3">
-              <q-card class="text-center">
-                <q-card-section>
-                  <q-icon :name="getStatusIcon('approved').icon" :color="getStatusIcon('approved').color" size="md" class="q-mb-sm" />
-                  <div class="text-h6 text-green">{{ approvedContent.length }}</div>
-                  <div class="text-caption">{{ t(TRANSLATION_KEYS.CONTENT.STATUS.APPROVED) }}</div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div class="col-12 col-md-3">
+            <div class="col">
               <q-card class="text-center">
                 <q-card-section>
                   <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" size="md" class="q-mb-sm" />
@@ -49,12 +40,30 @@
                 </q-card-section>
               </q-card>
             </div>
-            <div class="col-12 col-md-3">
+            <div class="col">
+              <q-card class="text-center">
+                <q-card-section>
+                  <q-icon :name="getStatusIcon('archived').icon" :color="getStatusIcon('archived').color" size="md" class="q-mb-sm" />
+                  <div class="text-h6 text-grey">{{ archivedContent.length }}</div>
+                  <div class="text-caption">Archived</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col">
               <q-card class="text-center">
                 <q-card-section>
                   <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-red">{{ rejectedContent.length }}</div>
                   <div class="text-caption">Rejected</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col">
+              <q-card class="text-center">
+                <q-card-section>
+                  <q-icon :name="getStatusIcon('deleted').icon" :color="getStatusIcon('deleted').color" size="md" class="q-mb-sm" />
+                  <div class="text-h6 text-grey-8">{{ deletedContent.length }}</div>
+                  <div class="text-caption">Deleted</div>
                 </q-card-section>
               </q-card>
             </div>
@@ -69,12 +78,12 @@
                     :loading="isLoading" />
                 </div>
                 <div class="col-auto">
-                  <q-btn color="positive" :icon="UI_ICONS.checkAll" label="Bulk Approve" @click="showBulkApproveDialog"
+                  <q-btn color="positive" :icon="UI_ICONS.checkAll" label="Bulk Publish" @click="showBulkPublishDialog"
                     :disable="selectedContent.length === 0" />
                 </div>
                 <div class="col-auto">
-                  <q-btn color="negative" :icon="UI_ICONS.rejectAll" label="Bulk Reject"
-                    @click="showBulkRejectDialog" :disable="selectedContent.length === 0" outline />
+                  <q-btn color="negative" :icon="UI_ICONS.rejectAll" label="Bulk Archive"
+                    @click="showBulkArchiveDialog" :disable="selectedContent.length === 0" outline />
                 </div>
                 <div class="col">
                   <q-space />
@@ -90,42 +99,36 @@
           <q-card>
             <q-tabs v-model="activeTab" dense class="text-grey" active-color="primary" indicator-color="primary"
               align="justify" narrow-indicator>
-              <q-tab name="pending">
-                <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" class="q-mr-sm" />
-                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.PENDING) }} ({{ pendingContent.length }})
-              </q-tab>
-              <q-tab name="approved">
-                <q-icon :name="getStatusIcon('approved').icon" :color="getStatusIcon('approved').color" class="q-mr-sm" />
-                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.APPROVED) }} ({{ approvedContent.length }})
+              <q-tab name="draft">
+                <q-icon :name="getStatusIcon('draft').icon" :color="getStatusIcon('draft').color" class="q-mr-sm" />
+                Draft ({{ draftContent.length }})
               </q-tab>
               <q-tab name="published">
                 <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" class="q-mr-sm" />
                 {{ t(TRANSLATION_KEYS.CONTENT.STATUS.PUBLISHED) }} ({{ publishedContent.length }})
               </q-tab>
+              <q-tab name="archived">
+                <q-icon :name="getStatusIcon('archived').icon" :color="getStatusIcon('archived').color" class="q-mr-sm" />
+                Archived ({{ archivedContent.length }})
+              </q-tab>
               <q-tab name="rejected">
                 <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" class="q-mr-sm" />
-                {{ t(TRANSLATION_KEYS.CONTENT.STATUS.REJECTED) }} ({{ rejectedContent.length }})
+                Rejected ({{ rejectedContent.length }})
+              </q-tab>
+              <q-tab name="deleted">
+                <q-icon :name="getStatusIcon('deleted').icon" :color="getStatusIcon('deleted').color" class="q-mr-sm" />
+                Deleted ({{ deletedContent.length }})
               </q-tab>
             </q-tabs>
 
             <q-separator />
 
             <q-tab-panels v-model="activeTab" animated>
-              <!-- Pending Content -->
-              <q-tab-panel name="pending">
-                <ContentTable :content="pendingContent" :selected="selectedContent"
-                  @update:selected="selectedContent = $event" @approve="approveContent" @reject="rejectContent"
-                  @view="viewContent" @toggle-featured="toggleFeaturedStatus"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
-                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-actions />
-              </q-tab-panel>
-
-              <!-- Approved Content -->
-              <q-tab-panel name="approved">
-                <ContentTable :content="approvedContent" :selected="selectedContent"
-                  @update:selected="selectedContent = $event" @publish="publishContent" @unpublish="unpublishContent"
-                  @view="viewContent" @toggle-featured="toggleFeaturedStatus"
+              <!-- Draft Content -->
+              <q-tab-panel name="draft">
+                <ContentDocTable :content="draftContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @publish="publishContent" @archive="archiveContent"
+                  @reject="rejectContent" @delete="deleteContent" @view="viewContent" @toggle-featured="toggleFeaturedStatus"
                   :show-canva-export="true" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
                   show-publish-actions />
@@ -133,22 +136,40 @@
 
               <!-- Published Content -->
               <q-tab-panel name="published">
-                <ContentTable :content="publishedContent" :selected="selectedContent"
-                  @update:selected="selectedContent = $event" @unpublish="unpublishContent" @view="viewContent"
+                <ContentDocTable :content="publishedContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @unpublish="unpublishContent" @archive="archiveContent" @view="viewContent"
                   @toggle-featured="toggleFeaturedStatus"
                   :show-canva-export="true" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
                   show-unpublish-actions />
               </q-tab-panel>
 
-              <!-- Rejected Content -->
-              <q-tab-panel name="rejected">
-                <ContentTable :content="rejectedContent" :selected="selectedContent"
-                  @update:selected="selectedContent = $event" @reconsider="reconsiderContent" @view="viewContent"
+              <!-- Archived Content -->
+              <q-tab-panel name="archived">
+                <ContentDocTable :content="archivedContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @restore="restoreContent" @view="viewContent"
                   @toggle-featured="toggleFeaturedStatus"
                   :show-canva-export="true" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-reconsider-actions />
+                  show-restore-actions />
+              </q-tab-panel>
+
+              <q-tab-panel name="rejected">
+                <ContentDocTable :content="rejectedContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @restore="restoreContent" @view="viewContent"
+                  @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-restore-actions />
+              </q-tab-panel>
+
+              <q-tab-panel name="deleted">
+                <ContentDocTable :content="deletedContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @restore="restoreContent" @view="viewContent"
+                  @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-restore-actions />
               </q-tab-panel>
             </q-tab-panels>
           </q-card>
@@ -169,146 +190,165 @@
           <div class="q-mb-md">
             <q-badge :color="getStatusIcon(selectedContentItem.status).color"
               :label="selectedContentItem.status.toUpperCase()" />
-            <q-badge color="grey" :label="selectedContentItem.type.toUpperCase()" class="q-ml-sm" />
-            <q-badge v-if="selectedContentItem.featured" color="orange" label="FEATURED" class="q-ml-sm" />
+            <q-badge color="grey" :label="contentUtils.getContentType(selectedContentItem)?.toUpperCase() || 'UNKNOWN'" class="q-ml-sm" />
+            <q-badge v-if="contentUtils.hasTag(selectedContentItem, 'featured')" color="orange" label="FEATURED" class="q-ml-sm" />
           </div>
 
           <div class="text-body2 q-mb-md">
-            <strong>{{ t(TRANSLATION_KEYS.FORMS.AUTHOR) || 'Author' }}:</strong> {{ selectedContentItem.authorName }} ({{
-              selectedContentItem.authorEmail }})<br>
-            <strong>{{ t(TRANSLATION_KEYS.CONTENT.SUBMITTED) || 'Submitted' }}:</strong> {{ formatDateTime(selectedContentItem.submissionDate, 'LONG_WITH_TIME') }}<br>
+            <strong>{{ t(TRANSLATION_KEYS.FORMS.AUTHOR) || 'Author' }}:</strong> {{ selectedContentItem.authorName }}<br>
+            <strong>{{ t(TRANSLATION_KEYS.CONTENT.SUBMITTED) || 'Created' }}:</strong> {{ formatDateTime(selectedContentItem.timestamps.created, 'LONG_WITH_TIME') }}<br>
             <strong>{{ t(TRANSLATION_KEYS.FORMS.TAGS) }}:</strong> {{ selectedContentItem.tags.join(', ') || t(TRANSLATION_KEYS.COMMON.NONE) || 'None' }}
           </div>
 
           <q-separator class="q-my-md" />
 
           <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.FORMS.CONTENT) }}</div>
-          <div class="text-body1 q-mb-md" style="white-space: pre-line;">{{ selectedContentItem.content }}
+          <div class="text-body1 q-mb-md" style="white-space: pre-line;">{{ selectedContentItem.description }}
           </div>
 
-          <div v-if="selectedContentItem.attachments.length > 0">
-            <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.ATTACHMENTS) || 'Attachments' }}</div>
-            <q-list dense>
-              <q-item v-for="attachment in selectedContentItem.attachments" :key="attachment.filename">
-                <q-item-section avatar>
-                  <q-icon name="attachment" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ attachment.filename }}</q-item-label>
-                  <q-item-label caption>{{ formatFileSize(attachment.fileSize) }}</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn flat round :icon="UI_ICONS.download" @click="downloadAttachment(attachment)" />
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </div>
-
-          <!-- Canva Design Section -->
-          <div v-if="selectedContentItem.canvaDesign">
+          <!-- Content Features Section -->
+          <div v-if="Object.keys(selectedContentItem.features).length > 0">
             <q-separator class="q-my-md" />
-            <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CANVA.CREATE_DESIGN) || 'Canva Design' }}</div>
-            <q-card flat bordered class="q-mb-md">
-              <q-card-section>
-                <div class="row items-center q-gutter-md">
-                  <div class="col-auto">
-                    <q-badge
-                      :color="getCanvaStatusColor(selectedContentItem.canvaDesign.status)"
-                      :label="getCanvaStatusLabel(selectedContentItem.canvaDesign.status)"
-                    />
-                  </div>
-                  <div class="col">
-                    <div class="text-body2">
-                      <strong>Design ID:</strong> {{ selectedContentItem.canvaDesign.id }}
-                    </div>
-                    <div v-if="selectedContentItem.canvaDesign.exportUrl" class="text-body2">
-                      <strong>Export Ready:</strong> Yes
-                    </div>
-                  </div>
-                  <div class="col-auto">
-                    <div class="row q-gutter-xs">
-                      <!-- Edit in Canva -->
-                      <q-btn
-                        v-if="selectedContentItem.canvaDesign.editUrl"
-                        flat
-                        round
-                        icon="edit"
-                        color="primary"
-                        @click="openCanvaDesign(selectedContentItem.canvaDesign.editUrl)"
-                      >
-                        <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EDIT_IN_CANVA) }}</q-tooltip>
-                      </q-btn>
+            <div class="text-h6 q-mb-sm">Content Features</div>
 
-                      <!-- Export for Print -->
-                      <q-btn
-                        v-if="selectedContentItem.canvaDesign.status === 'draft' || selectedContentItem.canvaDesign.status === 'exported'"
-                        flat
-                        round
-                        icon="print"
-                        color="purple"
-                        @click="handleExportForPrint(selectedContentItem)"
-                        :loading="isExporting(selectedContentItem.id)"
-                        :disable="isExporting(selectedContentItem.id)"
-                      >
-                        <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EXPORT_FOR_PRINT) }}</q-tooltip>
-                      </q-btn>
+            <!-- Date Feature -->
+            <div v-if="contentUtils.hasFeature(selectedContentItem, 'feat:date')" class="q-mb-md">
+              <q-card flat bordered>
+                <q-card-section>
+                  <div class="text-body2">
+                    <strong>Event Date:</strong> {{ formatDateTime(selectedContentItem.features['feat:date']?.start, 'LONG_WITH_TIME') }}
+                    <span v-if="selectedContentItem.features['feat:date']?.end">
+                      - {{ formatDateTime(selectedContentItem.features['feat:date']?.end, 'LONG_WITH_TIME') }}
+                    </span>
+                    <span v-if="selectedContentItem.features['feat:date']?.isAllDay" class="text-caption"> (All Day)</span>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
 
-                      <!-- Download Design -->
-                      <q-btn
-                        v-if="selectedContentItem.canvaDesign.status === 'exported' && selectedContentItem.canvaDesign.exportUrl"
-                        flat
-                        round
-                        icon="download"
-                        color="green"
-                        @click="handleDownloadDesign(selectedContentItem.canvaDesign.exportUrl, `design-${selectedContentItem.canvaDesign.id}.pdf`)"
-                      >
-                        <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
-                      </q-btn>
+            <!-- Location Feature -->
+            <div v-if="contentUtils.hasFeature(selectedContentItem, 'feat:location')" class="q-mb-md">
+              <q-card flat bordered>
+                <q-card-section>
+                  <div class="text-body2">
+                    <strong>Location:</strong> {{ selectedContentItem.features['feat:location']?.name || 'Unknown' }}
+                    <div class="text-caption">{{ selectedContentItem.features['feat:location']?.address }}</div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- Task Feature -->
+            <div v-if="contentUtils.hasFeature(selectedContentItem, 'feat:task')" class="q-mb-md">
+              <q-card flat bordered>
+                <q-card-section>
+                  <div class="text-body2">
+                    <strong>Task:</strong> {{ selectedContentItem.features['feat:task']?.category }} -
+                    {{ selectedContentItem.features['feat:task']?.qty }} {{ selectedContentItem.features['feat:task']?.unit }}
+                    <div class="text-caption">Status: {{ selectedContentItem.features['feat:task']?.status }}</div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- Canva Feature -->
+            <div v-if="contentUtils.hasFeature(selectedContentItem, 'integ:canva')" class="q-mb-md">
+              <q-card flat bordered>
+                <q-card-section>
+                  <div class="row items-center q-gutter-md">
+                    <div class="col">
+                      <div class="text-body2">
+                        <strong>Canva Design:</strong> {{ selectedContentItem.features['integ:canva']?.designId }}
+                      </div>
+                      <div v-if="selectedContentItem.features['integ:canva']?.exportUrl" class="text-caption">
+                        Export Ready: Yes
+                      </div>
+                    </div>
+                    <div class="col-auto">
+                      <div class="row q-gutter-xs">
+                        <!-- Edit in Canva -->
+                        <q-btn
+                          v-if="selectedContentItem.features['integ:canva']?.editUrl"
+                          flat
+                          round
+                          icon="edit"
+                          color="primary"
+                          @click="openCanvaDesign(selectedContentItem.features['integ:canva']?.editUrl || '')"
+                        >
+                          <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EDIT_IN_CANVA) }}</q-tooltip>
+                        </q-btn>
+
+                        <!-- Export for Print -->
+                        <q-btn
+                          flat
+                          round
+                          icon="print"
+                          color="purple"
+                          @click="handleExportForPrint(selectedContentItem)"
+                          :loading="isExporting(selectedContentItem.id)"
+                          :disable="isExporting(selectedContentItem.id)"
+                        >
+                          <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.EXPORT_FOR_PRINT) }}</q-tooltip>
+                        </q-btn>
+
+                        <!-- Download Design -->
+                        <q-btn
+                          v-if="selectedContentItem.features['integ:canva']?.exportUrl"
+                          flat
+                          round
+                          icon="download"
+                          color="green"
+                          @click="handleDownloadDesign(selectedContentItem.features['integ:canva']?.exportUrl || '', `design-${selectedContentItem.features['integ:canva']?.designId}.pdf`)"
+                        >
+                          <q-tooltip>{{ t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
+                        </q-btn>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </q-card-section>
-            </q-card>
+                </q-card-section>
+              </q-card>
+            </div>
           </div>
 
-          <div v-if="selectedContentItem.reviewNotes">
-            <q-separator class="q-my-md" />
-            <div class="text-h6 q-mb-sm">{{ t(TRANSLATION_KEYS.CONTENT.REVIEW_NOTES) || 'Review Notes' }}</div>
-            <div class="text-body2">{{ selectedContentItem.reviewNotes }}</div>
-          </div>
         </q-card-section>
 
-        <q-card-actions align="right" v-if="selectedContentItem?.status === 'pending'">
-          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.REJECT)" color="negative" @click="rejectContentWithDialog(selectedContentItem)" />
-          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.APPROVE)" color="positive" @click="approveContent(selectedContentItem.id)" />
+        <q-card-actions align="right" v-if="selectedContentItem?.status === 'draft'">
+          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.ARCHIVE)" color="negative" @click="archiveContentWithDialog(selectedContentItem)" />
+          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.PUBLISH)" color="positive" @click="publishContent(selectedContentItem.id)" />
         </q-card-actions>
 
         <q-card-actions align="right" v-if="selectedContentItem?.status === 'published'">
-          <q-toggle :model-value="selectedContentItem.featured || false"
+          <q-toggle :model-value="contentUtils.hasTag(selectedContentItem, 'featured')"
             @update:model-value="(value: boolean) => selectedContentItem && toggleFeaturedStatus(selectedContentItem.id, value)"
             color="orange" :label="t(TRANSLATION_KEYS.FORMS.FEATURED)" />
           <q-space />
           <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.UNPUBLISH)" color="orange"
             @click="selectedContentItem && unpublishContent(selectedContentItem.id)" />
+          <q-btn flat :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.ARCHIVE)" color="negative"
+            @click="selectedContentItem && archiveContent(selectedContentItem.id)" />
+        </q-card-actions>
+
+        <q-card-actions align="right" v-if="selectedContentItem?.status === 'archived'">
+          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.RESTORE)" color="positive" @click="selectedContentItem && restoreContent(selectedContentItem.id)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <!-- Rejection Reason Dialog -->
+    <!-- Archive Reason Dialog -->
     <q-dialog v-model="showRejectDialog">
       <q-card style="min-width: 350px">
         <q-card-section>
-          <div class="text-h6">{{ t(TRANSLATION_KEYS.CONTENT.REJECT_CONTENT) || 'Reject Content' }}</div>
+          <div class="text-h6">Archive Content</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-input v-model="rejectionReason" :label="t(TRANSLATION_KEYS.CONTENT.REJECTION_REASON) || 'Reason for rejection (optional)'" type="textarea" rows="3"
+          <q-input v-model="rejectionReason" label="Reason for archiving (optional)" type="textarea" rows="3"
             outlined />
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat :label="t(TRANSLATION_KEYS.COMMON.CANCEL)" @click="showRejectDialog = false" />
-          <q-btn :label="t(TRANSLATION_KEYS.CONTENT.ACTIONS.REJECT)" color="negative" @click="confirmRejectContent" />
+          <q-btn label="Archive" color="negative" @click="confirmArchiveContent" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -321,11 +361,12 @@ import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { useCanvaExport } from '../composables/useCanvaExport';
-import { firestoreService } from '../services/firebase-firestore.service';
-import type { UserContent } from '../services/firebase-firestore.service';
+import { firebaseContentService } from '../services/firebase-content.service';
+import type { ContentDoc } from '../types/core/content.types';
+import { contentUtils } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
-import ContentTable from '../components/content-management/ContentTable.vue';
+import ContentDocTable from '../components/content-management/ContentDocTable.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { UI_ICONS } from '../constants/ui-icons';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
@@ -338,9 +379,9 @@ const { exportDesignForPrint, downloadDesign, isExporting, cleanup: cleanupCanva
 
 // State
 const isLoading = ref(false);
-const allContent = ref<UserContent[]>([]);
+const allContent = ref<ContentDoc[]>([]);
 const selectedContent = ref<string[]>([]);
-const activeTab = ref('pending');
+const activeTab = ref('draft');
 
 // Watch for authentication readiness and check authorization
 watch(isAuthReady, (ready: boolean) => {
@@ -355,41 +396,50 @@ let refreshInterval: number | null = null;
 
 // Dialog state
 const showDetailDialog = ref(false);
-const selectedContentItem = ref<UserContent | null>(null);
+const selectedContentItem = ref<ContentDoc | null>(null);
 const showRejectDialog = ref(false);
 const rejectionReason = ref('');
-const contentToReject = ref<UserContent | null>(null);
+const contentToReject = ref<ContentDoc | null>(null);
 
-// Computed
-const pendingContent = computed(() =>
-  allContent.value.filter(item => item.status === 'pending')
-);
-
-const approvedContent = computed(() =>
-  allContent.value.filter(item => item.status === 'approved')
+// Computed - Updated for ContentDoc status values
+const draftContent = computed(() =>
+  allContent.value.filter(item => item.status === 'draft')
 );
 
 const publishedContent = computed(() =>
   allContent.value.filter(item => item.status === 'published')
 );
 
+const archivedContent = computed(() =>
+  allContent.value.filter(item => item.status === 'archived')
+);
+
 const rejectedContent = computed(() =>
   allContent.value.filter(item => item.status === 'rejected')
 );
 
+const deletedContent = computed(() =>
+  allContent.value.filter(item => item.status === 'deleted')
+);
+
 // Methods
-const loadAllContent = async () => {
+const loadAllContent = () => {
   isLoading.value = true;
   try {
-    // Load pending content
-    const pending = await firestoreService.getPendingContent();
-    // Load approved content
-    const approved = await firestoreService.getApprovedContent();
+    // Load all content using the new ContentDoc service
+    // Note: This will need to be implemented in firebaseContentService
+    // For now, we'll use a subscription to get all content
+    const unsubscribe = firebaseContentService.subscribeToAllContent((content) => {
+      allContent.value = content;
+      selectedContent.value = [];
+      logger.success(`Loaded ${content.length} content items`);
+    });
 
-    allContent.value = [...pending, ...approved];
-    selectedContent.value = [];
-
-    logger.success(`Loaded ${allContent.value.length} content items`);
+    // Store unsubscribe function for cleanup
+    if (typeof unsubscribe === 'function') {
+      // Store in a way that can be cleaned up later
+      (window as { contentManagementUnsubscribe?: () => void }).contentManagementUnsubscribe = unsubscribe;
+    }
   } catch (error) {
     logger.error('Error loading content:', error);
     $q.notify({
@@ -401,104 +451,82 @@ const loadAllContent = async () => {
   }
 };
 
-const approveContent = async (contentId: string) => {
+const publishContent = async (contentId: string) => {
   try {
-    // First, approve the content
-    await firestoreService.updateContentStatus(contentId, 'approved');
+    // Publish the content using the new ContentDoc service
+    await firebaseContentService.updateContentStatus(contentId, 'published');
 
     // Find the content item to check if it has a Canva design
     const contentItem = allContent.value.find(item => item.id === contentId);
 
-    if (contentItem?.canvaDesign?.id) {
+    if (contentItem && contentUtils.hasFeature(contentItem, 'integ:canva')) {
       logger.info(`Content ${contentId} has Canva design, initiating auto-export for print workflow`);
 
       try {
         // Auto-export the Canva design for print
         await exportDesignForPrint(contentItem);
 
-        // Set up print job with default quantity
-        await firestoreService.setPrintJobReady(contentId, 1);
-
         $q.notify({
           type: 'positive',
-          message: t(TRANSLATION_KEYS.CONTENT.PRINT.AUTO_EXPORT_SUCCESS) || 'Content approved and design exported for printing',
+          message: t(TRANSLATION_KEYS.CONTENT.PRINT.AUTO_EXPORT_SUCCESS) || 'Content published and design exported for printing',
           timeout: 5000
         });
       } catch (exportError) {
         logger.warn(`Auto-export failed for content ${contentId}:`, exportError);
-        // Still show success for approval, but note the export issue
+        // Still show success for publishing, but note the export issue
         $q.notify({
           type: 'warning',
-          message: t(TRANSLATION_KEYS.CONTENT.PRINT.AUTO_EXPORT_FAILED) || 'Content approved, but design export failed. You can retry export manually.',
+          message: t(TRANSLATION_KEYS.CONTENT.PRINT.AUTO_EXPORT_FAILED) || 'Content published, but design export failed. You can retry export manually.',
           timeout: 7000
         });
       }
     } else {
-      // No Canva design, just show standard approval message
+      // No Canva design, just show standard publish message
       $q.notify({
         type: 'positive',
-        message: t(TRANSLATION_KEYS.CONTENT.ACTIONS.APPROVE_SUCCESS) || 'Content approved successfully'
+        message: t(TRANSLATION_KEYS.CONTENT.ACTIONS.PUBLISH_SUCCESS) || 'Content published successfully'
       });
     }
 
-    await loadAllContent();
-  } catch (error) {
-    logger.error('Error approving content:', error);
-    $q.notify({
-      type: 'negative',
-      message: t(TRANSLATION_KEYS.CONTENT.ACTIONS.APPROVE_ERROR) || 'Failed to approve content'
-    });
-  }
-};
-
-const rejectContent = async (contentId: string, reason?: string) => {
-  try {
-    await firestoreService.updateContentStatus(contentId, 'rejected', reason);
-
-    $q.notify({
-      type: 'positive',
-      message: 'Content rejected successfully'
-    });
-
-    await loadAllContent();
-  } catch (error) {
-    logger.error('Error rejecting content:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to reject content'
-    });
-  }
-};
-
-const publishContent = async (contentId: string) => {
-  try {
-    await firestoreService.updateContentStatus(contentId, 'published');
-
-    $q.notify({
-      type: 'positive',
-      message: 'Content published successfully'
-    });
-
-    await loadAllContent();
+    // Content will be updated automatically via the subscription
   } catch (error) {
     logger.error('Error publishing content:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to publish content'
+      message: t(TRANSLATION_KEYS.CONTENT.ACTIONS.PUBLISH_ERROR) || 'Failed to publish content'
+    });
+  }
+};
+
+const archiveContent = async (contentId: string) => {
+  try {
+    await firebaseContentService.updateContentStatus(contentId, 'archived');
+
+    $q.notify({
+      type: 'positive',
+      message: 'Content archived successfully'
+    });
+
+    // Content will be updated automatically via the subscription
+  } catch (error) {
+    logger.error('Error archiving content:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to archive content'
     });
   }
 };
 
 const unpublishContent = async (contentId: string) => {
   try {
-    await firestoreService.updateContentStatus(contentId, 'approved');
+    await firebaseContentService.updateContentStatus(contentId, 'draft');
 
     $q.notify({
       type: 'positive',
       message: 'Content unpublished successfully'
     });
 
-    await loadAllContent();
+    // Content will be updated automatically via the subscription
   } catch (error) {
     logger.error('Error unpublishing content:', error);
     $q.notify({
@@ -508,35 +536,90 @@ const unpublishContent = async (contentId: string) => {
   }
 };
 
-const reconsiderContent = async (contentId: string) => {
+const restoreContent = async (contentId: string) => {
   try {
-    await firestoreService.updateContentStatus(contentId, 'pending');
+    await firebaseContentService.updateContentStatus(contentId, 'draft');
 
     $q.notify({
       type: 'positive',
-      message: 'Content moved back to pending for reconsideration'
+      message: 'Content restored from archive'
     });
 
-    await loadAllContent();
+    // Content will be updated automatically via the subscription
   } catch (error) {
-    logger.error('Error reconsidering content:', error);
+    logger.error('Error restoring content:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to reconsider content'
+      message: 'Failed to restore content'
     });
   }
 };
 
+const rejectContent = async (contentId: string) => {
+  try {
+    await firebaseContentService.updateContentStatus(contentId, 'rejected');
+
+    $q.notify({
+      type: 'positive',
+      message: 'Content rejected successfully'
+    });
+  } catch (error) {
+    logger.error('Error rejecting content:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to reject content'
+    });
+  }
+};
+
+const deleteContent = async (contentId: string) => {
+  try {
+    await firebaseContentService.updateContentStatus(contentId, 'deleted');
+
+    $q.notify({
+      type: 'positive',
+      message: 'Content deleted successfully'
+    });
+  } catch (error) {
+    logger.error('Error deleting content:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to delete content'
+    });
+  }
+};
+
+// Featured status is now handled through tags in ContentDoc architecture
 const toggleFeaturedStatus = async (contentId: string, featured: boolean) => {
   try {
-    await firestoreService.updateContentFeaturedStatus(contentId, featured);
+    // Get the current content to access its tags
+    const content = allContent.value.find(item => item.id === contentId);
+    if (!content) {
+      throw new Error('Content not found');
+    }
+
+    // Update tags array
+    let updatedTags = [...content.tags];
+
+    if (featured) {
+      // Add featured tag if not present
+      if (!updatedTags.includes('featured')) {
+        updatedTags.push('featured');
+      }
+    } else {
+      // Remove featured tag if present
+      updatedTags = updatedTags.filter(tag => tag !== 'featured');
+    }
+
+    // Update the content tags
+    await firebaseContentService.updateContentTags(contentId, updatedTags);
 
     $q.notify({
       type: 'positive',
       message: featured ? 'Content marked as featured' : 'Content unmarked as featured'
     });
 
-    await loadAllContent();
+    // Content will be updated automatically via the subscription
   } catch (error) {
     logger.error('Error toggling featured status:', error);
     $q.notify({
@@ -546,48 +629,48 @@ const toggleFeaturedStatus = async (contentId: string, featured: boolean) => {
   }
 };
 
-const viewContent = (content: UserContent) => {
+const viewContent = (content: ContentDoc) => {
   selectedContentItem.value = content;
   showDetailDialog.value = true;
 };
 
-const rejectContentWithDialog = (content: UserContent) => {
+const archiveContentWithDialog = (content: ContentDoc) => {
   contentToReject.value = content;
   rejectionReason.value = '';
   showRejectDialog.value = true;
   showDetailDialog.value = false;
 };
 
-const confirmRejectContent = async () => {
+const confirmArchiveContent = async () => {
   if (contentToReject.value) {
-    await rejectContent(contentToReject.value.id, rejectionReason.value || undefined);
+    await archiveContent(contentToReject.value.id);
     showRejectDialog.value = false;
     contentToReject.value = null;
   }
 };
 
-const showBulkApproveDialog = () => {
+const showBulkPublishDialog = () => {
   $q.dialog({
-    title: 'Bulk Approve',
-    message: `Are you sure you want to approve ${selectedContent.value.length} selected items?`,
+    title: 'Bulk Publish',
+    message: `Are you sure you want to publish ${selectedContent.value.length} selected items?`,
     cancel: true,
     persistent: true
   }).onOk(() => {
-    void Promise.all(selectedContent.value.map(contentId => approveContent(contentId)))
+    void Promise.all(selectedContent.value.map(contentId => publishContent(contentId)))
       .then(() => {
         selectedContent.value = [];
       });
   });
 };
 
-const showBulkRejectDialog = () => {
+const showBulkArchiveDialog = () => {
   $q.dialog({
-    title: 'Bulk Reject',
-    message: `Are you sure you want to reject ${selectedContent.value.length} selected items?`,
+    title: 'Bulk Archive',
+    message: `Are you sure you want to archive ${selectedContent.value.length} selected items?`,
     cancel: true,
     persistent: true
   }).onOk(() => {
-    void Promise.all(selectedContent.value.map(contentId => rejectContent(contentId)))
+    void Promise.all(selectedContent.value.map(contentId => archiveContent(contentId)))
       .then(() => {
         selectedContent.value = [];
       });
@@ -595,10 +678,10 @@ const showBulkRejectDialog = () => {
 };
 
 // Canva Export Handlers
-const handleExportForPrint = async (content: UserContent) => {
-  logger.info('Export for print requested', { contentId: content.id, hasCanvaDesign: !!content.canvaDesign });
+const handleExportForPrint = async (content: ContentDoc) => {
+  logger.info('Export for print requested', { contentId: content.id, hasCanvaDesign: contentUtils.hasFeature(content, 'integ:canva') });
 
-  if (!content.canvaDesign) {
+  if (!contentUtils.hasFeature(content, 'integ:canva')) {
     $q.notify({
       type: 'warning',
       message: t(TRANSLATION_KEYS.CANVA.EXPORT_FAILED) + ' - No Canva design attached'
@@ -618,46 +701,30 @@ const handleDownloadDesign = (exportUrl: string, filename: string) => {
   downloadDesign(exportUrl, filename);
 };
 
-// Canva Status Utility Functions
-const getCanvaStatusColor = (status: string): string => {
-  switch (status) {
-    case 'draft': return 'orange';
-    case 'pending_export': return 'blue';
-    case 'exported': return 'green';
-    case 'failed': return 'red';
-    default: return 'grey';
-  }
-};
+// Canva Status Utility Functions (commented out as they're not currently used)
+// const getCanvaStatusColor = (status: string): string => {
+//   switch (status) {
+//     case 'draft': return 'orange';
+//     case 'pending_export': return 'blue';
+//     case 'exported': return 'green';
+//     case 'failed': return 'red';
+//     default: return 'grey';
+//   }
+// };
 
-const getCanvaStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'draft': return t(TRANSLATION_KEYS.CANVA.PROCESSING) || 'Draft';
-    case 'pending_export': return t(TRANSLATION_KEYS.CANVA.EXPORT_PENDING) || 'Pending Export';
-    case 'exported': return t(TRANSLATION_KEYS.CANVA.READY_FOR_DOWNLOAD) || 'Exported';
-    case 'failed': return 'Failed';
-    default: return status.toUpperCase();
-  }
-};
+// const getCanvaStatusLabel = (status: string): string => {
+//   switch (status) {
+//     case 'draft': return t(TRANSLATION_KEYS.CANVA.PROCESSING) || 'Draft';
+//     case 'pending_export': return t(TRANSLATION_KEYS.CANVA.EXPORT_PENDING) || 'Pending Export';
+//     case 'exported': return t(TRANSLATION_KEYS.CANVA.READY_FOR_DOWNLOAD) || 'Exported';
+//     case 'failed': return 'Failed';
+//     default: return status.toUpperCase();
+//   }
+// };
 
 const openCanvaDesign = (editUrl: string) => {
   logger.info('Opening Canva design in new tab', { editUrl });
   window.open(editUrl, '_blank', 'noopener,noreferrer');
-};
-
-// Utility functions
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-const downloadAttachment = (attachment: { downloadUrl: string; filename: string }) => {
-  const link = document.createElement('a');
-  link.href = attachment.downloadUrl;
-  link.download = attachment.filename;
-  link.click();
 };
 
 // Auto-refresh functionality
@@ -680,6 +747,11 @@ onMounted(() => {
 onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval);
+  }
+  // Cleanup content subscription
+  const unsubscribe = (window as { contentManagementUnsubscribe?: () => void }).contentManagementUnsubscribe;
+  if (unsubscribe) {
+    unsubscribe();
   }
   // Cleanup Canva export polling
   cleanupCanvaExport();
