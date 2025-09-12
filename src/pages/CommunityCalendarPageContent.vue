@@ -415,13 +415,13 @@ const filteredEventsCount = computed(() => {
 // Computed for monthly events grouped by day
 const monthlyEventsGrouped = computed(() => {
   const grouped: Array<{ date: string; events: CalendarEvent[] }> = [];
-  
+
   // Get all events for the current month
   const allEvents = Object.values(eventsByDate.value).flat();
-  
+
   // Group events by date
   const eventsByDateMap = new Map<string, CalendarEvent[]>();
-  
+
   allEvents.forEach(event => {
     const dateKey = event.eventDate; // Already in YYYY-MM-DD format
     if (!eventsByDateMap.has(dateKey)) {
@@ -429,7 +429,7 @@ const monthlyEventsGrouped = computed(() => {
     }
     eventsByDateMap.get(dateKey)!.push(event);
   });
-  
+
   // Convert to array and sort by date
   eventsByDateMap.forEach((events, date) => {
     grouped.push({
@@ -443,7 +443,7 @@ const monthlyEventsGrouped = computed(() => {
       })
     });
   });
-  
+
   // Sort groups by date
   return grouped.sort((a, b) => a.date.localeCompare(b.date));
 });
@@ -598,11 +598,11 @@ const formatDayGroupLabel = (dayGroup: { date: string; events: CalendarEvent[] }
   const date = new Date(dayGroup.date);
   const today = new Date();
   const isToday = date.toDateString() === today.toDateString();
-  
+
   if (isToday) {
     return `${formatDate(date, 'SHORT')} (${t(TRANSLATION_KEYS.CONTENT.CALENDAR.TODAY)})`;
   }
-  
+
   return formatDate(date, 'SHORT');
 };
 
