@@ -144,7 +144,9 @@
                 :navigation-min-year-month="`2020/01`"
                 :navigation-max-year-month="`2030/12`"
                 flat
+                emit-immediately
                 :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
+                ref="calendarRef"
               />
             </q-card-section>
           </q-card>
@@ -397,6 +399,7 @@ const todayFormatted = `${today.getFullYear()}/${(today.getMonth() + 1).toString
 const selectedDateModel = ref<string | null>(todayFormatted);
 const showFeaturedOnly = ref(false);
 const selectedEvent = ref<CalendarEvent | null>(null);
+const calendarRef = ref();
 
 // Computed properties
 const calendarEvents = computed(() => {
@@ -448,10 +451,15 @@ const monthlyEventsGrouped = computed(() => {
   return grouped.sort((a, b) => a.date.localeCompare(b.date));
 });
 
-// Computed for calendar view to force updates - include selected date to force re-render
-const calendarKey = computed(() =>
-  `${calendarState.value.currentYear}-${calendarState.value.currentMonth}-${selectedDateModel.value || 'none'}`
-);
+// Reactive state to force calendar updates
+const calendarUpdateTrigger = ref(0);
+
+// Computed for calendar view to force updates when month/year changes
+const calendarKey = computed(() => {
+  // Force complete re-render when month/year changes
+  const monthYear = `${calendarState.value.currentYear}-${calendarState.value.currentMonth}`;
+  return `calendar-${monthYear}-${calendarUpdateTrigger.value}`;
+});
 
 const defaultYearMonth = computed(() =>
   `${calendarState.value.currentYear}/${calendarState.value.currentMonth.toString().padStart(2, '0')}`
@@ -464,6 +472,7 @@ const calendarModel = computed({
     selectedDateModel.value = value;
   }
 });
+
 
 // Methods
 const onCalendarNavigation = (view: { year: number; month: number }) => {
@@ -484,6 +493,16 @@ const onCalendarNavigation = (view: { year: number; month: number }) => {
 
   // Load events for the new month
   void loadEventsForMonth(view.year, view.month);
+};
+
+// Method to force calendar to update its view
+const forceCalendarUpdate = () => {
+  logger.debug('🗓️ Forcing calendar update for month:', calendarState.value.currentMonth);
+
+  // Force complete re-render by incrementing the trigger
+  calendarUpdateTrigger.value += 1;
+
+  logger.debug('🗓️ Calendar trigger incremented to:', calendarUpdateTrigger.value);
 };
 
 const onDateSelect = (date: string | string[] | null) => {
@@ -733,6 +752,9 @@ watch(() => [calendarState.value.currentYear, calendarState.value.currentMonth],
   logger.debug('🗓️ Month/Year changed:', { year, month });
   // Note: We intentionally do NOT change the selected date when navigating months
   // This allows users to keep their selected date when browsing different months
+
+  // Force calendar to update its view when month changes
+  forceCalendarUpdate();
 });
 
 // Watch monthName changes
