@@ -18,21 +18,57 @@
       <div class="row q-gutter-md">
         <div class="col-12 col-sm-6">
           <q-input
-            v-model="startDate"
+            v-model="startDateDisplay"
             :label="$t('content.features.date.startDate')"
             filled
-            type="date"
+            readonly
             :rules="[required]"
-          />
+          >
+            <template v-slot:append>
+              <q-icon name="event" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date
+                    v-model="startDate"
+                    :mask="'YYYY-MM-DD'"
+                    :navigation-min-year-month="'2020/01'"
+                    :navigation-max-year-month="'2030/12'"
+                    today-btn
+                    @update:model-value="onStartDateChange"
+                  >
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
         </div>
         <div v-if="!localDateFeature.isAllDay" class="col-12 col-sm-6">
           <q-input
-            v-model="startTime"
+            v-model="startTimeDisplay"
             :label="$t('content.features.date.startTime')"
             filled
-            type="time"
+            readonly
             :rules="[required]"
-          />
+          >
+            <template v-slot:append>
+              <q-icon name="access_time" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-time
+                    v-model="startTime"
+                    :mask="'HH:mm'"
+                    format24h
+                    @update:model-value="onStartTimeChange"
+                  >
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-time>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
         </div>
       </div>
 
@@ -47,21 +83,57 @@
       <div v-if="hasEndDate" class="row q-gutter-md q-mt-md">
         <div class="col-12 col-sm-6">
           <q-input
-            v-model="endDate"
+            v-model="endDateDisplay"
             :label="$t('content.features.date.endDate')"
             filled
-            type="date"
-            :rules="[required, (val) => validateEndDate(val)]"
-          />
+            readonly
+            :rules="[required, validateEndDateDisplay]"
+          >
+            <template v-slot:append>
+              <q-icon name="event" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date
+                    v-model="endDate"
+                    :mask="'YYYY-MM-DD'"
+                    :navigation-min-year-month="'2020/01'"
+                    :navigation-max-year-month="'2030/12'"
+                    today-btn
+                    @update:model-value="onEndDateChange"
+                  >
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
         </div>
         <div v-if="!localDateFeature.isAllDay" class="col-12 col-sm-6">
           <q-input
-            v-model="endTime"
+            v-model="endTimeDisplay"
             :label="$t('content.features.date.endTime')"
             filled
-            type="time"
+            readonly
             :rules="[required]"
-          />
+          >
+            <template v-slot:append>
+              <q-icon name="access_time" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-time
+                    v-model="endTime"
+                    :mask="'HH:mm'"
+                    format24h
+                    @update:model-value="onEndTimeChange"
+                  >
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-time>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
         </div>
       </div>
 
@@ -80,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Timestamp } from 'firebase/firestore';
 import { date } from 'quasar';
@@ -117,6 +189,53 @@ const startTime = ref('09:00');
 const endDate = ref('');
 const endTime = ref('17:00');
 
+// Display values for readonly inputs
+const startDateDisplay = computed(() => {
+  if (!startDate.value) return '';
+  const date = new Date(startDate.value);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+});
+
+const startTimeDisplay = computed(() => {
+  if (!startTime.value) return '';
+  const [hours, minutes] = startTime.value.split(':');
+  if (!hours || !minutes) return '';
+  const date = new Date();
+  date.setHours(parseInt(hours), parseInt(minutes));
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+});
+
+const endDateDisplay = computed(() => {
+  if (!endDate.value) return '';
+  const date = new Date(endDate.value);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+});
+
+const endTimeDisplay = computed(() => {
+  if (!endTime.value) return '';
+  const [hours, minutes] = endTime.value.split(':');
+  if (!hours || !minutes) return '';
+  const date = new Date();
+  date.setHours(parseInt(hours), parseInt(minutes));
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+});
+
 // Local date feature with defaults
 const localDateFeature = ref<DateFeature>({
   start: Timestamp.now(),
@@ -127,11 +246,40 @@ const localDateFeature = ref<DateFeature>({
 // Computed
 const required = (val: string) => !!val || t('forms.required');
 
+// Event handlers for date/time pickers
+const onStartDateChange = (value: string | null) => {
+  if (value) {
+    startDate.value = value;
+    updateDateFeature();
+  }
+};
+
+const onStartTimeChange = (value: string | null) => {
+  if (value) {
+    startTime.value = value;
+    updateDateFeature();
+  }
+};
+
+const onEndDateChange = (value: string | null) => {
+  if (value) {
+    endDate.value = value;
+    updateDateFeature();
+  }
+};
+
+const onEndTimeChange = (value: string | null) => {
+  if (value) {
+    endTime.value = value;
+    updateDateFeature();
+  }
+};
+
 // Methods
-const validateEndDate = (val: string): boolean | string => {
-  if (!val || !startDate.value) return true;
+const validateEndDateDisplay = (): boolean | string => {
+  if (!endDate.value || !startDate.value) return true;
   const start = new Date(startDate.value);
-  const end = new Date(val);
+  const end = new Date(endDate.value);
   return end >= start || t('features.date.endAfterStart');
 };
 
