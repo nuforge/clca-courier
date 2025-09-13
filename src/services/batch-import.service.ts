@@ -5,10 +5,9 @@
 
 import { logger } from '../utils/logger';
 import { firebaseContentService } from './firebase-content.service';
-import { 
-  BatchContentTransformer, 
-  type BatchProcessingItem, 
-  type ExtractedArticle 
+import {
+  BatchContentTransformer,
+  type BatchProcessingItem
 } from '../utils/batch-content-transformer';
 import type { ContentDoc, ContentFeatures } from '../types/core/content.types';
 import { getAuth } from 'firebase/auth';
@@ -26,6 +25,12 @@ export interface ImportOptions {
   features?: Partial<ContentFeatures>;
   /** Whether to skip existing content (based on title matching) */
   skipExisting?: boolean;
+}
+
+export interface RequiredImportOptions extends Required<ImportOptions> {
+  authorId: string;
+  authorName: string;
+  features: Partial<ContentFeatures>;
 }
 
 export interface ImportResult {
@@ -59,15 +64,15 @@ export class BatchImportService {
     };
 
     try {
-      logger.info('Starting batch import', { 
-        itemCount: jsonData.length, 
-        options 
+      logger.info('Starting batch import', {
+        itemCount: jsonData.length,
+        options
       });
 
       // Get current user for author information
       const auth = getAuth();
       const currentUser = auth.currentUser;
-      
+
       if (!currentUser && !options.authorId) {
         throw new Error('User must be authenticated or authorId must be provided');
       }
@@ -78,11 +83,13 @@ export class BatchImportService {
       // Process each batch item
       for (const batchItem of jsonData) {
         try {
-          await this.processBatchItem(batchItem, {
-            ...options,
-            authorId,
-            authorName
-          }, result);
+      await this.processBatchItem(batchItem, {
+        ...options,
+        authorId,
+        authorName,
+        features: options.features || {},
+        skipExisting: options.skipExisting ?? true
+      }, result);
         } catch (error) {
           const errorMessage = `Failed to process ${batchItem.file_name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
           logger.error(errorMessage, { batchItem: batchItem.file_name });
@@ -91,7 +98,7 @@ export class BatchImportService {
       }
 
       result.processingTime = Date.now() - startTime;
-      
+
       logger.info('Batch import completed', {
         articlesImported: result.articlesImported,
         newslettersImported: result.newslettersImported,
@@ -114,10 +121,10 @@ export class BatchImportService {
    */
   private static async processBatchItem(
     batchItem: BatchProcessingItem,
-    options: Required<ImportOptions>,
+    options: RequiredImportOptions,
     result: ImportResult
   ): Promise<void> {
-    logger.debug('Processing batch item', { 
+    logger.debug('Processing batch item', {
       filename: batchItem.file_name,
       hasStructure: !!batchItem.structure?.sections?.length
     });
@@ -143,18 +150,18 @@ export class BatchImportService {
       const contentId = await firebaseContentService.createContent(newsletterContent);
       result.createdContentIds.push(contentId);
       result.newslettersImported++;
-      
-      logger.debug('Newsletter imported', { 
-        contentId, 
-        title: newsletterContent.title 
+
+      logger.debug('Newsletter imported', {
+        contentId,
+        title: newsletterContent.title
       });
     }
 
     // Import individual articles if requested
     if (options.importArticles && batchItem.structure?.sections) {
       const articles = BatchContentTransformer.extractArticles(batchItem);
-      
-      logger.debug('Extracted articles', { 
+
+      logger.debug('Extracted articles', {
         count: articles.length,
         titles: articles.map(a => a.title)
       });
@@ -163,9 +170,9 @@ export class BatchImportService {
         try {
           // Skip very short articles
           if (article.content.length < 100) {
-            logger.debug('Skipping short article', { 
-              title: article.title, 
-              length: article.content.length 
+            logger.debug('Skipping short article', {
+              title: article.title,
+              length: article.content.length
             });
             continue;
           }
@@ -190,10 +197,10 @@ export class BatchImportService {
           const contentId = await firebaseContentService.createContent(contentDoc);
           result.createdContentIds.push(contentId);
           result.articlesImported++;
-          
-          logger.debug('Article imported', { 
-            contentId, 
-            title: article.title 
+
+          logger.debug('Article imported', {
+            contentId,
+            title: article.title
           });
         } catch (error) {
           const errorMessage = `Failed to import article "${article.title}": ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -210,13 +217,13 @@ export class BatchImportService {
   private static async findExistingContent(title: string): Promise<ContentDoc | null> {
     try {
       const allContent = await firebaseContentService.getPublishedContent();
-      return allContent.find(content => 
+      return allContent.find(content =>
         content.title.toLowerCase().trim() === title.toLowerCase().trim()
       ) || null;
     } catch (error) {
-      logger.warn('Failed to check for existing content', { 
-        title, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      logger.warn('Failed to check for existing content', {
+        title,
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       return null;
     }
@@ -232,7 +239,7 @@ export class BatchImportService {
     try {
       const text = await file.text();
       const jsonData: BatchProcessingItem[] = JSON.parse(text);
-      
+
       return await this.importFromJson(jsonData, options);
     } catch (error) {
       const errorMessage = `Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -250,24 +257,24 @@ export class BatchImportService {
   /**
    * Get import preview (shows what would be imported without actually importing)
    */
-  static async getImportPreview(jsonData: BatchProcessingItem[]): Promise<{
+  static getImportPreview(jsonData: BatchProcessingItem[]): {
     totalItems: number;
     articlesFound: number;
     newslettersFound: number;
     estimatedProcessingTime: number;
     sampleArticles: Array<{ title: string; contentLength: number; tags: string[] }>;
-  }> {
+  } {
     let articlesFound = 0;
     let newslettersFound = 0;
     const sampleArticles: Array<{ title: string; contentLength: number; tags: string[] }> = [];
 
     for (const batchItem of jsonData) {
       newslettersFound++;
-      
+
       if (batchItem.structure?.sections) {
         const articles = BatchContentTransformer.extractArticles(batchItem);
         articlesFound += articles.length;
-        
+
         // Add first few articles as samples
         if (sampleArticles.length < 5) {
           for (const article of articles.slice(0, 2)) {

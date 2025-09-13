@@ -27,7 +27,7 @@
         <!-- Import Options -->
         <div class="q-mb-md">
           <div class="text-subtitle2 q-mb-sm">{{ $t('batchImport.importOptions') }}</div>
-          
+
           <q-checkbox
             v-model="importOptions.importArticles"
             :label="$t('batchImport.importArticles')"
@@ -64,7 +64,7 @@
                   <div class="text-h6">{{ preview.newslettersFound }}</div>
                 </div>
               </div>
-              
+
               <!-- Sample Articles -->
               <div v-if="preview.sampleArticles.length > 0" class="q-mt-md">
                 <div class="text-caption text-grey-7 q-mb-xs">{{ $t('batchImport.sampleArticles') }}</div>
@@ -120,7 +120,7 @@
                   <div class="text-h6">{{ lastResult.processingTime }}ms</div>
                 </div>
               </div>
-              
+
               <!-- Errors -->
               <div v-if="lastResult.errors.length > 0" class="q-mt-md">
                 <div class="text-caption text-negative q-mb-xs">{{ $t('batchImport.errors') }}</div>
@@ -169,16 +169,18 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useBatchImport } from '../composables/useBatchImport';
-import type { ImportOptions } from '../services/batch-import.service';
+import { useBatchImport } from '../../composables/useBatchImport';
+import type { ImportOptions } from '../../services/batch-import.service';
 
 interface Props {
   modelValue: boolean;
 }
 
+import type { ImportResult } from '../../services/batch-import.service';
+
 interface Emits {
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'import-complete', result: any): void;
+  (e: 'import-complete', result: ImportResult): void;
 }
 
 const props = defineProps<Props>();
@@ -195,7 +197,13 @@ const {
 
 // Local state
 const selectedFile = ref<File | null>(null);
-const preview = ref<any>(null);
+const preview = ref<{
+  totalItems: number;
+  articlesFound: number;
+  newslettersFound: number;
+  estimatedProcessingTime: number;
+  sampleArticles: Array<{ title: string; contentLength: number; tags: string[] }>;
+} | null>(null);
 const importOptions = ref<ImportOptions>({
   importArticles: true,
   importNewsletter: false,
@@ -208,7 +216,7 @@ const show = computed({
   set: (value) => emit('update:modelValue', value)
 });
 
-const hasValidOptions = computed(() => 
+const hasValidOptions = computed(() =>
   importOptions.value.importArticles || importOptions.value.importNewsletter
 );
 
@@ -224,7 +232,7 @@ const handleFileSelect = async (file: File | null) => {
   try {
     const text = await file.text();
     const jsonData = JSON.parse(text);
-    preview.value = await getImportPreview(jsonData);
+    preview.value = getImportPreview(jsonData);
   } catch (error) {
     console.error('Failed to preview file:', error);
     preview.value = null;

@@ -75,7 +75,7 @@ export function testBatchImportWorkflow() {
   console.log('2. Transforming articles to ContentDoc format...');
   const authorId = 'test-user-123';
   const authorName = 'Test User';
-  
+
   articles.forEach((article, index) => {
     const contentDoc = BatchContentTransformer.transformToContentDoc(
       article,
@@ -83,7 +83,7 @@ export function testBatchImportWorkflow() {
       authorId,
       authorName
     );
-    
+
     console.log(`   Article ${index + 1}:`);
     console.log(`     Title: ${contentDoc.title}`);
     console.log(`     Tags: ${contentDoc.tags.join(', ')}`);
@@ -100,7 +100,7 @@ export function testBatchImportWorkflow() {
     authorId,
     authorName
   );
-  
+
   console.log(`   Newsletter:`);
   console.log(`     Title: ${newsletterContent.title}`);
   console.log(`     Tags: ${newsletterContent.tags.join(', ')}`);
@@ -117,14 +117,14 @@ export function testBatchImportWorkflow() {
       authorId,
       authorName
     );
-    
+
     console.log(`   ContentCard ${index + 1}:`);
     console.log(`     Header: ${contentDoc.title}`);
     console.log(`     Type: Article (from content-type:article tag)`);
     console.log(`     Description: ${contentDoc.description}`);
     console.log(`     Tags: ${contentDoc.tags.filter(t => !t.startsWith('content-type:')).join(', ')}`);
     console.log(`     Author: ${contentDoc.authorName}`);
-    console.log(`     Date: ${contentDoc.timestamps.created}`);
+    console.log(`     Date: ${contentDoc.timestamps.created.toString()}`);
     console.log('');
   });
 
@@ -143,22 +143,17 @@ export function testBatchImportWorkflow() {
 /**
  * Test with your actual data
  */
-export async function testWithActualData() {
-  try {
-    // This would load your actual batch processing JSON
-    // const response = await fetch('/src/data/batch_processing_20250912_215805.json');
-    // const jsonData = await response.json();
-    
-    console.log('To test with your actual data:');
-    console.log('1. Load your batch_processing_20250912_215805.json file');
-    console.log('2. Use BatchImportService.importFromJson(jsonData, options)');
-    console.log('3. The content will be created in your Firebase ContentDoc collection');
-    console.log('4. It will appear in your content management interface');
-    console.log('5. Users can view it alongside other content types');
-    
-  } catch (error) {
-    console.error('Test failed:', error);
-  }
+export function testWithActualData() {
+  // This would load your actual batch processing JSON
+  // const response = await fetch('/src/data/batch_processing_20250912_215805.json');
+  // const jsonData = await response.json();
+
+  console.log('To test with your actual data:');
+  console.log('1. Load your batch_processing_20250912_215805.json file');
+  console.log('2. Use BatchImportService.importFromJson(jsonData, options)');
+  console.log('3. The content will be created in your Firebase ContentDoc collection');
+  console.log('4. It will appear in your content management interface');
+  console.log('5. Users can view it alongside other content types');
 }
 
 // Run the test

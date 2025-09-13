@@ -4,8 +4,9 @@
  */
 
 import { BatchImportService, type ImportOptions } from '../services/batch-import.service';
-import { BatchContentTransformer } from '../utils/batch-content-transformer';
+import { BatchContentTransformer, type ExtractedArticle } from '../utils/batch-content-transformer';
 import type { BatchProcessingItem } from '../utils/batch-content-transformer';
+import type { Timestamp } from 'firebase/firestore';
 
 /**
  * Example: Import your batch processing data
@@ -28,12 +29,12 @@ export async function importBatchDataExample() {
 
   try {
     // Get preview of what will be imported
-    const preview = await BatchImportService.getImportPreview(jsonData);
+    const preview = BatchImportService.getImportPreview(jsonData);
     console.log('Import Preview:', preview);
 
     // Perform the import
     const result = await BatchImportService.importFromJson(jsonData, importOptions);
-    
+
     console.log('Import Results:', {
       articlesImported: result.articlesImported,
       newslettersImported: result.newslettersImported,
@@ -58,7 +59,7 @@ export async function importBatchDataExample() {
 export function extractArticlesExample(batchItem: BatchProcessingItem) {
   // Extract individual articles from the newsletter
   const articles = BatchContentTransformer.extractArticles(batchItem);
-  
+
   console.log(`Found ${articles.length} articles in ${batchItem.file_name}:`);
   articles.forEach((article, index) => {
     console.log(`${index + 1}. ${article.title} (${article.content.length} chars)`);
@@ -71,7 +72,7 @@ export function extractArticlesExample(batchItem: BatchProcessingItem) {
  * Example: Transform a single article to ContentDoc format
  */
 export function transformArticleExample(
-  article: any,
+  article: ExtractedArticle,
   batchItem: BatchProcessingItem,
   authorId: string,
   authorName: string
@@ -84,7 +85,7 @@ export function transformArticleExample(
     {
       // Add date feature if the article has date information
       'feat:date': {
-        start: new Date(batchItem.processed_at) as any,
+        start: new Date(batchItem.processed_at) as unknown as Timestamp,
         isAllDay: true
       }
     }
@@ -107,8 +108,8 @@ export const vueComponentExample = `
 <template>
   <div>
     <!-- Import Button -->
-    <q-btn 
-      color="primary" 
+    <q-btn
+      color="primary"
       @click="showImportDialog = true"
       icon="upload_file"
     >

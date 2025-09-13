@@ -5,7 +5,6 @@
 
 import type { ContentDoc, ContentFeatures } from '../types/core/content.types';
 import type { Timestamp } from 'firebase/firestore';
-import { logger } from './logger';
 
 export interface BatchProcessingItem {
   file_path: string;
@@ -33,7 +32,7 @@ export interface BatchProcessingItem {
 export interface ExtractedArticle {
   title: string;
   content: string;
-  author?: string;
+  author: string | undefined;
   sectionType: string;
   startPosition: number;
   endPosition: number;
@@ -50,9 +49,9 @@ export class BatchContentTransformer {
   static extractArticles(batchItem: BatchProcessingItem): ExtractedArticle[] {
     const articles: ExtractedArticle[] = [];
     const sections = batchItem.structure.sections;
-    
+
     let currentArticle: Partial<ExtractedArticle> | null = null;
-    
+
     for (const section of sections) {
       // Start new article on section headers
       if (section.type === 'section_header' && section.text.trim()) {
@@ -68,7 +67,7 @@ export class BatchContentTransformer {
             tags: currentArticle.tags || []
           });
         }
-        
+
         // Start new article
         currentArticle = {
           title: section.text.trim(),
@@ -76,7 +75,7 @@ export class BatchContentTransformer {
           sectionType: section.type,
           startPosition: section.start,
           endPosition: section.end,
-          tags: this.generateTagsFromTitle(section.text, batchItem)
+          tags: this.generateTagsFromTitle(section.text)
         };
       }
       // Add content to current article
@@ -89,7 +88,7 @@ export class BatchContentTransformer {
         currentArticle.endPosition = section.end;
       }
     }
-    
+
     // Add final article
     if (currentArticle && currentArticle.title && currentArticle.content) {
       articles.push({
@@ -102,10 +101,10 @@ export class BatchContentTransformer {
         tags: currentArticle.tags || []
       });
     }
-    
+
     return articles;
   }
-  
+
   /**
    * Transform an extracted article into a ContentDoc
    */
@@ -118,7 +117,7 @@ export class BatchContentTransformer {
   ): Omit<ContentDoc, 'id'> {
     // Extract date information from filename or content
     const dateInfo = this.extractDateInfo(batchItem.file_name, article.content);
-    
+
     // Generate comprehensive tags
     const tags = [
       'content-type:article',
@@ -128,15 +127,15 @@ export class BatchContentTransformer {
       ...article.tags,
       ...this.generateContentTags(article.content)
     ];
-    
+
     // Add date feature if date information is available
     if (dateInfo.date && !features['feat:date']) {
       features['feat:date'] = {
-        start: dateInfo.date as Timestamp,
+        start: dateInfo.date as unknown as Timestamp,
         isAllDay: true
       };
     }
-    
+
     return {
       title: article.title,
       description: this.truncateContent(article.content, 500),
@@ -152,7 +151,7 @@ export class BatchContentTransformer {
       }
     };
   }
-  
+
   /**
    * Transform the entire newsletter as a single content item
    */
@@ -163,7 +162,7 @@ export class BatchContentTransformer {
     features: Partial<ContentFeatures> = {}
   ): Omit<ContentDoc, 'id'> {
     const dateInfo = this.extractDateInfo(batchItem.file_name, batchItem.content.full_text);
-    
+
     const tags = [
       'content-type:newsletter',
       'source:pdf',
@@ -171,14 +170,14 @@ export class BatchContentTransformer {
       `year:${dateInfo.year}`,
       ...this.generateContentTags(batchItem.content.full_text)
     ];
-    
+
     if (dateInfo.date && !features['feat:date']) {
       features['feat:date'] = {
-        start: dateInfo.date as Timestamp,
+        start: dateInfo.date as unknown as Timestamp,
         isAllDay: true
       };
     }
-    
+
     return {
       title: batchItem.content.title || this.extractNewsletterName(batchItem.file_name),
       description: this.truncateContent(batchItem.content.full_text, 1000),
@@ -194,14 +193,14 @@ export class BatchContentTransformer {
       }
     };
   }
-  
+
   /**
    * Generate tags from article title
    */
-  private static generateTagsFromTitle(title: string, batchItem: BatchProcessingItem): string[] {
+  private static generateTagsFromTitle(title: string): string[] {
     const tags: string[] = [];
     const lowerTitle = title.toLowerCase();
-    
+
     // Category tags based on title content
     if (lowerTitle.includes('meeting') || lowerTitle.includes('annual')) {
       tags.push('category:meeting');
@@ -221,56 +220,56 @@ export class BatchContentTransformer {
     if (lowerTitle.includes('letter') || lowerTitle.includes('thank')) {
       tags.push('category:community');
     }
-    
+
     return tags;
   }
-  
+
   /**
    * Generate content-based tags
    */
   private static generateContentTags(content: string): string[] {
     const tags: string[] = [];
     const lowerContent = content.toLowerCase();
-    
+
     // Extract key terms and create tags
     const keyTerms = [
       'lake', 'community', 'association', 'board', 'meeting', 'security',
       'maintenance', 'pool', 'recreation', 'budget', 'dues', 'property'
     ];
-    
+
     keyTerms.forEach(term => {
       if (lowerContent.includes(term)) {
         tags.push(`topic:${term}`);
       }
     });
-    
+
     return tags;
   }
-  
+
   /**
    * Extract date information from filename and content
    */
   private static extractDateInfo(filename: string, content: string): {
     year: number;
     date?: Date;
-    season?: string;
+    season?: string | undefined;
   } {
     // Extract year from filename (e.g., "2014.summer-conashaugh-courier.pdf")
     const yearMatch = filename.match(/(\d{4})/);
-    const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-    
+    const year = yearMatch ? parseInt(yearMatch[1]!) : new Date().getFullYear();
+
     // Extract season from filename
     const seasonMatch = filename.match(/\.(spring|summer|fall|winter)/i);
-    const season = seasonMatch ? seasonMatch[1].toLowerCase() : undefined;
-    
+    const season = seasonMatch ? seasonMatch[1]!.toLowerCase() : undefined;
+
     // Try to extract specific date from content
     const dateMatch = content.match(/(\w+ \d{1,2}, \d{4})/);
     let date: Date | undefined;
-    
+
     if (dateMatch) {
       try {
-        date = new Date(dateMatch[1]);
-      } catch (e) {
+        date = new Date(dateMatch[1]!);
+      } catch {
         // Fallback to year-based date
         date = new Date(year, season === 'spring' ? 2 : season === 'summer' ? 5 : season === 'fall' ? 8 : 11, 1);
       }
@@ -278,10 +277,10 @@ export class BatchContentTransformer {
       // Create approximate date based on season
       date = new Date(year, season === 'spring' ? 2 : season === 'summer' ? 5 : season === 'fall' ? 8 : 11, 1);
     }
-    
+
     return { year, date, season };
   }
-  
+
   /**
    * Extract newsletter name from filename
    */
@@ -294,16 +293,16 @@ export class BatchContentTransformer {
       .replace(/-/g, ' ')
       .replace(/\b\w/g, l => l.toUpperCase());
   }
-  
+
   /**
    * Truncate content for description field
    */
   private static truncateContent(content: string, maxLength: number): string {
     if (content.length <= maxLength) return content;
-    
+
     const truncated = content.substring(0, maxLength);
     const lastSpace = truncated.lastIndexOf(' ');
-    
+
     return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
   }
 }

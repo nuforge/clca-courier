@@ -7,6 +7,7 @@ import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { BatchImportService, type ImportOptions, type ImportResult } from '../services/batch-import.service';
+import type { BatchProcessingItem } from '../utils/batch-content-transformer';
 import { logger } from '../utils/logger';
 
 export function useBatchImport() {
@@ -21,8 +22,8 @@ export function useBatchImport() {
 
   // Computed properties
   const hasImportHistory = computed(() => importHistory.value.length > 0);
-  const totalImportedContent = computed(() => 
-    importHistory.value.reduce((total, result) => 
+  const totalImportedContent = computed(() =>
+    importHistory.value.reduce((total, result) =>
       total + result.articlesImported + result.newslettersImported, 0
     )
   );
@@ -31,7 +32,7 @@ export function useBatchImport() {
    * Import batch processing data from JSON
    */
   const importFromJson = async (
-    jsonData: any[],
+    jsonData: BatchProcessingItem[],
     options: ImportOptions = { importArticles: true, importNewsletter: false }
   ): Promise<ImportResult> => {
     isImporting.value = true;
@@ -55,7 +56,7 @@ export function useBatchImport() {
       }, 500);
 
       const result = await BatchImportService.importFromJson(jsonData, options);
-      
+
       // Clear progress updates
       clearInterval(progressInterval);
       importProgress.value = 100;
@@ -92,7 +93,7 @@ export function useBatchImport() {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       $q.notify({
         type: 'negative',
         message: t('batchImport.error'),
@@ -117,7 +118,7 @@ export function useBatchImport() {
   ): Promise<ImportResult> => {
     try {
       const result = await BatchImportService.importFromFile(file, options);
-      
+
       if (result.errors.length === 0) {
         $q.notify({
           type: 'positive',
@@ -141,7 +142,7 @@ export function useBatchImport() {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       $q.notify({
         type: 'negative',
         message: t('batchImport.fileError'),
@@ -156,9 +157,9 @@ export function useBatchImport() {
   /**
    * Get import preview
    */
-  const getImportPreview = async (jsonData: any[]) => {
+  const getImportPreview = (jsonData: BatchProcessingItem[]) => {
     try {
-      return await BatchImportService.getImportPreview(jsonData);
+      return BatchImportService.getImportPreview(jsonData);
     } catch (error) {
       logger.error('Failed to get import preview', { error });
       throw error;
@@ -203,7 +204,7 @@ export function useBatchImport() {
         importNewsletter: data.includes('newsletters'),
         skipExisting: data.includes('skipExisting')
       };
-      
+
       // Trigger file picker
       const input = document.createElement('input');
       input.type = 'file';
@@ -224,11 +225,11 @@ export function useBatchImport() {
     importProgress,
     lastImportResult,
     importHistory,
-    
+
     // Computed
     hasImportHistory,
     totalImportedContent,
-    
+
     // Methods
     importFromJson,
     importFromFile,
