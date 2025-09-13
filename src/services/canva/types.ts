@@ -85,10 +85,18 @@ export interface CanvaCreateDesignResponse {
  * Response from Canva API when creating a design with autofill
  */
 export interface CanvaAutofillDesignResponse {
-  design: {
+  job: {
     id: string;
-    urls: {
-      edit_url: string;
+    status: 'in_progress' | 'success' | 'failed';
+    design?: {
+      id: string;
+      urls: {
+        edit_url: string;
+      };
+    };
+    error?: {
+      code: string;
+      message: string;
     };
   };
 }
@@ -100,8 +108,10 @@ export interface CanvaExportResponse {
   job: {
     id: string;
     status: 'in_progress' | 'success' | 'failed';
-    result?: {
-      url: string;
+    urls?: string[];
+    error?: {
+      code: string;
+      message: string;
     };
   };
 }

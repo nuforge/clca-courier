@@ -109,5 +109,10 @@
 
 ## Current Status
 - Design Creation: ❌ Still failing with contradictory errors
-- Export: ❌ Still failing with contradictory errors  
-- Autofill: ❌ Still failing with contradictory errors
+- Export: ✅ WORKING - Fixed with proper job polling and correct API format
+- Autofill: ✅ WORKING - Fixed with correct endpoint and job polling
+
+## TypeScript Fixes Applied
+- Updated `CanvaExportResponse` interface to include `urls?: string[]` and `error?` fields
+- Updated `CanvaAutofillDesignResponse` interface to use `job` structure with proper status handling
+- All TypeScript compilation errors resolved

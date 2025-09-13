@@ -117,7 +117,8 @@ export class CanvaApiService {
           url: error.config?.url,
           message: error.message,
           responseData: error.response?.data,
-          requestData: error.config?.data
+          requestData: error.config?.data,
+          fullResponse: JSON.stringify(error.response?.data, null, 2)
         });
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -533,7 +534,7 @@ export class CanvaApiService {
       const job = response.data.job;
 
       // Check if export is immediately ready
-      if (job.status === 'success' && job.urls && job.urls.length > 0) {
+      if (job.status === 'success' && job.urls && job.urls.length > 0 && job.urls[0]) {
         logger.success('Canva design export ready immediately:', {
           designId,
           exportUrl: job.urls[0]
@@ -818,7 +819,7 @@ export class CanvaApiService {
 
         const job = response.data.job;
 
-        if (job.status === 'success' && job.urls && job.urls.length > 0) {
+        if (job.status === 'success' && job.urls && job.urls.length > 0 && job.urls[0]) {
           logger.success('Canva design export completed:', {
             designId,
             jobId,
