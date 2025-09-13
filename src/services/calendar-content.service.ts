@@ -20,8 +20,9 @@ import { logger } from '../utils/logger';
 import {
   normalizeDate,
   formatEventDateTime,
-  toISODateString,
-  sortByDateAsc
+  getLocalDateString,
+  sortByDateAsc,
+  formatTimeString
 } from '../utils/date-formatter';
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
@@ -78,7 +79,7 @@ class CalendarContentService {
   /**
    * Convert ContentDoc with date feature to CalendarEvent
    */
-  private convertContentDocToCalendarEvent(doc: ContentDoc): CalendarEvent | null {
+  private convertContentDocToCalendarEvent(doc: ContentDoc, use24Hour?: boolean): CalendarEvent | null {
     // Must have date feature to be a calendar event
     if (!contentUtils.hasFeature(doc, 'feat:date')) {
       return null;
@@ -100,14 +101,14 @@ class CalendarContentService {
       authorName: doc.authorName,
       tags: doc.tags,
       status: doc.status,
-      eventDate: toISODateString(startDate) ?? '',
+      eventDate: getLocalDateString(startDate) ?? '',
       allDay: dateFeature.isAllDay,
       featured: doc.tags.includes('featured:true'),
     };
 
     // Add end date if present
     if (endDate) {
-      const endDateStr = toISODateString(endDate);
+      const endDateStr = getLocalDateString(endDate);
       if (endDateStr) {
         event.eventEndDate = endDateStr;
       }
@@ -122,11 +123,11 @@ class CalendarContentService {
     // Extract time information from timestamps if not all-day
     if (!dateFeature.isAllDay) {
       const startTime = startDate.toTimeString().slice(0, 5); // HH:MM format
-      event.eventTime = startTime;
+      event.eventTime = formatTimeString(startTime, use24Hour);
 
       if (endDate) {
         const endTime = endDate.toTimeString().slice(0, 5);
-        event.eventEndTime = endTime;
+        event.eventEndTime = formatTimeString(endTime, use24Hour);
       }
     }
 
@@ -146,7 +147,7 @@ class CalendarContentService {
   /**
    * Get calendar events using the new ContentDoc architecture
    */
-  async getCalendarEvents(filters: CalendarEventFilters = {}): Promise<CalendarEvent[]> {
+  async getCalendarEvents(filters: CalendarEventFilters = {}, use24Hour?: boolean): Promise<CalendarEvent[]> {
     try {
       logger.info('Fetching calendar events from ContentDoc collection', { filters });
 
@@ -179,7 +180,7 @@ class CalendarContentService {
         });
 
         // Convert to calendar event
-        const event = this.convertContentDocToCalendarEvent(data);
+        const event = this.convertContentDocToCalendarEvent(data, use24Hour);
         if (!event) {
           return; // Skip if not a valid calendar event
         }
@@ -238,7 +239,7 @@ class CalendarContentService {
   /**
    * Get events for a specific month
    */
-  async getEventsForMonth(year: number, month: number): Promise<CalendarEvent[]> {
+  async getEventsForMonth(year: number, month: number, use24Hour?: boolean): Promise<CalendarEvent[]> {
     // Use timezone-safe date creation for month boundaries
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
@@ -251,17 +252,17 @@ class CalendarContentService {
     return this.getCalendarEvents({
       startDate: startDate,
       endDate: endDate,
-    });
+    }, use24Hour);
   }
 
   /**
    * Get events for a specific date
    */
-  async getEventsForDate(date: string): Promise<CalendarEvent[]> {
+  async getEventsForDate(date: string, use24Hour?: boolean): Promise<CalendarEvent[]> {
     return this.getCalendarEvents({
       startDate: date,
       endDate: date,
-    });
+    }, use24Hour);
   }
 
   /**
@@ -269,7 +270,8 @@ class CalendarContentService {
    */
   subscribeToCalendarEvents(
     filters: CalendarEventFilters = {},
-    callback: (events: CalendarEvent[]) => void
+    callback: (events: CalendarEvent[]) => void,
+    use24Hour?: boolean
   ): Unsubscribe {
     try {
       const q = query(
@@ -285,7 +287,7 @@ class CalendarContentService {
           const data = docSnapshot.data() as ContentDoc;
 
           // Convert to calendar event
-          const event = this.convertContentDocToCalendarEvent(data);
+          const event = this.convertContentDocToCalendarEvent(data, use24Hour);
           if (!event) {
             return; // Skip if not a valid calendar event
           }
@@ -337,12 +339,13 @@ class CalendarContentService {
   /**
    * Format event time for display using centralized date formatting
    */
-  formatEventTime(event: CalendarEvent): string {
+  formatEventTime(event: CalendarEvent, use24Hour?: boolean): string {
     return formatEventDateTime(
       event.eventDate,
       event.eventTime,
       event.eventEndTime,
-      event.allDay
+      event.allDay,
+      use24Hour
     );
   }
 

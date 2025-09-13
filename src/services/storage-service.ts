@@ -23,6 +23,9 @@ export interface UserSettings {
     pageLayout: 'single' | 'facing' | 'cover';
     thumbnailSize: 'small' | 'medium' | 'large';
   };
+  timeFormat: {
+    use24Hour: 'auto' | '12hour' | '24hour';
+  };
 }
 
 interface StoredSettings {
@@ -60,6 +63,9 @@ const DEFAULT_SETTINGS: UserSettings = {
     defaultZoom: 1.0,
     pageLayout: 'cover',
     thumbnailSize: 'medium',
+  },
+  timeFormat: {
+    use24Hour: 'auto',
   },
 };
 
@@ -254,6 +260,18 @@ class StorageService {
     const current = await this.getUserSettings();
     await this.saveUserSettings({
       pdf: { ...current.pdf, ...pdf },
+    });
+  }
+
+  async getTimeFormatSettings() {
+    const settings = await this.getUserSettings();
+    return settings.timeFormat;
+  }
+
+  async setTimeFormatSettings(timeFormat: Partial<UserSettings['timeFormat']>): Promise<void> {
+    const current = await this.getUserSettings();
+    await this.saveUserSettings({
+      timeFormat: { ...current.timeFormat, ...timeFormat },
     });
   }
 

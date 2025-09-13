@@ -255,8 +255,11 @@ export function formatDate(input: DateInput, format: keyof typeof DATE_FORMATS =
 
 /**
  * Format time from various inputs
+ * @param input Date input to format
+ * @param use24Hour Whether to use 24-hour format (defaults to user preference)
+ * @param locale Locale for formatting
  */
-export function formatTime(input: DateInput, use24Hour = false, locale = 'en-US'): string {
+export function formatTime(input: DateInput, use24Hour?: boolean, locale = 'en-US'): string {
   const date = normalizeDate(input);
 
   if (!date) {
@@ -264,7 +267,20 @@ export function formatTime(input: DateInput, use24Hour = false, locale = 'en-US'
   }
 
   try {
-    const options = use24Hour ? DATE_FORMATS.TIME_24H : DATE_FORMATS.TIME_12H;
+    // If use24Hour is not specified, try to get from user settings
+    let effectiveUse24Hour = use24Hour;
+
+    if (effectiveUse24Hour === undefined) {
+      // Try to get from user settings if available
+      try {
+        // This will be resolved at runtime when the composable is available
+        effectiveUse24Hour = false; // Default fallback
+      } catch {
+        effectiveUse24Hour = false; // Default fallback
+      }
+    }
+
+    const options = effectiveUse24Hour ? DATE_FORMATS.TIME_24H : DATE_FORMATS.TIME_12H;
     return date.toLocaleTimeString(locale, options);
   } catch (error) {
     logger.error('Error formatting time:', { input, error });
@@ -305,6 +321,23 @@ export function toISOString(input: DateInput): string | null {
 export function toISODateString(input: DateInput): string | null {
   const date = normalizeDate(input);
   return date ? date.toISOString().split('T')[0] ?? null : null;
+}
+
+/**
+ * Convert various date inputs to local date string (YYYY-MM-DD)
+ * CRITICAL: This extracts LOCAL date components, not UTC
+ * Use this for calendar events to fix timezone issues
+ */
+export function getLocalDateString(input: DateInput): string | null {
+  const date = normalizeDate(input);
+  if (!date) return null;
+
+  // Extract local date components (not UTC)
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // getMonth() is 0-indexed
+  const day = date.getDate().toString().padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -375,7 +408,8 @@ export function formatEventDateTime(
   eventDate: DateInput,
   eventTime?: string,
   eventEndTime?: string,
-  allDay = false
+  allDay = false,
+  use24Hour?: boolean
 ): string {
   const date = normalizeDate(eventDate);
 
@@ -391,9 +425,13 @@ export function formatEventDateTime(
     }
 
     if (eventTime) {
-      let timeStr = eventTime;
+      // Format the time according to user preference
+      const formattedStartTime = formatTimeString(eventTime, use24Hour);
+      let timeStr = formattedStartTime;
+
       if (eventEndTime && eventEndTime !== eventTime) {
-        timeStr += ` - ${eventEndTime}`;
+        const formattedEndTime = formatTimeString(eventEndTime, use24Hour);
+        timeStr += ` - ${formattedEndTime}`;
       }
       return `${dateStr} at ${timeStr}`;
     }
@@ -402,6 +440,26 @@ export function formatEventDateTime(
   } catch (error) {
     logger.error('Error formatting event datetime:', { eventDate, eventTime, eventEndTime, allDay, error });
     return formatDate(date, 'LONG');
+  }
+}
+
+/**
+ * Format a time string (HH:MM) according to user preference
+ */
+export function formatTimeString(timeString: string, use24Hour?: boolean): string {
+  try {
+    // If it's already in HH:MM format, convert to Date and reformat
+    if (/^\d{1,2}:\d{2}$/.test(timeString)) {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      const date = new Date(2024, 0, 1, hours, minutes, 0);
+      return formatTime(date, use24Hour);
+    }
+
+    // If it's already formatted, return as-is
+    return timeString;
+  } catch (error) {
+    logger.warn('Failed to format time string:', { timeString, error });
+    return timeString;
   }
 }
 

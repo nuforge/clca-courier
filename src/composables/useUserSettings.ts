@@ -114,6 +114,14 @@ export const useUserSettings = () => {
     await storageService.setPdfSettings(updates);
   }
 
+  // Time format settings
+  const timeFormatSettings = computed(() => userSettings.value.timeFormat);
+
+  async function updateTimeFormatSettings(updates: Partial<UserSettings['timeFormat']>) {
+    userSettings.value.timeFormat = { ...userSettings.value.timeFormat, ...updates };
+    await storageService.setTimeFormatSettings(updates);
+  }
+
   // Language setting
   const currentLanguage = computed(() => userSettings.value.language as SupportedLocale);
 
@@ -176,6 +184,10 @@ export const useUserSettings = () => {
     // PDF
     pdfSettings,
     updatePdfSettings,
+
+    // Time Format
+    timeFormatSettings,
+    updateTimeFormatSettings,
 
     // Language
     currentLanguage,

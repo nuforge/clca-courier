@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useTheme } from '../composables/useTheme';
 import { useUserSettings } from '../composables/useUserSettings';
 import { useLocale } from '../composables/useLocale';
+import { useTimeFormat } from '../composables/useTimeFormat';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
@@ -12,6 +13,7 @@ import type { SupportedLocale } from '../i18n/utils/locale-detector';
 const userSettings = useUserSettings();
 const { isDarkMode, currentTheme, setTheme } = useTheme();
 const { currentLocale, currentLocaleInfo, locales, switchLocale } = useLocale();
+const { timeFormatPreference, timeFormatOptions, getTimeFormatExample, setTimeFormatPreference } = useTimeFormat();
 const $q = useQuasar();
 const { t } = useI18n();
 
@@ -21,6 +23,7 @@ const settingsExpanded = ref({
   theme: true,
   notifications: false,
   display: false,
+  timeFormat: false,
   pdf: false,
 });
 
@@ -76,6 +79,16 @@ async function handlePdfUpdate(key: string, value: number | string | null) {
       timeout: 2000,
     });
   }
+}
+
+async function handleTimeFormatChange(preference: 'auto' | '12hour' | '24hour') {
+  await setTimeFormatPreference(preference);
+  $q.notify({
+    message: t(TRANSLATION_KEYS.SETTINGS_PAGE.TIME_FORMAT_SETTINGS),
+    type: 'positive',
+    position: 'top',
+    timeout: 2000,
+  });
 }
 
 function resetAllSettings() {
@@ -297,6 +310,37 @@ function importSettings() {
                   <div class="text-caption text-grey-6 q-ml-md">
                     {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.AUTOPLAY_VIDEOS_DESCRIPTION) }}
                   </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <!-- Time Format Settings -->
+          <q-expansion-item v-model="settingsExpanded.timeFormat" icon="mdi-clock-outline" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.TIME_FORMAT_SETTINGS)" class="q-mb-md">
+            <q-card>
+              <q-card-section>
+                <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.TIME_FORMAT_SETTINGS) }}</div>
+
+                <div class="text-body2 q-mb-md">
+                  {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.TIME_FORMAT_DESCRIPTION) }}
+                </div>
+
+                <q-option-group
+                  :model-value="timeFormatPreference"
+                  @update:model-value="handleTimeFormatChange"
+                  :options="timeFormatOptions.map(option => ({
+                    label: option.label,
+                    value: option.value,
+                    description: option.description
+                  }))"
+                  color="primary"
+                  type="radio"
+                />
+
+                <q-separator class="q-my-md" />
+
+                <div class="text-body2 text-grey-6">
+                  {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.TIME_FORMAT_EXAMPLE, { example: getTimeFormatExample }) }}
                 </div>
               </q-card-section>
             </q-card>

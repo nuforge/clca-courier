@@ -55,27 +55,7 @@
           <!-- Calendar Grid -->
           <q-card flat class="calendar-grid shadow-1 q-mb-md">
             <q-card-section class="q-pa-none">
-              <!-- Calendar Component -->
-              <q-date
-                :key="calendarKey"
-                v-model="calendarModel"
-                :events="calendarEvents"
-                :event-color="getEventColorForDate"
-                today-btn
-                class="full-width"
-                @update:model-value="onDateSelect"
-                @navigation="onCalendarNavigation"
-                landscape
-                :default-year-month="defaultYearMonth"
-                :navigation-min-year-month="`2020/01`"
-                :navigation-max-year-month="`2030/12`"
-                flat
-                emit-immediately
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
-                ref="calendarRef"
-              />
-            </q-card-section>
-          </q-card>
+
 
           <!-- Calendar Toolbar -->
           <q-card flat class="q-mb-md">
@@ -152,83 +132,28 @@
             </q-card-section>
           </q-card>
 
-          <!-- Monthly Events List -->
-          <q-card flat class="shadow-1">
-            <q-card-section>
-              <div class="text-h6 q-mb-md text-weight-light">
-                <q-icon name="mdi-calendar-month" class="q-mr-sm" color="primary" />
-                {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_FOR_MONTH, { month: monthName, year: calendarState.currentYear }) }}
-              </div>
-
-              <!-- Events grouped by day -->
-              <div v-if="monthlyEventsGrouped.length > 0" class="q-gutter-sm">
-                <q-expansion-item
-                  v-for="dayGroup in monthlyEventsGrouped"
-                  :key="dayGroup.date"
-                  :label="formatDayGroupLabel(dayGroup)"
-                  :caption="`${dayGroup.events.length} ${dayGroup.events.length === 1 ? $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENT) : $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS)}`"
-                  :model-value="isExpansionOpen(dayGroup.date)"
-                  @update:model-value="(isOpen) => onExpansionChange(dayGroup.date, isOpen)"
-                  header-class="text-weight-medium"
-                  class="monthly-events-group"
-                >
-                  <template v-slot:header>
-                    <div class="row items-center full-width">
-                      <div class="col">
-                        <div class="text-subtitle2">{{ formatDayGroupLabel(dayGroup) }}</div>
-                        <div class="text-caption text-grey-6">
-                          {{ dayGroup.events.length }} {{ dayGroup.events.length === 1 ? $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENT) : $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS) }}
-                        </div>
-                      </div>
-                      <div class="col-auto">
-                        <q-chip
-                          v-for="event in dayGroup.events.slice(0, 3)"
-                          :key="event.id"
-                          dense
-                          square
-                          :color="getEventColor(event)"
-                          text-color="white"
-                          size="xs"
-                          :icon="getEventIcon(event)"
-                          class="q-mr-xs"
-                        />
-                        <q-chip
-                          v-if="dayGroup.events.length > 3"
-                          dense
-                          square
-                          color="grey-4"
-                          text-color="grey-8"
-                          size="xs"
-                          :label="`+${dayGroup.events.length - 3}`"
-                        />
-                      </div>
-                    </div>
-                  </template>
-
-                  <div class="q-gutter-sm q-pt-sm">
-                    <CalendarEventCardContent
-                      v-for="event in dayGroup.events"
-                      :key="event.id"
-                      :event="event"
-                      compact
-                      @click="onEventClick(event)"
-                    />
-                  </div>
-                </q-expansion-item>
-              </div>
-
-              <!-- No events message -->
-              <div v-else class="text-center q-pa-lg text-grey-6">
-                <q-icon name="mdi-calendar-blank" size="48px" class="q-mb-md" />
-                <div class="text-subtitle1">{{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.NO_EVENTS_THIS_MONTH) }}</div>
-                <div class="text-caption">{{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.NO_EVENTS_THIS_MONTH_DESC) }}</div>
-              </div>
+              <!-- Calendar Component -->
+              <q-date
+                :key="calendarKey"
+                v-model="calendarModel"
+                :events="calendarEvents"
+                :event-color="getEventColorForDate"
+                today-btn
+                class="full-width"
+                @update:model-value="onDateSelect"
+                @navigation="onCalendarNavigation"
+                landscape
+                :default-year-month="defaultYearMonth"
+                :navigation-min-year-month="`2020/01`"
+                :navigation-max-year-month="`2030/12`"
+                flat
+                emit-immediately
+                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
+                ref="calendarRef"
+              />
             </q-card-section>
           </q-card>
-        </div>
 
-        <!-- Right Column: Event Details Pane -->
-        <div class="col-12 col-lg-4">
           <q-card flat class="shadow-1 sticky-details-pane">
             <q-card-section>
               <div class="text-h6 q-mb-md text-weight-light">
@@ -343,6 +268,65 @@
               </div>
             </q-card-section>
           </q-card>
+
+
+        </div>
+
+        <!-- Right Column: Event Details Pane -->
+        <div class="col-12 col-lg-4 q-gutter-sm">
+
+           <!-- Monthly Events List -->
+           <q-card flat class="shadow-1">
+             <q-card-section>
+               <div class="text-h6 q-mb-md text-weight-light">
+                 <q-icon name="mdi-calendar-month" class="q-mr-sm" color="primary" />
+                 {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_FOR_MONTH, { month: monthName, year: calendarState.currentYear }) }}
+               </div>
+
+               <!-- Upcoming Events Section -->
+               <div class="q-mb-lg">
+                 <EventsListSection
+                   :title="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.UPCOMING_EVENTS)"
+                   :events-grouped="upcomingEventsGrouped"
+                   icon="mdi-calendar-clock"
+                   icon-color="primary"
+                   chip-color="primary"
+                   empty-icon="mdi-calendar-clock"
+                   :empty-message="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NO_UPCOMING_EVENTS)"
+                   :get-event-icon="getEventIcon"
+                   :get-event-color="getEventColor"
+                   :is-expansion-open="isExpansionOpen"
+                   :on-expansion-change="onExpansionChange"
+                   @event-click="onEventClick"
+                   @expand-all="expandAllUpcoming"
+                   @collapse-all="collapseAllUpcoming"
+                 />
+               </div>
+              </q-card-section>
+             </q-card>
+              <q-card flat class="shadow-1">
+                <q-card-section>
+
+              <!-- All Events Section -->
+              <EventsListSection
+                :title="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.ALL_EVENTS)"
+                :events-grouped="monthlyEventsGrouped"
+                icon="mdi-calendar-multiple"
+                icon-color="primary"
+                chip-color="secondary"
+                empty-icon="mdi-calendar-blank"
+                :empty-message="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NO_EVENTS_THIS_MONTH)"
+                :get-event-icon="getEventIcon"
+                :get-event-color="getEventColor"
+                :is-expansion-open="isExpansionOpen"
+                :on-expansion-change="onExpansionChange"
+                @event-click="onEventClick"
+                @expand-all="expandAllEvents"
+                @collapse-all="collapseAllEvents"
+              />
+
+            </q-card-section>
+          </q-card>
         </div>
       </div>
 
@@ -356,7 +340,7 @@ import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useCalendarContent } from '../composables/useCalendarContent';
 import type { CalendarEvent } from '../services/calendar-content.service';
-import CalendarEventCardContent from '../components/calendar/CalendarEventCardContent.vue';
+import EventsListSection from '../components/calendar/EventsListSection.vue';
 import { logger } from '../utils/logger';
 import { formatDate, getCurrentYear, getCurrentMonth, parseDateOnly, isPast, isFuture } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
@@ -420,7 +404,7 @@ const filteredEventsCount = computed(() => {
   return Object.values(eventsByDate.value).flat().length;
 });
 
-// Computed for monthly events grouped by day
+// Computed for all monthly events grouped by day
 const monthlyEventsGrouped = computed(() => {
   const grouped: Array<{ date: string; events: CalendarEvent[] }> = [];
 
@@ -455,6 +439,18 @@ const monthlyEventsGrouped = computed(() => {
   // Sort groups by date
   return grouped.sort((a, b) => a.date.localeCompare(b.date));
 });
+
+// Computed for upcoming events only (today and future)
+const upcomingEventsGrouped = computed(() => {
+  const today = new Date();
+  const todayISO = today.toISOString().split('T')[0] ?? '';
+
+  return monthlyEventsGrouped.value.filter(dayGroup => {
+    // Include today and future dates
+    return dayGroup.date >= todayISO;
+  });
+});
+
 
 // Computed to determine if an expansion item should be open
 const isExpansionOpen = (date: string): boolean => {
@@ -640,6 +636,39 @@ const refreshEvents = () => {
   void loadEventsForMonth(calendarState.value.currentYear, calendarState.value.currentMonth);
 };
 
+// Expand/Collapse All functionality
+const expandAllUpcoming = () => {
+  upcomingEventsGrouped.value.forEach(dayGroup => {
+    expansionState.value[dayGroup.date] = true;
+    autoOpenedDays.value.add(dayGroup.date);
+  });
+  logger.debug('🗓️ Expanded all upcoming events');
+};
+
+const collapseAllUpcoming = () => {
+  upcomingEventsGrouped.value.forEach(dayGroup => {
+    expansionState.value[dayGroup.date] = false;
+    autoOpenedDays.value.delete(dayGroup.date);
+  });
+  logger.debug('🗓️ Collapsed all upcoming events');
+};
+
+const expandAllEvents = () => {
+  monthlyEventsGrouped.value.forEach(dayGroup => {
+    expansionState.value[dayGroup.date] = true;
+    autoOpenedDays.value.add(dayGroup.date);
+  });
+  logger.debug('🗓️ Expanded all events');
+};
+
+const collapseAllEvents = () => {
+  monthlyEventsGrouped.value.forEach(dayGroup => {
+    expansionState.value[dayGroup.date] = false;
+    autoOpenedDays.value.delete(dayGroup.date);
+  });
+  logger.debug('🗓️ Collapsed all events');
+};
+
 
 const applyFilters = () => {
   const newFilters: typeof filters.value = {};
@@ -710,23 +739,6 @@ const formatSelectedDate = (dateStr: string) => {
   return formatDate(date, 'FULL');
 };
 
-const formatDayGroupLabel = (dayGroup: { date: string; events: CalendarEvent[] }) => {
-  // Use centralized date parsing to avoid timezone issues
-  const date = parseDateOnly(dayGroup.date);
-  if (!date) {
-    logger.warn('Invalid date in formatDayGroupLabel:', dayGroup.date);
-    return 'Invalid Date';
-  }
-
-  const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
-
-  if (isToday) {
-    return `${formatDate(date, 'SHORT')} (${t(TRANSLATION_KEYS.CONTENT.CALENDAR.TODAY)})`;
-  }
-
-  return formatDate(date, 'SHORT');
-};
 
 const getDisplayTags = (event: CalendarEvent): string[] => {
   // Filter out content-type tags and system tags, show only meaningful tags
@@ -867,6 +879,39 @@ watch(() => monthName.value, (newMonthName) => {
   logger.debug('🗓️ Month name changed:', newMonthName);
 });
 
+// Auto-select single events when they become available for the selected date
+watch(() => [events.value, calendarState.value.selectedDate], ([newEvents, selectedDate]) => {
+  if (selectedDate && typeof selectedDate === 'string' && newEvents && newEvents.length > 0) {
+    // Get events for the currently selected date
+    const eventsForSelectedDate = getEventsForDate(selectedDate);
+
+    if (eventsForSelectedDate.length === 1) {
+      // Auto-select if there's exactly one event for the selected date
+      const singleEvent = eventsForSelectedDate[0];
+      if (singleEvent) {
+        selectedEvent.value = singleEvent;
+        logger.debug('🗓️ Auto-selected single event for date:', {
+          date: selectedDate,
+          event: singleEvent.title
+        });
+      }
+    } else if (eventsForSelectedDate.length === 0) {
+      // Clear selection if there are no events for the selected date
+      selectedEvent.value = null;
+      logger.debug('🗓️ Cleared selection - no events for date:', selectedDate);
+    } else {
+      // Multiple events - don't auto-select, but keep current selection if it's still valid
+      const currentEventStillValid = selectedEvent.value &&
+        eventsForSelectedDate.some(event => event.id === selectedEvent.value?.id);
+
+      if (!currentEventStillValid) {
+        selectedEvent.value = null;
+        logger.debug('🗓️ Cleared selection - multiple events for date:', selectedDate);
+      }
+    }
+  }
+}, { immediate: true });
+
 // Initialize calendar on mount
 onMounted(() => {
   // Ensure calendar state is properly initialized
@@ -965,8 +1010,4 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.event-details-content {
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
-}
 </style>

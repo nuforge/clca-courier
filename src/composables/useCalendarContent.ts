@@ -12,6 +12,7 @@ import { calendarContentService, type CalendarEvent, type CalendarEventFilters }
 import { logger } from '../utils/logger';
 import { getCurrentYear, getCurrentMonth } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
+import { useTimeFormat } from './useTimeFormat';
 import type { Unsubscribe } from 'firebase/firestore';
 
 export interface CalendarState {
@@ -23,6 +24,7 @@ export interface CalendarState {
 
 export const useCalendarContent = () => {
   const { t } = useI18n();
+  const { effectiveTimeFormat } = useTimeFormat();
 
   // Reactive state
   const events = ref<CalendarEvent[]>([]);
@@ -141,7 +143,7 @@ export const useCalendarContent = () => {
       const loadedEvents = await calendarContentService.getCalendarEvents({
         ...filters.value,
         ...loadFilters,
-      });
+      }, effectiveTimeFormat.value);
 
       events.value = loadedEvents;
       logger.success(`Loaded ${loadedEvents.length} calendar events`);
@@ -159,7 +161,7 @@ export const useCalendarContent = () => {
     error.value = null;
 
     try {
-      const monthEvents = await calendarContentService.getEventsForMonth(year, month);
+      const monthEvents = await calendarContentService.getEventsForMonth(year, month, effectiveTimeFormat.value);
       events.value = monthEvents;
       logger.success(`Loaded ${monthEvents.length} events for ${month}/${year}`);
     } catch (err) {
@@ -183,7 +185,8 @@ export const useCalendarContent = () => {
         (updatedEvents) => {
           events.value = updatedEvents;
           logger.info(`Real-time update: ${updatedEvents.length} calendar events`);
-        }
+        },
+        effectiveTimeFormat.value
       );
     } catch (err) {
       logger.error('Failed to subscribe to calendar events', { error: err });
@@ -311,7 +314,7 @@ export const useCalendarContent = () => {
 
   // Format utilities
   const formatEventTime = (event: CalendarEvent): string => {
-    return calendarContentService.formatEventTime(event);
+    return calendarContentService.formatEventTime(event, effectiveTimeFormat.value);
   };
 
   const getEventIcon = (event: CalendarEvent): string => {

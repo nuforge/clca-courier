@@ -64,7 +64,7 @@
           </div>
 
           <!-- Content Type and Tags -->
-          <div v-if="!compact && (getContentTypeDisplay(event) || event.tags.length > 0)" class="row items-center q-gutter-xs q-mt-xs">
+          <div v-if="!compact && (getContentTypeDisplay(event) || getDisplayTags(event).length > 0)" class="row items-center q-gutter-xs q-mt-xs">
             <!-- Content Type Badge -->
             <q-chip
               v-if="getContentTypeDisplay(event)"
@@ -79,6 +79,7 @@
 
             <!-- Additional Tags -->
             <TagDisplay
+              v-if="getDisplayTags(event).length > 0"
               :tags="getDisplayTags(event)"
               variant="flat"
               :max-display="2"
