@@ -406,6 +406,9 @@ export function useCanvaAuth() {
       state.value.isAuthenticated = true;
       state.value.isLoading = false;
 
+      // Set access token in API service
+      canvaApiService.setAccessToken(tokens.accessToken);
+
       logger.success('Canva OAuth authentication completed successfully');
 
       $q.notify({
@@ -450,6 +453,9 @@ export function useCanvaAuth() {
       state.value.isAuthenticated = false;
       state.value.error = null;
 
+      // Clear access token in API service
+      canvaApiService.setAccessToken(null);
+
       logger.info('Signed out from Canva successfully');
 
       $q.notify({
@@ -486,6 +492,8 @@ export function useCanvaAuth() {
         if (tokens) {
           state.value.tokens = tokens;
           state.value.isAuthenticated = true;
+          // Set access token in API service
+          canvaApiService.setAccessToken(tokens.accessToken);
           logger.info('Canva authentication restored from storage');
         }
       }
@@ -504,10 +512,14 @@ export function useCanvaAuth() {
         if (tokens) {
           state.value.tokens = tokens;
           state.value.isAuthenticated = true;
+          // Set access token in API service
+          canvaApiService.setAccessToken(tokens.accessToken);
           logger.info('Canva authentication state refreshed');
         } else {
           state.value.tokens = null;
           state.value.isAuthenticated = false;
+          // Clear access token in API service
+          canvaApiService.setAccessToken(null);
           logger.info('No Canva tokens found, user not authenticated');
         }
       }

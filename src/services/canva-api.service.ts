@@ -41,6 +41,7 @@ export class CanvaApiService {
     baseDelayMs: number;
     maxDelayMs: number;
   };
+  private accessToken: string | null = null;
 
   constructor() {
     // Load configuration from environment variables following project patterns
@@ -84,8 +85,10 @@ export class CanvaApiService {
         // Apply rate limiting
         await this.checkRateLimit();
 
-        // OAuth token will be added when authentication is implemented
-        // config.headers.Authorization = `Bearer ${accessToken}`;
+        // Add OAuth token if available
+        if (this.accessToken) {
+          config.headers.Authorization = `Bearer ${this.accessToken}`;
+        }
         logger.debug('Canva API request:', {
           method: config.method,
           url: config.url,
@@ -628,6 +631,136 @@ export class CanvaApiService {
         throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     });
+  }
+
+  /**
+   * Get user's designs from Canva
+   * @returns Array of user's designs
+   */
+  async getTemplates(): Promise<Array<{ id: string; title: string; thumbnailUrl?: string }>> {
+    logger.info('Fetching user designs from Canva');
+
+    return this.executeWithRetry(async () => {
+      // Use the correct Canva API endpoint for listing designs
+      const response = await this.axiosInstance.get('/designs');
+      logger.info('Designs endpoint response:', { data: response.data });
+
+      // Handle the actual Canva API response structure
+      let designs: Record<string, unknown>[] = [];
+
+      if (response.data.items) {
+        designs = response.data.items;
+      } else if (response.data.designs) {
+        designs = response.data.designs;
+      } else if (response.data.data) {
+        designs = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        designs = response.data;
+      } else {
+        logger.warn('Unexpected response structure:', response.data);
+        designs = [];
+      }
+
+      logger.info('Designs fetched successfully', { count: designs.length });
+
+      // Transform designs to match expected template format
+      return designs.map((design: Record<string, unknown>) => {
+        const result: { id: string; title: string; thumbnailUrl?: string } = {
+          id: design.id as string,
+          title: (design.title as string) || 'Untitled Design'
+        };
+
+        // Handle thumbnail from Canva API structure
+        if (design.thumbnail && typeof design.thumbnail === 'object' && design.thumbnail !== null) {
+          const thumbnail = design.thumbnail as Record<string, unknown>;
+          if (thumbnail.url) {
+            result.thumbnailUrl = thumbnail.url as string;
+          }
+        }
+
+        return result;
+      });
+    }, 'getTemplates()').catch((error) => {
+      const errorMessage = 'Failed to fetch designs';
+
+      if (axios.isAxiosError(error)) {
+        if (isCanvaApiError(error.response?.data)) {
+          const canvaError = error.response.data;
+          logger.error('Canva API error fetching designs:', {
+            code: canvaError.error.code,
+            message: canvaError.error.message,
+            details: canvaError.error.details
+          });
+          throw new Error(`${errorMessage}: ${canvaError.error.message}`);
+        } else {
+          logger.error('HTTP error fetching designs:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          });
+          throw new Error(`${errorMessage}: HTTP ${error.response?.status}`);
+        }
+      } else {
+        logger.error('Unexpected error fetching designs:', { error });
+        throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+  }
+
+  /**
+   * Create a simple test design to verify API connectivity
+   * @returns Design creation result
+   */
+  async createTestDesign(): Promise<{ id: string; editUrl: string }> {
+    logger.info('Creating test design to verify API connectivity');
+
+    return this.executeWithRetry(async () => {
+      const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
+        '/designs',
+        {
+          design_type: 'presentation',
+          // Don't specify template_id to create a blank design
+        }
+      );
+
+      logger.info('Test design created successfully', { designId: response.data.design.id });
+
+      return {
+        id: response.data.design.id,
+        editUrl: response.data.design.urls.edit_url
+      };
+    }, 'createTestDesign()').catch((error) => {
+      const errorMessage = 'Failed to create test design';
+
+      if (axios.isAxiosError(error)) {
+        if (isCanvaApiError(error.response?.data)) {
+          const canvaError = error.response.data;
+          logger.error('Canva API error creating test design:', {
+            code: canvaError.error.code,
+            message: canvaError.error.message,
+            details: canvaError.error.details
+          });
+          throw new Error(`${errorMessage}: ${canvaError.error.message}`);
+        } else {
+          logger.error('HTTP error creating test design:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          });
+          throw new Error(`${errorMessage}: HTTP ${error.response?.status}`);
+        }
+      } else {
+        logger.error('Unexpected error creating test design:', { error });
+        throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+  }
+
+  /**
+   * Set the access token for API authentication
+   * @param token The OAuth access token
+   */
+  setAccessToken(token: string | null): void {
+    this.accessToken = token;
+    logger.info('Canva API access token updated', { hasToken: !!token });
   }
 
   /**

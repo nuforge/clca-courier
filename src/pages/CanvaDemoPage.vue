@@ -156,16 +156,61 @@
                   label="Test Autofill Mapping"
                   @click="testAutofillMapping"
                   :loading="isTestingAutofill"
+                  class="full-width q-mb-sm"
+                />
+
+                <q-btn
+                  color="info"
+                  :icon="UI_ICONS.data"
+                  label="Test Autofill Data Only"
+                  @click="testAutofillDataOnly"
+                  :loading="isTestingAutofill"
                   class="full-width"
                 />
 
                 <q-btn
                   color="secondary"
                   :icon="UI_ICONS.palette"
+                  label="List My Designs"
+                  @click="listMyTemplates"
+                  :loading="isCreatingDesign"
+                  class="full-width q-mb-sm"
+                />
+
+                <q-btn
+                  color="secondary"
+                  :icon="UI_ICONS.palette"
+                  label="Create Blank Design"
+                  @click="createBlankDesign"
+                  :loading="isCreatingDesign"
+                  class="full-width q-mb-sm"
+                />
+
+                <q-btn
+                  color="accent"
+                  :icon="UI_ICONS.testTube"
+                  label="Create Test Design"
+                  @click="createTestDesign"
+                  :loading="isCreatingDesign"
+                  class="full-width q-mb-sm"
+                />
+
+                <q-btn
+                  color="accent"
+                  :icon="UI_ICONS.autoFix"
                   label="Create Design with Autofill"
                   @click="createDesignWithAutofill"
                   :loading="isCreatingDesign"
                   :disable="!selectedTemplate"
+                  class="full-width q-mb-sm"
+                />
+
+                <q-btn
+                  color="positive"
+                  :icon="UI_ICONS.create"
+                  label="Create Design from Real Design"
+                  @click="createDesignFromRealTemplate"
+                  :loading="isCreatingDesign"
                   class="full-width"
                 />
               </div>
@@ -667,6 +712,244 @@ const testAutofillMapping = () => {
     });
   } finally {
     isTestingAutofill.value = false;
+  }
+};
+
+const testAutofillDataOnly = () => {
+  if (!selectedTemplate.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please select a template first',
+    });
+    return;
+  }
+
+  isTestingAutofill.value = true;
+  addLog('info', `Testing autofill data generation for template: ${selectedTemplate.value}`);
+
+  try {
+    const autofillData = prepareAutofillData(sampleContentDoc.value, selectedTemplate.value);
+
+    // Display the autofill data in a nice format
+    const dataPreview = Object.entries(autofillData)
+      .map(([key, value]) => `${key}: "${String(value)}"`)
+      .join('\n');
+
+    addLog('success', `Autofill data generated successfully:\n${dataPreview}`);
+
+    $q.notify({
+      type: 'positive',
+      message: `Generated ${Object.keys(autofillData).length} autofill fields`,
+      caption: 'Check the activity log for details',
+    });
+
+    // Store the results for display
+    autofillResults.value = autofillData;
+
+  } catch (error) {
+    logger.error('Autofill data generation failed:', error);
+    addLog('error', `Autofill data generation failed: ${String(error)}`);
+
+    $q.notify({
+      type: 'negative',
+      message: 'Autofill data generation failed',
+    });
+  } finally {
+    isTestingAutofill.value = false;
+  }
+};
+
+const listMyTemplates = async () => {
+  if (!isCanvaAuthenticated.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please connect your Canva account first',
+    });
+    return;
+  }
+
+  isCreatingDesign.value = true;
+  addLog('info', 'Fetching your Canva designs...');
+
+  try {
+    // Get your designs from Canva
+    const designs = await canvaApiService.getTemplates();
+
+    addLog('success', `Found ${designs.length} designs in your account`);
+
+    // Display design info
+    designs.forEach((design, index) => {
+      addLog('info', `Design ${index + 1}: ${design.title} (ID: ${design.id})`);
+    });
+
+    $q.notify({
+      type: 'positive',
+      message: `Found ${designs.length} designs! Check the activity log for details.`,
+    });
+
+  } catch (error) {
+    logger.error('Failed to fetch designs:', error);
+    addLog('error', `Failed to fetch designs: ${String(error)}`);
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to fetch designs from Canva',
+    });
+  } finally {
+    isCreatingDesign.value = false;
+  }
+};
+
+const createBlankDesign = async () => {
+  if (!isCanvaAuthenticated.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please connect your Canva account first',
+    });
+    return;
+  }
+
+  isCreatingDesign.value = true;
+  addLog('info', 'Creating blank Canva design');
+
+  try {
+    // For now, let's try to create a design using a common template
+    // In a real implementation, you'd want to use a specific template ID
+    const result = await canvaApiService.createDesignFromTemplate('blank');
+
+    addLog('success', `Blank design created successfully: ${result.id}`);
+
+    $q.notify({
+      type: 'positive',
+      message: 'Blank design created successfully!',
+      actions: [
+        {
+          label: 'Open Design',
+          color: 'white',
+          handler: () => {
+            window.open(result.editUrl, '_blank');
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    logger.error('Blank design creation failed:', error);
+    addLog('error', `Blank design creation failed: ${String(error)}`);
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create blank design. This might be because we need a real template ID.',
+    });
+  } finally {
+    isCreatingDesign.value = false;
+  }
+};
+
+const createTestDesign = async () => {
+  if (!isCanvaAuthenticated.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please connect your Canva account first',
+    });
+    return;
+  }
+
+  isCreatingDesign.value = true;
+  addLog('info', 'Creating test design to verify API connectivity');
+
+  try {
+    const result = await canvaApiService.createTestDesign();
+
+    addLog('success', `Test design created successfully: ${result.id}`);
+
+    $q.notify({
+      type: 'positive',
+      message: 'Test design created successfully! API is working.',
+      actions: [
+        {
+          label: 'Open Design',
+          color: 'white',
+          handler: () => {
+            window.open(result.editUrl, '_blank');
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    logger.error('Test design creation failed:', error);
+    addLog('error', `Test design creation failed: ${String(error)}`);
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create test design. Check the activity log for details.',
+    });
+  } finally {
+    isCreatingDesign.value = false;
+  }
+};
+
+const createDesignFromRealTemplate = async () => {
+  if (!isCanvaAuthenticated.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please connect your Canva account first',
+    });
+    return;
+  }
+
+  isCreatingDesign.value = true;
+  addLog('info', 'Creating design from a real Canva design...');
+
+  try {
+    // First, get your designs
+    const designs = await canvaApiService.getTemplates();
+
+    if (designs.length === 0) {
+      addLog('warning', 'No designs found in your account');
+      $q.notify({
+        type: 'warning',
+        message: 'No designs found in your Canva account',
+      });
+      return;
+    }
+
+    // Use the first design
+    const design = designs[0];
+    if (!design) {
+      addLog('error', 'No design available');
+      return;
+    }
+
+    addLog('info', `Using design: ${design.title} (ID: ${design.id})`);
+
+    // Create design from the real design (duplicate it)
+    const result = await canvaApiService.createDesignFromTemplate(design.id);
+
+    addLog('success', `Design created successfully: ${result.id}`);
+
+    $q.notify({
+      type: 'positive',
+      message: `Design created from: ${design.title}`,
+      actions: [
+        {
+          label: 'Open Design',
+          color: 'white',
+          handler: () => {
+            window.open(result.editUrl, '_blank');
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    logger.error('Real design creation failed:', error);
+    addLog('error', `Real design creation failed: ${String(error)}`);
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create design from real design',
+    });
+  } finally {
+    isCreatingDesign.value = false;
   }
 };
 

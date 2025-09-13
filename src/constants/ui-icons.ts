@@ -27,6 +27,7 @@ export const UI_ICONS = {
   plus: 'mdi-plus',
   documentPlus: 'mdi-file-document-plus',
   bookPlus: 'mdi-book-plus',
+  data: 'mdi-database',
 
   // Search & Filters
   search: 'search',
