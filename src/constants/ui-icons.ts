@@ -42,6 +42,7 @@ export const UI_ICONS = {
   loading: 'mdi-loading',
   check: 'mdi-check',
   checkCircle: 'mdi-check-circle',
+  closeCircle: 'mdi-close-circle',
   warning: 'mdi-alert',
   error: 'mdi-close-circle',
   info: 'mdi-information',
@@ -92,6 +93,9 @@ export const UI_ICONS = {
   help: 'mdi-help-circle',
   target: 'mdi-target',
   shield: 'mdi-shield-crown',
+  autoFix: 'mdi-auto-fix',
+  testTube: 'mdi-test-tube',
+  console: 'mdi-console',
 
   // Brand integrations
   canva: 'canva-icon', // Custom Canva icon component identifier

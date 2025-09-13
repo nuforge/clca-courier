@@ -11,7 +11,7 @@
             <q-icon :name="UI_ICONS.cog" class="q-mr-sm" />
             Admin Dashboard
           </h4>
-          <p class="text-body2 text-grey-6 q-my-none">
+          <p class="text-body2 q-my-none">
             Central hub for site administration and management
           </p>
         </div>
@@ -206,6 +206,55 @@
                       label="Quick Colors"
                       size="sm"
                       @click="showColorsDialog = true"
+                      class="full-width"
+                    />
+                  </div>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- Canva Integration Demo -->
+        <div class="col-12 col-md-6">
+          <q-card class="full-height">
+            <q-card-section>
+              <div class="text-h6 q-mb-md">
+                <q-icon :name="UI_ICONS.palette" class="q-mr-sm" />
+                Canva Integration Demo
+              </div>
+              <p class="text-body2 text-grey-6">
+                Test and demonstrate Canva Connect API features
+              </p>
+              <div class="q-col-gutter-sm">
+                <q-btn
+                  outline
+                  color="accent"
+                  :icon="UI_ICONS.autoFix"
+                  label="Canva Demo"
+                  to="/admin/canva-demo"
+                  class="full-width"
+                />
+                <div class="row q-gutter-sm q-px-none">
+                  <div class="col">
+                    <q-btn
+                      flat
+                      color="purple"
+                      :icon="UI_ICONS.autoFix"
+                      label="Autofill Test"
+                      size="sm"
+                      to="/admin/canva-demo#autofill"
+                      class="full-width"
+                    />
+                  </div>
+                  <div class="col">
+                    <q-btn
+                      flat
+                      color="indigo"
+                      :icon="UI_ICONS.download"
+                      label="Export Test"
+                      size="sm"
+                      to="/admin/canva-demo#export"
                       class="full-width"
                     />
                   </div>
