@@ -40,7 +40,7 @@ const tokenResponse = await fetch('http://localhost:3001/api/canva/oauth/token',
 const config = {
   apiBaseUrl: 'https://api.canva.com/rest/v1',  // From .env file
   clientId: 'OC-AZk4CNpGtlob',                  // From .env file
-  clientSecret: 'YOUR_CANVA_CLIENT_SECRET', // From .env file
+  clientSecret: process.env.VITE_CANVA_CLIENT_SECRET, // From .env file
   redirectUri: 'http://127.0.0.1:9000/canva/callback'
 };
 

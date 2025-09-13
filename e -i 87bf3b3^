@@ -1,0 +1,5 @@
+[33m1f78053[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcanva[m[33m)[m Security: Remove exposed Canva API secret from documentation
+[33m9c950e6[m fix: Update Canva API service and TypeScript interfaces for improved functionality
+[33m87bf3b3[m feat: Update Canva integration and UI for improved functionality
+[33m32cb924[m[33m ([m[1;31morigin/canva[m[33m)[m feat: Enhance Canva authentication and UI functionality
+[33m519f531[m feat: Add refreshAuthState function to enhance Canva authentication handling
