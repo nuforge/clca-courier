@@ -115,7 +115,9 @@ export class CanvaApiService {
         logger.error('Canva API response error:', {
           status: error.response?.status,
           url: error.config?.url,
-          message: error.message
+          message: error.message,
+          responseData: error.response?.data,
+          requestData: error.config?.data
         });
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -252,11 +254,11 @@ export class CanvaApiService {
     logger.info('Creating Canva design from template:', { templateId });
 
     return this.executeWithRetry(async () => {
+      // Based on actual API error: "'type' must not be null."
       const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
         '/designs',
         {
-          design_type: 'presentation', // Default to presentation type
-          template_id: templateId
+          design_type: 'presentation'
         }
       );
 
@@ -347,36 +349,51 @@ export class CanvaApiService {
     });
 
     return this.executeWithRetry(async () => {
-      // Structure request according to Canva's Autofill API documentation
+      // Based on official Canva API documentation: https://www.canva.dev/docs/connect/api-reference/autofills/
       const requestBody = {
-        design_type: 'presentation', // Default to presentation type
-        template_id: templateId,
-        autofill: sanitizedAutofillData
+        brand_template_id: templateId,
+        data: sanitizedAutofillData
       };
 
       const response: AxiosResponse<CanvaAutofillDesignResponse> = await this.axiosInstance.post(
-        '/designs?autofill=true',
+        '/autofills',
         requestBody
       );
 
-      // Validate response structure
-      if (!response.data?.design?.id || !response.data?.design?.urls?.edit_url) {
+      // Validate response structure - autofill returns a job, not immediate design
+      if (!response.data?.job?.id) {
         logger.error('Invalid response from Canva Autofill API:', { response: response.data });
-        throw new Error('Invalid response from Canva API: missing required fields');
+        throw new Error('Invalid response from Canva API: missing job ID');
       }
 
-      const design = response.data.design;
+      const job = response.data.job;
 
-      logger.success('Canva design created with autofill successfully:', {
-        designId: design.id,
-        templateId,
-        editUrl: design.urls.edit_url
-      });
+      // Check if autofill is immediately ready
+      if (job.status === 'success' && job.design?.id && job.design?.urls?.edit_url) {
+        logger.success('Canva design created with autofill immediately:', {
+          designId: job.design.id,
+          templateId,
+          editUrl: job.design.urls.edit_url
+        });
+        return {
+          designId: job.design.id,
+          editUrl: job.design.urls.edit_url
+        };
+      }
 
-      return {
-        designId: design.id,
-        editUrl: design.urls.edit_url
-      };
+      // Handle in-progress autofill - poll for completion
+      if (job.status === 'in_progress') {
+        logger.info('Canva design autofill in progress:', { templateId, jobId: job.id });
+        return await this.pollAutofillJob(job.id, templateId);
+      }
+
+      // Handle failed autofill
+      if (job.status === 'failed') {
+        logger.error('Canva design autofill failed:', { templateId, jobId: job.id });
+        throw new Error('Design autofill failed. Please try again.');
+      }
+
+      throw new Error(`Unexpected autofill job status: ${job.status}`);
 
     }, `createDesignWithAutofill(${templateId})`).catch((error) => {
       const errorMessage = `Failed to create design with autofill from template ${templateId}`;
@@ -487,11 +504,23 @@ export class CanvaApiService {
     logger.info('Exporting Canva design:', { designId });
 
     return this.executeWithRetry(async () => {
+      // First, verify the design exists by getting its details
+      try {
+        await this.getDesign(designId);
+      } catch (error) {
+        logger.error('Design not found before export:', { designId, error });
+        throw new Error(`Design ${designId} not found or not accessible`);
+      }
+
+      // Based on official Canva API documentation: https://www.canva.dev/docs/connect/api-reference/exports/create-design-export-job/
       const response: AxiosResponse<CanvaExportResponse> = await this.axiosInstance.post(
-        `/designs/${designId}/export`,
+        '/exports',
         {
-          format: 'pdf',
-          quality: 'standard'
+          design_id: designId,
+          format: {
+            type: 'pdf',
+            size: 'a4'
+          }
         }
       );
 
@@ -504,18 +533,18 @@ export class CanvaApiService {
       const job = response.data.job;
 
       // Check if export is immediately ready
-      if (job.status === 'success' && job.result?.url) {
+      if (job.status === 'success' && job.urls && job.urls.length > 0) {
         logger.success('Canva design export ready immediately:', {
           designId,
-          exportUrl: job.result.url
+          exportUrl: job.urls[0]
         });
-        return { exportUrl: job.result.url };
+        return { exportUrl: job.urls[0] };
       }
 
-      // Handle in-progress exports
+      // Handle in-progress exports - poll for completion
       if (job.status === 'in_progress') {
         logger.info('Canva design export in progress:', { designId, jobId: job.id });
-        throw new Error('Export is still in progress. Please check back later.');
+        return await this.pollExportJob(job.id, designId);
       }
 
       // Handle failed exports
@@ -707,6 +736,128 @@ export class CanvaApiService {
   }
 
   /**
+   * Poll an autofill job until completion
+   * @param jobId Autofill job ID
+   * @param templateId Template ID for logging
+   * @returns Design ID and edit URL when complete
+   */
+  private async pollAutofillJob(jobId: string, templateId: string): Promise<{ designId: string; editUrl: string }> {
+    const maxAttempts = 10;
+    const pollInterval = 2000; // 2 seconds
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      logger.info(`Polling autofill job ${jobId} (attempt ${attempt}/${maxAttempts})`);
+
+      try {
+        const response: AxiosResponse<CanvaAutofillDesignResponse> = await this.axiosInstance.get(
+          `/autofills/${jobId}`
+        );
+
+        const job = response.data.job;
+
+        if (job.status === 'success' && job.design?.id && job.design?.urls?.edit_url) {
+          logger.success('Canva design autofill completed:', {
+            templateId,
+            jobId,
+            designId: job.design.id,
+            editUrl: job.design.urls.edit_url
+          });
+          return {
+            designId: job.design.id,
+            editUrl: job.design.urls.edit_url
+          };
+        }
+
+        if (job.status === 'failed') {
+          logger.error('Canva design autofill failed:', { templateId, jobId, error: job.error });
+          throw new Error(`Autofill failed: ${job.error?.message || 'Unknown error'}`);
+        }
+
+        if (job.status === 'in_progress') {
+          if (attempt < maxAttempts) {
+            logger.info(`Autofill still in progress, waiting ${pollInterval}ms before next poll`);
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            continue;
+          } else {
+            throw new Error('Autofill job timed out after maximum polling attempts');
+          }
+        }
+
+        throw new Error(`Unexpected autofill job status: ${job.status}`);
+
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          logger.error('Failed to poll autofill job after maximum attempts:', { jobId, error });
+          throw error;
+        }
+        logger.warn(`Autofill polling attempt ${attempt} failed, retrying:`, { jobId, error });
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+
+    throw new Error('Autofill job polling failed');
+  }
+
+  /**
+   * Poll an export job until completion
+   * @param jobId Export job ID
+   * @param designId Design ID for logging
+   * @returns Export URL when complete
+   */
+  private async pollExportJob(jobId: string, designId: string): Promise<{ exportUrl: string }> {
+    const maxAttempts = 10;
+    const pollInterval = 2000; // 2 seconds
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      logger.info(`Polling export job ${jobId} (attempt ${attempt}/${maxAttempts})`);
+
+      try {
+        const response: AxiosResponse<CanvaExportResponse> = await this.axiosInstance.get(
+          `/exports/${jobId}`
+        );
+
+        const job = response.data.job;
+
+        if (job.status === 'success' && job.urls && job.urls.length > 0) {
+          logger.success('Canva design export completed:', {
+            designId,
+            jobId,
+            exportUrl: job.urls[0]
+          });
+          return { exportUrl: job.urls[0] };
+        }
+
+        if (job.status === 'failed') {
+          logger.error('Canva design export failed:', { designId, jobId, error: job.error });
+          throw new Error(`Export failed: ${job.error?.message || 'Unknown error'}`);
+        }
+
+        if (job.status === 'in_progress') {
+          if (attempt < maxAttempts) {
+            logger.info(`Export still in progress, waiting ${pollInterval}ms before next poll`);
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            continue;
+          } else {
+            throw new Error('Export job timed out after maximum polling attempts');
+          }
+        }
+
+        throw new Error(`Unexpected job status: ${job.status}`);
+
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          logger.error('Failed to poll export job after maximum attempts:', { jobId, error });
+          throw error;
+        }
+        logger.warn(`Polling attempt ${attempt} failed, retrying:`, { jobId, error });
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+
+    throw new Error('Export job polling failed');
+  }
+
+  /**
    * Create a simple test design to verify API connectivity
    * @returns Design creation result
    */
@@ -714,11 +865,11 @@ export class CanvaApiService {
     logger.info('Creating test design to verify API connectivity');
 
     return this.executeWithRetry(async () => {
+      // Based on actual API error: "'type' must not be null."
       const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
         '/designs',
         {
-          design_type: 'presentation',
-          // Don't specify template_id to create a blank design
+          design_type: 'presentation'
         }
       );
 

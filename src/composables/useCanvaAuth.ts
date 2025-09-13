@@ -423,7 +423,7 @@ export function useCanvaAuth() {
       await router.replace(cleanUrl);
 
       // Refresh auth state to ensure UI updates
-      refreshAuthState();
+      await refreshAuthState();
 
     } catch (error) {
       logger.error('OAuth callback handling failed:', error);
@@ -505,23 +505,40 @@ export function useCanvaAuth() {
   /**
    * Refresh the authentication state by checking for stored tokens
    */
-  function refreshAuthState(): void {
+  async function refreshAuthState(): Promise<void> {
     try {
-      if (auth.currentUser.value) {
-        const tokens = retrieveTokensSecurely();
-        if (tokens) {
-          state.value.tokens = tokens;
-          state.value.isAuthenticated = true;
-          // Set access token in API service
-          canvaApiService.setAccessToken(tokens.accessToken);
-          logger.info('Canva authentication state refreshed');
-        } else {
-          state.value.tokens = null;
-          state.value.isAuthenticated = false;
-          // Clear access token in API service
-          canvaApiService.setAccessToken(null);
-          logger.info('No Canva tokens found, user not authenticated');
+      // Wait for Firebase auth to be ready if needed
+      if (!auth.currentUser.value) {
+        logger.debug('Waiting for Firebase auth to be ready...');
+        // Wait up to 2 seconds for Firebase auth to restore
+        let attempts = 0;
+        const maxAttempts = 20;
+        const delay = 100; // 100ms between attempts
+
+        while (!auth.currentUser.value && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          attempts++;
         }
+
+        if (!auth.currentUser.value) {
+          logger.debug('Firebase auth not ready after waiting');
+          return;
+        }
+      }
+
+      const tokens = retrieveTokensSecurely();
+      if (tokens) {
+        state.value.tokens = tokens;
+        state.value.isAuthenticated = true;
+        // Set access token in API service
+        canvaApiService.setAccessToken(tokens.accessToken);
+        logger.info('Canva authentication state refreshed');
+      } else {
+        state.value.tokens = null;
+        state.value.isAuthenticated = false;
+        // Clear access token in API service
+        canvaApiService.setAccessToken(null);
+        logger.info('No Canva tokens found, user not authenticated');
       }
     } catch (error) {
       logger.error('Failed to refresh Canva auth state:', error);
