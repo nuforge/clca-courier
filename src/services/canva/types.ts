@@ -150,7 +150,8 @@ export function isCanvaApiError(response: unknown): response is CanvaApiError {
  */
 export interface CanvaConfig {
   apiBaseUrl: string;
-  appId: string;
+  clientId: string;
+  clientSecret?: string;
   redirectUri: string;
 }
 

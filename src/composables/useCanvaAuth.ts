@@ -66,6 +66,34 @@ export function useCanvaAuth() {
   }
 
   /**
+   * PKCE helpers
+   */
+  function generateCodeVerifier(): string {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  function base64UrlEncode(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      const byte = bytes[i];
+      if (byte !== undefined) {
+        binary += String.fromCharCode(byte);
+      }
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  async function generateCodeChallenge(codeVerifier: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(codeVerifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return base64UrlEncode(digest);
+  }
+
+  /**
    * Get user-scoped storage key to ensure tokens are user-specific
    */
   function getUserScopedStorageKey(baseKey: string): string {
@@ -173,14 +201,22 @@ export function useCanvaAuth() {
    */
   function initiateOAuth(): void {
     try {
-      // Check if user is authenticated with Firebase
+      // Check if user is authenticated with Firebase (with retry for OAuth redirect timing)
       if (!auth.currentUser.value) {
-        $q.notify({
-          type: 'negative',
-          message: t(TRANSLATION_KEYS.CANVA.AUTH_REQUIRED),
-          position: 'top',
-          timeout: 5000,
-        });
+        // If we just returned from OAuth, wait a moment for Firebase auth to restore
+        setTimeout(() => {
+          if (!auth.currentUser.value) {
+            $q.notify({
+              type: 'negative',
+              message: t(TRANSLATION_KEYS.CANVA.AUTH_REQUIRED),
+              position: 'top',
+              timeout: 5000,
+            });
+            return;
+          }
+          // Retry the OAuth initiation
+          initiateOAuth();
+        }, 1000);
         return;
       }
 
@@ -192,31 +228,48 @@ export function useCanvaAuth() {
       const stateKey = getUserScopedStorageKey(CANVA_AUTH_STATE_KEY);
       localStorage.setItem(stateKey, authState);
 
+      // Generate PKCE code verifier & challenge
+      const codeVerifier = generateCodeVerifier();
+      const verifierKey = getUserScopedStorageKey(`${CANVA_AUTH_STATE_KEY}_verifier`);
+      localStorage.setItem(verifierKey, codeVerifier);
+
       // Get Canva API configuration
       const config = canvaApiService.getConfig();
 
       // Construct OAuth authorization URL
       const authUrl = new URL('https://www.canva.com/api/oauth/authorize');
-      authUrl.searchParams.set('client_id', config.appId);
+      authUrl.searchParams.set('client_id', config.clientId);
       authUrl.searchParams.set('redirect_uri', config.redirectUri);
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('state', authState);
-      authUrl.searchParams.set('scope', 'design:write design:read asset:read folder:read');
+      authUrl.searchParams.set('scope', 'design:content:write asset:write design:content:read app:read design:permission:write asset:read brandtemplate:meta:read brandtemplate:content:read design:permission:read design:meta:read');
+      // Add PKCE
+      // Note: generateCodeChallenge is async; create URL then compute and redirect when ready
+      void (async () => {
+        try {
+          const challenge = await generateCodeChallenge(codeVerifier);
+          authUrl.searchParams.set('code_challenge', challenge);
+          authUrl.searchParams.set('code_challenge_method', 'S256');
 
-      logger.info('Initiating Canva OAuth flow', {
-        redirectUri: config.redirectUri,
-        state: authState.substring(0, 8) + '...' // Log partial state for debugging
-      });
+          logger.info('Initiating Canva OAuth flow', {
+            redirectUri: config.redirectUri,
+            state: authState.substring(0, 8) + '...'
+          });
 
-      $q.notify({
-        type: 'info',
-        message: t(TRANSLATION_KEYS.CANVA.CONNECTING_TO_CANVA),
-        position: 'top',
-        timeout: 3000,
-      });
+          $q.notify({
+            type: 'info',
+            message: t(TRANSLATION_KEYS.CANVA.CONNECTING_TO_CANVA),
+            position: 'top',
+            timeout: 3000,
+          });
 
-      // Redirect to Canva authorization page
-      window.location.href = authUrl.toString();
+          window.location.href = authUrl.toString();
+        } catch (err) {
+          logger.error('Failed to generate PKCE challenge:', err);
+          state.value.isLoading = false;
+          $q.notify({ type: 'negative', message: t(TRANSLATION_KEYS.CANVA.AUTH_FAILED), position: 'top' });
+        }
+      })();
 
     } catch (error) {
       logger.error('Failed to initiate Canva OAuth:', error);
@@ -238,16 +291,33 @@ export function useCanvaAuth() {
    */
   async function handleOAuthRedirect(): Promise<void> {
     try {
-      // Check if user is authenticated with Firebase
+      // Check if user is authenticated with Firebase (with retry for OAuth redirect timing)
       if (!auth.currentUser.value) {
-        logger.error('User not authenticated during OAuth callback');
-        $q.notify({
-          type: 'negative',
-          message: t(TRANSLATION_KEYS.CANVA.AUTH_REQUIRED),
-          position: 'top',
-          timeout: 5000,
-        });
-        return;
+        logger.warn('User not authenticated during OAuth callback, waiting for Firebase auth to restore...');
+
+        // Wait up to 5 seconds for Firebase auth to restore
+        let attempts = 0;
+        const maxAttempts = 10;
+        const delay = 500; // 500ms between attempts
+
+        while (!auth.currentUser.value && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          attempts++;
+          logger.debug(`Waiting for Firebase auth... attempt ${attempts}/${maxAttempts}`);
+        }
+
+        if (!auth.currentUser.value) {
+          logger.error('User still not authenticated after waiting for Firebase auth to restore');
+          $q.notify({
+            type: 'negative',
+            message: t(TRANSLATION_KEYS.CANVA.AUTH_REQUIRED),
+            position: 'top',
+            timeout: 5000,
+          });
+          return;
+        }
+
+        logger.info('Firebase auth restored, proceeding with OAuth callback');
       }
 
       state.value.isLoading = true;
@@ -284,20 +354,29 @@ export function useCanvaAuth() {
 
       logger.info('OAuth callback received, exchanging code for tokens');
 
-      // Exchange authorization code for access tokens
+      // Exchange authorization code for access tokens via backend proxy (PKCE)
       const config = canvaApiService.getConfig();
-      const tokenResponse = await fetch('https://api.canva.com/oauth/token', {
+      const verifierKey = getUserScopedStorageKey(`${CANVA_AUTH_STATE_KEY}_verifier`);
+      const codeVerifier = localStorage.getItem(verifierKey) || '';
+
+      logger.info('Sending token exchange request to backend proxy', {
+        hasCode: !!authCode,
+        hasCodeVerifier: !!codeVerifier,
+        redirectUri: config.redirectUri
+      });
+
+      // Use local proxy server to avoid CORS issues with Canva API
+      const tokenResponse = await fetch('http://localhost:3001/api/canva/oauth/token', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: config.appId,
-          redirect_uri: config.redirectUri,
+        body: JSON.stringify({
           code: authCode,
-        }).toString(),
+          code_verifier: codeVerifier,
+          redirect_uri: config.redirectUri,
+        }),
       });
 
       if (!tokenResponse.ok) {

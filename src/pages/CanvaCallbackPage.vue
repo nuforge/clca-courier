@@ -52,10 +52,16 @@ const hasError = ref(false);
 const errorMessage = ref('');
 
 /**
- * Go back to the content submission page
+ * Go back to the appropriate page
  */
 function goBack(): void {
-  void router.push('/contribute/submit');
+  // Check if we came from the demo page
+  const referrer = document.referrer;
+  if (referrer.includes('/admin/canva-demo')) {
+    void router.push('/admin/canva-demo');
+  } else {
+    void router.push('/contribute/submit');
+  }
 }
 
 /**
@@ -82,7 +88,13 @@ onMounted(async () => {
     // If successful and not loading, redirect after a brief moment
     if (!isLoading.value && !hasError.value) {
       setTimeout(() => {
-        void router.push('/contribute/submit');
+        // Check if we came from the demo page
+        const referrer = document.referrer;
+        if (referrer.includes('/admin/canva-demo')) {
+          void router.push('/admin/canva-demo');
+        } else {
+          void router.push('/contribute/submit');
+        }
       }, 2000);
     }
 

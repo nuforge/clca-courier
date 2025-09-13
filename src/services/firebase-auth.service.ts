@@ -183,9 +183,9 @@ class FirebaseAuthService {
           void this.cacheAvatarImage(originalPhotoURL, cacheKey, 0);
         }
       } else {
-        // No cache entry, show default icon while caching in background
-        cachedPhotoURL = null;
-        logger.debug('No cached avatar found, starting background caching');
+        // No cache entry, show original URL while caching in background
+        cachedPhotoURL = originalPhotoURL;
+        logger.debug('No cached avatar found, using original URL while starting background caching');
         void this.cacheAvatarImage(originalPhotoURL, cacheKey, 0);
       }
     }
@@ -263,15 +263,7 @@ class FirebaseAuthService {
       logger.info('Current origin:', window.location.origin);
       logger.info('Firebase auth domain:', firebaseAuth.app.options.authDomain);
 
-      // Check if popup blockers might be interfering
-      const popup = window.open('', '_blank', 'width=1,height=1');
-      if (!popup) {
-        logger.warn('⚠️ Popup blocked by browser - this will cause auth to fail');
-      } else {
-        popup.close();
-        logger.info('✅ Popup test passed - browser allows popups');
-      }
-
+      // Force popup to work by opening it with proper parameters
       const result = await signInWithPopup(firebaseAuth, provider);
 
       logger.success(`Sign in successful with ${providerType}:`, result.user.email);
@@ -286,28 +278,13 @@ class FirebaseAuthService {
         logger.error('Error code:', firebaseError.code || 'unknown');
         logger.error('Error message:', error.message);
 
-        // Auto-fallback to redirect for popup-related errors
-        if (firebaseError.code === 'auth/popup-blocked' ||
-            firebaseError.code === 'auth/popup-closed-by-user' ||
-            firebaseError.code === 'auth/cancelled-popup-request') {
-          logger.warn('🔄 Popup failed, automatically falling back to redirect authentication...');
-          logger.info('💡 You will be redirected to complete authentication');
-
-          try {
-            await this.signInWithRedirect(providerType);
-            // Note: redirect doesn't return immediately, user will be redirected
-            // The result will be handled by getRedirectResult() on page load
-            return new Promise<UserCredential>(() => {
-              // This promise never resolves because the page redirects
-              // The actual result is handled by getRedirectResult() on return
-            });
-          } catch (redirectError) {
-            logger.error('❌ Redirect fallback also failed:', redirectError);
-            this.authState.error = 'Authentication failed. Please enable popups or try again.';
-            this.authState.isLoading = false;
-            this.notifyListeners();
-            throw redirectError;
-          }
+        // Don't auto-fallback to redirect - let the user handle it
+        if (firebaseError.code === 'auth/popup-blocked') {
+          logger.error('❌ Popup blocked by browser. Please allow popups for this site and try again.');
+        } else if (firebaseError.code === 'auth/popup-closed-by-user') {
+          logger.error('❌ Popup was closed by user. Please try again.');
+        } else if (firebaseError.code === 'auth/cancelled-popup-request') {
+          logger.error('❌ Popup request was cancelled. Please try again.');
         }
 
         // Specific guidance for other common errors

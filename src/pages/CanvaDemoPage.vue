@@ -27,6 +27,51 @@
         </div>
       </div>
 
+      <!-- Canva Authentication Status -->
+      <q-card class="q-mb-lg">
+        <q-card-section>
+          <div class="text-h6 q-mb-md">
+            <q-icon :name="UI_ICONS.canva" class="q-mr-sm" />
+            Canva Account Connection
+          </div>
+          <div class="row items-center q-col-gutter-md">
+            <div class="col-auto">
+              <q-icon
+                :name="isCanvaAuthenticated ? UI_ICONS.checkCircle : UI_ICONS.closeCircle"
+                :color="isCanvaAuthenticated ? 'positive' : 'negative'"
+                size="2rem"
+              />
+            </div>
+            <div class="col">
+              <div class="text-subtitle1">
+                {{ isCanvaAuthenticated ? 'Connected to Canva' : 'Not Connected' }}
+              </div>
+              <div class="text-caption text-grey-6">
+                {{ isCanvaAuthenticated ? 'Ready to create and export designs' : 'Connect your Canva account to test live features' }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <q-btn
+                v-if="!isCanvaAuthenticated"
+                color="primary"
+                :icon="UI_ICONS.login"
+                label="Connect Canva"
+                @click="connectToCanva"
+                :loading="isCanvaLoading"
+              />
+              <q-btn
+                v-else
+                color="negative"
+                :icon="UI_ICONS.logout"
+                label="Disconnect"
+                @click="disconnectFromCanva"
+                outline
+              />
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+
       <!-- Demo Status Overview -->
       <div class="row q-col-gutter-md q-mb-lg">
         <div class="col-12 col-md-3">
@@ -132,7 +177,7 @@
                   label="Autofill Results"
                   class="q-mb-sm"
                 >
-                  <div class="q-pa-sm bg-green-1 rounded-borders">
+                  <div class="q-pa-sm rounded-borders">
                     <pre class="text-caption">{{ JSON.stringify(autofillResults, null, 2) }}</pre>
                   </div>
                 </q-expansion-item>
@@ -259,7 +304,7 @@
                   icon="mdi-download"
                   label="Export Results"
                 >
-                  <div class="q-pa-sm bg-blue-1 rounded-borders">
+                  <div class="q-pa-sm rounded-borders">
                     <pre class="text-caption">{{ JSON.stringify(exportResults, null, 2) }}</pre>
                   </div>
                 </q-expansion-item>
@@ -363,8 +408,16 @@ import { Timestamp } from 'firebase/firestore';
 import { logger } from '../utils/logger';
 import { UI_ICONS } from '../constants/ui-icons';
 import { type ContentDoc } from '../types/core/content.types';
+import { useCanvaAuth } from '../composables/useCanvaAuth';
+import { canvaApiService } from '../services/canva-api.service';
 
 const $q = useQuasar();
+const {
+  isAuthenticated: isCanvaAuthenticated,
+  isLoading: isCanvaLoading,
+  initiateOAuth,
+  signOut
+} = useCanvaAuth();
 
 // State
 const isLoading = ref(false);
@@ -625,19 +678,27 @@ const createDesignWithAutofill = async () => {
     return;
   }
 
+  if (!isCanvaAuthenticated.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please connect your Canva account first',
+    });
+    return;
+  }
+
   isCreatingDesign.value = true;
   addLog('info', `Creating design with autofill for template: ${selectedTemplate.value}`);
 
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const autofillData = prepareAutofillData(sampleContentDoc.value, selectedTemplate.value);
 
-    const mockResult = {
-      designId: `demo-design-${Date.now()}`,
-      editUrl: `https://canva.com/design/${Date.now()}/edit`,
-    };
+    // Use real Canva API
+    const result = await canvaApiService.createDesignWithAutofill(
+      selectedTemplate.value, // This should be a real Canva template ID
+      autofillData
+    );
 
-    addLog('success', `Design created successfully: ${mockResult.designId}`);
+    addLog('success', `Design created successfully: ${result.designId}`);
 
     $q.notify({
       type: 'positive',
@@ -647,7 +708,7 @@ const createDesignWithAutofill = async () => {
           label: 'Open Design',
           color: 'white',
           handler: () => {
-            window.open(mockResult.editUrl, '_blank');
+            window.open(result.editUrl, '_blank');
           },
         },
       ],
@@ -674,46 +735,48 @@ const testExportWorkflow = async () => {
     return;
   }
 
+  if (!isCanvaAuthenticated.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please connect your Canva account first',
+    });
+    return;
+  }
+
   isTestingExport.value = true;
   exportStatus.value = 'pending';
   exportProgress.value = 0;
   addLog('info', `Testing export workflow for design: ${testDesignId.value}`);
 
   try {
-    // Simulate export workflow
-    const steps = [
-      { status: 'pending', progress: 0.1 },
-      { status: 'in_progress', progress: 0.3 },
-      { status: 'in_progress', progress: 0.6 },
-      { status: 'in_progress', progress: 0.9 },
-      { status: 'completed', progress: 1.0 },
-    ];
+    // Use real Canva API for export
+    exportStatus.value = 'in_progress';
+    exportProgress.value = 0.3;
 
-    for (const step of steps) {
-      exportStatus.value = step.status;
-      exportProgress.value = step.progress;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    const exportResult = await canvaApiService.exportDesign(testDesignId.value);
 
-    const mockExportResult = {
+    exportStatus.value = 'completed';
+    exportProgress.value = 1.0;
+
+    const finalResult = {
       designId: testDesignId.value,
-      exportUrl: `https://canva.com/export/${testDesignId.value}.pdf`,
+      exportUrl: exportResult.exportUrl,
       status: 'completed',
       timestamp: new Date().toISOString(),
     };
 
-    exportResults.value = mockExportResult;
+    exportResults.value = finalResult;
     addLog('success', `Export completed successfully: ${testDesignId.value}`);
 
     $q.notify({
       type: 'positive',
-      message: 'Export workflow test completed successfully',
+      message: 'Export workflow completed successfully',
       actions: [
         {
           label: 'Download',
           color: 'white',
           handler: () => {
-            window.open(mockExportResult.exportUrl, '_blank');
+            window.open(finalResult.exportUrl, '_blank');
           },
         },
       ],
@@ -784,6 +847,21 @@ const refreshDemo = async () => {
   }
 };
 
+// Authentication methods
+const connectToCanva = () => {
+  addLog('info', 'Initiating Canva OAuth connection');
+  initiateOAuth();
+};
+
+const disconnectFromCanva = () => {
+  addLog('info', 'Disconnecting from Canva');
+  signOut();
+  $q.notify({
+    type: 'info',
+    message: 'Disconnected from Canva',
+  });
+};
+
 // Lifecycle
 onMounted(() => {
   void refreshDemo();
@@ -799,10 +877,9 @@ onMounted(() => {
 .demo-logs {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--q-border);
   border-radius: 4px;
   padding: 8px;
-  background-color: #fafafa;
 }
 
 .log-entry {
@@ -826,22 +903,18 @@ onMounted(() => {
 }
 
 .log-info {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  color: var(--q-primary);
 }
 
 .log-success {
-  background-color: #e8f5e8;
-  color: #388e3c;
+  color: var(--q-positive);
 }
 
 .log-warning {
-  background-color: #fff3e0;
-  color: #f57c00;
+  color: var(--q-warning);
 }
 
 .log-error {
-  background-color: #ffebee;
-  color: #d32f2f;
+  color: var(--q-negative);
 }
 </style>

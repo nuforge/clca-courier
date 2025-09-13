@@ -46,7 +46,8 @@ export class CanvaApiService {
     // Load configuration from environment variables following project patterns
     this.config = {
       apiBaseUrl: import.meta.env.VITE_CANVA_API_BASE_URL || 'https://api.canva.com/rest/v1',
-      appId: import.meta.env.VITE_CANVA_APP_ID || '',
+      clientId: import.meta.env.VITE_CANVA_CLIENT_ID || '',
+      clientSecret: import.meta.env.VITE_CANVA_CLIENT_SECRET || '',
       redirectUri: import.meta.env.VITE_CANVA_API_REDIRECT_URI || ''
     };
 
@@ -130,9 +131,10 @@ export class CanvaApiService {
     if (!this.config.apiBaseUrl) {
       missingConfig.push('VITE_CANVA_API_BASE_URL');
     }
-    if (!this.config.appId) {
-      missingConfig.push('VITE_CANVA_APP_ID');
+    if (!this.config.clientId) {
+      missingConfig.push('VITE_CANVA_CLIENT_ID');
     }
+    // clientSecret is not required in browser when using PKCE
     if (!this.config.redirectUri) {
       missingConfig.push('VITE_CANVA_API_REDIRECT_URI');
     }

@@ -43,11 +43,74 @@ export const create = defineSsrCreate((/* { ... } */) => {
   // and then launch specifically-targeted attacks
   app.disable('x-powered-by');
 
+  // Enable JSON parsing for API endpoints
+  app.use(express.json());
+
   // place here any middlewares that
   // absolutely need to run before anything else
   if (process.env.PROD) {
     app.use(compression());
   }
+
+  // Canva OAuth token exchange proxy endpoint
+  app.post('/api/canva/oauth/token', (req, res) => {
+    void (async () => {
+      try {
+        const { code, code_verifier, redirect_uri } = req.body;
+        const clientId = process.env.VITE_CANVA_CLIENT_ID;
+
+        console.log('Canva OAuth proxy called with:', {
+          hasCode: !!code,
+          hasCodeVerifier: !!code_verifier,
+          redirect_uri,
+          hasClientId: !!clientId
+        });
+
+        if (!code || !code_verifier || !redirect_uri) {
+          console.error('Missing required parameters:', { code: !!code, code_verifier: !!code_verifier, redirect_uri });
+          res.status(400).json({ error: 'Missing required parameters' });
+          return;
+        }
+
+        if (!clientId) {
+          console.error('Missing VITE_CANVA_CLIENT_ID environment variable');
+          res.status(500).json({ error: 'Server configuration error' });
+          return;
+        }
+
+        const tokenResponse = await fetch('https://api.canva.com/oauth/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: clientId,
+            redirect_uri,
+            code,
+            code_verifier,
+          }),
+        });
+
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error('Canva token exchange failed:', tokenResponse.status, errorText);
+          res.status(tokenResponse.status).json({
+            error: 'Token exchange failed',
+            details: errorText
+          });
+          return;
+        }
+
+        const tokenData = await tokenResponse.json();
+        res.json(tokenData);
+
+      } catch (error) {
+        console.error('Error in Canva OAuth proxy:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    })();
+  });
 
   return app;
 });
