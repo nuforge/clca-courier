@@ -350,5 +350,42 @@ export default {
       everyNMonths: 'Every {n} months',
       everyNYears: 'Every {n} years'
     }
+  },
+
+  // Batch Import functionality
+  batchImport: {
+    dialogTitle: 'Import Batch Processing Data',
+    dialogSubtitle: 'Import articles and content from processed PDF files',
+    selectFile: 'Select JSON file',
+    importOptions: 'Import Options',
+    importArticles: 'Import Individual Articles',
+    importNewsletters: 'Import Newsletters as Content',
+    skipExisting: 'Skip Existing Content',
+    preview: 'Import Preview',
+    totalItems: 'Total Items',
+    articlesFound: 'Articles Found',
+    newslettersFound: 'Newsletters Found',
+    sampleArticles: 'Sample Articles',
+    contentLength: '{length} characters',
+    processing: 'Processing Import',
+    preparing: 'Preparing import...',
+    complete: 'Complete',
+    results: 'Import Results',
+    articlesImported: 'Articles Imported',
+    newslettersImported: 'Newsletters Imported',
+    processingTime: 'Processing Time',
+    errors: 'Errors',
+    moreErrors: '... and {count} more errors',
+    import: 'Import',
+    success: 'Import Successful',
+    successCaption: '{articles} articles and {newsletters} newsletters imported',
+    partialSuccess: 'Import Completed with Errors',
+    errorCount: '{count} errors occurred',
+    error: 'Import Failed',
+    fileSuccess: 'File Imported Successfully',
+    fileSuccessCaption: '{filename}: {articles} articles, {newsletters} newsletters',
+    filePartialSuccess: 'File Imported with Errors',
+    fileError: 'File Import Failed',
+    historyCleared: 'Import history cleared'
   }
 };
