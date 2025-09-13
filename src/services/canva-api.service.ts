@@ -112,14 +112,24 @@ export class CanvaApiService {
         return response;
       },
       (error) => {
-        logger.error('Canva API response error:', {
+        // Log the FULL error response data for debugging
+        const errorDetails: Record<string, unknown> = {
           status: error.response?.status,
           url: error.config?.url,
           message: error.message,
           responseData: error.response?.data,
           requestData: error.config?.data,
           fullResponse: JSON.stringify(error.response?.data, null, 2)
-        });
+        };
+
+        // Log the specific error code and message if available
+        if (error.response?.data?.error) {
+          errorDetails.errorCode = error.response.data.error.code;
+          errorDetails.errorMessage = error.response.data.error.message;
+          errorDetails.errorDetails = error.response.data.error.details;
+        }
+
+        logger.error('Canva API response error:', errorDetails);
         throw error instanceof Error ? error : new Error(String(error));
       }
     );
@@ -255,11 +265,14 @@ export class CanvaApiService {
     logger.info('Creating Canva design from template:', { templateId });
 
     return this.executeWithRetry(async () => {
-      // Based on actual API error: "'type' must not be null."
+      // API requires design_type OR asset_id - using design_type with preset
       const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
         '/designs',
         {
-          design_type: 'presentation'
+          design_type: {
+            type: 'preset',
+            name: 'presentation'
+          }
         }
       );
 
@@ -293,9 +306,28 @@ export class CanvaApiService {
       const errorMessage = `Failed to create design from template ${templateId}`;
 
       if (axios.isAxiosError(error)) {
+        // Log the FULL error response for debugging
+        logger.error('Canva API error - FULL RESPONSE:', {
+          templateId,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          responseData: error.response?.data,
+          requestData: error.config?.data,
+          fullErrorResponse: JSON.stringify(error.response?.data, null, 2)
+        });
+
+        // Log the specific error details if available
+        if (error.response?.data?.error) {
+          logger.error('Canva API specific error:', {
+            code: error.response.data.error.code,
+            message: error.response.data.error.message,
+            details: error.response.data.error.details
+          });
+        }
+
         if (isCanvaApiError(error.response?.data)) {
           const canvaError = error.response.data;
-          logger.error('Canva API error:', {
+          logger.error('Canva API error details:', {
             templateId,
             code: canvaError.error.code,
             message: canvaError.error.message,
@@ -320,114 +352,15 @@ export class CanvaApiService {
   /**
    * Create a new design from a template with autofill data
    *
-   * @param templateId - The ID of the Canva Brand Template to use
-   * @param autofillData - Key-value pairs for autofilling template placeholders
+   * NOTE: This functionality requires Canva Enterprise organization membership
+   * and is currently disabled as it's not available for standard Canva accounts.
+   *
    * @returns Promise resolving to design ID and edit URL
-   * @throws Error if the API call fails or returns invalid data
+   * @throws Error indicating this feature requires Enterprise
    */
-  async createDesignWithAutofill(
-    templateId: string,
-    autofillData: Record<string, unknown>
-  ): Promise<{ designId: string; editUrl: string }> {
-    if (!templateId || typeof templateId !== 'string') {
-      const error = new Error('Template ID is required and must be a string');
-      logger.error('Invalid template ID provided for autofill:', { templateId });
-      throw error;
-    }
-
-    if (!autofillData || typeof autofillData !== 'object') {
-      const error = new Error('Autofill data is required and must be an object');
-      logger.error('Invalid autofill data provided:', { autofillData });
-      throw error;
-    }
-
-    // Validate and sanitize autofill data for security
-    const sanitizedAutofillData = this.sanitizeAutofillData(autofillData);
-
-    logger.info('Creating Canva design with autofill:', {
-      templateId,
-      autofillKeys: Object.keys(sanitizedAutofillData)
-    });
-
-    return this.executeWithRetry(async () => {
-      // Based on official Canva API documentation: https://www.canva.dev/docs/connect/api-reference/autofills/
-      const requestBody = {
-        brand_template_id: templateId,
-        data: sanitizedAutofillData
-      };
-
-      const response: AxiosResponse<CanvaAutofillDesignResponse> = await this.axiosInstance.post(
-        '/autofills',
-        requestBody
-      );
-
-      // Validate response structure - autofill returns a job, not immediate design
-      if (!response.data?.job?.id) {
-        logger.error('Invalid response from Canva Autofill API:', { response: response.data });
-        throw new Error('Invalid response from Canva API: missing job ID');
-      }
-
-      const job = response.data.job;
-
-      // Check if autofill is immediately ready
-      if (job.status === 'success' && job.design?.id && job.design?.urls?.edit_url) {
-        logger.success('Canva design created with autofill immediately:', {
-          designId: job.design.id,
-          templateId,
-          editUrl: job.design.urls.edit_url
-        });
-        return {
-          designId: job.design.id,
-          editUrl: job.design.urls.edit_url
-        };
-      }
-
-      // Handle in-progress autofill - poll for completion
-      if (job.status === 'in_progress') {
-        logger.info('Canva design autofill in progress:', { templateId, jobId: job.id });
-        return await this.pollAutofillJob(job.id, templateId);
-      }
-
-      // Handle failed autofill
-      if (job.status === 'failed') {
-        logger.error('Canva design autofill failed:', { templateId, jobId: job.id });
-        throw new Error('Design autofill failed. Please try again.');
-      }
-
-      throw new Error(`Unexpected autofill job status: ${job.status}`);
-
-    }, `createDesignWithAutofill(${templateId})`).catch((error) => {
-      const errorMessage = `Failed to create design with autofill from template ${templateId}`;
-
-      if (axios.isAxiosError(error)) {
-        if (isCanvaApiError(error.response?.data)) {
-          const canvaError = error.response.data;
-          logger.error('Canva API error with autofill:', {
-            templateId,
-            autofillKeys: Object.keys(sanitizedAutofillData),
-            code: canvaError.error.code,
-            message: canvaError.error.message,
-            details: canvaError.error.details
-          });
-          throw new Error(`${errorMessage}: ${canvaError.error.message}`);
-        } else {
-          logger.error('HTTP error creating design with autofill:', {
-            templateId,
-            autofillKeys: Object.keys(sanitizedAutofillData),
-            status: error.response?.status,
-            statusText: error.response?.statusText
-          });
-          throw new Error(`${errorMessage}: HTTP ${error.response?.status}`);
-        }
-      } else {
-        logger.error('Unexpected error creating design with autofill:', {
-          templateId,
-          autofillKeys: Object.keys(sanitizedAutofillData),
-          error
-        });
-        throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    });
+  createDesignWithAutofill(): Promise<{ designId: string; editUrl: string }> {
+    logger.warn('Autofill functionality requires Canva Enterprise - feature disabled');
+    return Promise.reject(new Error('Autofill functionality requires Canva Enterprise organization membership. This feature is not available for standard Canva accounts.'));
   }
 
   /**
@@ -859,6 +792,28 @@ export class CanvaApiService {
   }
 
   /**
+   * Duplicate an existing design by creating a new design from the template
+   * @param designId - The ID of the design to duplicate
+   * @returns Design creation result
+   */
+  async duplicateDesign(designId: string): Promise<{ id: string; editUrl: string }> {
+    if (!designId || typeof designId !== 'string') {
+      const error = new Error('Design ID is required and must be a string');
+      logger.error('Invalid design ID provided for duplication:', { designId });
+      throw error;
+    }
+
+    logger.info('Attempting to duplicate design:', { originalDesignId: designId });
+
+    // Try to create a new design from the existing design as a template
+    const result = await this.createDesignFromTemplate(designId);
+    return {
+      id: result.id,
+      editUrl: result.editUrl
+    };
+  }
+
+  /**
    * Create a simple test design to verify API connectivity
    * @returns Design creation result
    */
@@ -866,11 +821,13 @@ export class CanvaApiService {
     logger.info('Creating test design to verify API connectivity');
 
     return this.executeWithRetry(async () => {
-      // Based on actual API error: "'type' must not be null."
+      // Based on official Canva API documentation: https://www.canva.dev/docs/connect/api-reference/designs/
+      // The API requires either 'design_type' OR 'asset_id', and 'type' field is also required
       const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
         '/designs',
         {
-          design_type: 'presentation'
+          design_type: 'presentation',
+          type: 'presentation'
         }
       );
 
@@ -884,6 +841,15 @@ export class CanvaApiService {
       const errorMessage = 'Failed to create test design';
 
       if (axios.isAxiosError(error)) {
+        // Log the FULL error response for debugging
+        logger.error('Canva API error - FULL RESPONSE (Test Design):', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          responseData: error.response?.data,
+          requestData: error.config?.data,
+          fullErrorResponse: JSON.stringify(error.response?.data, null, 2)
+        });
+
         if (isCanvaApiError(error.response?.data)) {
           const canvaError = error.response.data;
           logger.error('Canva API error creating test design:', {

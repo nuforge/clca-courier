@@ -171,15 +171,15 @@
                   class="full-width"
                 />
 
-                <q-btn
-                  color="primary"
-                  :icon="UI_ICONS.create"
-                  label="Duplicate Design"
-                  @click="duplicateDesign"
-                  :loading="isOperating"
-                  :disable="!selectedDesign"
-                  class="full-width"
-                />
+      <q-btn
+        color="primary"
+        :icon="UI_ICONS.create"
+        label="Duplicate Design"
+        @click="duplicateDesign"
+        :loading="isOperating"
+        :disable="!selectedDesign"
+        class="full-width"
+      />
 
                 <q-btn
                   color="secondary"
@@ -194,7 +194,7 @@
                 <q-btn
                   color="accent"
                   :icon="UI_ICONS.autoFix"
-                  label="Test Autofill"
+                  label="Test Autofill (Enterprise Only)"
                   @click="testAutofill"
                   :loading="isOperating"
                   :disable="!selectedDesign"
@@ -349,7 +349,19 @@ const refreshDesigns = async () => {
 
   } catch (error) {
     logger.error('Failed to refresh designs:', error);
-    addLog('error', `Failed to refresh designs: ${String(error)}`);
+
+    // Add detailed error information to activity log
+    let errorMessage = `Failed to refresh designs: ${String(error)}`;
+
+    // If it's an axios error, add the response data
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        errorMessage += `\nResponse: ${JSON.stringify(axiosError.response.data, null, 2)}`;
+      }
+    }
+
+    addLog('error', errorMessage);
 
     $q.notify({
       type: 'negative',
@@ -369,10 +381,10 @@ const duplicateDesign = async () => {
   if (!selectedDesign.value) return;
 
   isOperating.value = true;
-  addLog('info', `Duplicating design: ${selectedDesign.value.title}`);
+    addLog('info', `Attempting to duplicate design: ${selectedDesign.value.title}`);
 
   try {
-    const result = await canvaApiService.createDesignFromTemplate(selectedDesign.value.id);
+    const result = await canvaApiService.duplicateDesign(selectedDesign.value.id);
 
     addLog('success', `Design duplicated successfully: ${result.id}`);
     operationsCompleted.value++;
@@ -380,6 +392,7 @@ const duplicateDesign = async () => {
     $q.notify({
       type: 'positive',
       message: 'Design duplicated successfully!',
+      caption: `New Design ID: ${result.id}`,
       actions: [
         {
           label: 'Open Design',
@@ -395,12 +408,24 @@ const duplicateDesign = async () => {
     await refreshDesigns();
 
   } catch (error) {
-    logger.error('Design duplication failed:', error);
-    addLog('error', `Design duplication failed: ${String(error)}`);
+    logger.error('Design creation failed:', error);
+
+    // Add detailed error information to activity log
+    let errorMessage = `Design creation failed: ${String(error)}`;
+
+    // If it's an axios error, add the response data
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        errorMessage += `\nResponse: ${JSON.stringify(axiosError.response.data, null, 2)}`;
+      }
+    }
+
+    addLog('error', errorMessage);
 
     $q.notify({
       type: 'negative',
-      message: 'Failed to duplicate design',
+      message: 'Failed to create new design',
     });
   } finally {
     isOperating.value = false;
@@ -426,7 +451,19 @@ const exportDesign = async () => {
 
   } catch (error) {
     logger.error('Design export failed:', error);
-    addLog('error', `Design export failed: ${String(error)}`);
+
+    // Add detailed error information to activity log
+    let errorMessage = `Design export failed: ${String(error)}`;
+
+    // If it's an axios error, add the response data
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        errorMessage += `\nResponse: ${JSON.stringify(axiosError.response.data, null, 2)}`;
+      }
+    }
+
+    addLog('error', errorMessage);
 
     $q.notify({
       type: 'negative',
@@ -466,7 +503,19 @@ const createTestDesign = async () => {
 
   } catch (error) {
     logger.error('Test design creation failed:', error);
-    addLog('error', `Test design creation failed: ${String(error)}`);
+
+    // Add detailed error information to activity log
+    let errorMessage = `Test design creation failed: ${String(error)}`;
+
+    // If it's an axios error, add the response data
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        errorMessage += `\nResponse: ${JSON.stringify(axiosError.response.data, null, 2)}`;
+      }
+    }
+
+    addLog('error', errorMessage);
 
     $q.notify({
       type: 'negative',
@@ -484,18 +533,8 @@ const testAutofill = async () => {
   addLog('info', `Testing autofill with design: ${selectedDesign.value.title}`);
 
   try {
-    // Create a test design with autofill data
-    const autofillData = {
-      title: 'Test Autofill Design',
-      subtitle: 'Generated from Canva Demo',
-      date: new Date().toLocaleDateString(),
-      description: 'This design was created using autofill functionality'
-    };
-
-    const result = await canvaApiService.createDesignWithAutofill(
-      selectedDesign.value.id,
-      autofillData
-    );
+    // Test autofill functionality (disabled - requires Enterprise)
+    const result = await canvaApiService.createDesignWithAutofill();
 
     addLog('success', `Autofill test successful: ${result.designId}`);
     operationsCompleted.value++;
@@ -516,11 +555,23 @@ const testAutofill = async () => {
 
   } catch (error) {
     logger.error('Autofill test failed:', error);
-    addLog('error', `Autofill test failed: ${String(error)}`);
+
+    // Add detailed error information to activity log
+    let errorMessage = `Autofill test failed: ${String(error)}`;
+
+    // If it's an axios error, add the response data
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        errorMessage += `\nResponse: ${JSON.stringify(axiosError.response.data, null, 2)}`;
+      }
+    }
+
+    addLog('error', errorMessage);
 
     $q.notify({
       type: 'negative',
-      message: 'Autofill test failed',
+      message: 'Autofill requires Canva Enterprise - feature not available',
     });
   } finally {
     isOperating.value = false;
@@ -552,7 +603,19 @@ const openInCanva = async () => {
 
   } catch (error) {
     logger.error('Failed to open design in Canva:', error);
-    addLog('error', `Failed to open design in Canva: ${String(error)}`);
+
+    // Add detailed error information to activity log
+    let errorMessage = `Failed to open design in Canva: ${String(error)}`;
+
+    // If it's an axios error, add the response data
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        errorMessage += `\nResponse: ${JSON.stringify(axiosError.response.data, null, 2)}`;
+      }
+    }
+
+    addLog('error', errorMessage);
 
     $q.notify({
       type: 'negative',

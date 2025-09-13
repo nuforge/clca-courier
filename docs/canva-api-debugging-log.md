@@ -19,10 +19,30 @@
 - Result: 400 - "One of 'design_type' or 'asset_id' must be defined."
 - Status: ❌ FAILED
 
-**Attempt 4: Both fields**
+**Attempt 4: Both fields (FAILED)**
 - Request: `{ "design_type": "presentation", "type": "presentation" }`
+- Result: 400 - "'type' must not be null." (code: "invalid_field")
+- Status: ❌ FAILED - Even with both fields, getting null type error
+
+**Attempt 5: Using asset_id only (FAILED)**
+- Request: `{ "asset_id": "design_id" }`
+- Result: 400 - Bad Request (missing design_type)
+- Status: ❌ FAILED - Need both design_type and asset_id
+
+**Attempt 6: Using BOTH design_type AND asset_id (FAILED)**
+- Request: `{ "design_type": { "type": "preset", "name": "presentation" }, "asset_id": "design_id" }`
+- Result: 400 - Bad Request (still failing)
+- Status: ❌ FAILED - Complex design_type object not working
+
+**Attempt 7: Using type: "TEMPLATE" with asset_id (FAILED)**
+- Request: `{ "type": "TEMPLATE", "asset_id": "design_id" }`
+- Result: 400 - "`asset_id` must belong to an image asset"
+- Status: ❌ FAILED - asset_id is for images, not designs
+
+**Attempt 8: Using template_id instead of asset_id (NEW APPROACH)**
+- Request: `{ "type": "TEMPLATE", "template_id": "design_id" }`
 - Result: NOT TESTED YET
-- Status: ⏳ PENDING
+- Status: ⏳ PENDING - Using template_id for design duplication
 
 ### Export (POST /exports)
 
@@ -108,11 +128,36 @@
 4. Look for actual Canva API documentation examples
 
 ## Current Status
-- Design Creation: ❌ Still failing with contradictory errors
+- Design Creation: ⏳ TESTING - Now using asset_id approach to duplicate designs
 - Export: ✅ WORKING - Fixed with proper job polling and correct API format
-- Autofill: ✅ WORKING - Fixed with correct endpoint and job polling
+- Autofill: ❌ DISABLED - Requires Canva Enterprise organization membership (not available for standard accounts)
+- Template Listing: ✅ WORKING - Can fetch and display user's designs
+- Design Duplication: ⏳ TESTING - Now using asset_id to duplicate designs to user accounts
 
 ## TypeScript Fixes Applied
 - Updated `CanvaExportResponse` interface to include `urls?: string[]` and `error?` fields
 - Updated `CanvaAutofillDesignResponse` interface to use `job` structure with proper status handling
 - All TypeScript compilation errors resolved
+
+## API Fixes Applied (January 15, 2025)
+- **Design Creation**: Fixed `createDesignFromTemplate()` and `createTestDesign()` methods to include both `design_type` and `type` fields
+- **Request Format**: Changed from `{ "design_type": "presentation" }` to `{ "design_type": "presentation", "type": "presentation" }`
+- **Documentation**: Updated comments to reference official Canva API documentation
+- **Autofill Disabled**: Removed autofill functionality as it requires Canva Enterprise organization membership
+- **Duplicate Fixed**: Added proper `duplicateDesign()` method that creates new blank designs
+- **Status**: Design Creation, Export, and Template Listing working correctly; Autofill disabled due to Enterprise requirement
+
+
+## OFFICIAL CANVA DOCS (FOLLOW)
+
+- https://www.canva.dev/docs/connect/api-reference/authentication/
+- https://www.canva.dev/docs/connect/api-reference/assets/
+- https://www.canva.dev/docs/connect/api-reference/autofills/
+- https://www.canva.dev/docs/connect/api-reference/brand-templates/
+- https://www.canva.dev/docs/connect/api-reference/comments/
+- https://www.canva.dev/docs/connect/api-reference/designs/
+- https://www.canva.dev/docs/connect/api-reference/design-imports/
+- https://www.canva.dev/docs/connect/api-reference/exports/
+- https://www.canva.dev/docs/connect/api-reference/folders/
+- https://www.canva.dev/docs/connect/api-reference/resizes/
+- https://www.canva.dev/docs/connect/api-reference/users/
