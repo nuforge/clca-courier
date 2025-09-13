@@ -262,17 +262,18 @@ export class CanvaApiService {
       throw error;
     }
 
-    logger.info('Creating Canva design from template:', { templateId });
+    logger.info('Creating Canva design from existing design as template:', { templateId });
 
     return this.executeWithRetry(async () => {
-      // API requires design_type OR asset_id - using design_type with preset
+      // Try to create design from existing template using BOTH design_type AND template_id
       const response: AxiosResponse<CanvaCreateDesignResponse> = await this.axiosInstance.post(
         '/designs',
         {
           design_type: {
             type: 'preset',
             name: 'presentation'
-          }
+          },
+          template_id: templateId
         }
       );
 
@@ -295,15 +296,15 @@ export class CanvaApiService {
         updatedAt: now
       };
 
-      logger.success('Canva design created successfully:', {
+      logger.success('Canva design duplicated successfully:', {
         designId: canvaDesign.id,
-        templateId
+        originalDesignId: templateId
       });
 
       return canvaDesign;
 
     }, `createDesignFromTemplate(${templateId})`).catch((error) => {
-      const errorMessage = `Failed to create design from template ${templateId}`;
+      const errorMessage = `Failed to duplicate design ${templateId}`;
 
       if (axios.isAxiosError(error)) {
         // Log the FULL error response for debugging
@@ -333,14 +334,18 @@ export class CanvaApiService {
             message: canvaError.error.message,
             details: canvaError.error.details
           });
-          throw new Error(`${errorMessage}: ${canvaError.error.message}`);
+          // Include full response data in error message for UI display
+          const fullResponseData = JSON.stringify(error.response.data, null, 2);
+          throw new Error(`${errorMessage}: ${canvaError.error.message}\n\nFull Response Data:\n${fullResponseData}`);
         } else {
           logger.error('HTTP error creating design:', {
             templateId,
             status: error.response?.status,
             statusText: error.response?.statusText
           });
-          throw new Error(`${errorMessage}: HTTP ${error.response?.status}`);
+          // Include full response data in error message for UI display
+          const fullResponseData = error.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No response data';
+          throw new Error(`${errorMessage}: HTTP ${error.response?.status}\n\nFull Response Data:\n${fullResponseData}`);
         }
       } else {
         logger.error('Unexpected error creating design:', { templateId, error });

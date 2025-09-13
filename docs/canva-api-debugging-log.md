@@ -39,10 +39,15 @@
 - Result: 400 - "`asset_id` must belong to an image asset"
 - Status: ❌ FAILED - asset_id is for images, not designs
 
-**Attempt 8: Using template_id instead of asset_id (NEW APPROACH)**
-- Request: `{ "type": "TEMPLATE", "template_id": "design_id" }`
-- Result: NOT TESTED YET
-- Status: ⏳ PENDING - Using template_id for design duplication
+**Attempt 8: Using template_id instead of asset_id (FAILED)**
+- Request: `{ "type": "TEMPLATE", "template_id": "DAGyqJV-u4w" }`
+- Result: 400 - "One of 'design_type' or 'asset_id' must be defined." (code: "invalid_field")
+- Status: ❌ FAILED - Still getting the same error, API seems to require design_type even with template_id
+
+**Attempt 9: Using BOTH design_type AND template_id (CURRENT APPROACH)**
+- Request: `{ "design_type": { "type": "preset", "name": "presentation" }, "template_id": "DAGyqJV-u4w" }`
+- Result: TESTING NOW
+- Status: ⏳ TESTING - Combining design_type with template_id for duplication
 
 ### Export (POST /exports)
 
