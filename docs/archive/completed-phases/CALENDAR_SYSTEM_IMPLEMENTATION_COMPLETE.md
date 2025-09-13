@@ -26,8 +26,7 @@ Successfully implemented a comprehensive Community Calendar system that integrat
 - **Event Filtering** - Advanced filtering by date range, event type, and status
 
 #### **User Interface Components**
-- **`CommunityCalendarPage.vue`** - Legacy calendar interface (555 lines)
-- **`CommunityCalendarPageContent.vue`** - New ContentDoc-integrated calendar (548 lines)
+- **`CommunityCalendarPage.vue`** - New ContentDoc-integrated calendar (548 lines)
 - **`CalendarEventCard.vue`** - Event display component (385 lines)
 - **`CalendarEventCardContent.vue`** - New architecture event card
 - **`EventDetailsDialog.vue`** - Event detail modal (415 lines)

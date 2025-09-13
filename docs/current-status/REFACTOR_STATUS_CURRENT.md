@@ -147,8 +147,7 @@ async createCanvaContent()     // With Canva integration
 - ✅ **Service Layer**: `calendar-content.service.ts` - New architecture calendar service
 - ✅ **Composable**: `useCalendarContent.ts` - Reactive calendar state management
 - ✅ **Pages**: 
-  - `CommunityCalendarPage.vue` - Legacy calendar interface (555 lines)
-  - `CommunityCalendarPageContent.vue` - New ContentDoc-integrated calendar (548 lines)
+  - `CommunityCalendarPage.vue` - New ContentDoc-integrated calendar (548 lines)
 - ✅ **Components**:
   - `CalendarEventCard.vue` - Event display component (385 lines)
   - `CalendarEventCardContent.vue` - New architecture event card

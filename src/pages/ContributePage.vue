@@ -132,7 +132,7 @@
                     outline
                     size="sm"
                     :label="$t('content.imageGuide')"
-                    to="/contribute/guide#images"
+                    to="/contribute/guide"
                   />
                 </div>
               </div>
@@ -148,7 +148,7 @@
                     outline
                     size="sm"
                     :label="$t(TRANSLATION_KEYS.COMMON.ACTIONS.CONTACT)"
-                    to="/about#contact"
+                    to="/about"
                   />
                 </div>
               </div>

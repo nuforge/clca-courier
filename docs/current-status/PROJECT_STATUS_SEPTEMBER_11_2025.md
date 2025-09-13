@@ -40,7 +40,7 @@ The CLCA Courier project is a **production-ready community content management pl
 2. **Calendar Composables**: `useCalendarContent.ts` - Reactive calendar state management
 3. **Calendar Pages**: 
    - `CommunityCalendarPage.vue` - Legacy calendar interface
-   - `CommunityCalendarPageContent.vue` - New ContentDoc-integrated calendar
+   - `CommunityCalendarPage.vue` - New ContentDoc-integrated calendar
 4. **Calendar Components**:
    - `CalendarEventCard.vue` - Event display component
    - `CalendarEventCardContent.vue` - New architecture event card

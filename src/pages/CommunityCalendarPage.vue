@@ -31,80 +31,6 @@
         </div>
       </div>
 
-      <!-- Calendar Toolbar -->
-      <q-card flat class="q-mb-md">
-        <q-card-section class="q-pa-md">
-          <div class="row items-center justify-between">
-            <!-- Page Title and Info -->
-            <div class="row items-center q-gutter-sm">
-              <div class="text-h6">
-                {{ monthName }} {{ calendarState.currentYear }}
-              </div>
-              <q-chip
-                v-if="filteredEventsCount > 0"
-                color="primary"
-                text-color="white"
-                :label="`${filteredEventsCount} ${$t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_ON_DATE).split(' ')[0]}`"
-                size="sm"
-              />
-            </div>
-
-            <!-- Filters and Actions -->
-            <div class="row items-center q-gutter-sm">
-              <!-- Event Type Filter -->
-              <q-select
-                v-model="filters.contentTypes"
-                multiple
-                dense
-                outlined
-                :label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.EVENT_TYPES)"
-                :options="eventTypeOptions"
-                option-label="label"
-                option-value="value"
-                emit-value
-                map-options
-                clearable
-                style="min-width: 200px"
-                @update:model-value="applyFilters"
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.EVENT_TYPES)"
-              >
-                <template v-slot:option="{ itemProps, opt }">
-                  <q-item v-bind="itemProps">
-                    <q-item-section avatar>
-                      <q-icon :name="getEventIcon({ tags: [`content-type:${opt.value}`] } as any)" :color="getEventColor({ tags: [`content-type:${opt.value}`] } as any)" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-
-              <!-- Featured Events Filter -->
-              <q-toggle
-                v-model="showFeaturedOnly"
-                :label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.FEATURED_ONLY)"
-                @update:model-value="applyFilters"
-                color="amber"
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.FEATURED_ONLY)"
-              />
-
-              <!-- Refresh Button -->
-              <q-btn
-                flat
-                round
-                icon="mdi-refresh"
-                @click="refreshEvents"
-                :loading="isLoading"
-                :aria-label="$t(TRANSLATION_KEYS.COMMON.REFRESH)"
-                color="primary"
-              >
-                <q-tooltip>{{ $t(TRANSLATION_KEYS.COMMON.REFRESH) }}</q-tooltip>
-              </q-btn>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
 
       <!-- Loading State -->
       <q-inner-loading :showing="isLoading && events.length === 0">
@@ -148,6 +74,81 @@
                 :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
                 ref="calendarRef"
               />
+            </q-card-section>
+          </q-card>
+
+          <!-- Calendar Toolbar -->
+          <q-card flat class="q-mb-md">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center justify-between">
+                <!-- Page Title and Info -->
+                <div class="row items-center q-gutter-sm">
+                  <div class="text-h6">
+                    {{ monthName }} {{ calendarState.currentYear }}
+                  </div>
+                  <q-chip
+                    v-if="filteredEventsCount > 0"
+                    color="primary"
+                    text-color="white"
+                    :label="`${filteredEventsCount} ${$t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_ON_DATE).split(' ')[0]}`"
+                    size="sm"
+                  />
+                </div>
+
+                <!-- Filters and Actions -->
+                <div class="row items-center q-gutter-sm">
+                  <!-- Event Type Filter -->
+                  <q-select
+                    v-model="filters.contentTypes"
+                    multiple
+                    dense
+                    outlined
+                    :label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.EVENT_TYPES)"
+                    :options="eventTypeOptions"
+                    option-label="label"
+                    option-value="value"
+                    emit-value
+                    map-options
+                    clearable
+                    style="min-width: 200px"
+                    @update:model-value="applyFilters"
+                    :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.EVENT_TYPES)"
+                  >
+                    <template v-slot:option="{ itemProps, opt }">
+                      <q-item v-bind="itemProps">
+                        <q-item-section avatar>
+                          <q-icon :name="getEventIcon({ tags: [`content-type:${opt.value}`] } as any)" :color="getEventColor({ tags: [`content-type:${opt.value}`] } as any)" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ opt.label }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+
+                  <!-- Featured Events Filter -->
+                  <q-toggle
+                    v-model="showFeaturedOnly"
+                    :label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.FEATURED_ONLY)"
+                    @update:model-value="applyFilters"
+                    color="amber"
+                    :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.FILTERS.FEATURED_ONLY)"
+                  />
+
+                  <!-- Refresh Button -->
+                  <q-btn
+                    flat
+                    round
+                    icon="mdi-refresh"
+                    @click="refreshEvents"
+                    :loading="isLoading"
+                    :aria-label="$t(TRANSLATION_KEYS.COMMON.REFRESH)"
+                    color="primary"
+                  >
+                    <q-tooltip>{{ $t(TRANSLATION_KEYS.COMMON.REFRESH) }}</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
             </q-card-section>
           </q-card>
 
@@ -357,7 +358,7 @@ import { useCalendarContent } from '../composables/useCalendarContent';
 import type { CalendarEvent } from '../services/calendar-content.service';
 import CalendarEventCardContent from '../components/calendar/CalendarEventCardContent.vue';
 import { logger } from '../utils/logger';
-import { formatDate, getCurrentYear, getCurrentMonth, parseDateOnly } from '../utils/date-formatter';
+import { formatDate, getCurrentYear, getCurrentMonth, parseDateOnly, isPast, isFuture } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import TagDisplay from '../components/common/TagDisplay.vue';
 
@@ -467,8 +468,27 @@ const isExpansionOpen = (date: string): boolean => {
     return true;
   }
 
-  // Default to open for all days (unless manually closed)
-  return true;
+  // Smart default behavior: past events closed, upcoming events open
+  const eventDate = parseDateOnly(date);
+  if (!eventDate) {
+    // Fallback to open if date parsing fails
+    return true;
+  }
+
+  // Check if the date is in the past or future
+  if (isPast(eventDate)) {
+    // Past events: closed by default
+    logger.debug('🗓️ Past event date, defaulting to closed:', date);
+    return false;
+  } else if (isFuture(eventDate)) {
+    // Future events: open by default
+    logger.debug('🗓️ Future event date, defaulting to open:', date);
+    return true;
+  } else {
+    // Today's events: open by default
+    logger.debug('🗓️ Today\'s event date, defaulting to open:', date);
+    return true;
+  }
 };
 
 // Reactive state to force calendar updates
@@ -610,6 +630,7 @@ const openExpansionForDate = (date: string) => {
   if (expansionState.value[date] !== false) {
     autoOpenedDays.value.add(date);
     expansionState.value[date] = true;
+    logger.debug('🗓️ Auto-opened expansion for date:', date);
   } else {
     logger.debug('🗓️ Respecting user preference to keep date closed:', date);
   }

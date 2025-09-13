@@ -33,7 +33,7 @@
   - `SubmitContentPage.vue` - Multi-step wizard testing
   - `TaskFeatureForm.vue` - Recent reactive loop fixes verification
   - `FeaturesStep.vue` - Expansion panel behavior validation
-  - `CommunityCalendarPageContent.vue` - Calendar system testing
+  - `CommunityCalendarPage.vue` - Calendar system testing
   - `CalendarEventCardContent.vue` - Event display component testing
   - Target: 85%+ test coverage for submission workflow and calendar system
 

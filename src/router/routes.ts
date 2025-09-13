@@ -8,7 +8,7 @@ const routes: RouteRecordRaw[] = [
       // Main public pages
       { path: '', component: () => import('pages/IndexPage.vue') },
       { path: '/community', component: () => import('pages/CommunityContentPage.vue') },
-      { path: '/calendar', component: () => import('pages/CommunityCalendarPageContent.vue') },
+      { path: '/calendar', component: () => import('pages/CommunityCalendarPage.vue') },
       { path: '/about', component: () => import('pages/AboutContactPage.vue') },
       { path: '/contact', redirect: '/about' }, // Redirect old contact route to about page
       { path: '/map', component: () => import('pages/InteractiveMapPage.vue') },
@@ -20,7 +20,8 @@ const routes: RouteRecordRaw[] = [
       // Contribution system
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contribute/submit', component: () => import('pages/SubmitContentPage.vue') },
-      { path: '/contribute/guide-modern', component: () => import('pages/ModernContributeGuide.vue') },
+      { path: '/contribute/guide', redirect: '/contribute/guide-modern' },
+      { path: '/contribute/guide-modern', component: () => import('pages/ContributeGuideModern.vue') },
 
       // Canva integration
       { path: '/canva/callback', component: () => import('pages/CanvaCallbackPage.vue') },
