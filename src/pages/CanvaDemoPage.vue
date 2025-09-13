@@ -416,7 +416,8 @@ const {
   isAuthenticated: isCanvaAuthenticated,
   isLoading: isCanvaLoading,
   initiateOAuth,
-  signOut
+  signOut,
+  refreshAuthState
 } = useCanvaAuth();
 
 // State
@@ -865,6 +866,7 @@ const disconnectFromCanva = () => {
 // Lifecycle
 onMounted(() => {
   void refreshDemo();
+  refreshAuthState(); // Check for stored Canva tokens
   addLog('info', 'Canva Demo Page loaded');
 });
 </script>

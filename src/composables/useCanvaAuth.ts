@@ -419,6 +419,9 @@ export function useCanvaAuth() {
       const cleanUrl = window.location.pathname;
       await router.replace(cleanUrl);
 
+      // Refresh auth state to ensure UI updates
+      refreshAuthState();
+
     } catch (error) {
       logger.error('OAuth callback handling failed:', error);
       state.value.error = error instanceof Error ? error.message : 'Unknown error';
@@ -491,6 +494,28 @@ export function useCanvaAuth() {
     }
   }
 
+  /**
+   * Refresh the authentication state by checking for stored tokens
+   */
+  function refreshAuthState(): void {
+    try {
+      if (auth.currentUser.value) {
+        const tokens = retrieveTokensSecurely();
+        if (tokens) {
+          state.value.tokens = tokens;
+          state.value.isAuthenticated = true;
+          logger.info('Canva authentication state refreshed');
+        } else {
+          state.value.tokens = null;
+          state.value.isAuthenticated = false;
+          logger.info('No Canva tokens found, user not authenticated');
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to refresh Canva auth state:', error);
+    }
+  }
+
   // Initialize on composable creation
   initialize();
 
@@ -507,5 +532,6 @@ export function useCanvaAuth() {
     signOut,
     getAccessToken,
     initialize,
+    refreshAuthState,
   };
 }
