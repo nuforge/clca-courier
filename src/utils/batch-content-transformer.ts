@@ -5,6 +5,7 @@
 
 import type { ContentDoc, ContentFeatures } from '../types/core/content.types';
 import type { Timestamp } from 'firebase/firestore';
+import { normalizeDate, getCurrentYear } from './date-formatter';
 
 export interface BatchProcessingItem {
   file_path: string;
@@ -145,9 +146,9 @@ export class BatchContentTransformer {
       features,
       status: 'published',
       timestamps: {
-        created: new Date(batchItem.processed_at) as unknown as Timestamp,
-        updated: new Date(batchItem.processed_at) as unknown as Timestamp,
-        published: new Date(batchItem.processed_at) as unknown as Timestamp
+        created: normalizeDate(batchItem.processed_at) as unknown as Timestamp,
+        updated: normalizeDate(batchItem.processed_at) as unknown as Timestamp,
+        published: normalizeDate(batchItem.processed_at) as unknown as Timestamp
       }
     };
   }
@@ -187,9 +188,9 @@ export class BatchContentTransformer {
       features,
       status: 'published',
       timestamps: {
-        created: new Date(batchItem.processed_at) as unknown as Timestamp,
-        updated: new Date(batchItem.processed_at) as unknown as Timestamp,
-        published: new Date(batchItem.processed_at) as unknown as Timestamp
+        created: normalizeDate(batchItem.processed_at) as unknown as Timestamp,
+        updated: normalizeDate(batchItem.processed_at) as unknown as Timestamp,
+        published: normalizeDate(batchItem.processed_at) as unknown as Timestamp
       }
     };
   }
@@ -256,7 +257,7 @@ export class BatchContentTransformer {
   } {
     // Extract year from filename (e.g., "2014.summer-conashaugh-courier.pdf")
     const yearMatch = filename.match(/(\d{4})/);
-    const year = yearMatch ? parseInt(yearMatch[1]!) : new Date().getFullYear();
+    const year = yearMatch ? parseInt(yearMatch[1]!) : getCurrentYear();
 
     // Extract season from filename
     const seasonMatch = filename.match(/\.(spring|summer|fall|winter)/i);
@@ -267,12 +268,9 @@ export class BatchContentTransformer {
     let date: Date | undefined;
 
     if (dateMatch) {
-      try {
-        date = new Date(dateMatch[1]!);
-      } catch {
-        // Fallback to year-based date
-        date = new Date(year, season === 'spring' ? 2 : season === 'summer' ? 5 : season === 'fall' ? 8 : 11, 1);
-      }
+      // Use normalizeDate for safe date parsing
+      const parsedDate = normalizeDate(dateMatch[1]);
+      date = parsedDate || new Date(year, season === 'spring' ? 2 : season === 'summer' ? 5 : season === 'fall' ? 8 : 11, 1);
     } else {
       // Create approximate date based on season
       date = new Date(year, season === 'spring' ? 2 : season === 'summer' ? 5 : season === 'fall' ? 8 : 11, 1);
