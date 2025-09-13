@@ -1,38 +1,40 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useTheme } from '../composables/useTheme';
+import { useI18n } from 'vue-i18n';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const { textClasses } = useTheme();
+const { t } = useI18n();
 const emailSubscription = ref('');
-const currentYear = new Date().getFullYear();
 
 const footerClasses = computed(() =>
   textClasses.value.primary === 'text-white' ? 'bg-dark text-white' : 'bg-grey text-white'
 );
 
 const quickLinks = [
-  { label: 'Community Content', to: '/community' },
-  { label: 'Issue Archive', to: '/archive' },
-  { label: 'Interactive Map', to: '/map' },
-  { label: 'Classifieds', to: '/community?type=classifieds' }
+  { label: t(TRANSLATION_KEYS.FOOTER.COMMUNITY_CONTENT), to: '/community' },
+  { label: t(TRANSLATION_KEYS.FOOTER.ISSUE_ARCHIVE), to: '/archive' },
+  { label: t(TRANSLATION_KEYS.FOOTER.INTERACTIVE_MAP), to: '/map' },
+  { label: t(TRANSLATION_KEYS.FOOTER.CLASSIFIEDS), to: '/community?type=classifieds' }
 ];
 
 const communityLinks = [
-  { label: 'About & Contact', to: '/about' },
-  { label: 'Contribute', to: '/contribute' }
+  { label: t(TRANSLATION_KEYS.FOOTER.ABOUT_CONTACT), to: '/about' },
+  { label: t(TRANSLATION_KEYS.FOOTER.CONTRIBUTE), to: '/contribute' }
 ];
 
 const legalLinks = [
-  { label: 'Privacy Policy', to: '/privacy' },
-  { label: 'Terms of Service', to: '/terms' },
-  { label: 'Accessibility', to: '/accessibility' }
+  { label: t(TRANSLATION_KEYS.FOOTER.PRIVACY_POLICY), to: '/privacy' },
+  { label: t(TRANSLATION_KEYS.FOOTER.TERMS_OF_SERVICE), to: '/terms' },
+  { label: t(TRANSLATION_KEYS.FOOTER.ACCESSIBILITY), to: '/accessibility' }
 ];
 
 const socialLinks = [
-  { icon: 'mdi-facebook', url: '#', label: 'Facebook' },
-  { icon: 'mdi-twitter', url: '#', label: 'Twitter' },
-  { icon: 'mdi-instagram', url: '#', label: 'Instagram' },
-  { icon: 'mdi-email', url: 'mailto:info@conashaughlakes.com', label: 'Email' }
+  { icon: 'mdi-facebook', url: '#', label: t(TRANSLATION_KEYS.FOOTER.FACEBOOK) },
+  { icon: 'mdi-twitter', url: '#', label: t(TRANSLATION_KEYS.FOOTER.TWITTER) },
+  { icon: 'mdi-instagram', url: '#', label: t(TRANSLATION_KEYS.FOOTER.INSTAGRAM) },
+  { icon: 'mdi-email', url: 'mailto:info@conashaughlakes.com', label: t(TRANSLATION_KEYS.FOOTER.EMAIL) }
 ];
 </script>
 
@@ -45,20 +47,20 @@ const socialLinks = [
         <div class="col-12 col-md-3">
           <div class="text-h6 q-mb-md">
             <q-icon name="mdi-newspaper" size="sm" class="q-mr-sm" />
-            The Courier
+            {{ t(TRANSLATION_KEYS.FOOTER.BRAND_NAME) }}
           </div>
           <p class="text-body2 q-mb-md">
-            Connecting the Conashaugh Lakes community through local news, events, and shared stories since our founding.
+            {{ t(TRANSLATION_KEYS.FOOTER.DESCRIPTION) }}
           </p>
           <div class="text-caption">
             <q-icon name="mdi-map-marker" size="xs" class="q-mr-xs" />
-            Conashaugh Lakes Community
+            {{ t(TRANSLATION_KEYS.FOOTER.LOCATION) }}
           </div>
         </div>
 
         <!-- Quick Links -->
         <div class="col-12 col-sm-6 col-md-2">
-          <div class="text-subtitle1 q-mb-md">Quick Links</div>
+          <div class="text-subtitle1 q-mb-md">{{ t(TRANSLATION_KEYS.FOOTER.QUICK_LINKS) }}</div>
           <q-list dense class="no-padding">
             <q-item v-for="link in quickLinks" :key="link.label" :to="link.to" clickable v-ripple class="q-pa-xs">
               <q-item-section>
@@ -70,7 +72,7 @@ const socialLinks = [
 
         <!-- Community -->
         <div class="col-12 col-sm-6 col-md-2">
-          <div class="text-subtitle1 q-mb-md">Community</div>
+          <div class="text-subtitle1 q-mb-md">{{ t(TRANSLATION_KEYS.FOOTER.COMMUNITY) }}</div>
           <q-list dense class="no-padding">
             <q-item v-for="link in communityLinks" :key="link.label" :to="link.to" clickable v-ripple class="q-pa-xs">
               <q-item-section>
@@ -82,13 +84,13 @@ const socialLinks = [
 
         <!-- Newsletter Subscription -->
         <div class="col-12 col-md-3">
-          <div class="text-subtitle1 q-mb-md">Stay Connected</div>
+          <div class="text-subtitle1 q-mb-md">{{ t(TRANSLATION_KEYS.FOOTER.STAY_CONNECTED) }}</div>
           <p class="text-body2 q-mb-md">
-            Subscribe to receive the latest issues and community updates.
+            {{ t(TRANSLATION_KEYS.FOOTER.NEWSLETTER_DESCRIPTION) }}
           </p>
           <div class="row ">
             <div class="col">
-              <q-input v-model="emailSubscription" dense outlined placeholder="Enter your email" bg-color="white" dark
+              <q-input v-model="emailSubscription" dense outlined :placeholder="t(TRANSLATION_KEYS.FOOTER.EMAIL_PLACEHOLDER)" bg-color="white" dark
                 class="text-dark">
                 <template v-slot:append>
                   <q-btn icon="mdi-send" color="primary" flat dense @click="() => { }" />
@@ -100,7 +102,7 @@ const socialLinks = [
 
         <!-- Contact Info -->
         <div class="col-12 col-md-2">
-          <div class="text-subtitle1 q-mb-md">Contact</div>
+          <div class="text-subtitle1 q-mb-md">{{ t(TRANSLATION_KEYS.FOOTER.CONTACT) }}</div>
           <div class="text-body2 q-mb-sm">
             <q-icon name="mdi-email" size="xs" class="q-mr-xs" />
             info@conashaughlakes.com
@@ -111,7 +113,7 @@ const socialLinks = [
           </div>
           <div class="text-body2">
             <q-icon name="mdi-clock" size="xs" class="q-mr-xs" />
-            Published Seasonally
+            {{ t(TRANSLATION_KEYS.FOOTER.PUBLISHED_SEASONALLY) }}
           </div>
         </div>
       </div>
@@ -123,7 +125,7 @@ const socialLinks = [
         <!-- Copyright -->
         <div class="col-12 col-md-6">
           <div class="text-body2">
-            © {{ currentYear }} The Courier @ Conashaugh Lakes. All rights reserved.
+            {{ t(TRANSLATION_KEYS.FOOTER.COPYRIGHT) }}
           </div>
           <div class="text-caption q-mt-xs">
             <template v-for="(link, index) in legalLinks" :key="link.label">
@@ -137,7 +139,7 @@ const socialLinks = [
 
         <!-- Social Media -->
         <div class="col-12 col-md-6 text-right">
-          <div class="text-body2 q-mb-sm">Follow Us</div>
+          <div class="text-body2 q-mb-sm">{{ t(TRANSLATION_KEYS.FOOTER.FOLLOW_US) }}</div>
           <div class="">
             <q-btn v-for="social in socialLinks" :key="social.label" :icon="social.icon" :href="social.url"
               target="_blank" flat round size="sm" color="white" :aria-label="social.label" />
@@ -148,9 +150,9 @@ const socialLinks = [
       <!-- Additional Footer Note -->
       <div class="text-center q-mt-lg">
         <div class="text-caption text-grey-4">
-          The Courier is a community-driven publication serving the residents of Conashaugh Lakes.
+          {{ t(TRANSLATION_KEYS.FOOTER.COMMUNITY_NOTE) }}
           <br>
-          We welcome submissions, feedback, and community involvement.
+          {{ t(TRANSLATION_KEYS.FOOTER.WELCOME_MESSAGE) }}
         </div>
       </div>
     </div>

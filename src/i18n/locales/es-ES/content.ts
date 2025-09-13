@@ -13,7 +13,8 @@ export default {
     approved: 'Aprobado',
     published: 'Publicado',
     rejected: 'Rechazado',
-    draft: 'Borrador'
+    draft: 'Borrador',
+    unclaimed: 'Sin Reclamar'
   },
 
   types: {

@@ -39,7 +39,7 @@ async function handleLanguageChange(language: SupportedLocale) {
 async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
   await setTheme(theme);
   $q.notify({
-    message: t('settingsPage.themeSettings'),
+    message: t(TRANSLATION_KEYS.SETTINGS_PAGE.THEME_SETTINGS),
     type: 'positive',
     position: 'top',
     timeout: 2000,
@@ -49,7 +49,7 @@ async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
 async function handleNotificationUpdate(key: string, value: boolean) {
   await userSettings.updateNotificationSettings({ [key]: value });
   $q.notify({
-    message: t('settingsPage.notificationSettings'),
+    message: t(TRANSLATION_KEYS.SETTINGS_PAGE.NOTIFICATION_SETTINGS),
     type: 'positive',
     position: 'top',
     timeout: 2000,
@@ -59,7 +59,7 @@ async function handleNotificationUpdate(key: string, value: boolean) {
 async function handleDisplayUpdate(key: string, value: boolean) {
   await userSettings.updateDisplaySettings({ [key]: value });
   $q.notify({
-    message: t('settingsPage.displaySettings'),
+    message: t(TRANSLATION_KEYS.SETTINGS_PAGE.DISPLAY_SETTINGS),
     type: 'positive',
     position: 'top',
     timeout: 2000,
@@ -70,7 +70,7 @@ async function handlePdfUpdate(key: string, value: number | string | null) {
   if (value !== null) {
     await userSettings.updatePdfSettings({ [key]: value });
     $q.notify({
-      message: t('settingsPage.pdfSettings'),
+      message: t(TRANSLATION_KEYS.SETTINGS_PAGE.PDF_SETTINGS),
       type: 'positive',
       position: 'top',
       timeout: 2000,
@@ -87,7 +87,7 @@ function resetAllSettings() {
   }).onOk(() => {
     void userSettings.resetSettings().then(() => {
       $q.notify({
-        message: t('settingsPage.resetAll'),
+        message: t(TRANSLATION_KEYS.SETTINGS_PAGE.RESET_ALL),
         type: 'positive',
         position: 'top',
         timeout: 3000,
@@ -160,7 +160,7 @@ function importSettings() {
         <div class="col-12 col-md-10 col-lg-8">
           <div class="text-h4 q-mb-md">
             <q-icon name="mdi-cog" class="q-mr-sm" />
-            {{ $t('settingsPage.title') }}
+            {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.TITLE) }}
           </div>
 
           <!-- Language Settings -->
@@ -216,25 +216,25 @@ function importSettings() {
           </q-expansion-item>
 
           <!-- Theme Settings -->
-          <q-expansion-item v-model="settingsExpanded.theme" icon="mdi-palette" :label="$t('settingsPage.themeSettings')"
+          <q-expansion-item v-model="settingsExpanded.theme" icon="mdi-palette" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.THEME_SETTINGS)"
             default-opened class="q-mb-md">
             <q-card>
               <q-card-section>
-                <div class="text-h6 q-mb-md">{{ $t('settingsPage.themeSettings') }}</div>
+                <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.THEME_SETTINGS) }}</div>
 
                 <q-option-group :model-value="currentTheme" @update:model-value="handleThemeChange" :options="[
-                  { label: $t('settingsPage.lightTheme'), value: 'light', icon: 'mdi-brightness-7' },
-                  { label: $t('settingsPage.darkTheme'), value: 'dark', icon: 'mdi-brightness-4' },
-                  { label: $t('settingsPage.autoTheme'), value: 'auto', icon: 'mdi-brightness-auto' }
+                  { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.LIGHT_THEME), value: 'light', icon: 'mdi-brightness-7' },
+                  { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.DARK_THEME), value: 'dark', icon: 'mdi-brightness-4' },
+                  { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.AUTO_THEME), value: 'auto', icon: 'mdi-brightness-auto' }
                 ]" color="primary" type="radio" />
 
                 <q-separator class="q-my-md" />
 
                 <div class="text-body2 text-grey-6">
-                  {{ $t('settingsPage.themeDescription') }}: <strong>{{ isDarkMode ? $t('settingsPage.darkTheme') : $t('settingsPage.lightTheme') }}</strong>
+                  {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.THEME_DESCRIPTION) }}: <strong>{{ isDarkMode ? t(TRANSLATION_KEYS.SETTINGS_PAGE.DARK_THEME) : t(TRANSLATION_KEYS.SETTINGS_PAGE.LIGHT_THEME) }}</strong>
                   <q-chip :color="isDarkMode ? 'deep-purple' : 'amber'"
                     :icon="isDarkMode ? 'mdi-brightness-4' : 'mdi-brightness-7'" size="sm" class="q-ml-sm">
-                    {{ currentTheme === 'auto' ? $t('settingsPage.autoTheme') : (isDarkMode ? $t('settingsPage.darkTheme') : $t('settingsPage.lightTheme')) }}
+                    {{ currentTheme === 'auto' ? t(TRANSLATION_KEYS.SETTINGS_PAGE.AUTO_THEME) : (isDarkMode ? t(TRANSLATION_KEYS.SETTINGS_PAGE.DARK_THEME) : t(TRANSLATION_KEYS.SETTINGS_PAGE.LIGHT_THEME)) }}
                   </q-chip>
                 </div>
               </q-card-section>
@@ -242,27 +242,27 @@ function importSettings() {
           </q-expansion-item>
 
           <!-- Notification Settings -->
-          <q-expansion-item v-model="settingsExpanded.notifications" icon="mdi-bell" :label="$t('settingsPage.notificationSettings')"
+          <q-expansion-item v-model="settingsExpanded.notifications" icon="mdi-bell" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.NOTIFICATION_SETTINGS)"
             class="q-mb-md">
             <q-card>
               <q-card-section>
-                <div class="text-h6 q-mb-md">{{ $t('settingsPage.notificationSettings') }}</div>
+                <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.NOTIFICATION_SETTINGS) }}</div>
 
                 <div class="column ">
                   <q-toggle :model-value="userSettings.notificationSettings.value.browser"
                     @update:model-value="(val) => handleNotificationUpdate('browser', val)"
-                    label="Browser Notifications" color="primary" />
+                    :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.BROWSER_NOTIFICATIONS)" color="primary" />
 
                   <q-toggle :model-value="userSettings.notificationSettings.value.email"
-                    @update:model-value="(val) => handleNotificationUpdate('email', val)" label="Email Notifications"
+                    @update:model-value="(val) => handleNotificationUpdate('email', val)" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.EMAIL_NOTIFICATIONS)"
                     color="primary" />
 
                   <q-toggle :model-value="userSettings.notificationSettings.value.issues"
-                    @update:model-value="(val) => handleNotificationUpdate('issues', val)" label="New Issue Alerts"
+                    @update:model-value="(val) => handleNotificationUpdate('issues', val)" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.NEW_ISSUE_ALERTS)"
                     color="primary" />
 
                   <q-toggle :model-value="userSettings.notificationSettings.value.events"
-                    @update:model-value="(val) => handleNotificationUpdate('events', val)" label="Event Reminders"
+                    @update:model-value="(val) => handleNotificationUpdate('events', val)" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.EVENT_REMINDERS)"
                     color="primary" />
                 </div>
               </q-card-section>
@@ -270,32 +270,32 @@ function importSettings() {
           </q-expansion-item>
 
           <!-- Display Settings -->
-          <q-expansion-item v-model="settingsExpanded.display" icon="mdi-monitor" label="Display & Behavior"
+          <q-expansion-item v-model="settingsExpanded.display" icon="mdi-monitor" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.DISPLAY_BEHAVIOR)"
             class="q-mb-md">
             <q-card>
               <q-card-section>
-                <div class="text-h6 q-mb-md">Display Options</div>
+                <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.DISPLAY_SETTINGS) }}</div>
 
                 <div class="column ">
                   <q-toggle :model-value="userSettings.displaySettings.value.compactMode"
-                    @update:model-value="(val) => handleDisplayUpdate('compactMode', val)" label="Compact Mode"
+                    @update:model-value="(val) => handleDisplayUpdate('compactMode', val)" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.COMPACT_MODE)"
                     color="primary" />
                   <div class="text-caption text-grey-6 q-ml-md">
-                    Reduces spacing and shows more content on screen
+                    {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.COMPACT_MODE_DESCRIPTION) }}
                   </div>
 
                   <q-toggle :model-value="userSettings.displaySettings.value.animationsEnabled"
                     @update:model-value="(val) => handleDisplayUpdate('animationsEnabled', val)"
-                    label="Enable Animations" color="primary" />
+                    :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.ENABLE_ANIMATIONS)" color="primary" />
                   <div class="text-caption text-grey-6 q-ml-md">
-                    Turn off to improve performance on slower devices
+                    {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.ENABLE_ANIMATIONS_DESCRIPTION) }}
                   </div>
 
                   <q-toggle :model-value="userSettings.displaySettings.value.autoplayVideos"
-                    @update:model-value="(val) => handleDisplayUpdate('autoplayVideos', val)" label="Autoplay Videos"
+                    @update:model-value="(val) => handleDisplayUpdate('autoplayVideos', val)" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.AUTOPLAY_VIDEOS)"
                     color="primary" />
                   <div class="text-caption text-grey-6 q-ml-md">
-                    Automatically play videos when they come into view
+                    {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.AUTOPLAY_VIDEOS_DESCRIPTION) }}
                   </div>
                 </div>
               </q-card-section>
@@ -303,39 +303,39 @@ function importSettings() {
           </q-expansion-item>
 
           <!-- PDF Settings -->
-          <q-expansion-item v-model="settingsExpanded.pdf" icon="mdi-file-pdf-box" label="PDF Viewer" class="q-mb-md">
+          <q-expansion-item v-model="settingsExpanded.pdf" icon="mdi-file-pdf-box" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.PDF_VIEWER)" class="q-mb-md">
             <q-card>
               <q-card-section>
-                <div class="text-h6 q-mb-md">PDF Viewer Preferences</div>
+                <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.PDF_VIEWER_PREFERENCES) }}</div>
 
                 <div class="column ">
                   <div>
-                    <div class="text-subtitle2 q-mb-sm">Default Zoom Level</div>
+                    <div class="text-subtitle2 q-mb-sm">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.DEFAULT_ZOOM_LEVEL) }}</div>
                     <q-slider :model-value="userSettings.pdfSettings.value.defaultZoom"
                       @update:model-value="(val) => handlePdfUpdate('defaultZoom', val)" :min="0.5" :max="3.0"
                       :step="0.1" label color="primary" />
                     <div class="text-caption text-grey-6">
-                      Current: {{ (userSettings.pdfSettings.value.defaultZoom * 100).toFixed(0) }}%
+                      {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.CURRENT) }}: {{ (userSettings.pdfSettings.value.defaultZoom * 100).toFixed(0) }}%
                     </div>
                   </div>
 
                   <div>
-                    <div class="text-subtitle2 q-mb-sm">Page Layout</div>
+                    <div class="text-subtitle2 q-mb-sm">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.PAGE_LAYOUT) }}</div>
                     <q-option-group :model-value="userSettings.pdfSettings.value.pageLayout"
                       @update:model-value="(val) => handlePdfUpdate('pageLayout', val)" :options="[
-                        { label: 'Single Page', value: 'single' },
-                        { label: 'Facing Pages', value: 'facing' },
-                        { label: 'Cover Page', value: 'cover' }
+                        { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.SINGLE_PAGE), value: 'single' },
+                        { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.FACING_PAGES), value: 'facing' },
+                        { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.COVER_PAGE), value: 'cover' }
                       ]" color="primary" type="radio" inline />
                   </div>
 
                   <div>
-                    <div class="text-subtitle2 q-mb-sm">Thumbnail Size</div>
+                    <div class="text-subtitle2 q-mb-sm">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.THUMBNAIL_SIZE) }}</div>
                     <q-option-group :model-value="userSettings.pdfSettings.value.thumbnailSize"
                       @update:model-value="(val) => handlePdfUpdate('thumbnailSize', val)" :options="[
-                        { label: 'Small', value: 'small' },
-                        { label: 'Medium', value: 'medium' },
-                        { label: 'Large', value: 'large' }
+                        { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.SMALL), value: 'small' },
+                        { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.MEDIUM), value: 'medium' },
+                        { label: t(TRANSLATION_KEYS.SETTINGS_PAGE.LARGE), value: 'large' }
                       ]" color="primary" type="radio" inline />
                   </div>
                 </div>
@@ -346,20 +346,19 @@ function importSettings() {
           <!-- Settings Management -->
           <q-card class="q-mt-md">
             <q-card-section>
-              <div class="text-h6 q-mb-md">Settings Management</div>
+              <div class="text-h6 q-mb-md">{{ t(TRANSLATION_KEYS.SETTINGS_PAGE.SETTINGS_MANAGEMENT) }}</div>
 
               <div class="row ">
-                <q-btn @click="exportSettings" icon="mdi-export" label="Export Settings" color="primary" outline />
+                <q-btn @click="exportSettings" icon="mdi-export" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.EXPORT_SETTINGS)" color="primary" outline />
 
-                <q-btn @click="importSettings" icon="mdi-import" label="Import Settings" color="primary" outline />
+                <q-btn @click="importSettings" icon="mdi-import" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.IMPORT_SETTINGS)" color="primary" outline />
 
-                <q-btn @click="resetAllSettings" icon="mdi-restore" label="Reset to Defaults" color="negative"
+                <q-btn @click="resetAllSettings" icon="mdi-restore" :label="t(TRANSLATION_KEYS.SETTINGS_PAGE.RESET_TO_DEFAULTS)" color="negative"
                   outline />
               </div>
 
               <div class="text-body2 text-grey-6 q-mt-md">
-                Export your settings to back them up or import settings from a backup file.
-                Settings are automatically saved to your device.
+                {{ t(TRANSLATION_KEYS.SETTINGS_PAGE.EXPORT_DESCRIPTION) }}
               </div>
             </q-card-section>
           </q-card>

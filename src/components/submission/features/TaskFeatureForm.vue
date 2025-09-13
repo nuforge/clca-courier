@@ -112,42 +112,42 @@ const isUpdatingFromProps = ref(false);
 
 // Task category options
 const taskCategories = computed(() => [
-  { label: t('features.task.categories.setup'), value: 'setup' },
-  { label: t('features.task.categories.printing'), value: 'printing' },
-  { label: t('features.task.categories.cleanup'), value: 'cleanup' },
-  { label: t('features.task.categories.delivery'), value: 'delivery' },
-  { label: t('features.task.categories.coordination'), value: 'coordination' },
-  { label: t('features.task.categories.supplies'), value: 'supplies' },
-  { label: t('features.task.categories.technical'), value: 'technical' },
-  { label: t('features.task.categories.other'), value: 'other' }
+  { label: t('content.features.task.categories.setup'), value: 'setup' },
+  { label: t('content.features.task.categories.printing'), value: 'printing' },
+  { label: t('content.features.task.categories.cleanup'), value: 'cleanup' },
+  { label: t('content.features.task.categories.delivery'), value: 'delivery' },
+  { label: t('content.features.task.categories.coordination'), value: 'coordination' },
+  { label: t('content.features.task.categories.supplies'), value: 'supplies' },
+  { label: t('content.features.task.categories.technical'), value: 'technical' },
+  { label: t('content.features.task.categories.other'), value: 'other' }
 ]);
 
 // Unit options
 const unitOptions = computed(() => [
-  { label: t('features.task.units.people'), value: 'people' },
-  { label: t('features.task.units.hours'), value: 'hours' },
-  { label: t('features.task.units.items'), value: 'items' },
-  { label: t('features.task.units.copies'), value: 'copies' },
-  { label: t('features.task.units.sets'), value: 'sets' },
-  { label: t('features.task.units.tables'), value: 'tables' },
-  { label: t('features.task.units.chairs'), value: 'chairs' },
-  { label: t('features.task.units.boxes'), value: 'boxes' }
+  { label: t('content.features.task.units.people'), value: 'people' },
+  { label: t('content.features.task.units.hours'), value: 'hours' },
+  { label: t('content.features.task.units.items'), value: 'items' },
+  { label: t('content.features.task.units.copies'), value: 'copies' },
+  { label: t('content.features.task.units.sets'), value: 'sets' },
+  { label: t('content.features.task.units.tables'), value: 'tables' },
+  { label: t('content.features.task.units.chairs'), value: 'chairs' },
+  { label: t('content.features.task.units.boxes'), value: 'boxes' }
 ]);
 
 // Validation
 const required = (val: string | number) => !!val || t('forms.required');
-const validateQuantity = (val: number) => (val > 0 && val <= 999) || t('features.task.quantityRange');
+const validateQuantity = (val: number) => (val > 0 && val <= 999) || t('content.features.task.quantityRange');
 
 // Methods
 const formatTaskPreview = (): string => {
   if (!localTaskFeature.value.category || !localTaskFeature.value.qty || !localTaskFeature.value.unit) {
-    return t('features.task.incompleteTask');
+    return t('content.features.task.incompleteTask');
   }
 
   const categoryLabel = taskCategories.value.find(cat => cat.value === localTaskFeature.value.category)?.label || localTaskFeature.value.category;
   const unitLabel = unitOptions.value.find(unit => unit.value === localTaskFeature.value.unit)?.label || localTaskFeature.value.unit;
 
-  return t('features.task.previewFormat', {
+  return t('content.features.task.previewFormat', {
     qty: localTaskFeature.value.qty,
     unit: unitLabel,
     category: categoryLabel
@@ -188,6 +188,7 @@ watch(
 .task-feature-form {
   padding: 1rem;
   border-radius: 8px;
-  background-color: var(--q-grey-1);
+  background-color: var(--q-surface);
+  color: var(--q-on-surface);
 }
 </style>

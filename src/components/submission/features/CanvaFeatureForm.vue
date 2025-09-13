@@ -197,6 +197,11 @@ watch(
 
 <style lang="scss" scoped>
 .canva-feature-form {
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: var(--q-surface);
+  color: var(--q-on-surface);
+
   .canva-preview {
     border-radius: 8px;
   }

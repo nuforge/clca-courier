@@ -278,7 +278,8 @@ watch(
 .location-feature-form {
   padding: 1rem;
   border-radius: 8px;
-  background-color: var(--q-grey-1);
+  background-color: var(--q-surface);
+  color: var(--q-on-surface);
 }
 
 .coordinate-expansion {
