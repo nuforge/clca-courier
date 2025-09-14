@@ -44,10 +44,10 @@
 - Result: 400 - "One of 'design_type' or 'asset_id' must be defined." (code: "invalid_field")
 - Status: ❌ FAILED - Still getting the same error, API seems to require design_type even with template_id
 
-**Attempt 9: Using BOTH design_type AND template_id (CURRENT APPROACH)**
+**Attempt 9: Using BOTH design_type AND template_id (FAILED)**
 - Request: `{ "design_type": { "type": "preset", "name": "presentation" }, "template_id": "DAGyqJV-u4w" }`
-- Result: TESTING NOW
-- Status: ⏳ TESTING - Combining design_type with template_id for duplication
+- Result: 200 - SUCCESS but creates BLANK design, template_id is IGNORED
+- Status: ❌ FAILED - API ignores template_id parameter completely, only uses design_type
 
 ### Export (POST /exports)
 
@@ -133,11 +133,22 @@
 4. Look for actual Canva API documentation examples
 
 ## Current Status
-- Design Creation: ⏳ TESTING - Now using asset_id approach to duplicate designs
+- Design Creation: ✅ WORKING - Can create blank designs with design_type
 - Export: ✅ WORKING - Fixed with proper job polling and correct API format
 - Autofill: ❌ DISABLED - Requires Canva Enterprise organization membership (not available for standard accounts)
 - Template Listing: ✅ WORKING - Can fetch and display user's designs
-- Design Duplication: ⏳ TESTING - Now using asset_id to duplicate designs to user accounts
+- Design Duplication: ❌ NOT SUPPORTED - Canva API does not support duplicating existing designs for standard accounts
+
+## CONCLUSION: Design Duplication Not Supported
+
+After 9 different attempts with various API parameters, the Canva Connect API does NOT support duplicating existing designs for standard accounts:
+
+- `asset_id` only works for image assets, not designs
+- `template_id` parameter is completely ignored by the API
+- `type: "TEMPLATE"` is not a valid parameter
+- The API only supports creating blank designs with `design_type`
+
+**RECOMMENDATION**: Accept that design duplication is not possible with the current Canva API. Users will need to manually copy content from existing designs to new blank designs.
 
 ## TypeScript Fixes Applied
 - Updated `CanvaExportResponse` interface to include `urls?: string[]` and `error?` fields

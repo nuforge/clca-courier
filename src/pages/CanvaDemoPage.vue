@@ -174,7 +174,7 @@
       <q-btn
         color="primary"
         :icon="UI_ICONS.create"
-        label="Duplicate Design"
+        label="Create New Blank Design"
         @click="duplicateDesign"
         :loading="isOperating"
         :disable="!selectedDesign"
@@ -381,18 +381,18 @@ const duplicateDesign = async () => {
   if (!selectedDesign.value) return;
 
   isOperating.value = true;
-    addLog('info', `Attempting to duplicate design: ${selectedDesign.value.title}`);
+    addLog('info', `Creating new blank design (Canva API doesn't support duplication): ${selectedDesign.value.title}`);
 
   try {
     const result = await canvaApiService.duplicateDesign(selectedDesign.value.id);
 
-    addLog('success', `Design duplicated successfully: ${result.id}`);
+    addLog('success', `New blank design created: ${result.id}`);
     operationsCompleted.value++;
 
     $q.notify({
       type: 'positive',
-      message: 'Design duplicated successfully!',
-      caption: `New Design ID: ${result.id}`,
+      message: 'New blank design created!',
+      caption: `Note: Canva API doesn't support design duplication. You'll need to manually copy content from the original design.`,
       actions: [
         {
           label: 'Open Design',

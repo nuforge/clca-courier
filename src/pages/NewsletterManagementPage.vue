@@ -1,712 +1,592 @@
 <!--
-  Newsletter Management Page - PROPERLY REFACTORED
-  Using components and store for clean architecture
+  Newsletter Management Page
+  Admin interface for creating and managing newsletter issues
 -->
 <template>
   <q-page padding>
     <div class="q-pa-md">
-      <div class="row justify-center">
-        <div class="col-12">
-          <!-- Header -->
-          <q-card flat class="q-mb-lg">
-            <q-card-section>
-              <div class="text-h4 text-center q-mb-md">
-                <q-icon name="mdi-database-edit" class="q-mr-sm" />
-                Newsletter Content Management
-              </div>
-              <p class="text-center text-body1">
-                Comprehensive PDF metadata extraction, text processing, and content management
-              </p>
-            </q-card-section>
-          </q-card>
-
-          <!-- Statistics Cards -->
-          <StatisticsCards :total-newsletters="store.totalNewsletters"
-            :newsletters-with-text="store.newslettersWithText"
-            :newsletters-with-thumbnails="store.newslettersWithThumbnails" :total-file-size="store.totalFileSize" />
-
-          <!-- Filters Component -->
-          <NewsletterFilters :newsletters="store.newsletters" :filters="store.filters"
-            @update:filters="store.updateFilters" />
-
-          <!-- Workflow Toolbar Component -->
-          <WorkflowToolbar
-            :processing-states="{
-              isImporting: store.isLoading,
-              isCreatingRecords: false,
-              isClearingCache: false,
-              isFixingUrls: false,
-              isRebuildingDatabase: false,
-              isEnhancingDates: store.isExtractingDates,
-              isExtractingAllText: store.isExtractingText,
-              isExtracting: store.isExtractingText,
-              isExtractingPageCount: store.isExtractingPageCount,
-              isExtractingFileSize: store.isExtractingFileSize,
-              isExtractingDates: store.isExtractingDates,
-              isGeneratingThumbs: store.isGeneratingThumbs,
-              isGeneratingKeywords: store.isGeneratingKeywords,
-              isGeneratingDescriptions: store.isGeneratingDescriptions,
-              isGeneratingTitles: store.isGeneratingTitles
-            }"
-            :has-drafts="store.hasDrafts"
-            :draft-count="store.draftNewsletters.length"
-            :newsletters-needing-extraction="0"
-            @import-data="handleImportPdfs"
-            @upload-drafts="uploadDraftsToCloud"
-            @clear-drafts="clearLocalDrafts"
-            @create-records="() => {}"
-            @clear-cache="() => {}"
-            @fix-urls="() => {}"
-            @rebuild-database="() => {}"
-            @enhance-dates="extractDatesForSelected"
-            @extract-text="extractAllTextToFirebase"
-            @generate-thumbnails="generateAllThumbnails"
-            @generate-keywords="generateKeywordsForSelected"
-            @generate-descriptions="generateDescriptionsForSelected"
-            @generate-titles="generateTitlesForSelected"
-            @publish-all="() => {}"
-            @unpublish-all="() => {}"
-            @backup-data="backupData"
-            @restore-data="() => {}"
-            @sync-all="syncAllToFirebase"
-            @refresh-data="store.refreshNewsletters" />
-
-          <!-- Newsletter Management Table -->
-          <NewsletterManagementTable :newsletters="store.filteredNewsletters"
-            :selected-newsletters="store.selectedNewsletters" :processing-states="store.processingStates"
-            :extracting-text="store.extractingText" :generating-thumb="store.thumbnailIndividualStates"
-            :syncing-individual="store.syncingIndividual" :publishing-states="store.publishingStates"
-            :featured-states="store.featuredStates" @update:selected-newsletters="store.setSelectedNewsletters"
-            @toggle-featured="toggleNewsletterFeatured" @toggle-published="toggleNewsletterPublished"
-            @open-pdf="openPdf" @edit-newsletter="editNewsletter" @extract-text="extractText"
-            @generate-thumbnail="generateThumbnail" @generate-selected-thumbnails="generateSelectedThumbnails"
-            @sync-single="syncSingleNewsletter" @show-extracted-content="showExtractedContent"
-            @re-import-file="handleReImportFile" @delete-newsletter="deleteNewsletter" />
-
+      <!-- Header -->
+      <div class="row items-center q-mb-lg">
+        <div class="col">
+          <h4 class="q-my-none">
+            <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
+            Newsletter Management
+          </h4>
+          <p class="text-body2 text-grey-6 q-my-none">
+            Create and manage newsletter issues from approved content submissions
+          </p>
+        </div>
+        <div class="col-auto">
+          <q-btn
+            color="primary"
+            :icon="UI_ICONS.add"
+            label="Create New Issue"
+            @click="showCreateDialog = true"
+          />
         </div>
       </div>
+
+      <!-- Statistics Overview -->
+      <div class="row q-col-gutter-md q-mb-lg">
+        <div class="col-12 col-md-3">
+          <q-card class="text-center">
+            <q-card-section>
+              <q-icon name="mdi-newspaper-variant" color="primary" size="2rem" />
+              <div class="text-h5 q-mt-sm">{{ issues.length }}</div>
+              <div class="text-caption text-grey-6">Total Issues</div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <div class="col-12 col-md-3">
+          <q-card class="text-center">
+            <q-card-section>
+              <q-icon name="mdi-content-save-edit" color="orange" size="2rem" />
+              <div class="text-h5 q-mt-sm">{{ draftIssues.length }}</div>
+              <div class="text-caption text-grey-6">Draft Issues</div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <div class="col-12 col-md-3">
+          <q-card class="text-center">
+            <q-card-section>
+              <q-icon name="mdi-check-circle" color="positive" size="2rem" />
+              <div class="text-h5 q-mt-sm">{{ readyIssues.length }}</div>
+              <div class="text-caption text-grey-6">Ready Issues</div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <div class="col-12 col-md-3">
+          <q-card class="text-center">
+            <q-card-section>
+              <q-icon name="mdi-file-document" color="info" size="2rem" />
+              <div class="text-h5 q-mt-sm">{{ approvedSubmissions.length }}</div>
+              <div class="text-caption text-grey-6">Available Content</div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+
+      <!-- Issues List -->
+      <q-card>
+        <q-card-section>
+          <div class="text-h6 q-mb-md">
+            <q-icon name="mdi-format-list-bulleted" class="q-mr-sm" />
+            Newsletter Issues
+          </div>
+
+          <q-table
+            :rows="issues"
+            :columns="issueColumns"
+            row-key="id"
+            :loading="isLoading"
+            :pagination="{ rowsPerPage: 10 }"
+            flat
+            bordered
+          >
+            <template v-slot:body-cell-status="props">
+              <q-td :props="props">
+                <q-badge
+                  :color="getStatusColor(props.value)"
+                  :label="props.value"
+                  class="text-capitalize"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-submissions="props">
+              <q-td :props="props">
+                <q-badge color="grey" :label="`${props.value.length} items`" />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-actions="props">
+              <q-td :props="props">
+                <div class="row q-gutter-xs">
+                  <q-btn
+                    flat
+                    dense
+                    size="sm"
+                    icon="mdi-eye"
+                    color="primary"
+                    @click="viewIssue(props.row)"
+                    :disable="props.row.submissions.length === 0"
+                  >
+                    <q-tooltip>View Content</q-tooltip>
+                  </q-btn>
+
+                  <q-btn
+                    flat
+                    dense
+                    size="sm"
+                    icon="mdi-cog"
+                    color="secondary"
+                    @click="editIssue(props.row)"
+                  >
+                    <q-tooltip>Edit Issue</q-tooltip>
+                  </q-btn>
+
+                  <q-btn
+                    flat
+                    dense
+                    size="sm"
+                    icon="mdi-file-pdf-box"
+                    color="positive"
+                    @click="generatePdf(props.row)"
+                    :loading="props.row.status === 'generating'"
+                    :disable="props.row.submissions.length === 0 || props.row.status === 'generating'"
+                  >
+                    <q-tooltip>Generate PDF</q-tooltip>
+                  </q-btn>
+
+                  <q-btn
+                    v-if="props.row.finalPdfUrl"
+                    flat
+                    dense
+                    size="sm"
+                    icon="mdi-download"
+                    color="info"
+                    @click="downloadPdf(props.row)"
+                  >
+                    <q-tooltip>Download PDF</q-tooltip>
+                  </q-btn>
+                </div>
+              </q-td>
+            </template>
+          </q-table>
+        </q-card-section>
+      </q-card>
+
+      <!-- Create Issue Dialog -->
+      <q-dialog v-model="showCreateDialog" persistent>
+        <q-card style="min-width: 400px">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">Create New Newsletter Issue</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <q-form @submit="createIssue" class="q-gutter-md">
+              <q-input
+                v-model="newIssue.title"
+                label="Issue Title"
+                hint="e.g., 'Summer 2025 Newsletter'"
+                :rules="[val => !!val || 'Title is required']"
+                filled
+              />
+
+              <q-input
+                v-model="newIssue.issueNumber"
+                label="Issue Number"
+                hint="e.g., '2025-03' or 'Summer-2025'"
+                :rules="[val => !!val || 'Issue number is required']"
+                filled
+              />
+
+              <q-input
+                v-model="newIssue.publicationDate"
+                type="date"
+                label="Publication Date"
+                :rules="[val => !!val || 'Publication date is required']"
+                filled
+              />
+
+              <div class="row q-gutter-sm">
+                <q-btn
+                  label="Cancel"
+                  color="grey"
+                  flat
+                  v-close-popup
+                />
+                <q-btn
+                  label="Create Issue"
+                  color="primary"
+                  type="submit"
+                  :loading="isCreating"
+                />
+              </div>
+            </q-form>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
+      <!-- Issue Content Dialog -->
+      <q-dialog v-model="showContentDialog" maximized>
+        <q-card>
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">
+              <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
+              {{ selectedIssue?.title }} - Content Management
+            </div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="row q-col-gutter-md">
+              <!-- Available Content -->
+              <div class="col-12 col-md-6">
+                <q-card>
+                  <q-card-section>
+                    <div class="text-h6 q-mb-md">
+                      <q-icon name="mdi-file-document-outline" class="q-mr-sm" />
+                      Available Content
+                    </div>
+
+                    <q-list separator>
+                      <q-item
+                        v-for="submission in availableContent"
+                        :key="submission.id"
+                        clickable
+                        @click="addToIssue(submission.id)"
+                        :disable="selectedIssue?.submissions.includes(submission.id)"
+                      >
+                        <q-item-section avatar>
+                          <q-avatar color="primary" text-color="white">
+                            {{ submission.title.charAt(0).toUpperCase() }}
+                          </q-avatar>
+                        </q-item-section>
+
+                        <q-item-section>
+                          <q-item-label>{{ submission.title }}</q-item-label>
+                          <q-item-label caption>
+                            {{ submission.description?.substring(0, 100) }}...
+                          </q-item-label>
+                        </q-item-section>
+
+                        <q-item-section side>
+                          <q-btn
+                            flat
+                            dense
+                            icon="mdi-plus"
+                            color="positive"
+                            @click.stop="addToIssue(submission.id)"
+                            :disable="selectedIssue?.submissions.includes(submission.id)"
+                          />
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-card-section>
+                </q-card>
+              </div>
+
+              <!-- Selected Content -->
+              <div class="col-12 col-md-6">
+                <q-card>
+                  <q-card-section>
+                    <div class="text-h6 q-mb-md">
+                      <q-icon name="mdi-check-circle" class="q-mr-sm" />
+                      Selected Content ({{ selectedIssue?.submissions.length || 0 }})
+                    </div>
+
+                    <q-list separator>
+                      <q-item
+                        v-for="submissionId in selectedIssue?.submissions"
+                        :key="submissionId"
+                        clickable
+                        @click="removeFromIssue(submissionId)"
+                      >
+                        <q-item-section avatar>
+                          <q-avatar color="positive" text-color="white">
+                            {{ getSubmissionTitle(submissionId)?.charAt(0).toUpperCase() }}
+                          </q-avatar>
+                        </q-item-section>
+
+                        <q-item-section>
+                          <q-item-label>{{ getSubmissionTitle(submissionId) }}</q-item-label>
+                        </q-item-section>
+
+                        <q-item-section side>
+                          <q-btn
+                            flat
+                            dense
+                            icon="mdi-minus"
+                            color="negative"
+                            @click.stop="removeFromIssue(submissionId)"
+                          />
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </div>
-
-    <!-- Dialogs remain as they are - focused and contained -->
-    <NewsletterImportDialog v-model="store.showImportDialog" @imported="store.refreshNewsletters" />
-
-    <NewsletterEditDialog v-model="store.showEditDialog" :newsletter="store.currentNewsletter"
-      @save-newsletter="saveMetadata" @extract-text="extractText" @sync-newsletter="syncSingleNewsletter" />
-
-    <TextExtractionDialog v-model="store.showTextDialog" :newsletter="store.currentNewsletter" />
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
-import { useRoleAuth } from '../composables/useRoleAuth';
-import { useNewsletterManagementStore } from '../stores/newsletter-management.store';
-import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
-import type { ContentManagementNewsletter } from '../types/core/content-management.types';
-import type { UnifiedNewsletter } from '../types/core/newsletter.types';
+import { UI_ICONS } from '../constants/ui-icons';
+import { newsletterGenerationService } from '../services/newsletter-generation.service';
+import type { NewsletterIssue } from '../services/newsletter-generation.service';
+import type { ContentDoc } from '../types/core/content.types';
 
-// Authorization check - require admin role for newsletter management
-const { requireAdmin, isAuthReady } = useRoleAuth();
-
-// Watch for authentication readiness and check authorization
-watch(isAuthReady, (ready: boolean) => {
-  if (ready) {
-    if (!requireAdmin()) {
-      // Redirect handled by useRoleAuth
-    }
-  }
-}, { immediate: true });
-
-// Components
-import StatisticsCards from '../components/content-management/StatisticsCards.vue';
-import NewsletterFilters from '../components/content-management/NewsletterFilters.vue';
-import WorkflowToolbar from '../components/content-management/WorkflowToolbar.vue';
-import NewsletterManagementTable from '../components/content-management/NewsletterManagementTable.vue';
-import NewsletterImportDialog from '../components/content-management/NewsletterImportDialog.vue';
-import NewsletterEditDialog from '../components/content-management/NewsletterEditDialog.vue';
-import TextExtractionDialog from '../components/content-management/TextExtractionDialog.vue';
-
-// =============================================
-// STORE & COMPOSABLES - CENTRALIZED STATE
-// =============================================
-
-const store = useNewsletterManagementStore();
 const $q = useQuasar();
 
-// =============================================
-// WORKFLOW TOOLBAR HANDLERS
-// =============================================
+// State
+const isLoading = ref(false);
+const isCreating = ref(false);
+const issues = ref<NewsletterIssue[]>([]);
+const approvedSubmissions = ref<ContentDoc[]>([]);
+const showCreateDialog = ref(false);
+const showContentDialog = ref(false);
+const selectedIssue = ref<NewsletterIssue | null>(null);
 
-function handleImportPdfs(): void {
-  store.showImportDialog = true;
-}
+const newIssue = ref({
+  title: '',
+  issueNumber: '',
+  publicationDate: ''
+});
 
-function uploadDraftsToCloud(): void {
-  store.isUploading = true;
+// Computed
+const draftIssues = computed(() =>
+  issues.value.filter(issue => issue.status === 'draft')
+);
+
+const readyIssues = computed(() =>
+  issues.value.filter(issue => issue.status === 'ready')
+);
+
+const availableContent = computed(() =>
+  approvedSubmissions.value.filter(submission =>
+    !selectedIssue.value?.submissions.includes(submission.id)
+  )
+);
+
+// Table columns
+const issueColumns = [
+  {
+    name: 'title',
+    required: true,
+    label: 'Title',
+    align: 'left',
+    field: 'title',
+    sortable: true
+  },
+  {
+    name: 'issueNumber',
+    label: 'Issue #',
+    align: 'left',
+    field: 'issueNumber',
+    sortable: true
+  },
+  {
+    name: 'publicationDate',
+    label: 'Publication Date',
+    align: 'left',
+    field: 'publicationDate',
+    format: (val: Date) => val.toLocaleDateString(),
+    sortable: true
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    align: 'center',
+    field: 'status',
+    sortable: true
+  },
+  {
+    name: 'submissions',
+    label: 'Content',
+    align: 'center',
+    field: 'submissions',
+    sortable: false
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    align: 'center',
+    field: 'actions',
+    sortable: false
+  }
+];
+
+// Methods
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'draft': return 'orange';
+    case 'generating': return 'blue';
+    case 'ready': return 'positive';
+    case 'published': return 'info';
+    default: return 'grey';
+  }
+};
+
+const getSubmissionTitle = (submissionId: string) => {
+  const submission = approvedSubmissions.value.find(s => s.id === submissionId);
+  return submission?.title || 'Unknown';
+};
+
+const loadData = async () => {
+  isLoading.value = true;
   try {
-    logger.info('Uploading drafts to cloud...');
-    // Implementation for uploading drafts
-    $q.notify({ type: 'positive', message: 'Drafts uploaded successfully' });
+    const [issuesData, submissionsData] = await Promise.all([
+      newsletterGenerationService.getIssues(),
+      newsletterGenerationService.getApprovedSubmissions()
+    ]);
+
+    issues.value = issuesData;
+    approvedSubmissions.value = submissionsData;
   } catch (error) {
-    logger.error('Failed to upload drafts:', error);
-    $q.notify({ type: 'negative', message: 'Failed to upload drafts' });
-  } finally {
-    store.isUploading = false;
-  }
-}
-
-function clearLocalDrafts(): void {
-  $q.dialog({
-    title: 'Clear Drafts',
-    message: 'Are you sure you want to clear all local drafts?',
-    cancel: true,
-    persistent: true
-  }).onOk(() => {
-    logger.info('Clearing local drafts...');
-    // Clear drafts logic
-    $q.notify({ type: 'positive', message: 'Local drafts cleared' });
-  });
-}
-
-function syncAllToFirebase(): void {
-  store.isSyncing = true;
-  try {
-    logger.info('Syncing all to Firebase...');
-    // Implementation for full sync
-    $q.notify({ type: 'positive', message: 'All data synced to Firebase' });
-  } finally {
-    store.isSyncing = false;
-  }
-}
-
-function backupData(): void {
-  logger.info('Creating data backup...');
-  $q.notify({ type: 'info', message: 'Data backup created' });
-}
-
-function extractAllTextToFirebase(): void {
-  store.isExtractingText = true;
-  try {
-    logger.info('Extracting all text...');
-    // Implementation for bulk text extraction
-    $q.notify({ type: 'positive', message: 'Text extraction completed' });
-  } finally {
-    store.isExtractingText = false;
-  }
-}
-
-function generateAllThumbnails(): void {
-  const newslettersWithoutThumbnails = store.filteredNewsletters.filter(n => !n.thumbnailUrl);
-
-  if (newslettersWithoutThumbnails.length === 0) {
-    $q.notify({ type: 'info', message: 'All newsletters already have thumbnails' });
-    return;
-  }
-
-  $q.dialog({
-    title: 'Generate All Thumbnails',
-    message: `Generate thumbnails for ${newslettersWithoutThumbnails.length} newsletters without thumbnails?`,
-    cancel: true,
-    persistent: true
-  }).onOk(() => {
-    store.isGeneratingThumbs = true;
-
-    void (async () => {
-      try {
-        logger.info(`Starting thumbnail generation for ${newslettersWithoutThumbnails.length} newsletters`);
-
-        // Import the service dynamically
-        const { firebaseNewsletterService } = await import('../services/firebase-newsletter.service');
-
-        const validNewsletters = newslettersWithoutThumbnails.filter((n): n is typeof n & { id: string } => !!n.id);
-        const newsletterIds = validNewsletters.map(n => n.id);
-
-        // Show progress notification
-        const progressNotify = $q.notify({
-          type: 'ongoing',
-          message: 'Generating all thumbnails...',
-          caption: '0 of ' + newsletterIds.length + ' completed',
-          timeout: 0,
-          actions: [{ icon: 'close', color: 'white' }]
-        });
-
-        await firebaseNewsletterService.generateMultipleThumbnails(
-          newsletterIds,
-          (completed: number, total: number, current: string) => {
-            progressNotify({
-              message: 'Generating all thumbnails...',
-              caption: `${completed} of ${total} completed${current !== 'Completed' ? ` (${current})` : ''}`
-            });
-          }
-        );
-
-        progressNotify();
-
-        await store.refreshNewsletters();
-
-        $q.notify({
-          type: 'positive',
-          message: `Thumbnails generated for all ${newsletterIds.length} newsletters`,
-          icon: 'mdi-image-multiple'
-        });
-
-      } catch (error) {
-        logger.error('All thumbnails generation failed:', error);
-        $q.notify({
-          type: 'negative',
-          message: `Thumbnail generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          caption: 'Check console for details'
-        });
-      } finally {
-        store.isGeneratingThumbs = false;
-      }
-    });
-  });
-}
-
-// =============================================
-// METADATA OPERATIONS
-// =============================================
-
-
-function extractDatesForSelected(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isExtractingDates = true;
-  try {
-    logger.info(`Extracting dates for ${store.selectedNewsletters.length} newsletters...`);
-
-    store.selectedNewsletters.forEach(newsletter => {
-      if (!newsletter.publicationDate && newsletter.season && newsletter.year) {
-        const seasonMonths = {
-          'spring': 3, 'summer': 6, 'fall': 9, 'winter': 12
-        };
-
-        const month = seasonMonths[newsletter.season.toLowerCase() as keyof typeof seasonMonths] || 6;
-        newsletter.publicationDate = new Date(newsletter.year, month - 1, 1).toISOString();
-        newsletter.month = month;
-        newsletter.displayDate = `${newsletter.season.charAt(0).toUpperCase() + newsletter.season.slice(1)} ${newsletter.year}`;
-      }
-    });
-
-    $q.notify({
-      type: 'positive',
-      message: `Dates extracted for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isExtractingDates = false;
-  }
-}
-
-function generateKeywordsForSelected(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isGeneratingKeywords = true;
-  try {
-    store.selectedNewsletters.forEach(newsletter => {
-      if (newsletter.searchableText && (!newsletter.tags || newsletter.tags.length === 0)) {
-        const commonKeywords = [
-          'community', 'events', 'lake', 'residents', 'board', 'meeting',
-          'maintenance', 'recreation', 'amenities', 'fishing', 'swimming',
-          'announcements', 'calendar', 'newsletter', 'updates'
-        ];
-
-        if (newsletter.season) {
-          const seasonKeywords = {
-            'spring': ['spring', 'cleanup', 'opening', 'preparation'],
-            'summer': ['summer', 'activities', 'recreation', 'events'],
-            'fall': ['fall', 'closing', 'preparation', 'maintenance'],
-            'winter': ['winter', 'holiday', 'planning', 'meetings']
-          };
-          commonKeywords.push(...seasonKeywords[newsletter.season.toLowerCase() as keyof typeof seasonKeywords] || []);
-        }
-
-        const selectedKeywords = commonKeywords
-          .sort(() => 0.5 - Math.random())
-          .slice(0, Math.floor(Math.random() * 4) + 5);
-
-        newsletter.tags = selectedKeywords;
-      }
-    });
-
-    $q.notify({
-      type: 'positive',
-      message: `Keywords generated for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isGeneratingKeywords = false;
-  }
-}
-
-function generateDescriptionsForSelected(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isGeneratingDescriptions = true;
-  try {
-    logger.info(`Generating descriptions for ${store.selectedNewsletters.length} newsletters...`);
-
-    store.selectedNewsletters.forEach(newsletter => {
-      if (!newsletter.description) {
-        const seasonDescriptions = {
-          'spring': 'Spring edition featuring community updates, lake preparation activities, and upcoming events.',
-          'summer': 'Summer edition with recreational activities, community events, and lake amenities information.',
-          'fall': 'Fall edition covering end-of-season activities, maintenance updates, and preparation for winter.',
-          'winter': 'Winter edition with holiday announcements, board meetings, and planning for the upcoming season.'
-        };
-
-        const baseDescription = seasonDescriptions[newsletter.season?.toLowerCase() as keyof typeof seasonDescriptions] ||
-          'Community newsletter with updates, announcements, and important information for residents.';
-
-        newsletter.description = `${baseDescription} Published ${newsletter.season} ${newsletter.year}.`;
-      }
-    });
-
-    $q.notify({
-      type: 'positive',
-      message: `Descriptions generated for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isGeneratingDescriptions = false;
-  }
-}
-
-function generateTitlesForSelected(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  store.isGeneratingTitles = true;
-  try {
-    logger.info(`Generating titles for ${store.selectedNewsletters.length} newsletters...`);
-
-    store.selectedNewsletters.forEach(newsletter => {
-      if (!newsletter.title) {
-        const seasonTitles = {
-          'spring': 'Spring Awakening',
-          'summer': 'Summer Spotlight',
-          'fall': 'Autumn Updates',
-          'winter': 'Winter Wrap-up'
-        };
-
-        const seasonTitle = seasonTitles[newsletter.season?.toLowerCase() as keyof typeof seasonTitles] ||
-          'Community Update';
-
-        newsletter.title = `The Courier - ${seasonTitle} ${newsletter.year}`;
-      }
-    });
-
-    $q.notify({
-      type: 'positive',
-      message: `Titles generated for ${store.selectedNewsletters.length} newsletters`
-    });
-  } finally {
-    store.isGeneratingTitles = false;
-  }
-}
-
-// =============================================
-// INDIVIDUAL NEWSLETTER HANDLERS
-// =============================================
-
-function showExtractedContent(newsletter: ContentManagementNewsletter): void {
-  store.extractedText = newsletter.searchableText || 'No text content available';
-  store.showTextDialog = true;
-}
-
-function handleReImportFile(newsletter: ContentManagementNewsletter): void {
-  logger.info(`Re-importing file for ${newsletter.filename}`);
-  $q.notify({ type: 'info', message: `Re-importing ${newsletter.filename}` });
-}
-
-function deleteNewsletter(newsletter: ContentManagementNewsletter): void {
-  $q.dialog({
-    title: 'Confirm Delete',
-    message: `Are you sure you want to delete "${newsletter.filename}"?`,
-    cancel: true,
-    persistent: true
-  }).onOk(() => {
-    void (async () => {
-      try {
-        if (newsletter.id) {
-          await firestoreService.deleteNewsletterMetadata(newsletter.id);
-        }
-        await store.refreshNewsletters();
-        $q.notify({
-          type: 'positive',
-          message: `${newsletter.filename} deleted successfully`
-        });
-      } catch (error) {
-        logger.error(`Failed to delete ${newsletter.filename}:`, error);
-        $q.notify({
-          type: 'negative',
-          message: `Failed to delete ${newsletter.filename}`
-        });
-      }
-    })();
-  });
-}
-
-function toggleNewsletterFeatured(newsletter: ContentManagementNewsletter): void {
-  void (async () => {
-    try {
-      newsletter.featured = !newsletter.featured;
-
-      if (newsletter.id) {
-        await firestoreService.updateNewsletterMetadata(newsletter.id, {
-          featured: newsletter.featured
-        });
-      }
-
-      $q.notify({
-        type: 'positive',
-        message: `${newsletter.filename} ${newsletter.featured ? 'featured' : 'unfeatured'}`
-      });
-    } catch (error) {
-      // Revert on failure
-      newsletter.featured = !newsletter.featured;
-      logger.error(`Failed to toggle featured status for ${newsletter.filename}:`, error);
-      $q.notify({ type: 'negative', message: `Failed to update featured status` });
-    }
-  })();
-}
-
-function toggleNewsletterPublished(newsletter: ContentManagementNewsletter): void {
-  void (async () => {
-    try {
-      newsletter.isPublished = !newsletter.isPublished;
-
-      if (newsletter.id) {
-        await firestoreService.updateNewsletterMetadata(newsletter.id, {
-          isPublished: newsletter.isPublished
-        });
-      }
-
-      $q.notify({
-        type: 'positive',
-        message: `${newsletter.filename} ${newsletter.isPublished ? 'published' : 'unpublished'}`
-      });
-    } catch (error) {
-      // Revert on failure
-      newsletter.isPublished = !newsletter.isPublished;
-      logger.error(`Failed to toggle published status for ${newsletter.filename}:`, error);
-      $q.notify({ type: 'negative', message: `Failed to update published status` });
-    }
-  })();
-}
-
-function openPdf(newsletter: ContentManagementNewsletter): void {
-  if (newsletter.downloadUrl) {
-    window.open(newsletter.downloadUrl, '_blank');
-  } else {
-    $q.notify({
-      type: 'warning',
-      message: 'PDF URL not available',
-      caption: 'This newsletter may not be uploaded to cloud storage yet'
-    });
-  }
-}
-
-function editNewsletter(newsletter: ContentManagementNewsletter): void {
-  store.setCurrentNewsletter(newsletter);
-  store.showEditDialog = true;
-}
-
-function extractText(newsletter: ContentManagementNewsletter): void {
-  // Text extraction should happen during import, not manually
-  // This is a placeholder for UI consistency
-  logger.warn(`Text extraction requested for ${newsletter.filename} - this should happen during import`);
-  $q.notify({
-    type: 'warning',
-    message: `Text extraction should happen during PDF import, not manually`,
-    caption: 'Use the import process to extract text content'
-  });
-}
-
-function generateThumbnail(newsletter: UnifiedNewsletter): void {
-  logger.debug('generateThumbnail called with:', newsletter);
-
-  if (!newsletter.id) {
-    logger.error('No newsletter ID:', newsletter);
-    $q.notify({ type: 'warning', message: 'Newsletter ID required for thumbnail generation' });
-    return;
-  }
-
-  if (newsletter.thumbnailUrl) {
-    logger.info('Newsletter already has thumbnail:', newsletter.thumbnailUrl);
-    $q.notify({ type: 'info', message: 'Newsletter already has a thumbnail' });
-    return;
-  }
-
-  // For existing newsletters, we can't re-download the PDF due to CORS
-  // Thumbnails should be generated during import
-  $q.notify({
-    type: 'warning',
-    message: 'Thumbnail generation for existing newsletters is not available',
-    caption: 'Thumbnails are generated automatically during PDF import. Re-import the file to generate a thumbnail.',
-    timeout: 5000
-  });
-} function generateSelectedThumbnails(): void {
-  if (store.selectedNewsletters.length === 0) {
-    $q.notify({ type: 'warning', message: 'No newsletters selected' });
-    return;
-  }
-
-  const newslettersWithoutThumbnails = store.selectedNewsletters.filter(n => !n.thumbnailUrl);
-
-  if (newslettersWithoutThumbnails.length === 0) {
-    $q.notify({ type: 'info', message: 'All selected newsletters already have thumbnails' });
-    return;
-  }
-
-  $q.dialog({
-    title: 'Generate Thumbnails',
-    message: `Generate thumbnails for ${newslettersWithoutThumbnails.length} newsletters?`,
-    cancel: true,
-    persistent: true
-  }).onOk(() => {
-    void (async () => {
-      try {
-        logger.info(`Starting batch thumbnail generation for ${newslettersWithoutThumbnails.length} newsletters`);
-
-        // Import the service dynamically
-        const { firebaseNewsletterService } = await import('../services/firebase-newsletter.service');
-
-        const validNewsletters = newslettersWithoutThumbnails.filter((n): n is typeof n & { id: string } => !!n.id);
-        const newsletterIds = validNewsletters.map(n => n.id);
-
-        // Show progress notification
-        const progressNotify = $q.notify({
-          type: 'ongoing',
-          message: 'Generating thumbnails...',
-          caption: '0 of ' + newsletterIds.length + ' completed',
-          timeout: 0,
-          actions: [{ icon: 'close', color: 'white' }]
-        });
-
-        await firebaseNewsletterService.generateMultipleThumbnails(
-          newsletterIds,
-          (completed: number, total: number, current: string) => {
-            progressNotify({
-              message: 'Generating thumbnails...',
-              caption: `${completed} of ${total} completed${current !== 'Completed' ? ` (${current})` : ''}`
-            });
-          }
-        );
-
-        progressNotify();
-
-        await store.refreshNewsletters();
-
-        $q.notify({
-          type: 'positive',
-          message: `Thumbnails generated for ${newsletterIds.length} newsletters`,
-          icon: 'mdi-image-multiple'
-        });
-
-      } catch (error) {
-        logger.error('Batch thumbnail generation failed:', error);
-        $q.notify({
-          type: 'negative',
-          message: `Batch thumbnail generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          caption: 'Check console for details'
-        });
-      }
-    });
-  });
-}
-
-function syncSingleNewsletter(newsletter: ContentManagementNewsletter): void {
-  store.syncingIndividual[newsletter.filename] = true;
-
-  setTimeout(() => {
-    store.syncingIndividual[newsletter.filename] = false;
-    $q.notify({ type: 'positive', message: `${newsletter.filename} synced` });
-  }, 1500);
-}
-
-function saveMetadata(newsletter: ContentManagementNewsletter): void {
-  void (async () => {
-    try {
-      logger.info(`Saving metadata for ${newsletter.filename}`);
-
-      const metadata = {
-        filename: newsletter.filename,
-        title: newsletter.title || '',
-        description: newsletter.description || '',
-        publicationDate: newsletter.publicationDate || new Date().toISOString(),
-        year: newsletter.year || new Date().getFullYear(),
-        ...(newsletter.month && { month: newsletter.month }),
-        ...(newsletter.season && { season: newsletter.season }),
-        displayDate: newsletter.displayDate || '',
-        sortValue: newsletter.sortValue || 0,
-        pageCount: newsletter.pageCount || 0,
-        fileSize: newsletter.fileSize || 0,
-        searchableText: newsletter.searchableText || '',
-        tags: newsletter.tags || [],
-        downloadUrl: newsletter.downloadUrl || '',
-        storageRef: newsletter.storageRef || '',
-        isPublished: newsletter.isPublished || false,
-        featured: newsletter.featured || false,
-        wordCount: newsletter.wordCount || 0,
-        actions: {
-          canView: true,
-          canDownload: true,
-          canSearch: !!newsletter.searchableText,
-          hasThumbnail: false
-        },
-        createdAt: newsletter.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: newsletter.createdBy || '',
-        updatedBy: ''
-      };
-
-      if (newsletter.id) {
-        // Update existing
-        await firestoreService.updateNewsletterMetadata(newsletter.id, metadata);
-      } else {
-        // Create new
-        const newId = await firestoreService.saveNewsletterMetadata(metadata);
-        newsletter.id = newId;
-      }
-
-      $q.notify({ type: 'positive', message: `Metadata saved for ${newsletter.filename}` });
-      store.showEditDialog = false;
-    } catch (error) {
-      logger.error(`Failed to save metadata for ${newsletter.filename}:`, error);
-      $q.notify({ type: 'negative', message: `Failed to save metadata for ${newsletter.filename}` });
-    }
-  })();
-}
-
-// =============================================
-// INITIALIZATION
-// =============================================
-
-onMounted(async () => {
-  logger.info('🚀 [INIT] Initializing Newsletter Management Page...');
-
-  try {
-    await store.loadNewsletters();
-    logger.success('✅ Newsletter Management Page initialized successfully');
-  } catch (error) {
-    logger.error('❌ Failed to initialize Newsletter Management Page:', error);
+    logger.error('Failed to load newsletter data:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to initialize page',
-      caption: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Failed to load newsletter data'
+    });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const createIssue = async () => {
+  if (!newIssue.value.title || !newIssue.value.issueNumber || !newIssue.value.publicationDate) {
+    return;
+  }
+
+  isCreating.value = true;
+  try {
+    const issueId = await newsletterGenerationService.createIssue(
+      newIssue.value.title,
+      newIssue.value.issueNumber,
+      new Date(newIssue.value.publicationDate)
+    );
+
+    $q.notify({
+      type: 'positive',
+      message: 'Newsletter issue created successfully!'
+    });
+
+    // Reset form and close dialog
+    newIssue.value = { title: '', issueNumber: '', publicationDate: '' };
+    showCreateDialog.value = false;
+
+    // Reload data
+    await loadData();
+  } catch (error) {
+    logger.error('Failed to create newsletter issue:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create newsletter issue'
+    });
+  } finally {
+    isCreating.value = false;
+  }
+};
+
+const viewIssue = (issue: NewsletterIssue) => {
+  selectedIssue.value = issue;
+  showContentDialog.value = true;
+};
+
+const editIssue = (issue: NewsletterIssue) => {
+  // TODO: Implement issue editing
+  $q.notify({
+    type: 'info',
+    message: 'Issue editing coming soon!'
+  });
+};
+
+const generatePdf = async (issue: NewsletterIssue) => {
+  try {
+    await newsletterGenerationService.generateNewsletterPdf(issue.id);
+
+    $q.notify({
+      type: 'positive',
+      message: 'PDF generation started! Check back in a few minutes.'
+    });
+
+    // Reload data to show updated status
+    await loadData();
+  } catch (error) {
+    logger.error('Failed to generate PDF:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to start PDF generation'
     });
   }
+};
+
+const downloadPdf = (issue: NewsletterIssue) => {
+  if (issue.finalPdfUrl) {
+    window.open(issue.finalPdfUrl, '_blank');
+  }
+};
+
+const addToIssue = async (submissionId: string) => {
+  if (!selectedIssue.value) return;
+
+  try {
+    const updatedSubmissions = [...selectedIssue.value.submissions, submissionId];
+    await newsletterGenerationService.addSubmissionsToIssue(
+      selectedIssue.value.id,
+      updatedSubmissions
+    );
+
+    selectedIssue.value.submissions = updatedSubmissions;
+
+    $q.notify({
+      type: 'positive',
+      message: 'Content added to issue'
+    });
+  } catch (error) {
+    logger.error('Failed to add content to issue:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to add content to issue'
+    });
+  }
+};
+
+const removeFromIssue = async (submissionId: string) => {
+  if (!selectedIssue.value) return;
+
+  try {
+    const updatedSubmissions = selectedIssue.value.submissions.filter(
+      id => id !== submissionId
+    );
+    await newsletterGenerationService.addSubmissionsToIssue(
+      selectedIssue.value.id,
+      updatedSubmissions
+    );
+
+    selectedIssue.value.submissions = updatedSubmissions;
+
+    $q.notify({
+      type: 'positive',
+      message: 'Content removed from issue'
+    });
+  } catch (error) {
+    logger.error('Failed to remove content from issue:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to remove content from issue'
+    });
+  }
+};
+
+// Lifecycle
+onMounted(() => {
+  loadData();
 });
 </script>
+
+<style scoped>
+.q-table {
+  font-size: 0.875rem;
+}
+
+.q-item {
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.q-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+</style>

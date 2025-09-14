@@ -797,8 +797,8 @@ export class CanvaApiService {
   }
 
   /**
-   * Duplicate an existing design by creating a new design from the template
-   * @param designId - The ID of the design to duplicate
+   * Create a new blank design (design duplication not supported by Canva API)
+   * @param designId - The ID of the design to "duplicate" (for logging purposes)
    * @returns Design creation result
    */
   async duplicateDesign(designId: string): Promise<{ id: string; editUrl: string }> {
@@ -808,10 +808,10 @@ export class CanvaApiService {
       throw error;
     }
 
-    logger.info('Attempting to duplicate design:', { originalDesignId: designId });
+    logger.info('Creating new blank design (duplication not supported):', { originalDesignId: designId });
 
-    // Try to create a new design from the existing design as a template
-    const result = await this.createDesignFromTemplate(designId);
+    // Canva API does not support design duplication - create a new blank design instead
+    const result = await this.createTestDesign();
     return {
       id: result.id,
       editUrl: result.editUrl

@@ -20,6 +20,7 @@ const routes: RouteRecordRaw[] = [
       // Contribution system
       { path: '/contribute', component: () => import('pages/ContributePage.vue') },
       { path: '/contribute/submit', component: () => import('pages/SubmitContentPage.vue') },
+      { path: '/contribute/newsletter', component: () => import('pages/NewsletterSubmissionPage.vue') },
       { path: '/contribute/guide', redirect: '/contribute/guide-modern' },
       { path: '/contribute/guide-modern', component: () => import('pages/ContributeGuideModern.vue') },
 
