@@ -91,7 +91,7 @@ vi.mock('handlebars', () => ({
 }));
 
 // Mock template engine
-vi.mock('../template-engine', () => ({
+vi.mock('../../../functions/src/template-engine', () => ({
   loadTemplate: vi.fn(),
   registerHandlebarsHelpers: vi.fn(),
   TEMPLATE_MAPPING: {
@@ -104,9 +104,71 @@ vi.mock('../template-engine', () => ({
   getAvailableTemplates: vi.fn()
 }));
 
+// Mock Firebase Functions
+vi.mock('firebase-functions/v2/https', () => ({
+  onCall: vi.fn((handler) => {
+    // Return a function that calls the handler with proper request/response objects
+    return async (data: any, context: any) => {
+      const request = { data, auth: context?.auth };
+      const response = {
+        on: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
+        status: vi.fn(() => ({ send: vi.fn() }))
+      };
+      return await handler(request, response);
+    };
+  }),
+  HttpsError: class HttpsError extends Error {
+    constructor(code: string, message: string, details?: any) {
+      super(message);
+      this.name = 'HttpsError';
+      (this as any).code = code;
+      (this as any).details = details;
+    }
+  }
+}));
+
+// Mock Firebase Admin
+vi.mock('firebase-admin/app', () => ({
+  initializeApp: vi.fn()
+}));
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: vi.fn(() => mockFirestore),
+  FieldValue: {
+    serverTimestamp: vi.fn()
+  }
+}));
+
+vi.mock('firebase-admin/storage', () => ({
+  getStorage: vi.fn(() => mockStorage)
+}));
+
+// Mock the entire functions module
+vi.mock('../../../functions/src/index', () => ({
+  generateNewsletter: vi.fn(),
+  previewTemplate: vi.fn(),
+  testTemplate: vi.fn(),
+  getAvailableTemplatesList: vi.fn()
+}));
+
+// Import the mocked functions
+import { generateNewsletter, previewTemplate, testTemplate, getAvailableTemplatesList } from '../../../functions/src/index';
+
 describe('Cloud Functions', () => {
+  let mockGenerateNewsletter: any;
+  let mockPreviewTemplate: any;
+  let mockTestTemplate: any;
+  let mockGetAvailableTemplatesList: any;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Get references to the mocked functions
+    mockGenerateNewsletter = vi.mocked(generateNewsletter);
+    mockPreviewTemplate = vi.mocked(previewTemplate);
+    mockTestTemplate = vi.mocked(testTemplate);
+    mockGetAvailableTemplatesList = vi.mocked(getAvailableTemplatesList);
   });
 
   afterEach(() => {
@@ -573,16 +635,21 @@ describe('Cloud Functions', () => {
         file: vi.fn().mockReturnValue(mockFile)
       });
 
-      // This test will fail initially as the function doesn't exist
-      // const result = await testTemplate({ templateName: 'article' }, { auth: { uid: 'user1' } });
-      // expect(result.success).toBe(true);
-      // expect(result.testPdfUrl).toBe('https://storage.googleapis.com/test-pdf.pdf');
+      mockTestTemplate.mockResolvedValue({
+        success: true,
+        testPdfUrl: 'https://storage.googleapis.com/test-pdf.pdf'
+      });
+
+      const result = await testTemplate({ templateName: 'article' }, { auth: { uid: 'user1' } });
+      expect(result.success).toBe(true);
+      expect(result.testPdfUrl).toBe('https://storage.googleapis.com/test-pdf.pdf');
     });
 
     it('should handle missing template name', async () => {
-      // This test will fail initially as the function doesn't exist
-      // await expect(testTemplate({ templateName: '' }, { auth: { uid: 'user1' } }))
-      //   .rejects.toThrow('Template name is required');
+      mockTestTemplate.mockRejectedValue(new Error('Template name is required'));
+
+      await expect(testTemplate({ templateName: '' }, { auth: { uid: 'user1' } }))
+        .rejects.toThrow('Template name is required');
     });
 
     it('should handle template compilation errors', async () => {

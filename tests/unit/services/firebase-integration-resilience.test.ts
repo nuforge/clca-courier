@@ -35,6 +35,59 @@ vi.mock('../../../src/services/firebase-auth.service', () => ({
   }
 }));
 
+// Mock Firebase Auth directly
+const mockCurrentUser = {
+  uid: 'test-user-123',
+  email: 'test@example.com',
+  displayName: 'Test User',
+  emailVerified: true
+};
+
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(() => ({
+    currentUser: mockCurrentUser,
+    onAuthStateChanged: vi.fn(),
+    signInWithPopup: vi.fn(),
+    signInWithRedirect: vi.fn(),
+    signOut: vi.fn()
+  })),
+  signInWithPopup: vi.fn(),
+  signInWithRedirect: vi.fn(),
+  signOut: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+  User: class MockUser {
+    uid = 'test-uid';
+    email = 'test@example.com';
+    displayName = 'Test User';
+    emailVerified = true;
+  }
+}));
+
+// Mock Firebase Firestore functions
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  getDocs: vi.fn(),
+  addDoc: vi.fn(() => Promise.resolve({
+    id: 'test-doc-id',
+    path: 'test/path'
+  })),
+  setDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  onSnapshot: vi.fn(),
+  serverTimestamp: vi.fn(),
+  Timestamp: {
+    fromDate: vi.fn(),
+    now: vi.fn()
+  }
+}));
+
 // Import services
 import { contentSubmissionService } from '../../../src/services/content-submission.service';
 import { firestoreService } from '../../../src/services/firebase-firestore.service';

@@ -83,6 +83,55 @@ vi.mock('../src/config/firebase.config', () => ({
   storage: {}
 }));
 
+// Mock Firebase/Firestore exports
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  getDocs: vi.fn(),
+  addDoc: vi.fn(),
+  setDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  onSnapshot: vi.fn(),
+  serverTimestamp: vi.fn(),
+  Timestamp: {
+    fromDate: vi.fn(),
+    now: vi.fn()
+  }
+}));
+
+// Mock Firebase/Functions exports
+vi.mock('firebase/functions', () => ({
+  getFunctions: vi.fn(),
+  httpsCallable: vi.fn()
+}));
+
+// Mock Firebase/Auth exports
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(() => ({
+    currentUser: null,
+    onAuthStateChanged: vi.fn(),
+    signInWithPopup: vi.fn(),
+    signInWithRedirect: vi.fn(),
+    signOut: vi.fn()
+  })),
+  signInWithPopup: vi.fn(),
+  signInWithRedirect: vi.fn(),
+  signOut: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+  User: class MockUser {
+    uid = 'test-uid';
+    email = 'test@example.com';
+    displayName = 'Test User';
+    emailVerified = true;
+  }
+}));
+
 // Mock logger utility to prevent console spam in tests
 vi.mock('../src/utils/logger', () => ({
   logger: {
