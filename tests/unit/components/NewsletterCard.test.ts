@@ -55,8 +55,8 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => mockI18n,
 }));
 
-// Mock the site store
-vi.mock('../../../src/stores/site-store-simple', () => ({
+// Mock the content store (replaces site-store-simple)
+vi.mock('../../../src/stores/content-store', () => ({
   useSiteStore: () => mockSiteStore,
 }));
 
