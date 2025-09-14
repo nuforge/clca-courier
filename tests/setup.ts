@@ -89,7 +89,10 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
-  addDoc: vi.fn(),
+  addDoc: vi.fn().mockResolvedValue({
+    id: 'test-doc-id',
+    path: 'test/path'
+  }),
   setDoc: vi.fn(),
   updateDoc: vi.fn(),
   deleteDoc: vi.fn(),
@@ -122,9 +125,16 @@ vi.mock('firebase/functions', () => ({
 }));
 
 // Mock Firebase/Auth exports
+const mockUser = {
+  uid: 'test-uid',
+  email: 'test@example.com',
+  displayName: 'Test User',
+  emailVerified: true
+};
+
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({
-    currentUser: null,
+    currentUser: mockUser,
     onAuthStateChanged: vi.fn(),
     signInWithPopup: vi.fn(),
     signInWithRedirect: vi.fn(),
@@ -249,6 +259,45 @@ beforeAll(() => {
     }
   };
 });
+
+// Mock content sanitization utility
+vi.mock('../src/utils/content-sanitization', () => ({
+  sanitizeAndValidate: vi.fn((input: string, options: any) => {
+    // Mock implementation that removes script tags and returns sanitized content
+    if (typeof input !== 'string') {
+      return {
+        isValid: true,
+        sanitizedValue: '',
+        errors: []
+      };
+    }
+
+    let sanitized = input;
+
+    // Remove script tags and other dangerous content
+    sanitized = sanitized.replace(/<script[^>]*>.*?<\/script>/gi, '');
+    sanitized = sanitized.replace(/<iframe[^>]*>.*?<\/iframe>/gi, '');
+    sanitized = sanitized.replace(/javascript:/gi, '');
+    sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+
+    // For non-HTML fields, strip all HTML tags
+    if (!options?.allowHtml) {
+      sanitized = sanitized.replace(/<[^>]*>/g, '');
+    }
+
+    return {
+      isValid: true,
+      sanitizedValue: sanitized,
+      errors: []
+    };
+  }),
+  SANITIZATION_CONFIGS: {
+    TITLE: { allowHtml: false, maxLength: 200 },
+    CONTENT: { allowHtml: true, maxLength: 50000 },
+    METADATA: { allowHtml: false, maxLength: 1000 },
+    LOCATION: { allowHtml: false, maxLength: 500 }
+  }
+}));
 
 // Clean up after each test
 afterEach(() => {

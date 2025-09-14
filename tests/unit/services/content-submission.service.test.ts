@@ -14,6 +14,41 @@ vi.mock('../../../src/utils/logger', () => ({
 
 // Mock content sanitization utility
 vi.mock('../../../src/utils/content-sanitization', () => ({
+  sanitizeAndValidate: vi.fn((input: string, options: any) => {
+    // Mock implementation that removes script tags and returns sanitized content
+    if (typeof input !== 'string') {
+      return {
+        isValid: true,
+        sanitizedValue: '',
+        errors: []
+      };
+    }
+
+    let sanitized = input;
+
+    // Remove script tags and other dangerous content
+    sanitized = sanitized.replace(/<script[^>]*>.*?<\/script>/gi, '');
+    sanitized = sanitized.replace(/<iframe[^>]*>.*?<\/iframe>/gi, '');
+    sanitized = sanitized.replace(/javascript:/gi, '');
+    sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+
+    // For non-HTML fields, strip all HTML tags
+    if (!options?.allowHtml) {
+      sanitized = sanitized.replace(/<[^>]*>/g, '');
+    }
+
+    return {
+      isValid: true,
+      sanitizedValue: sanitized,
+      errors: []
+    };
+  }),
+  SANITIZATION_CONFIGS: {
+    TITLE: { allowHtml: false, maxLength: 200 },
+    CONTENT: { allowHtml: true, maxLength: 50000 },
+    METADATA: { allowHtml: false, maxLength: 1000 },
+    LOCATION: { allowHtml: false, maxLength: 500 }
+  },
   sanitizeTitle: vi.fn((input) => ({
     isValid: true,
     sanitizedValue: input?.replace(/<script[^>]*>.*?<\/script>/gi, '') || '',
@@ -48,9 +83,20 @@ vi.mock('../../../src/services/firebase-firestore.service', () => ({
   }
 }));
 
+// Mock Firebase Content service
+vi.mock('../../../src/services/firebase-content.service', () => ({
+  firebaseContentService: {
+    createContent: vi.fn().mockResolvedValue('test-content-id'),
+    getContent: vi.fn(),
+    updateContent: vi.fn(),
+    deleteContent: vi.fn()
+  }
+}));
+
 // Import the service after mocking dependencies
 import { contentSubmissionService } from '../../../src/services/content-submission.service';
 import { firestoreService } from '../../../src/services/firebase-firestore.service';
+import { firebaseContentService } from '../../../src/services/firebase-content.service';
 
 describe('Content Submission Service', () => {
   beforeEach(() => {
@@ -357,7 +403,7 @@ describe('Content Submission Service', () => {
       ];
 
       (firestoreService.submitUserContent as any).mockImplementation(
-        (data: any) => Promise.resolve(`concurrent-${data.tags[0]}`)
+        (data: any) => Promise.resolve(`concurrent-${data.category}`)
       );
 
       const results = await Promise.all(
