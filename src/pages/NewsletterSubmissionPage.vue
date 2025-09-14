@@ -43,6 +43,35 @@
               map-options
             />
 
+            <!-- Template Selection -->
+            <q-select
+              v-model="submission.templateType"
+              :options="templateOptions"
+              label="Template Style"
+              hint="Choose the layout style for your content"
+              filled
+              emit-value
+              map-options
+            >
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                    <q-item-label caption>{{ scope.opt.description }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn
+                      flat
+                      dense
+                      icon="preview"
+                      size="sm"
+                      @click.stop="previewTemplate(scope.opt.value)"
+                    />
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+
             <!-- Rich Text Content -->
             <div>
               <label class="text-subtitle2 q-mb-sm block">Article Content</label>
@@ -206,6 +235,14 @@
         </q-card-section>
       </q-card>
     </div>
+
+    <!-- Template Preview Component -->
+    <TemplatePreview
+      v-model="showTemplatePreview"
+      :template-name="selectedTemplate"
+      :content-data="previewData"
+      @template-selected="handleTemplateSelected"
+    />
   </q-page>
 </template>
 
@@ -215,7 +252,9 @@ import { useQuasar } from 'quasar';
 import { logger } from '../utils/logger';
 import { contentSubmissionService } from '../services/content-submission.service';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
+import { type TemplatePreviewData } from '../services/template-management.service';
 import RichTextEditor from '../components/contribution/RichTextEditor.vue';
+import TemplatePreview from '../components/TemplatePreview.vue';
 import type { ContentDoc } from '../types/core/content.types';
 
 const $q = useQuasar();
@@ -234,7 +273,8 @@ const submission = ref({
   author: '',
   contact: '',
   newsletterReady: true,
-  featured: false
+  featured: false,
+  templateType: 'article'
 });
 
 // Content type options
@@ -246,6 +286,40 @@ const contentTypeOptions = [
   { label: 'Opinion/Editorial', value: 'opinion' },
   { label: 'Other', value: 'other' }
 ];
+
+// Template options
+const templateOptions = [
+  {
+    label: 'News Article',
+    value: 'article',
+    description: 'Standard news article layout with clean typography'
+  },
+  {
+    label: 'Event Announcement',
+    value: 'event',
+    description: 'Event-focused layout with date, time, and location details'
+  },
+  {
+    label: 'Important Announcement',
+    value: 'announcement',
+    description: 'Highlighted layout for important community announcements'
+  },
+  {
+    label: 'Editorial Opinion',
+    value: 'editorial',
+    description: 'Editorial-style layout with emphasis on opinion content'
+  },
+  {
+    label: 'Featured Story',
+    value: 'fullpage',
+    description: 'Full-page featured story layout for special content'
+  }
+];
+
+// Template preview state
+const showTemplatePreview = ref(false);
+const selectedTemplate = ref('');
+const previewData = ref<TemplatePreviewData | null>(null);
 
 // Computed
 const wordCount = computed(() => {
@@ -422,7 +496,8 @@ const resetForm = () => {
     author: '',
     contact: '',
     newsletterReady: true,
-    featured: false
+    featured: false,
+    templateType: 'article'
   };
   featuredImage.value = null;
   imagePreview.value = null;
@@ -433,6 +508,37 @@ const viewSubmission = () => {
   $q.notify({
     type: 'info',
     message: 'Submission viewing coming soon!'
+  });
+};
+
+// Template preview methods
+const previewTemplate = (templateName: string) => {
+  selectedTemplate.value = templateName;
+
+  // Create preview data from current submission
+  previewData.value = {
+    title: submission.value.title || 'Sample Article Title',
+    content: submission.value.content || '<p>This is a sample article content that demonstrates how the template will look with real content.</p>',
+    author: submission.value.author || 'Community Member',
+    createdAt: new Date().toISOString(),
+    featuredImageUrl: imagePreview.value,
+    issue: {
+      title: 'CLCA Courier Newsletter',
+      issueNumber: '2025-01',
+      publicationDate: new Date().toISOString()
+    },
+    featured: submission.value.featured || false,
+    priority: submission.value.featured ? 'high' : 'normal'
+  } as TemplatePreviewData;
+
+  showTemplatePreview.value = true;
+};
+
+const handleTemplateSelected = (templateName: string) => {
+  submission.value.templateType = templateName;
+  $q.notify({
+    type: 'positive',
+    message: `Template "${templateName}" selected!`
   });
 };
 

@@ -19,7 +19,8 @@
     "firebase-functions": "^6.4.0",
     "handlebars": "^4.7.8",
     "pdf-lib": "^1.17.1",
-    "puppeteer": "^21.0.0"
+    "puppeteer-core": "^21.0.0",
+    "@sparticuz/chromium": "^119.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

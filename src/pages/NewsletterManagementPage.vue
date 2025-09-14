@@ -18,6 +18,13 @@
         </div>
         <div class="col-auto">
           <q-btn
+            color="secondary"
+            icon="mdi-palette"
+            label="Manage Templates"
+            @click="showTemplateDialog = true"
+            class="q-mr-sm"
+          />
+          <q-btn
             color="primary"
             icon="add"
             label="Create New Issue"
@@ -314,6 +321,85 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+
+      <!-- Template Management Dialog -->
+      <q-dialog v-model="showTemplateDialog" maximized>
+        <q-card>
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">Template Management</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="row q-col-gutter-md">
+              <!-- Available Templates -->
+              <div class="col-12 col-md-6">
+                <q-card>
+                  <q-card-section>
+                    <div class="text-h6">Available Templates</div>
+                    <div class="text-caption text-grey-6">Click to preview or test templates</div>
+                  </q-card-section>
+
+                  <q-card-section>
+                    <q-list>
+                      <q-item
+                        v-for="template in availableTemplates"
+                        :key="template"
+                        clickable
+                        @click="previewTemplate(template)"
+                      >
+                        <q-item-section>
+                          <q-item-label>{{ getTemplateDisplayName(template) }}</q-item-label>
+                          <q-item-label caption>{{ getTemplateDescription(template) }}</q-item-label>
+                        </q-item-section>
+
+                        <q-item-section side>
+                          <q-btn
+                            flat
+                            icon="preview"
+                            @click.stop="previewTemplate(template)"
+                            size="sm"
+                          />
+                          <q-btn
+                            flat
+                            icon="mdi-test-tube"
+                            @click.stop="testTemplate(template)"
+                            size="sm"
+                          />
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-card-section>
+                </q-card>
+              </div>
+
+              <!-- Template Preview -->
+              <div class="col-12 col-md-6">
+                <q-card>
+                  <q-card-section>
+                    <div class="text-h6">Template Preview</div>
+                    <div class="text-caption text-grey-6">Preview of selected template</div>
+                  </q-card-section>
+
+                  <q-card-section>
+                    <div v-if="selectedTemplatePreview" class="template-preview-container">
+                      <iframe
+                        :srcdoc="selectedTemplatePreview"
+                        class="template-preview-iframe"
+                        sandbox="allow-same-origin"
+                      />
+                    </div>
+                    <div v-else class="text-center text-grey-6 q-pa-lg">
+                      Select a template to preview
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -324,6 +410,7 @@ import { useQuasar } from 'quasar';
 import { logger } from '../utils/logger';
 // import { UI_ICONS } from '../constants/ui-icons';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
+import { templateManagementService } from '../services/template-management.service';
 import type { NewsletterIssue } from '../services/newsletter-generation.service';
 import type { ContentDoc } from '../types/core/content.types';
 
@@ -343,6 +430,11 @@ const newIssue = ref({
   issueNumber: '',
   publicationDate: ''
 });
+
+// Template management state
+const showTemplateDialog = ref(false);
+const availableTemplates = ref<string[]>([]);
+const selectedTemplatePreview = ref<string>('');
 
 // Computed
 const draftIssues = computed(() =>
@@ -570,9 +662,93 @@ const removeFromIssue = async (submissionId: string) => {
   }
 };
 
+// Template management methods
+const loadAvailableTemplates = async () => {
+  try {
+    const result = await templateManagementService.getAvailableTemplates();
+    if (result.success) {
+      availableTemplates.value = result.templates;
+    } else {
+      logger.error('Failed to load templates:', result.error);
+    }
+  } catch (error) {
+    logger.error('Error loading templates:', error);
+  }
+};
+
+const previewTemplate = async (templateName: string) => {
+  try {
+    const sampleData = templateManagementService.createSampleData('news');
+    const result = await templateManagementService.previewTemplate(templateName, sampleData);
+
+    if (result.success && result.html) {
+      selectedTemplatePreview.value = result.html;
+    } else {
+      logger.error('Failed to preview template:', result.error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to preview template'
+      });
+    }
+  } catch (error) {
+    logger.error('Error previewing template:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Error previewing template'
+    });
+  }
+};
+
+const testTemplate = async (templateName: string) => {
+  try {
+    const sampleData = templateManagementService.createSampleData('news');
+    const result = await templateManagementService.testTemplate(templateName, sampleData);
+
+    if (result.success && result.downloadUrl) {
+      $q.notify({
+        type: 'positive',
+        message: 'Test PDF generated successfully!',
+        caption: 'Click to download',
+        actions: [
+          {
+            label: 'Download',
+            color: 'white',
+            handler: () => {
+              window.open(result.downloadUrl, '_blank');
+            }
+          }
+        ]
+      });
+    } else {
+      logger.error('Failed to test template:', result.error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to test template'
+      });
+    }
+  } catch (error) {
+    logger.error('Error testing template:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Error testing template'
+    });
+  }
+};
+
+const getTemplateDisplayName = (templateName: string): string => {
+  const info = templateManagementService.getTemplateInfo(templateName);
+  return info.displayName;
+};
+
+const getTemplateDescription = (templateName: string): string => {
+  const info = templateManagementService.getTemplateInfo(templateName);
+  return info.description;
+};
+
 // Lifecycle
 onMounted(() => {
   void loadData();
+  void loadAvailableTemplates();
 });
 </script>
 
@@ -584,6 +760,20 @@ onMounted(() => {
 .q-item {
   border-radius: 4px;
   margin-bottom: 4px;
+}
+
+.template-preview-container {
+  width: 100%;
+  height: 60vh;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.template-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 .q-item:hover {

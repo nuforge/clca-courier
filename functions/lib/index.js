@@ -5,45 +5,25 @@
  * This function generates PDF newsletters from approved content submissions
  * using Puppeteer for HTML to PDF conversion.
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateNewsletter = void 0;
+exports.getAvailableTemplatesList = exports.testTemplate = exports.previewTemplate = exports.generateNewsletter = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
-const puppeteer_1 = __importDefault(require("puppeteer"));
+const puppeteer_core_1 = __importDefault(require("puppeteer-core"));
+const chromium_1 = __importDefault(require("@sparticuz/chromium"));
 const pdf_lib_1 = require("pdf-lib");
-const Handlebars = __importStar(require("handlebars"));
+const template_engine_1 = require("./template-engine");
 // Initialize Firebase Admin
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 const storage = (0, storage_1.getStorage)();
+// Register Handlebars helpers
+(0, template_engine_1.registerHandlebarsHelpers)();
 /**
  * Generate Newsletter PDF
  *
@@ -107,19 +87,12 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
             progress: 20,
             message: 'Generating PDF pages from content...'
         });
-        // Launch Puppeteer
-        const browser = await puppeteer_1.default.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
-                '--disable-gpu'
-            ]
+        // Launch Puppeteer with optimized Chromium
+        const browser = await puppeteer_core_1.default.launch({
+            args: chromium_1.default.args,
+            defaultViewport: chromium_1.default.defaultViewport,
+            executablePath: await chromium_1.default.executablePath(),
+            headless: chromium_1.default.headless,
         });
         const page = await browser.newPage();
         await page.setViewport({ width: 1200, height: 800 });
@@ -133,7 +106,7 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
                 progress: Math.round(progress),
                 message: `Generating page ${i + 1} of ${totalSubmissions}: ${submission.title}`
             });
-            // Generate HTML for this submission
+            // Generate HTML for this submission using template system
             const htmlContent = generateSubmissionHTML(submission, issue);
             // Set content and generate PDF
             await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
@@ -227,160 +200,19 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
     }
 });
 /**
- * Generate HTML content for a single submission
+ * Generate HTML content for a single submission using template system
  */
 function generateSubmissionHTML(submission, issue) {
-    const template = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>{{title}}</title>
-      <style>
-        body {
-          font-family: 'Georgia', 'Times New Roman', serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background: white;
-        }
-
-        .header {
-          border-bottom: 3px solid #2c5aa0;
-          padding-bottom: 20px;
-          margin-bottom: 30px;
-        }
-
-        .newsletter-title {
-          font-size: 24px;
-          font-weight: bold;
-          color: #2c5aa0;
-          margin: 0 0 10px 0;
-        }
-
-        .issue-info {
-          font-size: 14px;
-          color: #666;
-          margin: 0;
-        }
-
-        .article-title {
-          font-size: 20px;
-          font-weight: bold;
-          color: #2c5aa0;
-          margin: 0 0 15px 0;
-          border-left: 4px solid #2c5aa0;
-          padding-left: 15px;
-        }
-
-        .article-meta {
-          font-size: 12px;
-          color: #888;
-          margin-bottom: 20px;
-          font-style: italic;
-        }
-
-        .article-content {
-          font-size: 14px;
-          line-height: 1.7;
-          margin-bottom: 30px;
-        }
-
-        .article-content h1, .article-content h2, .article-content h3 {
-          color: #2c5aa0;
-          margin-top: 25px;
-          margin-bottom: 15px;
-        }
-
-        .article-content h1 { font-size: 18px; }
-        .article-content h2 { font-size: 16px; }
-        .article-content h3 { font-size: 14px; }
-
-        .article-content p {
-          margin-bottom: 15px;
-        }
-
-        .article-content ul, .article-content ol {
-          margin: 15px 0;
-          padding-left: 30px;
-        }
-
-        .article-content blockquote {
-          border-left: 3px solid #2c5aa0;
-          padding-left: 20px;
-          margin: 20px 0;
-          font-style: italic;
-          color: #555;
-        }
-
-        .featured-image {
-          max-width: 100%;
-          height: auto;
-          margin: 20px 0;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .footer {
-          border-top: 1px solid #ddd;
-          padding-top: 20px;
-          margin-top: 40px;
-          font-size: 12px;
-          color: #666;
-          text-align: center;
-        }
-
-        @media print {
-          body { margin: 0; }
-          .header { page-break-after: avoid; }
-          .article-content { page-break-inside: avoid; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1 class="newsletter-title">{{issue.title}}</h1>
-        <p class="issue-info">Issue {{issue.issueNumber}} • {{formatDate issue.publicationDate}}</p>
-      </div>
-
-      <h2 class="article-title">{{title}}</h2>
-
-      <div class="article-meta">
-        By {{author}} • {{formatDate createdAt}}
-      </div>
-
-      {{#if featuredImageUrl}}
-      <img src="{{featuredImageUrl}}" alt="{{title}}" class="featured-image" />
-      {{/if}}
-
-      <div class="article-content">
-        {{{content}}}
-      </div>
-
-      <div class="footer">
-        <p>CLCA Courier Newsletter • Generated on {{formatDate now}}</p>
-      </div>
-    </body>
-    </html>
-  `;
-    // Register Handlebars helpers
-    Handlebars.registerHelper('formatDate', (date) => {
-        if (!date)
-            return '';
-        const d = date.toDate ? date.toDate() : new Date(date);
-        return d.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    });
-    const compiledTemplate = Handlebars.compile(template);
-    return compiledTemplate({
+    // Determine template based on content type
+    const contentType = submission.contentType || 'news';
+    const templateConfig = template_engine_1.TEMPLATE_MAPPING[contentType] || template_engine_1.TEMPLATE_MAPPING['news'];
+    // Load appropriate template
+    const template = (0, template_engine_1.loadTemplate)(templateConfig.template);
+    // Prepare template data
+    const templateData = {
         title: submission.title,
         content: submission.description || submission.content || '',
-        author: submission.createdBy || 'Community Member',
+        author: submission.authorName || submission.createdBy || 'Community Member',
         createdAt: submission.createdAt,
         featuredImageUrl: submission.featuredImageUrl,
         issue: {
@@ -388,7 +220,106 @@ function generateSubmissionHTML(submission, issue) {
             issueNumber: issue.issueNumber,
             publicationDate: issue.publicationDate
         },
-        now: new Date()
-    });
+        now: new Date(),
+        // Event-specific data
+        eventDate: submission.eventDate,
+        eventTime: submission.eventTime,
+        eventLocation: submission.eventLocation,
+        eventContact: submission.eventContact,
+        // Editorial-specific data
+        subtitle: submission.subtitle,
+        // Feature flags
+        featured: submission.featured || false,
+        priority: submission.priority || 'normal'
+    };
+    return template(templateData);
 }
+/**
+ * Preview Template Function
+ * Returns HTML for template preview without generating PDF
+ */
+exports.previewTemplate = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    const { templateName, contentData } = request.data;
+    if (!templateName) {
+        throw new https_1.HttpsError('invalid-argument', 'Template name is required');
+    }
+    try {
+        const template = (0, template_engine_1.loadTemplate)(templateName);
+        const html = template(contentData || {});
+        return {
+            success: true,
+            html,
+            templateName
+        };
+    }
+    catch (error) {
+        throw new https_1.HttpsError('internal', `Template preview failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+});
+/**
+ * Test Template Function
+ * Generates a test PDF for template validation
+ */
+exports.testTemplate = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    const { templateName, testData } = request.data;
+    if (!templateName) {
+        throw new https_1.HttpsError('invalid-argument', 'Template name is required');
+    }
+    try {
+        const template = (0, template_engine_1.loadTemplate)(templateName);
+        const html = template(testData || {});
+        // Launch browser for test PDF generation
+        const browser = await puppeteer_core_1.default.launch({
+            args: chromium_1.default.args,
+            defaultViewport: chromium_1.default.defaultViewport,
+            executablePath: await chromium_1.default.executablePath(),
+            headless: chromium_1.default.headless,
+        });
+        const page = await browser.newPage();
+        await page.setContent(html);
+        const pdf = await page.pdf({ format: 'letter' });
+        await browser.close();
+        // Save test PDF to storage
+        const bucket = storage.bucket();
+        const fileName = `test-pdfs/test-${templateName}-${Date.now()}.pdf`;
+        const file = bucket.file(fileName);
+        await file.save(pdf);
+        await file.makePublic();
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        return {
+            success: true,
+            downloadUrl: publicUrl,
+            templateName
+        };
+    }
+    catch (error) {
+        throw new https_1.HttpsError('internal', `Template test failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+});
+/**
+ * Get Available Templates Function
+ * Returns list of available templates
+ */
+exports.getAvailableTemplatesList = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    try {
+        const templates = (0, template_engine_1.getAvailableTemplates)();
+        return {
+            success: true,
+            templates,
+            templateMapping: template_engine_1.TEMPLATE_MAPPING
+        };
+    }
+    catch (error) {
+        throw new https_1.HttpsError('internal', `Failed to get templates: ${error instanceof Error ? error.message : String(error)}`);
+    }
+});
 //# sourceMappingURL=index.js.map
