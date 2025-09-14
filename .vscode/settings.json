@@ -14,5 +14,6 @@
   },
   "[javascript]": {
     "editor.formatOnSave": false
-  }
+  },
+  "markdown.validate.enabled": true
 }
