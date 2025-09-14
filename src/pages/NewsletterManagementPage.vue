@@ -19,7 +19,7 @@
         <div class="col-auto">
           <q-btn
             color="primary"
-            :icon="UI_ICONS.add"
+            icon="add"
             label="Create New Issue"
             @click="showCreateDialog = true"
           />
@@ -120,7 +120,7 @@
                     size="sm"
                     icon="mdi-cog"
                     color="secondary"
-                    @click="editIssue(props.row)"
+                    @click="editIssue()"
                   >
                     <q-tooltip>Edit Issue</q-tooltip>
                   </q-btn>
@@ -322,7 +322,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { logger } from '../utils/logger';
-import { UI_ICONS } from '../constants/ui-icons';
+// import { UI_ICONS } from '../constants/ui-icons';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
 import type { NewsletterIssue } from '../services/newsletter-generation.service';
 import type { ContentDoc } from '../types/core/content.types';
@@ -365,21 +365,21 @@ const issueColumns = [
     name: 'title',
     required: true,
     label: 'Title',
-    align: 'left',
+    align: 'left' as const,
     field: 'title',
     sortable: true
   },
   {
     name: 'issueNumber',
     label: 'Issue #',
-    align: 'left',
+    align: 'left' as const,
     field: 'issueNumber',
     sortable: true
   },
   {
     name: 'publicationDate',
     label: 'Publication Date',
-    align: 'left',
+    align: 'left' as const,
     field: 'publicationDate',
     format: (val: Date) => val.toLocaleDateString(),
     sortable: true
@@ -387,21 +387,21 @@ const issueColumns = [
   {
     name: 'status',
     label: 'Status',
-    align: 'center',
+    align: 'center' as const,
     field: 'status',
     sortable: true
   },
   {
     name: 'submissions',
     label: 'Content',
-    align: 'center',
+    align: 'center' as const,
     field: 'submissions',
     sortable: false
   },
   {
     name: 'actions',
     label: 'Actions',
-    align: 'center',
+    align: 'center' as const,
     field: 'actions',
     sortable: false
   }
@@ -451,7 +451,7 @@ const createIssue = async () => {
 
   isCreating.value = true;
   try {
-    const issueId = await newsletterGenerationService.createIssue(
+    await newsletterGenerationService.createIssue(
       newIssue.value.title,
       newIssue.value.issueNumber,
       new Date(newIssue.value.publicationDate)
@@ -484,7 +484,7 @@ const viewIssue = (issue: NewsletterIssue) => {
   showContentDialog.value = true;
 };
 
-const editIssue = (issue: NewsletterIssue) => {
+const editIssue = () => {
   // TODO: Implement issue editing
   $q.notify({
     type: 'info',
@@ -572,7 +572,7 @@ const removeFromIssue = async (submissionId: string) => {
 
 // Lifecycle
 onMounted(() => {
-  loadData();
+  void loadData();
 });
 </script>
 

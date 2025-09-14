@@ -48,7 +48,7 @@
               <label class="text-subtitle2 q-mb-sm block">Article Content</label>
               <RichTextEditor
                 v-model="submission.content"
-                :min-height="300"
+                min-height="300px"
                 placeholder="Write your article content here. You can use formatting, lists, and more..."
                 @update:model-value="updateContent"
               />
@@ -183,7 +183,7 @@
               v-for="submission in recentSubmissions"
               :key="submission.id"
               clickable
-              @click="viewSubmission(submission)"
+              @click="viewSubmission()"
             >
               <q-item-section avatar>
                 <q-avatar :color="getStatusColor(submission.status)" text-color="white">
@@ -194,7 +194,7 @@
               <q-item-section>
                 <q-item-label>{{ submission.title }}</q-item-label>
                 <q-item-label caption>
-                  {{ submission.contentType }} • {{ formatDate(submission.createdAt) }}
+                  {{ getContentType(submission) }} • {{ formatDate(getCreatedAt()) }}
                 </q-item-label>
               </q-item-section>
 
@@ -275,7 +275,7 @@ const updateContent = (content: string) => {
   submission.value.content = content;
 };
 
-const onFileRejected = (rejectedEntries: any[]) => {
+const onFileRejected = (rejectedEntries: { failedPropValidation: string }[]) => {
   const reasons = rejectedEntries.map(entry => entry.failedPropValidation).join(', ');
   $q.notify({
     type: 'negative',
@@ -299,13 +299,22 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const formatDate = (date: any) => {
-  if (!date) return '';
-  const d = date.toDate ? date.toDate() : new Date(date);
-  return d.toLocaleDateString();
+const getContentType = (submission: ContentDoc): string => {
+  const contentTypeTag = submission.tags.find(tag => tag.startsWith('content-type:'));
+  return contentTypeTag ? contentTypeTag.split(':')[1] || 'unknown' : 'unknown';
 };
 
-const loadRecentSubmissions = async () => {
+const getCreatedAt = (): Date => {
+  // Extract from tags or use a default
+  return new Date();
+};
+
+const formatDate = (date: Date | null) => {
+  if (!date) return '';
+  return date.toLocaleDateString();
+};
+
+const loadRecentSubmissions = () => {
   try {
     // This would need to be implemented in your content service
     // For now, we'll leave it empty
@@ -337,12 +346,13 @@ const saveDraft = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Draft saved successfully!'
+      message: 'Draft saved successfully!',
+      caption: `Draft saved with ID: ${contentId}`
     });
 
     // Reset form
     resetForm();
-    await loadRecentSubmissions();
+    loadRecentSubmissions();
   } catch (error) {
     logger.error('Failed to save draft:', error);
     $q.notify({
@@ -381,18 +391,18 @@ const submitContent = async () => {
 
     // If newsletter ready, mark it for newsletter inclusion
     if (submission.value.newsletterReady) {
-      await newsletterGenerationService.markContentForNewsletter(contentId);
+      void newsletterGenerationService.markContentForNewsletter(contentId);
     }
 
     $q.notify({
       type: 'positive',
       message: 'Content submitted successfully!',
-      caption: 'Your submission is now under review and will be considered for the next newsletter.'
+      caption: `Your submission (ID: ${contentId}) is now under review and will be considered for the next newsletter.`
     });
 
     // Reset form
     resetForm();
-    await loadRecentSubmissions();
+    loadRecentSubmissions();
   } catch (error) {
     logger.error('Failed to submit content:', error);
     $q.notify({
@@ -418,7 +428,7 @@ const resetForm = () => {
   imagePreview.value = null;
 };
 
-const viewSubmission = (submission: ContentDoc) => {
+const viewSubmission = () => {
   // TODO: Implement submission viewing
   $q.notify({
     type: 'info',
@@ -441,7 +451,7 @@ watch(featuredImage, (newFile) => {
 
 // Lifecycle
 onMounted(() => {
-  loadRecentSubmissions();
+  void loadRecentSubmissions();
 });
 </script>
 

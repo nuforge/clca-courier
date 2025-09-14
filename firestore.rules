@@ -213,5 +213,15 @@ service cloud.firestore {
       // Only allow admins to write app configuration
       allow write: if isAuthenticated() && hasRole(request.auth.uid, 'admin');
     }
+
+    // Newsletter issues collection - Any authenticated user for now
+    match /newsletter_issues/{issueId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Generation progress collection - Any authenticated user for now
+    match /generation_progress/{progressId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }

@@ -18,12 +18,7 @@ import {
   serverTimestamp,
   type Timestamp
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from 'firebase/storage';
-import { firestore, firebaseStorage } from '../config/firebase.config';
+import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
 import { logger } from '../utils/logger';
 import type { ContentDoc } from '../types/core/content.types';
@@ -90,7 +85,7 @@ class NewsletterGenerationService {
         createdAt: serverTimestamp() as Timestamp,
         updatedAt: serverTimestamp() as Timestamp,
         createdBy: currentUser.uid,
-        updatedBy: currentUser.uid
+        updatedBy: firebaseAuthService.getCurrentUser()?.uid || 'system'
       };
 
       const docRef = await addDoc(
@@ -137,19 +132,23 @@ class NewsletterGenerationService {
    */
   async getApprovedSubmissions(): Promise<ContentDoc[]> {
     try {
-      // Query for content that is approved and ready for newsletter inclusion
+      // Query for content that is approved (we'll filter newsletter:ready in the client)
       const q = query(
         collection(firestore, 'content'),
         where('tags', 'array-contains', 'status:approved'),
-        where('tags', 'array-contains', 'newsletter:ready'),
         orderBy('createdAt', 'desc')
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const allApproved = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as ContentDoc));
+
+      // Filter for newsletter-ready content on the client side
+      return allApproved.filter(content =>
+        content.tags.includes('newsletter:ready')
+      );
     } catch (error) {
       logger.error('Failed to fetch approved submissions:', error);
       throw error;
@@ -173,7 +172,7 @@ class NewsletterGenerationService {
       await updateDoc(issueRef, {
         submissions: submissionIds,
         updatedAt: serverTimestamp(),
-        updatedBy: currentUser.uid
+        updatedBy: firebaseAuthService.getCurrentUser()?.uid || 'system'
       });
 
       logger.info('Submissions added to newsletter issue', {
@@ -202,7 +201,7 @@ class NewsletterGenerationService {
       await updateDoc(issueRef, {
         status: 'generating',
         updatedAt: serverTimestamp(),
-        updatedBy: currentUser.uid
+        updatedBy: firebaseAuthService.getCurrentUser()?.uid || 'system'
       });
 
       // Call the Cloud Function
@@ -225,7 +224,7 @@ class NewsletterGenerationService {
       await updateDoc(issueRef, {
         status: 'draft',
         updatedAt: serverTimestamp(),
-        updatedBy: currentUser.uid
+        updatedBy: firebaseAuthService.getCurrentUser()?.uid || 'system'
       });
 
       throw error;
