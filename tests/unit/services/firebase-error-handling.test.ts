@@ -26,24 +26,18 @@ const mockFirebaseErrors = vi.hoisted(() => ({
   mockOnSnapshot: vi.fn()
 }));
 
-vi.mock('firebase/firestore', () => ({
-  doc: mockFirebaseErrors.mockDoc,
-  getDoc: mockFirebaseErrors.mockGetDoc,
-  updateDoc: mockFirebaseErrors.mockUpdateDoc,
-  deleteDoc: mockFirebaseErrors.mockDeleteDoc,
-  collection: mockFirebaseErrors.mockCollection,
-  query: mockFirebaseErrors.mockQuery,
-  where: mockFirebaseErrors.mockWhere,
-  orderBy: mockFirebaseErrors.mockOrderBy,
-  getDocs: mockFirebaseErrors.mockGetDocs,
-  addDoc: mockFirebaseErrors.mockAddDoc,
-  onSnapshot: mockFirebaseErrors.mockOnSnapshot,
-  serverTimestamp: vi.fn(() => new Date().toISOString())
-}));
+// Use global Firebase/Firestore mock from tests/setup.ts
+// Individual mocks are set up in beforeEach
 
 // Mock Firebase config
 vi.mock('../../../src/config/firebase.config', () => ({
   firestore: { app: { name: 'test-app' } }
+}));
+
+// Mock safe-firebase utilities
+vi.mock('../../../src/utils/safe-firebase', () => ({
+  safeSetDoc: vi.fn(),
+  safeAddDoc: vi.fn()
 }));
 
 // Mock auth service
@@ -58,8 +52,22 @@ vi.mock('../../../src/services/firebase-auth.service', () => ({
 import { firestoreService } from '../../../src/services/firebase-firestore.service';
 
 describe('Firebase Error Handling - Critical Edge Cases', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Set up global Firebase mocks to use our specific mock functions
+    const firestoreModule = await import('firebase/firestore');
+    vi.mocked(firestoreModule.collection).mockImplementation(mockFirebaseErrors.mockCollection);
+    vi.mocked(firestoreModule.doc).mockImplementation(mockFirebaseErrors.mockDoc);
+    vi.mocked(firestoreModule.getDoc).mockImplementation(mockFirebaseErrors.mockGetDoc);
+    vi.mocked(firestoreModule.updateDoc).mockImplementation(mockFirebaseErrors.mockUpdateDoc);
+    vi.mocked(firestoreModule.deleteDoc).mockImplementation(mockFirebaseErrors.mockDeleteDoc);
+    vi.mocked(firestoreModule.query).mockImplementation(mockFirebaseErrors.mockQuery);
+    vi.mocked(firestoreModule.where).mockImplementation(mockFirebaseErrors.mockWhere);
+    vi.mocked(firestoreModule.orderBy).mockImplementation(mockFirebaseErrors.mockOrderBy);
+    vi.mocked(firestoreModule.getDocs).mockImplementation(mockFirebaseErrors.mockGetDocs);
+    vi.mocked(firestoreModule.addDoc).mockImplementation(mockFirebaseErrors.mockAddDoc);
+    vi.mocked(firestoreModule.onSnapshot).mockImplementation(mockFirebaseErrors.mockOnSnapshot);
 
     // Default successful mock setup
     mockFirebaseErrors.mockCollection.mockReturnValue({});
@@ -250,7 +258,9 @@ describe('Firebase Error Handling - Critical Edge Cases', () => {
       conflictError.name = 'FirebaseError';
       (conflictError as any).code = 'aborted';
 
-      mockFirebaseErrors.mockUpdateDoc.mockRejectedValue(conflictError);
+      // Mock safeSetDoc to reject with conflict error
+      const { safeSetDoc } = await import('../../../src/utils/safe-firebase');
+      vi.mocked(safeSetDoc).mockRejectedValue(conflictError);
 
       await expect(firestoreService.updateNewsletterMetadata('test-id', { title: 'Updated' }))
         .rejects.toThrow('Document was modified by another user');
@@ -261,7 +271,9 @@ describe('Firebase Error Handling - Critical Edge Cases', () => {
       lockingError.name = 'FirebaseError';
       (lockingError as any).code = 'aborted';
 
-      mockFirebaseErrors.mockUpdateDoc.mockRejectedValue(lockingError);
+      // Mock safeSetDoc to reject with locking error
+      const { safeSetDoc } = await import('../../../src/utils/safe-firebase');
+      vi.mocked(safeSetDoc).mockRejectedValue(lockingError);
 
       await expect(firestoreService.updateNewsletterMetadata('test-id', { title: 'Updated' }))
         .rejects.toThrow('Transaction failed due to concurrent modification');

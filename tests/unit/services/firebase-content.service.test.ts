@@ -4,26 +4,7 @@ import { firebaseContentService } from '../../../src/services/firebase-content.s
 import type { ContentDoc } from '../../../src/types/core/content.types';
 
 // Mock Firebase modules
-vi.mock('firebase/firestore', () => ({
-  collection: vi.fn(),
-  doc: vi.fn(),
-  addDoc: vi.fn(),
-  updateDoc: vi.fn(),
-  deleteDoc: vi.fn(),
-  getDocs: vi.fn(),
-  query: vi.fn(),
-  where: vi.fn(),
-  orderBy: vi.fn(),
-  onSnapshot: vi.fn(),
-  serverTimestamp: vi.fn(() => ({ toMillis: () => Date.now() })),
-  Timestamp: {
-    now: vi.fn(() => ({ toMillis: () => Date.now() })),
-    fromDate: vi.fn((date: Date) => ({
-      toMillis: () => date.getTime(),
-      toDate: () => date
-    }))
-  }
-}));
+// Use global Firebase/Firestore mock from tests/setup.ts
 
 vi.mock('../../../src/config/firebase.config', () => ({
   firestore: {}

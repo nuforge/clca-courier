@@ -19,26 +19,7 @@ vi.mock('../../src/config/firebase.config', () => ({
   firestore: {},
 }));
 
-vi.mock('firebase/firestore', () => ({
-  doc: vi.fn(),
-  getDoc: vi.fn(),
-  setDoc: vi.fn(),
-  updateDoc: vi.fn(),
-  deleteDoc: vi.fn(),
-  collection: vi.fn(),
-  query: vi.fn(),
-  where: vi.fn(),
-  orderBy: vi.fn(),
-  limit: vi.fn(),
-  getDocs: vi.fn(),
-  addDoc: vi.fn(),
-  onSnapshot: vi.fn(),
-  serverTimestamp: vi.fn(() => ({ serverValue: 'timestamp' })),
-  writeBatch: vi.fn(() => ({
-    set: vi.fn(),
-    commit: vi.fn(),
-  })),
-}));
+// Use global Firebase/Firestore mock from tests/setup.ts
 
 vi.mock('../../src/services/firebase-auth.service', () => ({
   firebaseAuthService: {},

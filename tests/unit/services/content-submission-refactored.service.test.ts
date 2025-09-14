@@ -4,18 +4,7 @@ import { contentSubmissionService } from '../../../src/services/content-submissi
 import { ContentFeatures } from '../../../src/types/core/content.types';
 
 // Mock Firebase modules
-vi.mock('firebase/firestore', () => ({
-  collection: vi.fn(),
-  addDoc: vi.fn(),
-  serverTimestamp: vi.fn(() => ({ toMillis: () => Date.now() })),
-  Timestamp: {
-    now: vi.fn(() => ({ toMillis: () => Date.now() })),
-    fromDate: vi.fn((date: Date) => ({
-      toMillis: () => date.getTime(),
-      toDate: () => date
-    }))
-  }
-}));
+// Use global Firebase/Firestore mock from tests/setup.ts
 
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({

@@ -83,7 +83,7 @@ vi.mock('../src/config/firebase.config', () => ({
   storage: {}
 }));
 
-// Mock Firebase/Firestore exports
+// Mock Firebase/Firestore exports - Comprehensive global mock
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   doc: vi.fn(),
@@ -93,15 +93,25 @@ vi.mock('firebase/firestore', () => ({
   setDoc: vi.fn(),
   updateDoc: vi.fn(),
   deleteDoc: vi.fn(),
+  deleteField: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
   orderBy: vi.fn(),
   limit: vi.fn(),
+  startAfter: vi.fn(),
   onSnapshot: vi.fn(),
-  serverTimestamp: vi.fn(),
+  serverTimestamp: vi.fn(() => ({ toMillis: () => Date.now() })),
+  connectFirestoreEmulator: vi.fn(),
+  initializeFirestore: vi.fn(),
   Timestamp: {
-    fromDate: vi.fn(),
-    now: vi.fn()
+    fromDate: vi.fn((date: Date) => ({
+      toMillis: () => date.getTime(),
+      toDate: () => date
+    })),
+    now: vi.fn(() => ({
+      toMillis: () => Date.now(),
+      toDate: () => new Date()
+    }))
   }
 }));
 

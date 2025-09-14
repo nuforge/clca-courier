@@ -55,25 +55,7 @@ const {
   };
 });
 
-vi.mock('firebase/firestore', () => ({
-  doc: mockDoc,
-  getDoc: mockGetDoc,
-  updateDoc: mockUpdateDoc,
-  deleteDoc: mockDeleteDoc,
-  deleteField: mockDeleteField,
-  collection: mockCollection,
-  query: mockQuery,
-  where: mockWhere,
-  orderBy: mockOrderBy,
-  getDocs: mockGetDocs,
-  addDoc: mockAddDoc,
-  onSnapshot: mockOnSnapshot,
-  serverTimestamp: mockServerTimestamp,
-  connectFirestoreEmulator: vi.fn(),
-  initializeFirestore: vi.fn(),
-  limit: mockLimit,
-  startAfter: mockStartAfter
-}));
+// Use global Firebase/Firestore mock from tests/setup.ts
 
 // Mock Firebase app using hoisted functions
 vi.mock('firebase/app', () => ({
@@ -141,8 +123,26 @@ import {
 import { mockNewsletterData, mockUserContentData } from '../../mocks/test-data';
 
 describe('Firebase Firestore Service', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Set up global Firebase mocks to use our specific mock functions
+    const firestoreModule = await import('firebase/firestore');
+    vi.mocked(firestoreModule.collection).mockImplementation(mockCollection);
+    vi.mocked(firestoreModule.doc).mockImplementation(mockDoc);
+    vi.mocked(firestoreModule.getDoc).mockImplementation(mockGetDoc);
+    vi.mocked(firestoreModule.updateDoc).mockImplementation(mockUpdateDoc);
+    vi.mocked(firestoreModule.deleteDoc).mockImplementation(mockDeleteDoc);
+    vi.mocked(firestoreModule.deleteField).mockImplementation(mockDeleteField);
+    vi.mocked(firestoreModule.query).mockImplementation(mockQuery);
+    vi.mocked(firestoreModule.where).mockImplementation(mockWhere);
+    vi.mocked(firestoreModule.orderBy).mockImplementation(mockOrderBy);
+    vi.mocked(firestoreModule.getDocs).mockImplementation(mockGetDocs);
+    vi.mocked(firestoreModule.addDoc).mockImplementation(mockAddDoc);
+    vi.mocked(firestoreModule.onSnapshot).mockImplementation(mockOnSnapshot);
+    vi.mocked(firestoreModule.serverTimestamp).mockImplementation(mockServerTimestamp);
+    vi.mocked(firestoreModule.limit).mockImplementation(mockLimit);
+    vi.mocked(firestoreModule.startAfter).mockImplementation(mockStartAfter);
 
     // Reset mocks to default successful behavior
     mockSafeAddDoc.mockResolvedValue({ id: 'test-doc-id' });

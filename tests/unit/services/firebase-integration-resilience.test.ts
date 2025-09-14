@@ -95,8 +95,24 @@ import { firebaseAuthService } from '../../../src/services/firebase-auth.service
 import type { ContentSubmissionData } from '../../../src/types/core/content.types';
 
 describe('Firebase Integration Resilience Tests', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Set up global Firebase mocks to use our specific mock functions
+    const firestoreModule = await import('firebase/firestore');
+    vi.mocked(firestoreModule.collection).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.doc).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.getDoc).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.updateDoc).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.deleteDoc).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.query).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.where).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.orderBy).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.getDocs).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.addDoc).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.setDoc).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.onSnapshot).mockImplementation(vi.fn());
+    vi.mocked(firestoreModule.limit).mockImplementation(vi.fn());
 
     // Set up default successful auth state
     (firebaseAuthService.getCurrentUser as any).mockReturnValue({
