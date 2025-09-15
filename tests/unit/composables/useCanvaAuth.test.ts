@@ -48,6 +48,16 @@ const mockFirebaseAuth = vi.hoisted(() => ({
   }
 }));
 
+// Mock global crypto
+Object.defineProperty(global, 'crypto', {
+  value: {
+    getRandomValues: mockCrypto.getRandomValues,
+    subtle: {
+      digest: vi.fn().mockResolvedValue(new ArrayBuffer(32))
+    }
+  }
+});
+
 // Mock Canva API Service
 const mockCanvaApiService = vi.hoisted(() => ({
   getConfig: vi.fn(() => ({

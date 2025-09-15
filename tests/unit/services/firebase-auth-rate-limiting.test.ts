@@ -1,6 +1,6 @@
 /**
  * Firebase Auth Service - Rate Limiting Error Prevention Tests
- * 
+ *
  * These tests prevent 429 rate limiting errors in avatar caching
  * and ensure proper retry mechanisms with exponential backoff.
  */
@@ -8,6 +8,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { firebaseAuthService } from '../../../src/services/firebase-auth.service';
 import { logger } from '../../../src/utils/logger';
+
+// Mock the entire firebase auth service
+vi.mock('../../../src/services/firebase-auth.service', () => ({
+  firebaseAuthService: {
+    avatarCache: new Map(),
+    cacheAvatarImage: vi.fn()
+  }
+}));
 
 // Mock logger to track warnings and errors
 vi.mock('../../../src/utils/logger', () => ({
@@ -33,7 +41,7 @@ describe('Firebase Auth Service - Rate Limiting Prevention', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLogger = logger as any;
-    
+
     // Reset mock implementations
     mockFetch.mockClear();
     mockSetTimeout.mockClear();

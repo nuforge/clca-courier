@@ -20,7 +20,6 @@ vi.mock('../../../src/utils/logger', () => ({
 }));
 
 // Mock Firebase Functions
-const mockHttpsCallable = vi.fn();
 vi.mock('firebase/functions', () => ({
   getFunctions: vi.fn(() => ({})),
   httpsCallable: vi.fn(() => vi.fn())
@@ -32,11 +31,6 @@ describe('CORS Error Prevention Tests', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockLogger = logger as any;
-    mockHttpsCallable.mockClear();
-
-    // Set up the mock implementations
-    const { httpsCallable } = await import('firebase/functions');
-    (httpsCallable as any).mockReturnValue(mockHttpsCallable);
   });
 
   afterEach(() => {
@@ -50,7 +44,10 @@ describe('CORS Error Prevention Tests', () => {
       corsError.name = 'FirebaseError';
       (corsError as any).code = 'internal';
 
-      mockHttpsCallable.mockRejectedValueOnce(corsError);
+      // Mock the callable function to reject with CORS error
+      const { httpsCallable } = await import('firebase/functions');
+      const mockCallable = vi.fn().mockRejectedValueOnce(corsError);
+      (httpsCallable as any).mockReturnValue(mockCallable);
 
       const result = await templateManagementService.getAvailableTemplates();
 
@@ -121,7 +118,10 @@ describe('CORS Error Prevention Tests', () => {
     it('should handle CORS errors without crashing the application', async () => {
       const corsError = new Error('Access to fetch at \'https://us-central1-clca-courier-27aed.cloudfunctions.net/getAvailableTemplatesList\' from origin \'http://localhost:9000\' has been blocked by CORS policy: Response to preflight request doesn\'t pass access control check: No \'Access-Control-Allow-Origin\' header is present on the requested resource.');
 
-      mockHttpsCallable.mockRejectedValueOnce(corsError);
+      // Mock the callable function to reject with CORS error
+      const { httpsCallable } = await import('firebase/functions');
+      const mockCallable = vi.fn().mockRejectedValueOnce(corsError);
+      (httpsCallable as any).mockReturnValue(mockCallable);
 
       // Should not throw an error
       const result = await templateManagementService.getAvailableTemplates();
@@ -136,7 +136,10 @@ describe('CORS Error Prevention Tests', () => {
     it('should log CORS errors with proper context', async () => {
       const corsError = new Error('Access to fetch at \'https://us-central1-clca-courier-27aed.cloudfunctions.net/getAvailableTemplatesList\' from origin \'http://localhost:9000\' has been blocked by CORS policy: Response to preflight request doesn\'t pass access control check: No \'Access-Control-Allow-Origin\' header is present on the requested resource.');
 
-      mockHttpsCallable.mockRejectedValueOnce(corsError);
+      // Mock the callable function to reject with CORS error
+      const { httpsCallable } = await import('firebase/functions');
+      const mockCallable = vi.fn().mockRejectedValueOnce(corsError);
+      (httpsCallable as any).mockReturnValue(mockCallable);
 
       await templateManagementService.getAvailableTemplates();
 

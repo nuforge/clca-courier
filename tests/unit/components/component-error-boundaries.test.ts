@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { nextTick, ref, defineEmits } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 
 // Mock Quasar components

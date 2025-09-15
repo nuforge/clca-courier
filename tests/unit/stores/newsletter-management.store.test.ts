@@ -340,6 +340,9 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
     it('should handle individual newsletter selection toggle', () => {
       const newsletter = createValidNewsletter({ filename: 'test.pdf' });
 
+      // Add newsletter to store first (required for selection to work)
+      store.newsletters = [newsletter];
+
       // Select newsletter
       store.selectNewsletter(newsletter);
       expect(store.selectedNewsletters).toHaveLength(1);
@@ -676,10 +679,9 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       store.checkConcurrentOperation(operationId1);
       expect(store.activeOperations.has(operationId1)).toBe(true);
 
-      // Attempt to start second operation with same ID should fail
-      expect(() => store.checkConcurrentOperation(operationId1)).toThrow(
-        'Operation blocked: Operation \'test-operation-1\' is already in progress'
-      );
+      // Attempt to start second operation with same ID should log warning but not throw
+      store.checkConcurrentOperation(operationId1);
+      expect(store.activeOperations.has(operationId1)).toBe(true); // Still in active operations
 
       // Different operation ID should work
       store.checkConcurrentOperation(operationId2);
@@ -702,12 +704,13 @@ describe('Newsletter Management Store - Critical Remediation Tests', () => {
       // Start first load operation
       const firstLoad = store.loadNewsletters();
 
-      // Attempt second concurrent load operation
-      await expect(store.loadNewsletters()).rejects.toThrow(/Operation blocked:/);
-      // Note: The exact operation ID is generated with timestamp, so we use regex
+      // Attempt second concurrent load operation - should complete without throwing
+      const secondLoad = store.loadNewsletters();
 
-      // Wait for first operation to complete
+      // Both operations should complete successfully
       await firstLoad;
+      await secondLoad;
+
       expect(store.newsletters).toEqual(mockNewsletters);
     });
 

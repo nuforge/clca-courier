@@ -35,6 +35,10 @@ vi.mock('quasar', () => ({
     name: 'QCardSection',
     template: '<div class="q-card-section"><slot /></div>'
   },
+  QCardActions: {
+    name: 'QCardActions',
+    template: '<div class="q-card-actions"><slot /></div>'
+  },
   QBtn: {
     name: 'QBtn',
     props: ['icon', 'flat', 'round', 'color', 'size'],

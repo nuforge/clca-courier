@@ -1,7 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CanvaLogo from '../../../src/components/CanvaLogo.vue';
 import { CANVA_LOGO_PRESETS } from '../../../src/constants/canva-icons';
+
+// Mock Quasar components
+vi.mock('quasar', () => ({
+  QCard: {
+    name: 'QCard',
+    template: '<div class="q-card"><slot /></div>',
+    props: ['flat', 'bordered', 'class', 'style']
+  },
+  QCardActions: {
+    name: 'QCardActions',
+    template: '<div class="q-card-actions"><slot /></div>',
+    props: ['align', 'class', 'style']
+  },
+  QBtn: {
+    name: 'QBtn',
+    template: '<button class="q-btn" @click="$emit(\'click\')" :disabled="disabled"><slot /></button>',
+    props: ['flat', 'dense', 'loading', 'disabled', 'class', 'style'],
+    emits: ['click']
+  },
+  QIcon: {
+    name: 'QIcon',
+    template: '<i class="q-icon" :class="name"></i>',
+    props: ['name', 'size', 'color']
+  }
+}));
 
 describe('CanvaLogo', () => {
   describe('Basic Rendering', () => {

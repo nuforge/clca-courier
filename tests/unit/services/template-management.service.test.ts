@@ -25,6 +25,16 @@ vi.mock('firebase/functions', () => ({
   getFunctions: mockGetFunctions
 }));
 
+// Mock logger
+vi.mock('../../../src/utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn()
+  }
+}));
+
 describe('TemplateManagementService', () => {
   let service: typeof templateManagementService;
 

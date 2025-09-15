@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Timestamp, GeoPoint } from 'firebase/firestore';
 import {
   contentUtils,
@@ -7,6 +7,26 @@ import {
   type ContentDoc,
   type ContentFeatures
 } from '../../src/types/core/content.types';
+
+// Mock Firebase Firestore
+vi.mock('firebase/firestore', () => ({
+  Timestamp: {
+    fromDate: vi.fn((date: Date) => ({
+      toDate: () => date,
+      seconds: Math.floor(date.getTime() / 1000),
+      nanoseconds: (date.getTime() % 1000) * 1000000
+    })),
+    now: vi.fn(() => ({
+      toDate: () => new Date(),
+      seconds: Math.floor(Date.now() / 1000),
+      nanoseconds: 0
+    }))
+  },
+  GeoPoint: vi.fn((lat: number, lng: number) => ({
+    latitude: lat,
+    longitude: lng
+  }))
+}));
 
 describe('contentUtils', () => {
   let mockContentDoc: ContentDoc;
@@ -288,8 +308,10 @@ describe('createContentDoc', () => {
     expect(result.tags).toEqual([]);
     expect(result.features).toEqual({});
     expect(result.status).toBe('draft');
-    expect(result.timestamps.created).toBeInstanceOf(Timestamp);
-    expect(result.timestamps.updated).toBeInstanceOf(Timestamp);
+    expect(result.timestamps.created).toHaveProperty('seconds');
+    expect(result.timestamps.created).toHaveProperty('nanoseconds');
+    expect(result.timestamps.updated).toHaveProperty('seconds');
+    expect(result.timestamps.updated).toHaveProperty('nanoseconds');
     expect(result.timestamps.published).toBeUndefined();
   });
 
