@@ -7,7 +7,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Package managers
-package-lock.json
+/package-lock.json  # Only ignore root package-lock.json, keep functions/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
