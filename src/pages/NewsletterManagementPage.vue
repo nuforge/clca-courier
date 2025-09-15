@@ -1062,7 +1062,7 @@ interface NewsletterIssue extends UnifiedNewsletter {
   status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
   submissions: string[]; // Array of content IDs for new issues
   finalPdfPath?: string; // Path to generated PDF
-  type: 'issue' | 'newsletter'; // Distinguish between new issues and existing newsletters
+  type?: 'issue' | 'newsletter'; // Distinguish between new issues and existing newsletters
 }
 
 // State

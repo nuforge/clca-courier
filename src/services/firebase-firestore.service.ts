@@ -1114,7 +1114,7 @@ class FirebaseFirestoreService {
       }
 
       // Convert NewsletterMetadata to NewsletterDocument for versioning
-      const versioningUpdates: any = {
+      const versioningUpdates: Record<string, unknown> = {
         ...updates,
         // Map NewsletterMetadata to NewsletterDocument if needed
         actions: (updates.actions as { canView: boolean; canDownload: boolean; canSearch: boolean; hasThumbnail: boolean; }) || {
