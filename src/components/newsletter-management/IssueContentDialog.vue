@@ -8,12 +8,12 @@
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">
           <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
-          {{ selectedIssue?.title }} - Content Management
-          <q-badge v-if="selectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
+          {{ localSelectedIssue?.title }} - Content Management
+          <q-badge v-if="localSelectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
             Read-only (Existing Newsletter)
           </q-badge>
           <q-badge v-else color="info" class="q-ml-sm">
-            {{ selectedIssue?.submissions.length || 0 }} content items
+            {{ localSelectedIssue?.submissions.length || 0 }} content items
           </q-badge>
         </div>
         <q-space />
@@ -29,7 +29,7 @@
                 <div class="text-h6 q-mb-md">
                   <q-icon name="mdi-file-document-outline" class="q-mr-sm" />
                   Available Content
-                  <q-badge v-if="selectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
+                  <q-badge v-if="localSelectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
                     Not applicable for existing newsletters
                   </q-badge>
                 </div>
@@ -40,7 +40,7 @@
                     :key="submission.id"
                     clickable
                     @click="addToIssue(submission.id)"
-                    :disable="selectedIssue?.submissions.includes(submission.id) || selectedIssue?.type === 'newsletter'"
+                    :disable="localSelectedIssue?.submissions.includes(submission.id) || localSelectedIssue?.type === 'newsletter'"
                   >
                     <q-item-section avatar>
                       <q-avatar color="primary" text-color="white">
@@ -62,7 +62,7 @@
                         icon="mdi-plus"
                         color="positive"
                         @click.stop="addToIssue(submission.id)"
-                        :disable="selectedIssue?.submissions.includes(submission.id) || selectedIssue?.type === 'newsletter'"
+                        :disable="localSelectedIssue?.submissions.includes(submission.id) || localSelectedIssue?.type === 'newsletter'"
                       />
                     </q-item-section>
                   </q-item>
@@ -77,19 +77,19 @@
               <q-card-section>
                 <div class="text-h6 q-mb-md">
                   <q-icon name="mdi-check-circle" class="q-mr-sm" />
-                  Selected Content ({{ selectedIssue?.submissions.length || 0 }})
-                  <q-badge v-if="selectedIssue?.type === 'newsletter'" color="info" class="q-ml-sm">
+                  Selected Content ({{ localSelectedIssue?.submissions.length || 0 }})
+                  <q-badge v-if="localSelectedIssue?.type === 'newsletter'" color="info" class="q-ml-sm">
                     Existing newsletters don't have selectable content
                   </q-badge>
                 </div>
 
                 <q-list separator>
                   <q-item
-                    v-for="(submissionId, index) in selectedIssue?.submissions"
+                    v-for="(submissionId, index) in localSelectedIssue?.submissions"
                     :key="submissionId"
                     clickable
                     @click="removeFromIssue(submissionId)"
-                    :disable="selectedIssue?.type === 'newsletter'"
+                    :disable="localSelectedIssue?.type === 'newsletter'"
                     class="content-item"
                   >
                     <q-item-section avatar>
@@ -114,21 +114,21 @@
                           color="primary"
                           size="sm"
                           @click.stop="moveContentUp(index)"
-                          :disable="selectedIssue?.type === 'newsletter'"
+                          :disable="localSelectedIssue?.type === 'newsletter'"
                         >
                           <q-tooltip>Move Up</q-tooltip>
                         </q-btn>
 
                         <!-- Move Down -->
                         <q-btn
-                          v-if="index < (selectedIssue?.submissions.length || 0) - 1"
+                          v-if="index < (localSelectedIssue?.submissions.length || 0) - 1"
                           flat
                           dense
                           icon="mdi-arrow-down"
                           color="primary"
                           size="sm"
                           @click.stop="moveContentDown(index)"
-                          :disable="selectedIssue?.type === 'newsletter'"
+                          :disable="localSelectedIssue?.type === 'newsletter'"
                         >
                           <q-tooltip>Move Down</q-tooltip>
                         </q-btn>
@@ -141,7 +141,7 @@
                           color="negative"
                           size="sm"
                           @click.stop="removeFromIssue(submissionId)"
-                          :disable="selectedIssue?.type === 'newsletter'"
+                          :disable="localSelectedIssue?.type === 'newsletter'"
                         >
                           <q-tooltip>Remove</q-tooltip>
                         </q-btn>
@@ -151,7 +151,7 @@
                 </q-list>
 
                 <!-- Show message for existing newsletters -->
-                <div v-if="selectedIssue?.type === 'newsletter'" class="text-center text-grey-6 q-pa-lg">
+                <div v-if="localSelectedIssue?.type === 'newsletter'" class="text-center text-grey-6 q-pa-lg">
                   <q-icon name="mdi-information" size="2rem" class="q-mb-sm" />
                   <div>This is an existing newsletter with fixed content.</div>
                   <div>Use the "View Newsletter" button to open the PDF.</div>
@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { logger } from '../../utils/logger';
 import { newsletterGenerationService } from '../../services/newsletter-generation.service';
@@ -208,9 +208,21 @@ const showDialog = computed({
 
 const availableContent = computed(() =>
   props.approvedSubmissions.filter(submission =>
-    !props.selectedIssue?.submissions.includes(submission.id)
+    !localSelectedIssue.value?.submissions.includes(submission.id)
   )
 );
+
+// Create a local reactive copy of the selected issue to handle immediate UI updates
+const localSelectedIssue = ref<NewsletterIssue | null>(null);
+
+// Watch for changes to selectedIssue and update local copy
+watch(() => props.selectedIssue, (newIssue) => {
+  if (newIssue) {
+    localSelectedIssue.value = { ...newIssue };
+  } else {
+    localSelectedIssue.value = null;
+  }
+}, { immediate: true, deep: true });
 
 const getSubmissionTitle = (submissionId: string) => {
   const submission = props.approvedSubmissions.find(s => s.id === submissionId);
@@ -218,12 +230,16 @@ const getSubmissionTitle = (submissionId: string) => {
 };
 
 const addToIssue = async (submissionId: string) => {
-  if (!props.selectedIssue || props.selectedIssue.type !== 'issue') return;
+  if (!localSelectedIssue.value || localSelectedIssue.value.type !== 'issue') return;
 
   try {
-    const updatedSubmissions = [...props.selectedIssue.submissions, submissionId];
+    const updatedSubmissions = [...localSelectedIssue.value.submissions, submissionId];
+
+    // Update local copy immediately for reactive UI
+    localSelectedIssue.value.submissions = updatedSubmissions;
+
     await newsletterGenerationService.addSubmissionsToIssue(
-      props.selectedIssue.id,
+      localSelectedIssue.value.id,
       updatedSubmissions
     );
 
@@ -239,18 +255,27 @@ const addToIssue = async (submissionId: string) => {
       type: 'negative',
       message: 'Failed to add content to issue'
     });
+
+    // Revert local changes on error
+    if (localSelectedIssue.value) {
+      localSelectedIssue.value.submissions = props.selectedIssue?.submissions || [];
+    }
   }
 };
 
 const removeFromIssue = async (submissionId: string) => {
-  if (!props.selectedIssue || props.selectedIssue.type !== 'issue') return;
+  if (!localSelectedIssue.value || localSelectedIssue.value.type !== 'issue') return;
 
   try {
-    const updatedSubmissions = props.selectedIssue.submissions.filter(
+    const updatedSubmissions = localSelectedIssue.value.submissions.filter(
       (id: string) => id !== submissionId
     );
+
+    // Update local copy immediately for reactive UI
+    localSelectedIssue.value.submissions = updatedSubmissions;
+
     await newsletterGenerationService.addSubmissionsToIssue(
-      props.selectedIssue.id,
+      localSelectedIssue.value.id,
       updatedSubmissions
     );
 
@@ -266,20 +291,28 @@ const removeFromIssue = async (submissionId: string) => {
       type: 'negative',
       message: 'Failed to remove content from issue'
     });
+
+    // Revert local changes on error
+    if (localSelectedIssue.value) {
+      localSelectedIssue.value.submissions = props.selectedIssue?.submissions || [];
+    }
   }
 };
 
 const moveContentUp = async (index: number) => {
-  if (!props.selectedIssue || props.selectedIssue.type !== 'issue' || index <= 0) return;
+  if (!localSelectedIssue.value || localSelectedIssue.value.type !== 'issue' || index <= 0) return;
 
   try {
-    const submissions = [...props.selectedIssue.submissions];
+    const submissions = [...localSelectedIssue.value.submissions];
     const temp = submissions[index - 1]!;
     submissions[index - 1] = submissions[index]!;
     submissions[index] = temp;
 
+    // Update local copy immediately for reactive UI
+    localSelectedIssue.value.submissions = submissions;
+
     await newsletterGenerationService.addSubmissionsToIssue(
-      props.selectedIssue.id,
+      localSelectedIssue.value.id,
       submissions
     );
 
@@ -295,20 +328,28 @@ const moveContentUp = async (index: number) => {
       type: 'negative',
       message: 'Failed to update content order'
     });
+
+    // Revert local changes on error
+    if (localSelectedIssue.value) {
+      localSelectedIssue.value.submissions = props.selectedIssue?.submissions || [];
+    }
   }
 };
 
 const moveContentDown = async (index: number) => {
-  if (!props.selectedIssue || props.selectedIssue.type !== 'issue' || index >= (props.selectedIssue.submissions.length - 1)) return;
+  if (!localSelectedIssue.value || localSelectedIssue.value.type !== 'issue' || index >= (localSelectedIssue.value.submissions.length - 1)) return;
 
   try {
-    const submissions = [...props.selectedIssue.submissions];
+    const submissions = [...localSelectedIssue.value.submissions];
     const temp = submissions[index]!;
     submissions[index] = submissions[index + 1]!;
     submissions[index + 1] = temp;
 
+    // Update local copy immediately for reactive UI
+    localSelectedIssue.value.submissions = submissions;
+
     await newsletterGenerationService.addSubmissionsToIssue(
-      props.selectedIssue.id,
+      localSelectedIssue.value.id,
       submissions
     );
 
@@ -324,6 +365,11 @@ const moveContentDown = async (index: number) => {
       type: 'negative',
       message: 'Failed to update content order'
     });
+
+    // Revert local changes on error
+    if (localSelectedIssue.value) {
+      localSelectedIssue.value.submissions = props.selectedIssue?.submissions || [];
+    }
   }
 };
 </script>

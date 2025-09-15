@@ -468,6 +468,49 @@ class NewsletterGenerationService {
       throw error;
     }
   }
+
+  /**
+   * Unpublish an existing newsletter (both new issues and existing newsletters)
+   */
+  async unpublishNewsletter(newsletterId: string): Promise<void> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to unpublish newsletters');
+      }
+
+      const newsletterRef = doc(firestore, this.COLLECTIONS.ISSUES, newsletterId);
+      const updateData: UpdateData<NewsletterIssue> = {
+        isPublished: false,
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.uid
+      };
+
+      // For new issues, also update status to draft
+      // For existing newsletters, just update isPublished
+      const newsletterDoc = await getDoc(newsletterRef);
+      if (newsletterDoc.exists()) {
+        const newsletterData = newsletterDoc.data() as NewsletterIssue;
+
+        // If it has a status field (new issue), set to draft
+        if (newsletterData.status) {
+          updateData.status = 'draft';
+        }
+      }
+
+      await updateDoc(newsletterRef, updateData);
+
+      logger.info('Newsletter unpublished successfully', {
+        newsletterId,
+        isPublished: false,
+        statusUpdated: updateData.status ? 'draft' : 'unchanged'
+      });
+
+    } catch (error) {
+      logger.error('Failed to unpublish newsletter:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

@@ -309,13 +309,26 @@
                     <q-tooltip>{{ props.row.type === 'issue' ? 'Edit Issue' : 'Edit Newsletter' }}</q-tooltip>
                   </q-btn>
 
-                  <!-- Unpublish - for published issues -->
+                  <!-- Publish - for unpublished issues and newsletters -->
                   <q-btn
-                    v-if="props.row.status === 'published'"
+                    v-if="(props.row.type === 'issue' && props.row.status !== 'published') || (props.row.type === 'newsletter' && !props.row.isPublished)"
                     flat
                     dense
                     size="sm"
-                    icon="mdi-publish-off"
+                    icon="mdi-eye"
+                    color="positive"
+                    @click="publishIssue(props.row)"
+                  >
+                    <q-tooltip>Publish Newsletter</q-tooltip>
+                  </q-btn>
+
+                  <!-- Unpublish - for published issues and existing newsletters -->
+                  <q-btn
+                    v-if="props.row.status === 'published' || (props.row.type === 'newsletter' && props.row.isPublished)"
+                    flat
+                    dense
+                    size="sm"
+                    icon="mdi-eye-off"
                     color="warning"
                     @click="unpublishIssue(props.row)"
                   >
@@ -691,8 +704,63 @@ const editIssue = (issue?: NewsletterIssue) => {
   showEditDialog.value = true;
 };
 
+const publishIssue = (issue: NewsletterIssue) => {
+  const isPublished = issue.status === 'published' || (issue.type === 'newsletter' && issue.isPublished);
+
+  if (isPublished) {
+    $q.notify({
+      type: 'warning',
+      message: 'This newsletter is already published'
+    });
+    return;
+  }
+
+  $q.dialog({
+    title: 'Publish Newsletter',
+    message: `Are you sure you want to publish "${issue.title}"? This will make it visible to public users.`,
+    cancel: true,
+    persistent: true,
+    ok: {
+      label: 'Publish',
+      color: 'positive'
+    }
+  }).onOk(() => {
+    void (async () => {
+      try {
+        if (issue.type === 'issue') {
+          // Publish new issue using newsletter generation service
+          await newsletterGenerationService.updateIssue(issue.id, {
+            status: 'published'
+          });
+        } else {
+          // For existing newsletters, update isPublished directly
+          await newsletterGenerationService.updateIssue(issue.id, {
+            status: 'published' // This will set isPublished to true
+          });
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: 'Newsletter published successfully!',
+          caption: 'Now visible to public users'
+        });
+
+        await loadData();
+      } catch (error) {
+        logger.error('Failed to publish newsletter:', error);
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to publish newsletter'
+        });
+      }
+    })();
+  });
+};
+
 const unpublishIssue = (issue: NewsletterIssue) => {
-  if (issue.status !== 'published') {
+  const isPublished = issue.status === 'published' || (issue.type === 'newsletter' && issue.isPublished);
+
+  if (!isPublished) {
     $q.notify({
       type: 'warning',
       message: 'Only published newsletters can be unpublished'
@@ -702,7 +770,7 @@ const unpublishIssue = (issue: NewsletterIssue) => {
 
   $q.dialog({
     title: 'Unpublish Newsletter',
-    message: `Are you sure you want to unpublish "${issue.title}"? This will change its status to draft.`,
+    message: `Are you sure you want to unpublish "${issue.title}"? This will make it no longer visible to public users.`,
     cancel: true,
     persistent: true,
     ok: {
@@ -712,25 +780,13 @@ const unpublishIssue = (issue: NewsletterIssue) => {
   }).onOk(() => {
     void (async () => {
       try {
-        if (issue.type === 'issue') {
-          // Unpublish new issue using newsletter generation service
-          await newsletterGenerationService.updateIssue(issue.id, {
-            status: 'draft'
-          });
-        } else {
-          // For existing newsletters, we can't change their published status
-          // as they don't have the same status system
-          $q.notify({
-            type: 'warning',
-            message: 'Existing newsletters cannot be unpublished through this interface'
-          });
-          return;
-        }
+        // Use the new unpublishNewsletter method for both types
+        await newsletterGenerationService.unpublishNewsletter(issue.id);
 
         $q.notify({
           type: 'positive',
           message: 'Newsletter unpublished successfully!',
-          caption: 'Status changed to draft'
+          caption: issue.type === 'issue' ? 'Status changed to draft' : 'No longer visible to public'
         });
 
         await loadData();
@@ -852,6 +908,12 @@ const generatePdf = (issue: NewsletterIssue) => {
   }).onOk(() => {
     void (async () => {
       try {
+        // Update local state immediately to show "generating" status
+        const issueIndex = issues.value.findIndex(i => i.id === issue.id);
+        if (issueIndex !== -1) {
+          issues.value[issueIndex]!.status = 'generating';
+        }
+
         // Show loading notification
         const loadingNotification = $q.notify({
           type: 'ongoing',
@@ -861,27 +923,34 @@ const generatePdf = (issue: NewsletterIssue) => {
           spinner: true
         });
 
-    await newsletterGenerationService.generateNewsletterPdf(issue.id);
+        await newsletterGenerationService.generateNewsletterPdf(issue.id);
 
         // Update notification to success
         loadingNotification();
-    $q.notify({
-      type: 'positive',
+        $q.notify({
+          type: 'positive',
           message: 'PDF generation started successfully!',
           caption: 'Check back in a few minutes for completion',
           timeout: 5000
-    });
+        });
 
-    // Reload data to show updated status
-    await loadData();
+        // Reload data to get the latest status from the server
+        await loadData();
 
         // Start polling for completion
         startProgressPolling(issue.id);
 
-  } catch (error) {
-    logger.error('Failed to generate PDF:', error);
-    $q.notify({
-      type: 'negative',
+      } catch (error) {
+        logger.error('Failed to generate PDF:', error);
+
+        // Revert local state on error
+        const issueIndex = issues.value.findIndex(i => i.id === issue.id);
+        if (issueIndex !== -1) {
+          issues.value[issueIndex]!.status = 'draft';
+        }
+
+        $q.notify({
+          type: 'negative',
           message: 'Failed to start PDF generation',
           caption: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -897,6 +966,19 @@ const startProgressPolling = (issueId: string) => {
         const progress = await newsletterGenerationService.getGenerationProgress(issueId);
 
         if (progress) {
+          // Update local state immediately based on progress
+          const issueIndex = issues.value.findIndex(i => i.id === issueId);
+          if (issueIndex !== -1) {
+            // Map progress status to issue status
+            if (progress.status === 'complete') {
+              issues.value[issueIndex]!.status = 'ready';
+            } else if (progress.status === 'error') {
+              issues.value[issueIndex]!.status = 'draft';
+            } else {
+              issues.value[issueIndex]!.status = 'generating';
+            }
+          }
+
           if (progress.status === 'complete') {
             clearInterval(pollInterval);
             $q.notify({

@@ -272,6 +272,66 @@ async function generateNewsletterLogic(issueId: string): Promise<any> {
     // Get public URL
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
+    // Generate thumbnail from first page of PDF
+    let thumbnailUrl = '';
+    try {
+      console.log('Generating thumbnail for newsletter...');
+
+      // Create a new browser instance for thumbnail generation
+      const thumbnailBrowser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
+      });
+
+      const thumbnailPage = await thumbnailBrowser.newPage();
+
+      // Load the PDF and take a screenshot of the first page
+      await thumbnailPage.goto(publicUrl, { waitUntil: 'networkidle0' });
+
+      // Wait a bit for PDF to fully load
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Take screenshot of the first page
+      const thumbnailBuffer = await thumbnailPage.screenshot({
+        type: 'png',
+        quality: 80,
+        fullPage: false
+      });
+
+      await thumbnailBrowser.close();
+
+      // Upload thumbnail to Firebase Storage
+      const thumbnailFileName = `newsletters/${issueId}/thumbnail-${Date.now()}.png`;
+      const thumbnailFile = bucket.file(thumbnailFileName);
+
+      await thumbnailFile.save(thumbnailBuffer, {
+        metadata: {
+          contentType: 'image/png',
+          metadata: {
+            issueId,
+            issueTitle: issue.title,
+            generatedAt: new Date().toISOString(),
+            generatedBy: 'system'
+          }
+        }
+      });
+
+      // Make thumbnail publicly accessible
+      await thumbnailFile.makePublic();
+
+      // Get thumbnail public URL
+      thumbnailUrl = `https://storage.googleapis.com/${bucket.name}/${thumbnailFileName}`;
+
+      console.log('Thumbnail generated successfully:', thumbnailUrl);
+    } catch (thumbnailError) {
+      console.error('Failed to generate thumbnail:', thumbnailError);
+      // Don't fail the entire process if thumbnail generation fails
+      thumbnailUrl = '';
+    }
+
     // Update progress: Complete
     await progressRef.update({
       status: 'complete',
@@ -284,6 +344,7 @@ async function generateNewsletterLogic(issueId: string): Promise<any> {
       status: 'ready',
       finalPdfUrl: publicUrl,
       finalPdfPath: fileName,
+      thumbnailUrl: thumbnailUrl, // Add thumbnail URL if generated
       generatedAt: FieldValue.serverTimestamp(),
       generatedBy: 'system', // Will be updated by caller
       // CRITICAL: Set isPublished to true so it appears in archive
@@ -294,6 +355,7 @@ async function generateNewsletterLogic(issueId: string): Promise<any> {
       success: true,
       issueId,
       pdfUrl: publicUrl,
+      thumbnailUrl: thumbnailUrl,
       message: 'Newsletter generated successfully!'
     };
 
