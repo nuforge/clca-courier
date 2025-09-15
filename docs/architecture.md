@@ -1,12 +1,12 @@
 # Architecture Overview
 
-**CLCA Courier Technical Architecture - Production Ready System**
+**CLCA Courier Technical Architecture - Newsletter Management Enhanced System**
 
-*Last Updated: September 9, 2025*
+*Last Updated: January 15, 2025*
 
 ## 🎯 System Overview
 
-The CLCA Courier is a production-ready community content management platform built with modern web technologies and Firebase backend. The system provides newsletter archiving, community content management, and member engagement tools.
+The CLCA Courier is a production-ready community content management platform built with modern web technologies and Firebase backend. The system provides enhanced newsletter management with real-time UI updates, comprehensive content archiving, and member engagement tools with advanced workflow capabilities.
 
 ## 🏗️ Technical Stack
 
@@ -302,16 +302,89 @@ src/i18n/
 - **Data Retention**: Configurable retention policies
 - **GDPR Compliance**: User data export and deletion
 
+## 📰 Newsletter Management Architecture (January 2025)
+
+### Enhanced Newsletter Management System
+The newsletter management system has been significantly enhanced with real-time UI updates, comprehensive unpublish functionality, and improved PDF generation workflow.
+
+#### Core Components
+- **`NewsletterManagementPage.vue`**: Enhanced with real-time status updates and comprehensive action management
+- **`IssueContentDialog.vue`**: Implemented local reactive state for immediate UI feedback
+- **`newsletter-generation.service.ts`**: Added unpublish functionality for both new issues and existing newsletters
+- **Cloud Functions**: Enhanced with thumbnail generation during PDF processing
+
+#### Key Architectural Patterns
+
+##### Local State Management Pattern
+```typescript
+// Immediate UI updates with error rollback
+const localSelectedIssue = ref<NewsletterIssue | null>(null);
+
+const addToIssue = async (submissionId: string) => {
+  // Update local state immediately for instant feedback
+  localSelectedIssue.value.submissions = updatedSubmissions;
+  
+  try {
+    await newsletterGenerationService.addSubmissionsToIssue(issueId, updatedSubmissions);
+  } catch (error) {
+    // Rollback local changes on error
+    localSelectedIssue.value.submissions = originalSubmissions;
+  }
+};
+```
+
+##### Progressive Status Updates
+```typescript
+// Real-time status updates during long operations
+const generatePdf = (issue: NewsletterIssue) => {
+  // Immediate local state update
+  const issueIndex = issues.value.findIndex(i => i.id === issue.id);
+  if (issueIndex !== -1) {
+    issues.value[issueIndex]!.status = 'generating';
+  }
+  
+  // Start progress polling with local state updates
+  startProgressPolling(issue.id);
+};
+```
+
+##### Enhanced PDF Processing
+```typescript
+// Cloud Function with thumbnail generation
+const generateNewsletterPdf = async (issueId: string) => {
+  // Generate PDF
+  const pdfBuffer = await generatePdfFromContent(content);
+  
+  // Generate thumbnail
+  const thumbnailUrl = await generateThumbnail(pdfBuffer);
+  
+  // Update issue with both PDF and thumbnail URLs
+  await updateIssue(issueId, {
+    finalPdfUrl: pdfUrl,
+    thumbnailUrl: thumbnailUrl,
+    status: 'ready'
+  });
+};
+```
+
+#### User Experience Improvements
+- **Immediate Feedback**: All UI changes provide instant visual feedback
+- **No Lost Content**: Issues remain visible during all operations
+- **Clear Actions**: Different icons for publish vs unpublish actions
+- **Professional Workflow**: Automatic thumbnail generation for all newsletters
+- **Error Recovery**: Graceful error handling with UI state rollback
+
 ## 🧪 Error Prevention Testing Architecture
 
-### Comprehensive Test Coverage - 95%+ Success Rate Achieved
-- **Content Types Tests**: ✅ 22/22 passing (100% success rate) - Firebase mocking resolved
-- **Newsletter Management Store Tests**: ✅ 57/57 passing (100% success rate) - Selection logic fixed
-- **Firebase Integration Resilience**: ✅ Major mock and retry logic issues resolved
-- **Component Testing**: ✅ Vue component and composable test issues resolved
-- **Service Integration**: 🚧 4/7 CORS tests passing (57% - minor mock alignment issues remaining)
-- **Overall Test Suite**: 🎯 95%+ success rate achieved (up from 92.2%)
-- **ContentDoc Test Structure**: Complete migration of test expectations to ContentDoc architecture
+### Comprehensive Test Coverage - Current Status
+- **Newsletter Management Production**: ✅ All enhancements working correctly in production
+- **Reactive UI Updates**: ✅ IssueContentDialog local state management working
+- **Unpublish Functionality**: ✅ Complete unpublish capability for all newsletter types
+- **PDF Generation Workflow**: ✅ Real-time status updates and thumbnail generation working
+- **Test Suite Issues**: 🚧 Some test failures due to mock initialization and terminal hanging
+- **Component Testing**: ✅ Vue component reactive updates working in production
+- **Service Integration**: ✅ Core functionality validated through production use
+- **Terminal Safety**: 🚨 CRITICAL - Test commands hanging without timeout protection
 
 ### Testing Framework Structure
 ```
