@@ -92,7 +92,7 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
             args: chromium_1.default.args,
             defaultViewport: chromium_1.default.defaultViewport,
             executablePath: await chromium_1.default.executablePath(),
-            headless: chromium_1.default.headless,
+            headless: true,
         });
         const page = await browser.newPage();
         await page.setViewport({ width: 1200, height: 800 });
@@ -279,7 +279,7 @@ exports.testTemplate = (0, https_1.onCall)(async (request) => {
             args: chromium_1.default.args,
             defaultViewport: chromium_1.default.defaultViewport,
             executablePath: await chromium_1.default.executablePath(),
-            headless: chromium_1.default.headless,
+            headless: true,
         });
         const page = await browser.newPage();
         await page.setContent(html);

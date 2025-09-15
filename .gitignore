@@ -6,8 +6,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Package managers (keep package-lock.json for reproducible builds)
-# package-lock.json  # Commented out to allow package-lock.json for CI/CD
+# Package managers
+/package-lock.json  # Only ignore root package-lock.json, keep functions/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
