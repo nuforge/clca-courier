@@ -252,7 +252,7 @@ import { useQuasar } from 'quasar';
 import { logger } from '../utils/logger';
 import { contentSubmissionService } from '../services/content-submission.service';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
-import { type TemplatePreviewData } from '../services/template-management.service';
+import { templateManagementService, type TemplatePreviewData } from '../services/template-management.service';
 import RichTextEditor from '../components/contribution/RichTextEditor.vue';
 import TemplatePreview from '../components/TemplatePreview.vue';
 import type { ContentDoc } from '../types/core/content.types';
@@ -287,34 +287,82 @@ const contentTypeOptions = [
   { label: 'Other', value: 'other' }
 ];
 
-// Template options
-const templateOptions = [
-  {
-    label: 'News Article',
-    value: 'article',
-    description: 'Standard news article layout with clean typography'
-  },
-  {
-    label: 'Event Announcement',
-    value: 'event',
-    description: 'Event-focused layout with date, time, and location details'
-  },
-  {
-    label: 'Important Announcement',
-    value: 'announcement',
-    description: 'Highlighted layout for important community announcements'
-  },
-  {
-    label: 'Editorial Opinion',
-    value: 'editorial',
-    description: 'Editorial-style layout with emphasis on opinion content'
-  },
-  {
-    label: 'Featured Story',
-    value: 'fullpage',
-    description: 'Full-page featured story layout for special content'
+// Template options - loaded dynamically from service
+const templateOptions = ref<Array<{label: string, value: string, description: string}>>([]);
+
+// Load available templates from service
+const loadAvailableTemplates = async () => {
+  try {
+    const result = await templateManagementService.getAvailableTemplates();
+    if (result.success && result.templates.length > 0) {
+      // Convert service response to component format
+      templateOptions.value = result.templates.map(template => ({
+        label: template.displayName || template.name,
+        value: template.name,
+        description: template.description || 'Template for newsletter content'
+      }));
+    } else {
+      // Fallback to hardcoded templates if service fails
+      templateOptions.value = [
+        {
+          label: 'News Article',
+          value: 'article',
+          description: 'Standard news article layout with clean typography'
+        },
+        {
+          label: 'Event Announcement',
+          value: 'event',
+          description: 'Event-focused layout with date, time, and location details'
+        },
+        {
+          label: 'Important Announcement',
+          value: 'announcement',
+          description: 'Highlighted layout for important community announcements'
+        },
+        {
+          label: 'Editorial Opinion',
+          value: 'editorial',
+          description: 'Editorial-style layout with emphasis on opinion content'
+        },
+        {
+          label: 'Featured Story',
+          value: 'fullpage',
+          description: 'Full-page featured story layout for special content'
+        }
+      ];
+    }
+  } catch (error) {
+    logger.error('Error loading templates:', error);
+    // Use fallback templates
+    templateOptions.value = [
+      {
+        label: 'News Article',
+        value: 'article',
+        description: 'Standard news article layout with clean typography'
+      },
+      {
+        label: 'Event Announcement',
+        value: 'event',
+        description: 'Event-focused layout with date, time, and location details'
+      },
+      {
+        label: 'Important Announcement',
+        value: 'announcement',
+        description: 'Highlighted layout for important community announcements'
+      },
+      {
+        label: 'Editorial Opinion',
+        value: 'editorial',
+        description: 'Editorial-style layout with emphasis on opinion content'
+      },
+      {
+        label: 'Featured Story',
+        value: 'fullpage',
+        description: 'Full-page featured story layout for special content'
+      }
+    ];
   }
-];
+};
 
 // Template preview state
 const showTemplatePreview = ref(false);
@@ -338,10 +386,10 @@ const estimatedReadTime = computed(() => {
 });
 
 const isFormValid = computed(() => {
-  return submission.value.title.length >= 5 &&
+  return submission.value.title && submission.value.title.length >= 5 &&
          submission.value.contentType &&
-         submission.value.content.length >= 50 &&
-         submission.value.author.length >= 2;
+         submission.value.content && submission.value.content.length >= 50 &&
+         submission.value.author && submission.value.author.length >= 2;
 });
 
 // Methods
@@ -558,6 +606,7 @@ watch(featuredImage, (newFile) => {
 // Lifecycle
 onMounted(() => {
   void loadRecentSubmissions();
+  void loadAvailableTemplates();
 });
 </script>
 

@@ -1,6 +1,6 @@
 /**
  * Cloud Functions CORS Error Prevention Tests
- * 
+ *
  * These tests prevent CORS policy errors when calling Cloud Functions
  * and ensure proper error handling for network failures.
  */
@@ -19,8 +19,8 @@ vi.mock('../../../src/utils/logger', () => ({
   }
 }));
 
-// Mock Firebase Functions
-const mockHttpsCallable = vi.fn();
+// Mock Firebase Functions - hoisted to avoid circular dependencies
+const mockHttpsCallable = vi.hoisted(() => vi.fn());
 vi.mock('firebase/functions', () => ({
   getFunctions: vi.fn(() => ({})),
   httpsCallable: vi.fn(() => mockHttpsCallable)

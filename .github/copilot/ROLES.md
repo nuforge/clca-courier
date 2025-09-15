@@ -7,7 +7,15 @@ Newsletter management system enhancements are complete and working in production
 
 ## 🔒 MANDATORY CONSTRAINTS
 
-### 🚨 RULE #1 - TERMINAL SAFETY (CRITICAL)
+### 🚨 RULE #1 - RESEARCH FIRST (CRITICAL)
+- **NEVER make assumptions about how code should work**
+- **ALWAYS search the codebase to understand current implementation**
+- **ALWAYS check documentation and requirements before changing anything**
+- **ALWAYS understand the difference between "what it does" vs "what it should do"**
+- **ALWAYS verify requirements before fixing tests or code**
+- **NEVER change tests to match broken code - fix the code to match correct tests**
+
+### 🚨 RULE #2 - TERMINAL SAFETY (CRITICAL)
 - **NEVER run `npm test` or `npm run dev` without timeout protection**
 - **ALWAYS use `--timeout` or `--bail` flags to prevent hanging**
 - **NEVER run long-running commands without `is_background=true`**
@@ -25,6 +33,38 @@ Newsletter management system enhancements are complete and working in production
 - **Check for Official Documentation Online** - Do not guess, search!
 - **Error Prevention First** - All new features must have corresponding error prevention tests
 
+## 🔍 MANDATORY RESEARCH PROCESS
+
+### Before Making ANY Changes:
+1. **Search the codebase** to understand current implementation
+2. **Read documentation** to understand requirements
+3. **Check test expectations** to understand intended behavior
+4. **Verify service contracts** and API interfaces
+5. **Understand error handling** and fallback mechanisms
+6. **Check for existing solutions** before creating new ones
+
+### Research Tools to Use:
+- `codebase_search` - Understand how features work
+- `grep` - Find specific implementations
+- `read_file` - Examine actual code
+- `web_search` - Check official documentation
+- `read_lints` - Check for existing issues
+
+### Decision Framework:
+- **If tests expect X but code does Y**: Research which is correct
+- **If documentation says A but implementation does B**: Research the discrepancy
+- **If service calls fail**: Research the proper error handling approach
+- **If components don't work**: Research the correct Vue 3 patterns
+
+### Example Research Process (Template Management):
+1. **Search**: "How should template management work in the newsletter system?"
+2. **Find**: Service exists with `getAvailableTemplates()` method
+3. **Search**: "What are the CORS issues with template management service?"
+4. **Find**: CORS error handling tests expect service calls with fallback
+5. **Search**: "How do other components handle template loading?"
+6. **Find**: Some use hardcoded fallback, but tests expect service calls
+7. **Decision**: Fix the component to use service properly, not change tests
+
 ## 🚫 ABSOLUTE PROHIBITIONS
 - Hardcoded role assignments
 - Custom CSS styling
@@ -35,6 +75,7 @@ Newsletter management system enhancements are complete and working in production
 - New features without error prevention tests
 - Ignoring CORS configuration requirements
 - NEver switch git branches without permission (especially not 'main')
+- **🚨 MAKING ASSUMPTIONS WITHOUT RESEARCH - ALWAYS SEARCH FIRST! 🚨**
 
 ## ✅ SUCCESS CRITERIA - TEST SUITE REMEDIATION REQUIRED
 
@@ -78,24 +119,40 @@ Newsletter management system enhancements are complete and working in production
 - **Issue**: `Cannot access 'mockFirestore' before initialization`
 - **Impact**: Multiple service tests failing due to circular dependency issues
 - **Files Affected**: NewsletterSubmissionPage, Cloud Functions, Template Management
+- **🔍 RESEARCH REQUIRED**: 
+  - Search for `vi.hoisted()` usage patterns in working tests
+  - Check Vitest documentation for proper mock initialization
+  - Verify mock declaration order and scope
 - **Solution**: Fix circular dependency and mock initialization order
 
 #### **2. Component Testing Issues** (Priority 2 - HIGH)
 - **Issue**: Missing Quasar component mocks (`QSpace`, `QCardActions`, etc.)
 - **Issue**: Vue component method access issues (`createIssue`, `addToIssue`, `removeFromIssue` not found)
 - **Impact**: Newsletter management page tests failing
+- **🔍 RESEARCH REQUIRED**:
+  - Search for existing Quasar component mocks in working tests
+  - Check Vue 3 Composition API testing patterns
+  - Verify component method exposure and access patterns
 - **Solution**: Add proper Quasar component mocks and fix method access
 
 #### **3. Firebase Mock Configuration Issues** (Priority 3 - HIGH)
 - **Issue**: Missing `onAuthStateChanged` export in Firebase Auth mock
 - **Issue**: Test data mismatches (expected vs actual IDs)
 - **Impact**: Authentication and Firestore service tests failing
+- **🔍 RESEARCH REQUIRED**:
+  - Search for working Firebase mock configurations
+  - Check Firebase testing documentation and patterns
+  - Verify mock data structure and ID generation patterns
 - **Solution**: Complete Firebase service mock configurations
 
 #### **4. Service Integration Issues** (Priority 4 - MEDIUM)
 - **Issue**: Mock expectations not matching actual service behavior
 - **Issue**: Method signature mismatches between tests and implementation
 - **Impact**: CORS error prevention and service integration tests failing
+- **🔍 RESEARCH REQUIRED**:
+  - Search for service contract definitions and expected behavior
+  - Check CORS error handling patterns and requirements
+  - Verify service method signatures and return types
 - **Solution**: Align test expectations with actual service behavior
 
 ### ✅ **WORKING SYSTEMS**

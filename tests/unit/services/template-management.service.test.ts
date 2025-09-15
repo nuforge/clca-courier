@@ -13,16 +13,16 @@ import type {
   AvailableTemplatesResult
 } from '../../../src/services/template-management.service';
 
-// Mock Firebase Functions
-const mockCallable = vi.fn();
-const mockHttpsCallable = vi.fn(() => mockCallable);
-const mockGetFunctions = vi.fn(() => ({
-  httpsCallable: mockHttpsCallable
-}));
+// Mock Firebase Functions - hoisted to avoid circular dependencies
+const mockCallable = vi.hoisted(() => vi.fn());
+const mockHttpsCallable = vi.hoisted(() => vi.fn(() => mockCallable()));
+const mockGetFunctions = vi.hoisted(() => vi.fn(() => ({
+  httpsCallable: mockHttpsCallable()
+})));
 
 vi.mock('firebase/functions', () => ({
-  httpsCallable: mockHttpsCallable,
-  getFunctions: mockGetFunctions
+  httpsCallable: mockHttpsCallable(),
+  getFunctions: mockGetFunctions()
 }));
 
 // Mock logger
@@ -59,12 +59,12 @@ describe('TemplateManagementService', () => {
         }
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.getAvailableTemplates();
 
-      expect(mockHttpsCallable).toHaveBeenCalledWith(expect.any(Object), 'getAvailableTemplatesList');
-      expect(mockCallable).toHaveBeenCalled();
+      expect(mockHttpsCallable()).toHaveBeenCalledWith(expect.any(Object), 'getAvailableTemplatesList');
+      expect(mockCallable()).toHaveBeenCalled();
       expect(result).toEqual(mockResponse);
     });
 
@@ -75,7 +75,7 @@ describe('TemplateManagementService', () => {
         templateMapping: {}
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.getAvailableTemplates();
 
@@ -85,7 +85,7 @@ describe('TemplateManagementService', () => {
 
     it('should handle Firebase function errors', async () => {
       const error = new Error('Firebase function error');
-      mockCallable.mockRejectedValue(error);
+      mockCallable().mockRejectedValue(error);
 
       await expect(service.getAvailableTemplates()).resolves.toEqual({
         success: false,
@@ -96,7 +96,7 @@ describe('TemplateManagementService', () => {
     });
 
     it('should handle malformed response data', async () => {
-      mockCallable.mockResolvedValue({ data: null });
+      mockCallable().mockResolvedValue({ data: null });
 
       await expect(service.getAvailableTemplates()).resolves.toEqual({
         success: false,
@@ -107,7 +107,7 @@ describe('TemplateManagementService', () => {
     });
 
     it('should handle network timeout scenarios', async () => {
-      mockCallable.mockImplementation(() =>
+      mockCallable().mockImplementation(() =>
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Network timeout')), 100)
         )
@@ -130,7 +130,7 @@ describe('TemplateManagementService', () => {
         ]
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.getAvailableTemplates();
 
@@ -169,12 +169,12 @@ describe('TemplateManagementService', () => {
         error: null
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate('article', mockPreviewData);
 
-      expect(mockHttpsCallable).toHaveBeenCalledWith(expect.any(Object), 'previewTemplate');
-      expect(mockCallable).toHaveBeenCalledWith({
+      expect(mockHttpsCallable()).toHaveBeenCalledWith(expect.any(Object), 'previewTemplate');
+      expect(mockCallable()).toHaveBeenCalledWith({
         templateName: 'article',
         contentData: mockPreviewData
       });
@@ -188,7 +188,7 @@ describe('TemplateManagementService', () => {
         error: 'Template compilation failed: Invalid Handlebars syntax'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate('invalid-template', mockPreviewData);
 
@@ -211,7 +211,7 @@ describe('TemplateManagementService', () => {
         error: 'Preview data is required'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate('article', null as any);
 
@@ -230,7 +230,7 @@ describe('TemplateManagementService', () => {
         error: null
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate('article', largePreviewData);
 
@@ -250,7 +250,7 @@ describe('TemplateManagementService', () => {
         error: null
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate('article', specialCharData);
 
@@ -266,12 +266,12 @@ describe('TemplateManagementService', () => {
         templateName: 'article'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.testTemplate('article', mockPreviewData);
 
-      expect(mockHttpsCallable).toHaveBeenCalledWith(expect.any(Object), 'testTemplate');
-      expect(mockCallable).toHaveBeenCalledWith({
+      expect(mockHttpsCallable()).toHaveBeenCalledWith(expect.any(Object), 'testTemplate');
+      expect(mockCallable()).toHaveBeenCalledWith({
         templateName: 'article',
         testData: mockPreviewData
       });
@@ -286,7 +286,7 @@ describe('TemplateManagementService', () => {
         error: 'PDF generation failed: Puppeteer timeout'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.testTemplate('broken-template');
 
@@ -310,7 +310,7 @@ describe('TemplateManagementService', () => {
         error: 'Template not found: non-existent-template'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.testTemplate('non-existent-template');
 
@@ -326,7 +326,7 @@ describe('TemplateManagementService', () => {
         error: 'Storage upload failed: Insufficient permissions'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.testTemplate('article');
 
@@ -418,7 +418,7 @@ describe('TemplateManagementService', () => {
         templates: [{ name: 'article', displayName: 'Article', description: 'Test' }]
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const promises = [
         service.getAvailableTemplates(),
@@ -435,7 +435,7 @@ describe('TemplateManagementService', () => {
     });
 
     it('should handle malformed Firebase response', async () => {
-      mockCallable.mockResolvedValue({ data: 'invalid-json' });
+      mockCallable().mockResolvedValue({ data: 'invalid-json' });
 
       await expect(service.getAvailableTemplates()).resolves.toEqual({
         success: false,
@@ -446,7 +446,7 @@ describe('TemplateManagementService', () => {
     });
 
     it('should handle empty Firebase response', async () => {
-      mockCallable.mockResolvedValue({});
+      mockCallable().mockResolvedValue({});
 
       await expect(service.getAvailableTemplates()).resolves.toEqual({
         success: false,
@@ -465,7 +465,7 @@ describe('TemplateManagementService', () => {
         error: 'Template name too long'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate(longTemplateName, service.createSampleData('article'));
 
@@ -482,7 +482,7 @@ describe('TemplateManagementService', () => {
         error: 'Circular reference detected'
       };
 
-      mockCallable.mockResolvedValue({ data: mockResponse });
+      mockCallable().mockResolvedValue({ data: mockResponse });
 
       const result = await service.previewTemplate('article', circularData);
 

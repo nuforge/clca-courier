@@ -48,11 +48,16 @@ vi.mock('quasar', () => ({
     name: 'QSpinner',
     template: '<div class="q-spinner">Loading...</div>'
   },
+  QSpace: {
+    name: 'QSpace',
+    template: '<div class="q-space" />'
+  },
   QIcon: {
     name: 'QIcon',
     props: ['name'],
     template: '<i class="q-icon"></i>'
-  }
+  },
+  ClosePopup: vi.fn()
 }));
 
 describe('TemplatePreview', () => {
