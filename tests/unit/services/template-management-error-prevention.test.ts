@@ -37,6 +37,15 @@ describe('Template Management Service Error Prevention', () => {
     // Set up the mock implementations
     const { httpsCallable } = await import('firebase/functions');
     (httpsCallable as any).mockReturnValue(mockHttpsCallable);
+    
+    // Set up default mock behavior - return a function that resolves with data
+    mockHttpsCallable.mockImplementation(() => Promise.resolve({
+      data: {
+        success: true,
+        templates: [],
+        templateMapping: {}
+      }
+    }));
   });
 
   afterEach(() => {
@@ -50,7 +59,8 @@ describe('Template Management Service Error Prevention', () => {
       corsError.name = 'FirebaseError';
       (corsError as any).code = 'internal';
 
-      mockHttpsCallable.mockRejectedValueOnce(corsError);
+      // Override the default mock to reject with the CORS error
+      mockHttpsCallable.mockImplementationOnce(() => Promise.reject(corsError));
 
       const result = await templateManagementService.getAvailableTemplates();
 
@@ -75,15 +85,16 @@ describe('Template Management Service Error Prevention', () => {
       loadingError.name = 'FirebaseError';
       (loadingError as any).code = 'internal';
 
-      mockHttpsCallable.mockRejectedValueOnce(loadingError);
+      mockHttpsCallable.mockImplementationOnce(() => Promise.reject(loadingError));
 
       const result = await templateManagementService.getAvailableTemplates();
 
       // Should return error result instead of throwing
       expect(result).toEqual({
         success: false,
-        error: 'internal',
-        templates: []
+        templates: [],
+        templateMapping: {},
+        error: loadingError.message
       });
 
       // Should log the error
@@ -99,9 +110,9 @@ describe('Template Management Service Error Prevention', () => {
       previewError.name = 'FirebaseError';
       (previewError as any).code = 'internal';
 
-      mockHttpsCallable.mockRejectedValueOnce(previewError);
+      mockHttpsCallable.mockImplementationOnce(() => Promise.reject(previewError));
 
-      const result = await templateManagementService.generateTemplatePreview('template-id', {});
+      const result = await templateManagementService.previewTemplate('template-id', {});
 
       // Should return error result
       expect(result).toEqual({

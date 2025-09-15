@@ -9,6 +9,7 @@ import { useUserSettings } from '../composables/useUserSettings';
 import { useFirebase } from '../composables/useFirebase';
 import { UI_ICONS } from '../constants/ui-icons';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
+import { logger } from '../utils/logger';
 import type { NavigationItem as NavigationItemType } from '../types/navigation';
 
 interface Props {
@@ -49,7 +50,7 @@ watch(isMini, (mini: boolean) => {
 
 // Debug watcher for auth state changes
 watch(() => auth.currentUser.value?.photoURL, (newPhotoURL, oldPhotoURL) => {
-  console.log('Avatar URL changed:', {
+  logger.debug('Avatar URL changed:', {
     old: oldPhotoURL?.substring(0, 50),
     new: newPhotoURL?.substring(0, 50),
     hasData: newPhotoURL?.startsWith('data:')
@@ -181,8 +182,8 @@ const isOpen = computed({
                   v-if="auth.currentUser.value?.photoURL"
                   :src="auth.currentUser.value.photoURL"
                   alt="User Avatar"
-                  @load="() => console.log('Avatar loaded:', auth.currentUser.value?.photoURL?.substring(0, 50))"
-                  @error="() => console.log('Avatar failed to load')"
+                  @load="() => logger.debug('Avatar loaded:', auth.currentUser.value?.photoURL?.substring(0, 50))"
+                  @error="() => logger.debug('Avatar failed to load')"
                 />
                 <q-icon v-else :name="UI_ICONS.account" />
               </q-avatar>
@@ -199,8 +200,8 @@ const isOpen = computed({
                 v-if="auth.currentUser.value?.photoURL"
                 :src="auth.currentUser.value.photoURL"
                 alt="User Avatar"
-                @load="() => console.log('Mini avatar loaded:', auth.currentUser.value?.photoURL?.substring(0, 50))"
-                @error="() => console.log('Mini avatar failed to load')"
+                @load="() => logger.debug('Mini avatar loaded:', auth.currentUser.value?.photoURL?.substring(0, 50))"
+                @error="() => logger.debug('Mini avatar failed to load')"
               />
               <q-icon v-else :name="UI_ICONS.account" />
             </q-avatar>

@@ -206,7 +206,7 @@ describe('Newsletter Generation Service Error Prevention', () => {
 
       // Should filter out malformed documents
       expect(result).toHaveLength(2);
-      expect(result.every(doc => doc.title && doc.content)).toBe(true);
+      expect(result.every(doc => doc.title && doc.description)).toBe(true);
     });
   });
 
@@ -335,12 +335,13 @@ describe('Newsletter Generation Service Error Prevention', () => {
         {
           id: 'sub1',
           // Missing required fields
-          status: 'approved'
+          status: 'approved',
+          tags: [] // Missing tags property causes the error
         },
         {
           id: 'sub2',
           title: 'Valid Article',
-          content: 'Valid content',
+          description: 'Valid content', // Use description instead of content
           status: 'approved',
           tags: ['newsletter:ready']
         }

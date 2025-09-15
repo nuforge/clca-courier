@@ -908,7 +908,7 @@ class FirebaseNewsletterService {
 
       // Verify what was actually saved by re-reading from Firebase
       const updatedNewsletter = await this.getNewsletterById(newsletterId);
-      console.log('  ✅ After update - Firebase data:', {
+      logger.debug('  ✅ After update - Firebase data:', {
         filename: updatedNewsletter?.filename,
         month: updatedNewsletter?.month,
         season: updatedNewsletter?.season,

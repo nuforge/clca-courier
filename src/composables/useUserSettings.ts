@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { storageService, type UserSettings, DEFAULT_SETTINGS } from '../services/storage-service';
+import { logger } from '../utils/logger';
 import type { SupportedLocale } from '../i18n/utils/locale-detector';
 
 // Helper function to convert reactive objects to plain objects for storage
@@ -27,7 +28,7 @@ async function initializeSettings(): Promise<void> {
       userSettings.value = settings;
       isSettingsLoaded.value = true;
     } catch (error) {
-      console.error('Failed to load user settings:', error);
+      logger.error('Failed to load user settings:', error);
       userSettings.value = DEFAULT_SETTINGS;
       isSettingsLoaded.value = true;
     } finally {
