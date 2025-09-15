@@ -10,7 +10,8 @@ import {
 import type { ContentFeatures } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { firebaseContentService } from './firebase-content.service';
-import { firestoreService } from './firebase-firestore.service';
+import { firestoreService, type UserContent } from './firebase-firestore.service';
+import type { CanvaDesign } from './canva/types';
 import {
   serverTimestamp,
   type Timestamp
@@ -18,8 +19,7 @@ import {
 import { getAuth, type User } from 'firebase/auth';
 import {
   sanitizeAndValidate,
-  SANITIZATION_CONFIGS,
-  type ValidationResult
+  SANITIZATION_CONFIGS
 } from '../utils/content-sanitization';
 
 class ContentSubmissionService {
@@ -825,18 +825,44 @@ class ContentSubmissionService {
     // Validate and sanitize the content first
     const sanitizedData = this.validateAndSanitizeContent(formData);
 
+    // Convert sanitized data to UserContent format for legacy compatibility
+    const userContent: Omit<UserContent, 'id' | 'submissionDate' | 'status'> = {
+      type: (sanitizedData.type || sanitizedData.contentType) as UserContent['type'],
+      title: sanitizedData.title as string,
+      content: sanitizedData.content as string,
+      authorId: sanitizedData.authorId as string,
+      authorName: sanitizedData.authorName as string,
+      authorEmail: sanitizedData.authorEmail as string,
+      featured: Boolean(sanitizedData.featured),
+      tags: (sanitizedData.tags as string[]) || [],
+      onCalendar: Boolean(sanitizedData.onCalendar),
+      eventDate: sanitizedData.eventDate as string,
+      eventEndDate: sanitizedData.eventEndDate as string,
+      eventTime: sanitizedData.eventTime as string,
+      eventLocation: sanitizedData.eventLocation as string,
+      allDay: Boolean(sanitizedData.allDay),
+      priority: sanitizedData.priority as string,
+      metadata: {
+        ...(sanitizedData.metadata as Record<string, unknown>),
+        submissionSource: 'web' as const
+      }
+    };
+
     // For backward compatibility with tests, call the legacy firestore service
     // This maintains the legacy behavior expected by existing tests
-    return await firestoreService.submitUserContent(sanitizedData);
+    return await firestoreService.submitUserContent(userContent);
   }
 
   async attachCanvaDesign(contentId: string, canvaDesign: unknown): Promise<void> {
     logger.debug('Attaching Canva design to content', { contentId, canvaDesign });
 
     try {
+      // Type assertion for canvaDesign to match expected CanvaDesign interface
+      const typedCanvaDesign = canvaDesign as CanvaDesign;
+
       // Update the content document with Canva design information
       await firestoreService.updateUserContent(contentId, {
-        canvaDesign: canvaDesign
+        canvaDesign: typedCanvaDesign
       });
 
       logger.info('Canva design attached successfully', { contentId });
