@@ -8,7 +8,13 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test:unit": "echo 'Unit tests not implemented yet'",
+    "test:integration": "echo 'Integration tests not implemented yet'",
+    "test:error": "echo 'Error handling tests not implemented yet'",
+    "test:coverage": "echo 'Coverage tests not implemented yet'",
+    "test:performance": "echo 'Performance tests not implemented yet'",
+    "test:report": "echo 'Test reports not implemented yet'"
   },
   "engines": {
     "node": "20"
