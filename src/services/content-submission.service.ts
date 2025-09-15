@@ -841,9 +841,10 @@ class ContentSubmissionService {
       eventTime: sanitizedData.eventTime as string,
       eventLocation: sanitizedData.eventLocation as string,
       allDay: Boolean(sanitizedData.allDay),
-      priority: sanitizedData.priority as string,
+      attachments: [], // Empty array for legacy compatibility - no file attachments in this submission flow
       metadata: {
-        ...(sanitizedData.metadata as Record<string, unknown>),
+        ipAddress: (sanitizedData.metadata as Record<string, unknown>)?.ipAddress as string,
+        userAgent: (sanitizedData.metadata as Record<string, unknown>)?.userAgent as string,
         submissionSource: 'web' as const
       }
     };
