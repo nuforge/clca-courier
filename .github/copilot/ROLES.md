@@ -22,7 +22,7 @@ Successfully resolved major test failure categories with comprehensive fixes acr
 - Console.log statements
 - Hardcoded user-facing text
 - Breaking existing authentication
-- any types in TypeScript
+- **🚨 ANY TYPES IN TYPESCRIPT - THIS PROJECT IS IN STRICT MODE! 🚨**
 - New features without error prevention tests
 - Ignoring CORS configuration requirements
 - NEver switch git branches without permission (especially not 'main')

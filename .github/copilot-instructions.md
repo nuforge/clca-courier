@@ -214,13 +214,17 @@
 - **✅ CORS CONFIGURATION**: Ensure proper CORS settings for Cloud Functions to prevent policy violations
 - **✅ SERVICE RESILIENCE**: Implement error boundaries and circuit breaker patterns for service failures
 
-### TYPESCRIPT ENFORCEMENT - NON-NEGOTIABLE
+### TYPESCRIPT ENFORCEMENT - NON-NEGOTIABLE - CRITICAL
+
+**🚨 THIS PROJECT IS IN TYPESCRIPT STRICT MODE - NEVER USE `any` TYPES! 🚨**
 
 **REJECT ALL CODE CONTAINING:**
 
 - **❌ FORBIDDEN**: `any` types in function parameters, return types, or variables
 - **❌ FORBIDDEN**: `as any` casting in any context
 - **❌ FORBIDDEN**: Implicit any through missing type annotations
+- **❌ FORBIDDEN**: `any[]` arrays - use proper typed arrays like `ContentDoc[]`
+- **❌ FORBIDDEN**: Missing type annotations on function parameters
 
 **✅ REQUIRED PATTERNS**:
 
