@@ -386,10 +386,10 @@ const estimatedReadTime = computed(() => {
 });
 
 const isFormValid = computed(() => {
-  return submission.value.title && submission.value.title.length >= 5 &&
+  return !!(submission.value.title && submission.value.title.length >= 5 &&
          submission.value.contentType &&
          submission.value.content && submission.value.content.length >= 50 &&
-         submission.value.author && submission.value.author.length >= 2;
+         submission.value.author && submission.value.author.length >= 2);
 });
 
 // Methods

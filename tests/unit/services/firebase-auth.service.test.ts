@@ -372,8 +372,11 @@ describe('Firebase Authentication Service', () => {
       // Start the caching process
       await service.cacheAvatarImage('https://example.com/photo.jpg', 'user-123');
 
-      // Verify fetch was called
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/photo.jpg');
+      // Verify fetch was called with URL and options
+      expect(mockFetch).toHaveBeenCalledWith('https://example.com/photo.jpg', expect.objectContaining({
+        method: 'GET',
+        headers: expect.any(Object)
+      }));
 
       // Verify FileReader constructor was called (indicating the avatar caching logic executed)
       expect(global.FileReader).toHaveBeenCalled();

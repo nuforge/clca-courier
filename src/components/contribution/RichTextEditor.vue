@@ -139,11 +139,13 @@ const toolbar = [
 // Computed properties
 const characterCount = computed(() => {
   // Strip HTML tags for accurate character count
+  if (!content.value) return 0;
   const textOnly = content.value.replace(/<[^>]*>/g, '');
   return textOnly.length;
 });
 
 const wordCount = computed(() => {
+  if (!content.value) return 0;
   const textOnly = content.value.replace(/<[^>]*>/g, '');
   const words = textOnly.trim().split(/\s+/).filter(word => word.length > 0);
   return words.length;

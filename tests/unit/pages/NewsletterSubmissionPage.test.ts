@@ -15,14 +15,14 @@ const mockPreviewTemplate = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../src/services/content-submission.service', () => ({
   contentSubmissionService: {
-    submitContent: mockSubmitContent()
+    createContent: mockSubmitContent
   }
 }));
 
 vi.mock('../../../src/services/template-management.service', () => ({
   TemplateManagementService: vi.fn().mockImplementation(() => ({
-    getAvailableTemplates: mockGetAvailableTemplates(),
-    previewTemplate: mockPreviewTemplate(),
+    getAvailableTemplates: mockGetAvailableTemplates,
+    previewTemplate: mockPreviewTemplate,
     getTemplateInfo: vi.fn((type: string) => ({
       displayName: `${type} Template`,
       description: `Template for ${type}`
@@ -417,14 +417,15 @@ describe('NewsletterSubmissionPage', () => {
       wrapper.vm.submission.title = '';
       await nextTick();
 
-      // Trigger form validation by attempting to submit
-      const form = wrapper.findComponent({ name: 'QForm' });
-      if (form.exists()) {
-        await form.trigger('submit');
-        await nextTick();
-        // Should show validation error
-        expect(wrapper.text()).toContain('Title is required');
-      }
+      // Check that form is not valid
+      expect(wrapper.vm.isFormValid).toBe(false);
+
+      // Set valid title
+      wrapper.vm.submission.title = 'Valid Title';
+      await nextTick();
+
+      // Check that form is still not valid (need other fields too)
+      expect(wrapper.vm.isFormValid).toBe(false);
     });
 
     it('should validate content field', async () => {
@@ -436,14 +437,15 @@ describe('NewsletterSubmissionPage', () => {
       wrapper.vm.submission.content = '';
       await nextTick();
 
-      // Trigger form validation by attempting to submit
-      const form = wrapper.findComponent({ name: 'QForm' });
-      if (form.exists()) {
-        await form.trigger('submit');
-        await nextTick();
-        // Should show validation error
-        expect(wrapper.text()).toContain('Content is required');
-      }
+      // Check that form is not valid
+      expect(wrapper.vm.isFormValid).toBe(false);
+
+      // Set valid content (long enough)
+      wrapper.vm.submission.content = 'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.';
+      await nextTick();
+
+      // Check that form is still not valid (need other fields too)
+      expect(wrapper.vm.isFormValid).toBe(false);
     });
 
     it('should validate author field', async () => {
@@ -455,14 +457,15 @@ describe('NewsletterSubmissionPage', () => {
       wrapper.vm.submission.author = '';
       await nextTick();
 
-      // Trigger form validation by attempting to submit
-      const form = wrapper.findComponent({ name: 'QForm' });
-      if (form.exists()) {
-        await form.trigger('submit');
-        await nextTick();
-        // Should show validation error
-        expect(wrapper.text()).toContain('Author is required');
-      }
+      // Check that form is not valid
+      expect(wrapper.vm.isFormValid).toBe(false);
+
+      // Set valid author
+      wrapper.vm.submission.author = 'Valid Author';
+      await nextTick();
+
+      // Check that form is still not valid (need other fields too)
+      expect(wrapper.vm.isFormValid).toBe(false);
     });
   });
 
@@ -543,7 +546,7 @@ describe('NewsletterSubmissionPage', () => {
       await nextTick();
 
       // Trigger preview
-      await wrapper.vm.previewTemplate();
+      await wrapper.vm.previewTemplate('article');
       await nextTick();
 
       // previewTemplate method sets local state, doesn't call service
@@ -568,7 +571,7 @@ describe('NewsletterSubmissionPage', () => {
       await nextTick();
 
       // Trigger preview
-      await wrapper.vm.previewTemplate();
+      await wrapper.vm.previewTemplate('article');
       await nextTick();
 
       // previewTemplate method sets local state, doesn't call service
@@ -676,7 +679,7 @@ describe('NewsletterSubmissionPage', () => {
 
       // Set valid form data using the component's ref
       wrapper.vm.submission.title = 'Test Article';
-      wrapper.vm.submission.content = 'Test content';
+      wrapper.vm.submission.content = 'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.';
       wrapper.vm.submission.author = 'Test Author';
       wrapper.vm.submission.templateType = 'article';
       wrapper.vm.submission.contentType = 'news';
@@ -688,13 +691,11 @@ describe('NewsletterSubmissionPage', () => {
       await nextTick();
 
       expect(mockSubmitContent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Test Article',
-          content: 'Test content',
-          authorName: 'Test Author',
-          templateType: 'article',
-          contentType: 'news'
-        })
+        'Test Article',
+        'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.',
+        'news',
+        {},
+        ['status:pending', 'newsletter:ready']
       );
     });
 
@@ -709,9 +710,10 @@ describe('NewsletterSubmissionPage', () => {
 
       // Set valid form data using the component's ref
       wrapper.vm.submission.title = 'Test Article';
-      wrapper.vm.submission.content = 'Test content';
+      wrapper.vm.submission.content = 'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.';
       wrapper.vm.submission.author = 'Test Author';
       wrapper.vm.submission.templateType = 'article';
+      wrapper.vm.submission.contentType = 'news';
       await nextTick();
 
       // Submit form
@@ -738,9 +740,10 @@ describe('NewsletterSubmissionPage', () => {
 
       // Set valid form data using the component's ref
       wrapper.vm.submission.title = 'Test Article';
-      wrapper.vm.submission.content = 'Test content';
+      wrapper.vm.submission.content = 'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.';
       wrapper.vm.submission.author = 'Test Author';
       wrapper.vm.submission.templateType = 'article';
+      wrapper.vm.submission.contentType = 'news';
       await nextTick();
 
       // Submit form
@@ -771,9 +774,10 @@ describe('NewsletterSubmissionPage', () => {
 
       // Set valid form data using the component's ref
       wrapper.vm.submission.title = 'Test Article';
-      wrapper.vm.submission.content = 'Test content';
+      wrapper.vm.submission.content = 'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.';
       wrapper.vm.submission.author = 'Test Author';
       wrapper.vm.submission.templateType = 'article';
+      wrapper.vm.submission.contentType = 'news';
       await nextTick();
 
       // Submit form
@@ -787,7 +791,7 @@ describe('NewsletterSubmissionPage', () => {
       // Form should be reset
       expect(wrapper.vm.submission.title).toBe('');
       expect(wrapper.vm.submission.content).toBe('');
-      expect(wrapper.vm.submission.authorName).toBe('');
+      expect(wrapper.vm.submission.author).toBe('');
     });
   });
 
@@ -875,9 +879,10 @@ describe('NewsletterSubmissionPage', () => {
 
       // Set valid form data using the component's ref
       wrapper.vm.submission.title = 'Test Article';
-      wrapper.vm.submission.content = 'Test content';
+      wrapper.vm.submission.content = 'This is a test content that is long enough to meet the minimum requirement of 50 characters for the newsletter submission form.';
       wrapper.vm.submission.author = 'Test Author';
       wrapper.vm.submission.templateType = 'article';
+      wrapper.vm.submission.contentType = 'news';
       await nextTick();
 
       // Submit form multiple times

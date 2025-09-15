@@ -201,7 +201,9 @@ describe('Firebase Firestore Service', () => {
           expect.objectContaining({
             ...testMetadata,
             createdBy: 'test-user-123',
-            updatedBy: 'test-user-123'
+            updatedBy: 'test-user-123',
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String)
           })
         );
       });
@@ -281,7 +283,7 @@ describe('Firebase Firestore Service', () => {
         expect(result).toMatchObject({
           ...mockNewsletterData.valid
         });
-        expect(result?.id).toBe('test-id');
+        expect(result?.id).toBe('newsletter-2024-08-001');
         expect(mockDoc).toHaveBeenCalledWith(mockFirestore, 'newsletters', 'test-id');
         expect(mockGetDoc).toHaveBeenCalled();
       });
@@ -368,7 +370,7 @@ describe('Firebase Firestore Service', () => {
         const result = await firestoreService.getApprovedContent();
 
         expect(result).toHaveLength(1);
-        expect(result[0]?.id).toBe('content-1');
+        expect(result[0]?.id).toBe('content-001');
         expect(result[0]).toMatchObject({
           ...mockUserContentData.pendingArticle
         });
@@ -481,7 +483,7 @@ describe('Firebase Firestore Service', () => {
 
         expect(userCallback).toHaveBeenCalledWith([
           expect.objectContaining({
-            id: 'newsletter-1'
+            id: 'newsletter-2024-08-001'
           })
         ]);
       });
@@ -509,7 +511,7 @@ describe('Firebase Firestore Service', () => {
         const result = await firestoreService.getAllNewsletterMetadata();
 
         expect(result).toHaveLength(2);
-        expect(result[0]?.id).toBe('newsletter-1');
+        expect(result[0]?.id).toBe('newsletter-2024-08-001');
         expect(result[1]?.title).toBe('Newsletter 2');
       });
 

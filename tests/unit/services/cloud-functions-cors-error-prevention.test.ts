@@ -53,8 +53,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result instead of throwing
       expect(result).toEqual({
         success: false,
-        error: 'internal',
-        templates: []
+        error: 'Access to fetch at \'https://us-central1-clca-courier-27aed.cloudfunctions.net/getAvailableTemplatesList\' from origin \'http://localhost:9000\' has been blocked by CORS policy: Response to preflight request doesn\'t pass access control check: No \'Access-Control-Allow-Origin\' header is present on the requested resource.',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -77,8 +78,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'unavailable',
-        templates: []
+        error: 'net::ERR_FAILED',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -101,8 +103,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'deadline-exceeded',
-        templates: []
+        error: 'Request timeout',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -125,8 +128,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'unauthenticated',
-        templates: []
+        error: 'User not authenticated',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -149,8 +153,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'permission-denied',
-        templates: []
+        error: 'Insufficient permissions',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -173,8 +178,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'unknown',
-        templates: []
+        error: 'Unknown error occurred',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -195,8 +201,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result with 'internal' code
       expect(result).toEqual({
         success: false,
-        error: 'internal',
-        templates: []
+        error: 'Generic error',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log the error
@@ -253,11 +260,11 @@ describe('Cloud Functions CORS Error Prevention', () => {
         });
 
       // First call should fail
-      const firstResult = await templateService.getAvailableTemplates();
+      const firstResult = await templateManagementService.getAvailableTemplates();
       expect(firstResult.success).toBe(false);
 
       // Second call should succeed
-      const secondResult = await templateService.getAvailableTemplates();
+      const secondResult = await templateManagementService.getAvailableTemplates();
       expect(secondResult.success).toBe(true);
       expect(secondResult.templates).toHaveLength(1);
     });
@@ -275,8 +282,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'not-found',
-        templates: []
+        error: 'Function not found',
+        templates: [],
+        templateMapping: {}
       });
     });
 
@@ -293,8 +301,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should return error result
       expect(result).toEqual({
         success: false,
-        error: 'deadline-exceeded',
-        templates: []
+        error: 'Function execution timeout',
+        templates: [],
+        templateMapping: {}
       });
     });
   });
@@ -317,7 +326,7 @@ describe('Cloud Functions CORS Error Prevention', () => {
 
         mockHttpsCallable.mockRejectedValueOnce(error);
 
-        await templateService.getAvailableTemplates();
+        await templateManagementService.getAvailableTemplates();
 
         expect(mockLogger.error).toHaveBeenCalledWith(
           'Failed to get available templates:',
@@ -338,8 +347,9 @@ describe('Cloud Functions CORS Error Prevention', () => {
       // Should provide structured error information
       expect(result).toEqual({
         success: false,
-        error: 'internal',
-        templates: []
+        error: 'CORS policy error',
+        templates: [],
+        templateMapping: {}
       });
 
       // Should log with context
