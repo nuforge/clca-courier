@@ -6,12 +6,13 @@
  */
 
 import * as Handlebars from 'handlebars';
+import type { TemplateDelegate } from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // Template cache for performance optimization
 const templateCache = new Map<string, {
-  compiled: HandlebarsTemplateDelegate;
+  compiled: TemplateDelegate;
   lastModified: number;
   source: string;
 }>();
@@ -28,7 +29,7 @@ export const TEMPLATE_MAPPING = {
 /**
  * Load and compile a Handlebars template with caching
  */
-export const loadTemplate = (templateName: string): HandlebarsTemplateDelegate => {
+export const loadTemplate = (templateName: string): TemplateDelegate => {
   const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
 
   // Check if template file exists

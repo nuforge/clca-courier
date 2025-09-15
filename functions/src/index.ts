@@ -39,7 +39,7 @@ registerHandlebarsHelpers();
  * 5. Uploads to Firebase Storage
  * 6. Updates the issue document with download URL
  */
-export const generateNewsletter = onCall(async (request) => {
+export const generateNewsletter = onCall(async (request: any) => {
   // Authentication check
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
@@ -283,7 +283,7 @@ function generateSubmissionHTML(submission: any, issue: any): string {
  * Preview Template Function
  * Returns HTML for template preview without generating PDF
  */
-export const previewTemplate = onCall(async (request) => {
+export const previewTemplate = onCall(async (request: any) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -312,7 +312,7 @@ export const previewTemplate = onCall(async (request) => {
  * Test Template Function
  * Generates a test PDF for template validation
  */
-export const testTemplate = onCall(async (request) => {
+export const testTemplate = onCall(async (request: any) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -363,7 +363,7 @@ export const testTemplate = onCall(async (request) => {
  * Get Available Templates Function
  * Returns list of available templates
  */
-export const getAvailableTemplatesList = onCall(async (request) => {
+export const getAvailableTemplatesList = onCall(async (request: any) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
