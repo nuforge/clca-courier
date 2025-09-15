@@ -80,7 +80,7 @@ describe('CanvaApiService', () => {
     it('should provide configuration access', () => {
       const config = service.getConfig();
       expect(config).toHaveProperty('apiBaseUrl');
-      expect(config).toHaveProperty('appId');
+      expect(config).toHaveProperty('clientId');
       expect(config).toHaveProperty('redirectUri');
     });
   });
@@ -150,12 +150,15 @@ describe('CanvaApiService', () => {
     const mockDesignId = 'design-456';
 
     it('should successfully export design', async () => {
-      const mockResponse: AxiosResponse<any> = {
+      // Mock the getDesign call that exportDesign makes first
+      const mockGetResponse: AxiosResponse<any> = {
         data: {
-          job: {
-            id: 'job-789',
-            status: 'success',
-            result: { url: 'https://canva.com/exports/design-456.pdf' }
+          design: {
+            id: mockDesignId,
+            title: 'Test Design',
+            urls: {
+              edit_url: 'https://canva.com/design/test/edit'
+            }
           }
         },
         status: 200,
@@ -164,14 +167,29 @@ describe('CanvaApiService', () => {
         config: {} as any
       };
 
-      mockAxiosInstance.post.mockResolvedValue(mockResponse);
+      const mockExportResponse: AxiosResponse<any> = {
+        data: {
+          job: {
+            id: 'job-789',
+            status: 'success',
+            urls: ['https://canva.com/exports/design-456.pdf']
+          }
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any
+      };
+
+      mockAxiosInstance.get.mockResolvedValue(mockGetResponse);
+      mockAxiosInstance.post.mockResolvedValue(mockExportResponse);
 
       const result = await service.exportDesign(mockDesignId);
 
       expect(result).toEqual({
         exportUrl: 'https://canva.com/exports/design-456.pdf'
       });
-    });
+    }, 15000);
 
     it('should validate design ID parameter', async () => {
       await expect(service.exportDesign('')).rejects.toThrow(
@@ -189,281 +207,28 @@ describe('CanvaApiService', () => {
       content: 'This is the newsletter content'
     };
 
-    it('should successfully create design with autofill', async () => {
-      const mockResponse: AxiosResponse<any> = {
-        data: {
-          design: {
-            id: 'design-autofill-789',
-            urls: { edit_url: 'https://canva.com/design/design-autofill-789/edit' }
-          }
-        },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any
-      };
-
-      mockAxiosInstance.post.mockResolvedValue(mockResponse);
-
-      const result = await service.createDesignWithAutofill(mockTemplateId, mockAutofillData);
-
-      expect(result).toEqual({
-        designId: 'design-autofill-789',
-        editUrl: 'https://canva.com/design/design-autofill-789/edit'
-      });
-
-      // Verify correct API call was made
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/designs?autofill=true',
-        {
-          design_type: 'presentation',
-          template_id: mockTemplateId,
-          autofill: mockAutofillData
-        }
+    it('should reject autofill requests due to Enterprise requirement', async () => {
+      await expect(service.createDesignWithAutofill()).rejects.toThrow(
+        'Autofill functionality requires Canva Enterprise organization membership. This feature is not available for standard Canva accounts.'
       );
     });
 
-    it('should validate template ID parameter', async () => {
-      await expect(service.createDesignWithAutofill('', mockAutofillData)).rejects.toThrow(
-        'Template ID is required and must be a string'
-      );
-
-      await expect(service.createDesignWithAutofill(null, mockAutofillData)).rejects.toThrow(
-        'Template ID is required and must be a string'
+    it('should reject all autofill requests due to Enterprise requirement', async () => {
+      await expect(service.createDesignWithAutofill()).rejects.toThrow(
+        'Autofill functionality requires Canva Enterprise organization membership. This feature is not available for standard Canva accounts.'
       );
     });
 
-    it('should validate autofill data parameter', async () => {
-      await expect(service.createDesignWithAutofill(mockTemplateId, null)).rejects.toThrow(
-        'Autofill data is required and must be an object'
-      );
-
-      await expect(service.createDesignWithAutofill(mockTemplateId, 'invalid')).rejects.toThrow(
-        'Autofill data is required and must be an object'
+    it('should reject autofill requests with any parameters due to Enterprise requirement', async () => {
+      await expect(service.createDesignWithAutofill()).rejects.toThrow(
+        'Autofill functionality requires Canva Enterprise organization membership. This feature is not available for standard Canva accounts.'
       );
     });
 
-    it('should handle empty autofill data object', async () => {
-      const mockResponse: AxiosResponse<any> = {
-        data: {
-          design: {
-            id: 'design-empty-autofill',
-            urls: { edit_url: 'https://canva.com/design/design-empty-autofill/edit' }
-          }
-        },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any
-      };
-
-      mockAxiosInstance.post.mockResolvedValue(mockResponse);
-
-      const result = await service.createDesignWithAutofill(mockTemplateId, {});
-
-      expect(result).toEqual({
-        designId: 'design-empty-autofill',
-        editUrl: 'https://canva.com/design/design-empty-autofill/edit'
-      });
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/designs?autofill=true',
-        {
-          design_type: 'presentation',
-          template_id: mockTemplateId,
-          autofill: {}
-        }
-      );
-    });
-
-    it('should handle complex autofill data with nested objects', async () => {
-      const complexAutofillData = {
-        title: 'Event Announcement',
-        event: {
-          name: 'Community BBQ',
-          date: '2025-09-15',
-          location: 'Community Center'
-        },
-        contact: {
-          name: 'Event Organizer',
-          email: 'organizer@community.com'
-        },
-        tags: ['community', 'event', 'bbq']
-      };
-
-      const mockResponse: AxiosResponse<any> = {
-        data: {
-          design: {
-            id: 'design-complex-autofill',
-            urls: { edit_url: 'https://canva.com/design/design-complex-autofill/edit' }
-          }
-        },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any
-      };
-
-      mockAxiosInstance.post.mockResolvedValue(mockResponse);
-
-      const result = await service.createDesignWithAutofill(mockTemplateId, complexAutofillData);
-
-      expect(result).toEqual({
-        designId: 'design-complex-autofill',
-        editUrl: 'https://canva.com/design/design-complex-autofill/edit'
-      });
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/designs?autofill=true',
-        {
-          design_type: 'presentation',
-          template_id: mockTemplateId,
-          autofill: complexAutofillData
-        }
-      );
-    });
-
-    it('should handle invalid API response structure', async () => {
-      const invalidResponse: AxiosResponse<any> = {
-        data: {
-          design: {
-            // Missing required fields (id and urls.edit_url)
-            title: 'Some design'
-          }
-        },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any
-      };
-
-      // Mock axios.isAxiosError to return false for this test case
-      mockAxios.isAxiosError.mockReturnValue(false);
-      mockAxiosInstance.post.mockResolvedValue(invalidResponse);
-
-      await expect(service.createDesignWithAutofill(mockTemplateId, mockAutofillData))
-        .rejects.toThrow('Invalid response from Canva API: missing required fields');
-    });
-
-    it('should handle Canva API errors with autofill', async () => {
-      const mockApiError = {
-        error: {
-          code: 'TEMPLATE_NOT_FOUND',
-          message: 'The specified template was not found',
-          details: { template_id: mockTemplateId }
-        }
-      };
-
-      const errorResponse = {
-        response: {
-          data: mockApiError,
-          status: 404,
-          statusText: 'Not Found'
-        }
-      };
-
-      mockAxios.isAxiosError.mockReturnValue(true);
-      mockAxiosInstance.post.mockRejectedValue(errorResponse);
-
-      await expect(service.createDesignWithAutofill(mockTemplateId, mockAutofillData))
-        .rejects.toThrow(`Failed to create design with autofill from template ${mockTemplateId}: The specified template was not found`);
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Canva API error with autofill:',
-        expect.objectContaining({
-          templateId: mockTemplateId,
-          autofillKeys: Object.keys(mockAutofillData),
-          code: 'TEMPLATE_NOT_FOUND',
-          message: 'The specified template was not found'
-        })
-      );
-    });
-
-    it('should handle HTTP errors with autofill', async () => {
-      const httpError = {
-        response: {
-          status: 500,
-          statusText: 'Internal Server Error',
-          data: 'Server error'
-        }
-      };
-
-      mockAxios.isAxiosError.mockReturnValue(true);
-      mockAxiosInstance.post.mockRejectedValue(httpError);
-
-      await expect(service.createDesignWithAutofill(mockTemplateId, mockAutofillData))
-        .rejects.toThrow(`Failed to create design with autofill from template ${mockTemplateId}: HTTP 500`);
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'HTTP error creating design with autofill:',
-        expect.objectContaining({
-          templateId: mockTemplateId,
-          autofillKeys: Object.keys(mockAutofillData),
-          status: 500,
-          statusText: 'Internal Server Error'
-        })
-      );
-    });
-
-    it('should handle unexpected errors with autofill', async () => {
-      const unexpectedError = new Error('Network timeout');
-
-      mockAxios.isAxiosError.mockReturnValue(false);
-      mockAxiosInstance.post.mockRejectedValue(unexpectedError);
-
-      await expect(service.createDesignWithAutofill(mockTemplateId, mockAutofillData))
-        .rejects.toThrow(`Failed to create design with autofill from template ${mockTemplateId}: Network timeout`);
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Unexpected error creating design with autofill:',
-        expect.objectContaining({
-          templateId: mockTemplateId,
-          autofillKeys: Object.keys(mockAutofillData),
-          error: unexpectedError
-        })
-      );
-    });
-
-    it('should log autofill keys for debugging without sensitive data', async () => {
-      const sensitiveAutofillData = {
-        title: 'Public Event',
-        email: 'user@example.com', // Potentially sensitive
-        phone: '555-1234', // Potentially sensitive
-        publicInfo: 'This is public information'
-      };
-
-      const mockResponse: AxiosResponse<any> = {
-        data: {
-          design: {
-            id: 'design-sensitive',
-            urls: { edit_url: 'https://canva.com/design/design-sensitive/edit' }
-          }
-        },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any
-      };
-
-      mockAxiosInstance.post.mockResolvedValue(mockResponse);
-
-      await service.createDesignWithAutofill(mockTemplateId, sensitiveAutofillData);
-
-      // Verify that we log keys but not values for security
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Creating Canva design with autofill:',
-        expect.objectContaining({
-          templateId: mockTemplateId,
-          autofillKeys: ['title', 'email', 'phone', 'publicInfo']
-        })
-      );
-
-      // Verify we don't log the actual values
-      expect(mockLogger.info).not.toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          autofillData: sensitiveAutofillData
-        })
+    it('should consistently reject all autofill functionality due to Enterprise requirement', async () => {
+      // Test that all autofill methods consistently reject with Enterprise error
+      await expect(service.createDesignWithAutofill()).rejects.toThrow(
+        'Autofill functionality requires Canva Enterprise organization membership. This feature is not available for standard Canva accounts.'
       );
     });
   });

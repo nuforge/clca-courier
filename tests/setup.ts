@@ -8,42 +8,138 @@ import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
 import { config } from '@vue/test-utils';
 
-// Mock Quasar composables
-vi.mock('quasar', () => ({
-  useQuasar: () => ({
-    notify: vi.fn(),
-    dialog: vi.fn(),
-    loading: {
+// Mock Quasar composables and components
+vi.mock('quasar', async () => {
+  const actual = await vi.importActual('quasar') as any;
+  return {
+    ...actual,
+    useQuasar: () => ({
+      notify: vi.fn(),
+      dialog: vi.fn(),
+      loading: {
+        show: vi.fn(),
+        hide: vi.fn()
+      },
+      dark: {
+        isActive: false,
+        set: vi.fn(),
+        toggle: vi.fn()
+      },
+      screen: {
+        lt: {
+          sm: false,
+          md: false
+        },
+        gt: {
+          sm: true,
+          md: true
+        }
+      }
+    }),
+    Notify: {
+      create: vi.fn()
+    },
+    Dialog: {
+      create: vi.fn()
+    },
+    Loading: {
       show: vi.fn(),
       hide: vi.fn()
     },
-    dark: {
-      isActive: false,
-      set: vi.fn(),
-      toggle: vi.fn()
-    },
-    screen: {
-      lt: {
-        sm: false,
-        md: false
-      },
-      gt: {
-        sm: true,
-        md: true
-      }
-    }
-  }),
-  Notify: {
-    create: vi.fn()
-  },
-  Dialog: {
-    create: vi.fn()
-  },
-  Loading: {
-    show: vi.fn(),
-    hide: vi.fn()
-  }
-}));
+    // Mock Quasar components that are used in tests
+    QCardActions: 'div',
+    QCard: 'div',
+    QDialog: 'div',
+    QBtn: 'button',
+    QSpinner: 'div',
+    QIframe: 'iframe',
+    QTable: 'table',
+    QTr: 'tr',
+    QTd: 'td',
+    QTh: 'th',
+    QThead: 'thead',
+    QTbody: 'tbody',
+    QInput: 'input',
+    QSelect: 'select',
+    QOption: 'option',
+    QDate: 'input',
+    QTime: 'input',
+    QCheckbox: 'input',
+    QToggle: 'input',
+    QRadio: 'input',
+    QTextarea: 'textarea',
+    QFile: 'input',
+    QUploader: 'div',
+    QIcon: 'i',
+    QAvatar: 'div',
+    QBadge: 'span',
+    QChip: 'span',
+    QSeparator: 'hr',
+    QSpace: 'div',
+    QExpansionItem: 'div',
+    QList: 'ul',
+    QItem: 'li',
+    QItemSection: 'div',
+    QItemLabel: 'div',
+    QMenu: 'div',
+    QTooltip: 'div',
+    QPopupProxy: 'div',
+    QScrollArea: 'div',
+    QCarousel: 'div',
+    QCarouselSlide: 'div',
+    QStepper: 'div',
+    QStep: 'div',
+    QStepperNavigation: 'div',
+    QTabPanels: 'div',
+    QTabPanel: 'div',
+    QTabs: 'div',
+    QTab: 'div',
+    QRouteTab: 'div',
+    QBar: 'div',
+    QToolbar: 'div',
+    QToolbarTitle: 'div',
+    QDrawer: 'div',
+    QHeader: 'header',
+    QFooter: 'footer',
+    QPage: 'div',
+    QPageContainer: 'div',
+    QLayout: 'div',
+    QSplitter: 'div',
+    QSplitterPanel: 'div',
+    QScrollObserver: 'div',
+    QIntersection: 'div',
+    QInfiniteScroll: 'div',
+    QVirtualScroll: 'div',
+    QSkeleton: 'div',
+    QLinearProgress: 'div',
+    QCircularProgress: 'div',
+    QInnerLoading: 'div',
+    QSpinnerDots: 'div',
+    QSpinnerHourglass: 'div',
+    QSpinnerTail: 'div',
+    QSpinnerGears: 'div',
+    QSpinnerGrid: 'div',
+    QSpinnerPuff: 'div',
+    QSpinnerRings: 'div',
+    QSpinnerAudio: 'div',
+    QSpinnerBall: 'div',
+    QSpinnerBars: 'div',
+    QSpinnerBox: 'div',
+    QSpinnerClock: 'div',
+    QSpinnerComment: 'div',
+    QSpinnerCube: 'div',
+    QSpinnerFacebook: 'div',
+    QSpinnerHearts: 'div',
+    QSpinnerInfinity: 'div',
+    QSpinnerIos: 'div',
+    QSpinnerOval: 'div',
+    QSpinnerPie: 'div',
+    QSpinnerRadio: 'div',
+    QSpinnerThreeDots: 'div',
+    QSpinnerWatch: 'div',
+    QSpinnerWave: 'div'
+  };
+});
 
 // Mock Vue Router
 vi.mock('vue-router', () => ({
