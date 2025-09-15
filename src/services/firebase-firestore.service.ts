@@ -476,31 +476,8 @@ class FirebaseFirestoreService {
   }
 
   // User content operations
-  async submitUserContent(
-    content: Omit<UserContent, 'id' | 'submissionDate' | 'status'>,
-  ): Promise<string> {
-    try {
-      const currentUser = firebaseAuthService.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('User must be authenticated to submit content');
-      }
-
-      const docRef = await addDoc(collection(firestore, this.COLLECTIONS.USER_CONTENT), {
-        ...content,
-        submissionDate: serverTimestamp(),
-        status: 'pending',
-        authorId: currentUser.uid,
-        authorName: currentUser.displayName || 'Anonymous',
-        authorEmail: currentUser.email || '',
-      });
-
-      logger.success('User content submitted:', docRef.id);
-      return docRef.id;
-    } catch (error) {
-      logger.error('Error submitting user content:', error);
-      throw error;
-    }
-  }
+  // Legacy submitUserContent method removed - use ContentDoc architecture instead
+  // All content creation should now use firebaseContentService.createContent
 
   async getUserContent(id: string): Promise<UserContent | null> {
     try {

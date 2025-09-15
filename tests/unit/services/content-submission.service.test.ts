@@ -214,16 +214,22 @@ describe('Content Submission Service', () => {
 
     it('should successfully submit valid content with proper data transformation', async () => {
       const mockContentId = 'content-12345';
-      (firestoreService.submitUserContent as any).mockResolvedValue(mockContentId);
+      (firebaseContentService.createContent as any).mockResolvedValue(mockContentId);
 
-      const result = await contentSubmissionService.submitContent(mockSubmissionData);
+      const result = await contentSubmissionService.createContent(
+        mockSubmissionData.title,
+        mockSubmissionData.content,
+        mockSubmissionData.type,
+        {},
+        mockSubmissionData.tags || []
+      );
 
       expect(result).toBe(mockContentId);
 
       // Verify service was called with properly transformed data
-      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(1);
+      expect(firebaseContentService.createContent).toHaveBeenCalledTimes(1);
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Validate data structure transformation
       expect(submittedData.type).toBe('event');
@@ -254,20 +260,41 @@ describe('Content Submission Service', () => {
         metadata: {}
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('calendar-event-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('calendar-event-123');
 
-      await contentSubmissionService.submitContent(calendarEventData);
+      const eventFeatures = {
+        'feat:date': {
+          start: { toMillis: () => new Date('2024-09-15T19:00:00Z').getTime(), toDate: () => new Date('2024-09-15T19:00:00Z') } as any,
+          end: { toMillis: () => new Date('2024-09-15T20:30:00Z').getTime(), toDate: () => new Date('2024-09-15T20:30:00Z') } as any,
+          isAllDay: false
+        },
+        'feat:location': {
+          name: 'Community Center',
+          address: 'Community Center'
+        },
+        'feat:recurrence': {
+          type: 'monthly'
+        }
+      };
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      await contentSubmissionService.createContent(
+        calendarEventData.title,
+        calendarEventData.content,
+        'event',
+        eventFeatures,
+        ['category:governance', 'priority:high']
+      );
 
-      // Verify all calendar fields are preserved
-      expect(submittedData.onCalendar).toBe(true);
-      expect(submittedData.eventDate).toBe('2024-09-15');
-      expect(submittedData.eventTime).toBe('19:00');
-      expect(submittedData.eventEndTime).toBe('20:30');
-      expect(submittedData.eventLocation).toBe('Community Center');
-      expect(submittedData.eventRecurrence).toEqual({ type: 'monthly' });
-      expect(submittedData.allDay).toBe(false);
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
+
+      // Verify ContentDoc structure with features
+      expect(submittedData.title).toBe('Board Meeting');
+      expect(submittedData.description).toBe('Monthly community board meeting');
+      expect(submittedData.tags).toContain('category:governance');
+      expect(submittedData.tags).toContain('priority:high');
+      expect(submittedData.features['feat:date']).toBeDefined();
+      expect(submittedData.features['feat:location']).toBeDefined();
+      expect(submittedData.features['feat:recurrence']).toBeDefined();
     });
 
     it('should only include defined calendar fields to prevent null pollution', async () => {
@@ -283,23 +310,24 @@ describe('Content Submission Service', () => {
         // Note: eventDate, eventTime, etc. are undefined
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('minimal-event-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('minimal-event-123');
 
-      await contentSubmissionService.submitContent(minimalEventData);
+      await contentSubmissionService.createContent(
+        minimalEventData.title,
+        minimalEventData.content,
+        'event',
+        {}, // No features for minimal event
+        ['category:community', 'priority:low']
+      );
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
-      // Verify undefined fields are not included (clean data)
-      expect(submittedData).not.toHaveProperty('eventDate');
-      expect(submittedData).not.toHaveProperty('eventTime');
-      expect(submittedData).not.toHaveProperty('eventLocation');
-      expect(submittedData).not.toHaveProperty('eventEndDate');
-      expect(submittedData).not.toHaveProperty('eventEndTime');
-      expect(submittedData).not.toHaveProperty('eventRecurrence');
-
-      // But should have boolean fields with proper defaults
-      expect(submittedData.onCalendar).toBe(false);
-      expect(submittedData.allDay).toBe(false);
+      // Verify ContentDoc structure with minimal features
+      expect(submittedData.title).toBe('Simple Event');
+      expect(submittedData.description).toBe('Basic event without full calendar data');
+      expect(submittedData.tags).toContain('category:community');
+      expect(submittedData.tags).toContain('priority:low');
+      expect(submittedData.features).toEqual({}); // No features for minimal event
     });
   });
 
@@ -316,10 +344,16 @@ describe('Content Submission Service', () => {
       };
 
       const firebaseError = new Error('Firebase: Permission denied');
-      (firestoreService.submitUserContent as any).mockRejectedValue(firebaseError);
+      (firebaseContentService.createContent as any).mockRejectedValue(firebaseError);
 
       // Should propagate error for proper handling by calling code
-      await expect(contentSubmissionService.submitContent(submissionData))
+      await expect(contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.content,
+        submissionData.type || 'article',
+        {},
+        submissionData.tags || []
+      ))
         .rejects.toThrow('Firebase: Permission denied');
     });
 
@@ -335,9 +369,15 @@ describe('Content Submission Service', () => {
       };
 
       const networkError = new Error('Network request timed out');
-      (firestoreService.submitUserContent as any).mockRejectedValue(networkError);
+      (firebaseContentService.createContent as any).mockRejectedValue(networkError);
 
-      await expect(contentSubmissionService.submitContent(submissionData))
+      await expect(contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.content,
+        submissionData.type || 'article',
+        {},
+        submissionData.tags || []
+      ))
         .rejects.toThrow('Network request timed out');
     });
   });
@@ -357,16 +397,22 @@ describe('Content Submission Service', () => {
         }
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('performance-test-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('performance-test-123');
 
       const startTime = Date.now();
-      const result = await contentSubmissionService.submitContent(largeContent);
+      const result = await contentSubmissionService.createContent(
+        largeContent.title,
+        largeContent.content,
+        largeContent.type || 'article',
+        {},
+        largeContent.tags || []
+      );
       const endTime = Date.now();
 
       expect(result).toBe('performance-test-123');
       expect(endTime - startTime).toBeLessThan(1000); // Should be fast
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
       expect(submittedData.content).toHaveLength(5000);
     });
 
@@ -402,19 +448,25 @@ describe('Content Submission Service', () => {
         }
       ];
 
-      (firestoreService.submitUserContent as any).mockImplementation(
+      (firebaseContentService.createContent as any).mockImplementation(
         (data: any) => Promise.resolve(`concurrent-${data.category}`)
       );
 
       const results = await Promise.all(
-        submissions.map(data => contentSubmissionService.submitContent(data))
+        submissions.map(data => contentSubmissionService.createContent(
+        data.title,
+        data.content,
+        data.type || 'article',
+        {},
+        data.tags || []
+      ))
       );
 
       expect(results).toEqual(['concurrent-test-1', 'concurrent-test-2', 'concurrent-test-3']);
-      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(3);
+      expect(firebaseContentService.createContent).toHaveBeenCalledTimes(3);
 
       // Verify data integrity - each call should have correct data
-      const calls = (firestoreService.submitUserContent as any).mock.calls;
+      const calls = (firebaseContentService.createContent as any).mock.calls;
       expect(calls[0][0].title).toBe('Concurrent Test 1');
       expect(calls[1][0].title).toBe('Concurrent Test 2');
       expect(calls[2][0].title).toBe('Concurrent Test 3');
@@ -433,14 +485,20 @@ describe('Content Submission Service', () => {
         attachments: []
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('safe-content-id');
+      (firebaseContentService.createContent as any).mockResolvedValue('safe-content-id');
 
-      const contentId = await contentSubmissionService.submitContent(maliciousData);
+      const contentId = await contentSubmissionService.createContent(
+        maliciousData.title,
+        maliciousData.content,
+        maliciousData.type || 'article',
+        {},
+        maliciousData.tags || []
+      );
 
       expect(contentId).toBe('safe-content-id');
-      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(1);
+      expect(firebaseContentService.createContent).toHaveBeenCalledTimes(1);
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Verify scripts are removed from title
       expect(submittedData.title).toBe('Malicious Title');
@@ -466,11 +524,17 @@ describe('Content Submission Service', () => {
         onCalendar: true
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('safe-event-id');
+      (firebaseContentService.createContent as any).mockResolvedValue('safe-event-id');
 
-      await contentSubmissionService.submitContent(eventData);
+      await contentSubmissionService.createContent(
+        eventData.title,
+        eventData.content,
+        eventData.type || 'article',
+        {},
+        eventData.tags || []
+      );
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Verify scripts are removed from location
       expect(submittedData.eventLocation).toBe('Community Center');
@@ -491,10 +555,16 @@ describe('Content Submission Service', () => {
         onCalendar: true
       };
 
-      await expect(contentSubmissionService.submitContent(invalidEventData))
+      await expect(contentSubmissionService.createContent(
+        invalidEventData.title,
+        invalidEventData.content,
+        invalidEventData.type || 'article',
+        {},
+        invalidEventData.tags || []
+      ))
         .rejects.toThrow('Content validation failed');
 
-      expect(firestoreService.submitUserContent).not.toHaveBeenCalled();
+      expect(firebaseContentService.createContent).not.toHaveBeenCalled();
     });
 
     it('should sanitize metadata fields to prevent XSS', async () => {
@@ -512,11 +582,17 @@ describe('Content Submission Service', () => {
         attachments: []
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('sanitized-metadata-id');
+      (firebaseContentService.createContent as any).mockResolvedValue('sanitized-metadata-id');
 
-      await contentSubmissionService.submitContent(dataWithMaliciousMetadata);
+      await contentSubmissionService.createContent(
+        dataWithMaliciousMetadata.title,
+        dataWithMaliciousMetadata.content,
+        dataWithMaliciousMetadata.type || 'article',
+        {},
+        dataWithMaliciousMetadata.tags || []
+      );
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Check that metadata was included and sanitized
       expect(submittedData.metadata).toBeDefined();
@@ -537,10 +613,16 @@ describe('Content Submission Service', () => {
         attachments: []
       };
 
-      await expect(contentSubmissionService.submitContent(emptyContentData))
+      await expect(contentSubmissionService.createContent(
+        emptyContentData.title,
+        emptyContentData.content,
+        emptyContentData.type || 'article',
+        {},
+        emptyContentData.tags || []
+      ))
         .rejects.toThrow('Content validation failed');
 
-      expect(firestoreService.submitUserContent).not.toHaveBeenCalled();
+      expect(firebaseContentService.createContent).not.toHaveBeenCalled();
     });
 
     it('should validate content type and priority values', async () => {
@@ -554,10 +636,16 @@ describe('Content Submission Service', () => {
         attachments: []
       };
 
-      await expect(contentSubmissionService.submitContent(invalidTypeData))
+      await expect(contentSubmissionService.createContent(
+        invalidTypeData.title,
+        invalidTypeData.content,
+        invalidTypeData.type || 'article',
+        {},
+        invalidTypeData.tags || []
+      ))
         .rejects.toThrow('Content validation failed');
 
-      expect(firestoreService.submitUserContent).not.toHaveBeenCalled();
+      expect(firebaseContentService.createContent).not.toHaveBeenCalled();
     });
 
     it('should preserve safe HTML tags in content while removing dangerous ones', async () => {
@@ -571,11 +659,17 @@ describe('Content Submission Service', () => {
         attachments: []
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('mixed-content-id');
+      (firebaseContentService.createContent as any).mockResolvedValue('mixed-content-id');
 
-      await contentSubmissionService.submitContent(mixedContentData);
+      await contentSubmissionService.createContent(
+        mixedContentData.title,
+        mixedContentData.content,
+        mixedContentData.type || 'article',
+        {},
+        mixedContentData.tags || []
+      );
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Verify safe HTML is preserved
       expect(submittedData.content).toContain('<p>Safe paragraph</p>');

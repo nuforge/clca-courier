@@ -20,6 +20,7 @@ import {
   firebaseStorageService,
   type FileUploadProgress,
 } from '../services/firebase-storage.service';
+import { contentSubmissionService } from '../services/content-submission.service';
 import { logger } from '../utils/logger';
 
 export function useFirebaseAuth() {
@@ -343,18 +344,23 @@ export function useFirebaseUserContent() {
 
   // Submit user content
   const submitContent = async (
-    content: Omit<
-      UserContent,
-      'id' | 'submissionDate' | 'status' | 'authorId' | 'authorName' | 'authorEmail'
-    >,
+    title: string,
+    description: string,
+    contentType: string,
+    features: Record<string, unknown> = {},
+    additionalTags: string[] = []
   ) => {
     try {
       isLoading.value = true;
       error.value = null;
 
-      // The service will add authorId, authorName, authorEmail from current user
-      const id = await firestoreService.submitUserContent(
-        content as Omit<UserContent, 'id' | 'submissionDate' | 'status'>,
+      // Use the new ContentDoc architecture
+      const id = await contentSubmissionService.createContent(
+        title,
+        description,
+        contentType,
+        features,
+        additionalTags
       );
       logger.success('Content submitted:', id);
       return id;

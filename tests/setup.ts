@@ -7,35 +7,14 @@ import { beforeAll, afterAll, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
 import { config } from '@vue/test-utils';
+import quasarMock from './mocks/quasar';
 
-// Mock Quasar composables and components
+// Mock Quasar composables and components using comprehensive mock
 vi.mock('quasar', async () => {
   const actual = await vi.importActual('quasar') as any;
   return {
     ...actual,
-    useQuasar: () => ({
-      notify: vi.fn(),
-      dialog: vi.fn(),
-      loading: {
-        show: vi.fn(),
-        hide: vi.fn()
-      },
-      dark: {
-        isActive: false,
-        set: vi.fn(),
-        toggle: vi.fn()
-      },
-      screen: {
-        lt: {
-          sm: false,
-          md: false
-        },
-        gt: {
-          sm: true,
-          md: true
-        }
-      }
-    }),
+    useQuasar: () => quasarMock,
     Notify: {
       create: vi.fn()
     },
@@ -286,14 +265,7 @@ vi.mock('pdfjs-dist', () => ({
 // Global test configuration
 config.global.mocks = {
   $t: (key: string) => key,
-  $q: {
-    notify: vi.fn(),
-    dialog: vi.fn(),
-    loading: {
-      show: vi.fn(),
-      hide: vi.fn()
-    }
-  }
+  $q: quasarMock
 };
 
 // Global test setup

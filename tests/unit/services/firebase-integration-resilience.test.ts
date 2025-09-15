@@ -88,15 +88,70 @@ vi.mock('firebase/firestore', () => ({
   }
 }));
 
+// Mock Firebase Content Service
+vi.mock('../../../src/services/firebase-content.service', () => ({
+  firebaseContentService: {
+    createContent: vi.fn(),
+    getContent: vi.fn(),
+    updateContent: vi.fn(),
+    deleteContent: vi.fn(),
+    getContentList: vi.fn()
+  }
+}));
+
 // Import services
 import { contentSubmissionService } from '../../../src/services/content-submission.service';
 import { firestoreService } from '../../../src/services/firebase-firestore.service';
 import { firebaseAuthService } from '../../../src/services/firebase-auth.service';
-import type { ContentSubmissionData } from '../../../src/types/core/content.types';
+import { firebaseContentService } from '../../../src/services/firebase-content.service';
+import type { ContentDoc, ContentFeatures } from '../../../src/types/core/content.types';
 
 describe('Firebase Integration Resilience Tests', () => {
+  // Helper function to create ContentDoc test data
+  const createTestContentDoc = (overrides: Partial<ContentDoc> = {}): ContentDoc => ({
+    id: 'test-content-123',
+    title: 'Test Content',
+    description: 'Test content description',
+    authorId: 'test-user-123',
+    authorName: 'Test User',
+    tags: ['content-type:article', 'category:test'],
+    features: {},
+    status: 'draft',
+    timestamps: {
+      created: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+      updated: { toMillis: () => Date.now(), toDate: () => new Date() } as any
+    },
+    ...overrides
+  });
+
+  const createEventContentDoc = (overrides: Partial<ContentDoc> = {}): ContentDoc => {
+    const baseDoc = createTestContentDoc(overrides);
+    return {
+      ...baseDoc,
+      tags: ['content-type:event', 'category:community'],
+      features: {
+        'feat:date': {
+          start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+          end: { toMillis: () => Date.now() + 3600000, toDate: () => new Date(Date.now() + 3600000) } as any,
+          isAllDay: false
+        },
+        'feat:location': {
+          name: 'Test Location',
+          address: '123 Test St, Test City, TC 12345'
+        }
+      }
+    };
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Clear firebase content service mocks
+    (firebaseContentService.createContent as any).mockClear();
+    (firebaseContentService.getContent as any).mockClear();
+    (firebaseContentService.updateContent as any).mockClear();
+    (firebaseContentService.deleteContent as any).mockClear();
+    (firebaseContentService.getContentList as any).mockClear();
 
     // Set up global Firebase mocks to use our specific mock functions
     const firestoreModule = await import('firebase/firestore');
@@ -122,61 +177,59 @@ describe('Firebase Integration Resilience Tests', () => {
     });
   });  describe('Firebase Resilience & Error Recovery - CRITICAL RELIABILITY', () => {
     it('should retry transient Firebase failures', async () => {
-      const submissionData: ContentSubmissionData = {
-        type: 'article',
+      const submissionData = createTestContentDoc({
         title: 'Test Resilience',
-        content: 'Testing Firebase retry logic',
-        category: 'test',
-        priority: 'low',
-        attachments: [],
-        metadata: {}
-      };
+        description: 'Testing Firebase retry logic',
+        tags: ['content-type:article', 'category:test', 'priority:low']
+      });
 
       // Mock transient failures followed by success
-      (firestoreService.submitUserContent as any)
+      (firebaseContentService.createContent as any)
         .mockRejectedValueOnce(new Error('UNAVAILABLE: The service is currently unavailable'))
         .mockRejectedValueOnce(new Error('DEADLINE_EXCEEDED: Deadline exceeded'))
         .mockResolvedValueOnce('retry-success-123');
 
       // Should retry and eventually succeed
-      const result = await contentSubmissionService.submitContent(submissionData);
+      const result = await contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.description,
+        'article',
+        submissionData.features,
+        submissionData.tags
+      );
       expect(result).toBe('retry-success-123');
-      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(3);
+      expect(firebaseContentService.createContent).toHaveBeenCalledTimes(3);
     });
 
     it('should handle Firestore quota limit errors', async () => {
-      const submissionData: ContentSubmissionData = {
-        type: 'article',
+      const submissionData = createTestContentDoc({
         title: 'Quota Test',
-        content: 'Testing quota limit handling',
-        category: 'test',
-        priority: 'low',
-        attachments: [],
-        metadata: {}
-      };
+        description: 'Testing quota limit handling',
+        tags: ['content-type:article', 'category:test', 'priority:low']
+      });
 
       // Mock quota exceeded error
       const quotaError = new Error('RESOURCE_EXHAUSTED: Quota exceeded');
-      (firestoreService.submitUserContent as any).mockRejectedValue(quotaError);
+      (firebaseContentService.createContent as any).mockRejectedValue(quotaError);
 
       // Should handle gracefully with appropriate error message
       await expect(
-        contentSubmissionService.submitContent(submissionData)
+        contentSubmissionService.createContent(
+          submissionData.title,
+          submissionData.description,
+          'article',
+          submissionData.features,
+          submissionData.tags
+        )
       ).rejects.toThrow(/quota.*exceeded|rate.*limit|resource.*exhausted/i);
     });
 
     it('should handle network connectivity issues', async () => {
-      const submissionData: ContentSubmissionData = {
-        type: 'event',
+      const submissionData = createTestContentDoc({
         title: 'Network Test Event',
-        content: 'Testing network failure handling',
-        category: 'test',
-        priority: 'medium',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        metadata: {}
-      };
+        description: 'Testing network failure handling',
+        tags: ['content-type:event', 'category:test', 'priority:medium']
+      });
 
       // Mock network failures
       const networkErrors = [
@@ -188,10 +241,16 @@ describe('Firebase Integration Resilience Tests', () => {
 
       for (const error of networkErrors) {
         vi.clearAllMocks();
-        (firestoreService.submitUserContent as any).mockRejectedValue(error);
+        (firebaseContentService.createContent as any).mockRejectedValue(error);
 
         await expect(
-          contentSubmissionService.submitContent(submissionData)
+          contentSubmissionService.createContent(
+            submissionData.title,
+            submissionData.description,
+            submissionData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+            submissionData.features,
+            submissionData.tags
+          )
         ).rejects.toThrow();
 
         // Should attempt offline storage or queue for later
@@ -200,51 +259,55 @@ describe('Firebase Integration Resilience Tests', () => {
     });
 
     it('should handle Firebase permission changes mid-operation', async () => {
-      const submissionData: ContentSubmissionData = {
-        type: 'article',
+      const submissionData = createTestContentDoc({
         title: 'Permission Change Test',
-        content: 'Testing permission change during operation',
-        category: 'test',
-        priority: 'low',
-        attachments: [],
-        metadata: {}
-      };
+        description: 'Testing permission change during operation',
+        tags: ['content-type:article', 'category:test', 'priority:low']
+      });
 
       // Mock permission denied error after initial success
       const permissionError = new Error('PERMISSION_DENIED: Missing or insufficient permissions');
-      (firestoreService.submitUserContent as any).mockRejectedValue(permissionError);
+      (firebaseContentService.createContent as any).mockRejectedValue(permissionError);
 
       // Should handle permission changes gracefully
       await expect(
-        contentSubmissionService.submitContent(submissionData)
+        contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.description,
+        submissionData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        submissionData.features,
+        submissionData.tags
+      )
       ).rejects.toThrow(/permission.*denied|insufficient.*permissions|unauthorized/i);
     });
 
     it('should validate Firestore collection existence', async () => {
-      const submissionData: ContentSubmissionData = {
-        type: 'article',
+      const submissionData = createTestContentDoc({
         title: 'Collection Test',
-        content: 'Testing collection validation',
-        category: 'test',
-        priority: 'low',
-        attachments: [],
-        metadata: {}
+        description: 'Testing collection validation',
+        tags: ['content-type:article', 'category:test', 'priority:low']
       };
 
       // Mock collection not found error
       const collectionError = new Error('NOT_FOUND: Collection "userContent" not found');
-      (firestoreService.submitUserContent as any).mockRejectedValue(collectionError);
+      (firebaseContentService.createContent as any).mockRejectedValue(collectionError);
 
       // Should handle missing collections gracefully
       await expect(
-        contentSubmissionService.submitContent(submissionData)
+        contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.description,
+        submissionData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        submissionData.features,
+        submissionData.tags
+      )
       ).rejects.toThrow(/collection.*not.*found|not.*found/i);
     });
   });
 
   describe('Calendar Integration Robustness - EVENT HANDLING CRITICAL', () => {
     it('should validate event date ranges', async () => {
-      const invalidDateRangeData: ContentSubmissionData = {
+      const invalidDateRangeData = createTestContentDoc({
         type: 'event',
         title: 'Invalid Date Range Event',
         content: 'Testing date range validation',
@@ -261,12 +324,18 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Should validate that end dates/times are after start dates/times
       await expect(
-        contentSubmissionService.submitContent(invalidDateRangeData)
+        contentSubmissionService.createContent(
+        invalidDateRangeData.title,
+        invalidDateRangeData.description,
+        invalidDateRangeData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        invalidDateRangeData.features,
+        invalidDateRangeData.tags
+      )
       ).rejects.toThrow(/invalid.*date.*range|end.*before.*start|invalid.*time.*range/i);
     });
 
     it('should handle timezone conversion correctly', async () => {
-      const timezoneEventData: ContentSubmissionData = {
+      const timezoneEventData = createTestContentDoc({
         type: 'event',
         title: 'Timezone Test Event',
         content: 'Testing timezone handling',
@@ -283,19 +352,25 @@ describe('Firebase Integration Resilience Tests', () => {
         }
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('timezone-event-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('timezone-event-123');
 
-      const result = await contentSubmissionService.submitContent(timezoneEventData);
+      const result = await contentSubmissionService.createContent(
+        timezoneEventData.title,
+        timezoneEventData.description,
+        timezoneEventData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        timezoneEventData.features,
+        timezoneEventData.tags
+      );
       expect(result).toBe('timezone-event-123');
 
       // Verify timezone information is preserved for calendar integration
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
       expect(submittedData.metadata.timezone).toBe('America/New_York');
       expect(submittedData.metadata.originalSubmissionTimezone).toBe('UTC');
     });
 
     it('should validate recurring event configurations', async () => {
-      const invalidRecurrenceData: ContentSubmissionData = {
+      const invalidRecurrenceData = createTestContentDoc({
         type: 'event',
         title: 'Invalid Recurrence Event',
         content: 'Testing recurrence validation',
@@ -316,12 +391,18 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Should validate recurrence configuration
       await expect(
-        contentSubmissionService.submitContent(invalidRecurrenceData)
+        contentSubmissionService.createContent(
+        invalidRecurrenceData.title,
+        invalidRecurrenceData.description,
+        invalidRecurrenceData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        invalidRecurrenceData.features,
+        invalidRecurrenceData.tags
+      )
       ).rejects.toThrow(/invalid.*recurrence|invalid.*interval|invalid.*days|invalid.*end.*date/i);
     });
 
     it('should prevent calendar event conflicts', async () => {
-      const conflictingEventData: ContentSubmissionData = {
+      const conflictingEventData = createTestContentDoc({
         type: 'event',
         title: 'Conflicting Event',
         content: 'Event that conflicts with existing event',
@@ -338,16 +419,22 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Mock existing event conflict
       const conflictError = new Error('CONFLICT: Event conflicts with existing booking');
-      (firestoreService.submitUserContent as any).mockRejectedValue(conflictError);
+      (firebaseContentService.createContent as any).mockRejectedValue(conflictError);
 
       // Should handle calendar conflicts appropriately
       await expect(
-        contentSubmissionService.submitContent(conflictingEventData)
+        contentSubmissionService.createContent(
+        conflictingEventData.title,
+        conflictingEventData.description,
+        conflictingEventData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        conflictingEventData.features,
+        conflictingEventData.tags
+      )
       ).rejects.toThrow(/conflict|already.*booked|time.*unavailable/i);
     });
 
     it('should handle all-day event edge cases', async () => {
-      const allDayEventData: ContentSubmissionData = {
+      const allDayEventData = createTestContentDoc({
         type: 'event',
         title: 'All Day Event',
         content: 'Testing all-day event handling',
@@ -363,12 +450,18 @@ describe('Firebase Integration Resilience Tests', () => {
         metadata: {}
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('allday-event-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('allday-event-123');
 
-      const result = await contentSubmissionService.submitContent(allDayEventData);
+      const result = await contentSubmissionService.createContent(
+        allDayEventData.title,
+        allDayEventData.description,
+        allDayEventData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        allDayEventData.features,
+        allDayEventData.tags
+      );
       expect(result).toBe('allday-event-123');
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // For all-day events, specific times should be cleared or ignored
       expect(submittedData.allDay).toBe(true);
@@ -394,21 +487,27 @@ describe('Firebase Integration Resilience Tests', () => {
       }));
 
       // Mock successful submissions with unique IDs
-      (firestoreService.submitUserContent as any).mockImplementation(
+      (firebaseContentService.createContent as any).mockImplementation(
         (data: any) => Promise.resolve(`concurrent-${data.metadata.submissionIndex}`)
       );
 
       // Submit all concurrently
       const results = await Promise.all(
-        concurrentSubmissions.map(data => contentSubmissionService.submitContent(data))
+        concurrentSubmissions.map(data => contentSubmissionService.createContent(
+        data.title,
+        data.description,
+        data.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        data.features,
+        data.tags
+      ))
       );
 
       // All should succeed with unique IDs
       expect(results).toEqual(['concurrent-1', 'concurrent-2', 'concurrent-3', 'concurrent-4', 'concurrent-5']);
-      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(5);
+      expect(firebaseContentService.createContent).toHaveBeenCalledTimes(5);
 
       // Verify data integrity - each submission should maintain its unique metadata
-      const submissions = (firestoreService.submitUserContent as any).mock.calls;
+      const submissions = (firebaseContentService.createContent as any).mock.calls;
       submissions.forEach((call: any[], index: number) => {
         const submittedData = call[0];
         expect(submittedData.metadata.submissionIndex).toBe(index + 1);
@@ -417,7 +516,7 @@ describe('Firebase Integration Resilience Tests', () => {
     });
 
     it('should handle partial submission failures gracefully', async () => {
-      const submissionData: ContentSubmissionData = {
+      const submissionData = createTestContentDoc({
         type: 'event',
         title: 'Partial Failure Test',
         content: 'Testing partial failure handling',
@@ -439,11 +538,17 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Mock partial failure - content saves but attachment upload fails
       const partialError = new Error('ATTACHMENT_UPLOAD_FAILED: Could not upload attachment-1');
-      (firestoreService.submitUserContent as any).mockRejectedValue(partialError);
+      (firebaseContentService.createContent as any).mockRejectedValue(partialError);
 
       // Should handle partial failures and provide recovery options
       await expect(
-        contentSubmissionService.submitContent(submissionData)
+        contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.description,
+        submissionData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        submissionData.features,
+        submissionData.tags
+      )
       ).rejects.toThrow(/attachment.*upload.*failed|partial.*failure/i);
 
       // Should provide information about what succeeded and what failed
@@ -451,7 +556,7 @@ describe('Firebase Integration Resilience Tests', () => {
     });
 
     it('should maintain referential integrity between related data', async () => {
-      const eventWithReferencesData: ContentSubmissionData = {
+      const eventWithReferencesData = createTestContentDoc({
         type: 'event',
         title: 'Event with References',
         content: 'Event that references other content',
@@ -467,12 +572,18 @@ describe('Firebase Integration Resilience Tests', () => {
         }
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('referenced-event-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('referenced-event-123');
 
-      const result = await contentSubmissionService.submitContent(eventWithReferencesData);
+      const result = await contentSubmissionService.createContent(
+        eventWithReferencesData.title,
+        eventWithReferencesData.description,
+        eventWithReferencesData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        eventWithReferencesData.features,
+        eventWithReferencesData.tags
+      );
       expect(result).toBe('referenced-event-123');
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Verify all references are preserved
       expect(submittedData.metadata.relatedNewsletterIssue).toBe('newsletter-2024-08');
@@ -481,30 +592,32 @@ describe('Firebase Integration Resilience Tests', () => {
     });
 
     it('should handle database transaction rollbacks', async () => {
-      const submissionData: ContentSubmissionData = {
-        type: 'article',
+      const submissionData = createTestContentDoc({
         title: 'Transaction Test',
-        content: 'Testing transaction rollback handling',
-        category: 'test',
-        priority: 'low',
-        attachments: [],
-        metadata: {}
+        description: 'Testing transaction rollback handling',
+        tags: ['content-type:article', 'category:test', 'priority:low']
       };
 
       // Mock transaction failure
       const transactionError = new Error('ABORTED: Transaction was aborted');
-      (firestoreService.submitUserContent as any).mockRejectedValue(transactionError);
+      (firebaseContentService.createContent as any).mockRejectedValue(transactionError);
 
       // Should handle transaction failures gracefully
       await expect(
-        contentSubmissionService.submitContent(submissionData)
+        contentSubmissionService.createContent(
+        submissionData.title,
+        submissionData.description,
+        submissionData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        submissionData.features,
+        submissionData.tags
+      )
       ).rejects.toThrow(/transaction.*aborted|aborted|rollback/i);
     });
   });
 
   describe('Performance & Resource Management - SCALABILITY CRITICAL', () => {
     it('should handle large batch operations efficiently', async () => {
-      const largeSubmissionData: ContentSubmissionData = {
+      const largeSubmissionData = createTestContentDoc({
         type: 'article',
         title: 'Large Batch Test',
         content: 'A'.repeat(50000), // 50KB content
@@ -523,10 +636,16 @@ describe('Firebase Integration Resilience Tests', () => {
         }
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('large-batch-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('large-batch-123');
 
       const startTime = Date.now();
-      const result = await contentSubmissionService.submitContent(largeSubmissionData);
+      const result = await contentSubmissionService.createContent(
+        largeSubmissionData.title,
+        largeSubmissionData.description,
+        largeSubmissionData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        largeSubmissionData.features,
+        largeSubmissionData.tags
+      );
       const endTime = Date.now();
 
       expect(result).toBe('large-batch-123');
@@ -534,14 +653,14 @@ describe('Firebase Integration Resilience Tests', () => {
       // Should complete within reasonable time (5 seconds for large content)
       expect(endTime - startTime).toBeLessThan(5000);
 
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
       expect(submittedData.content).toHaveLength(50000);
       expect(submittedData.attachments).toHaveLength(10);
       expect(submittedData.metadata.tags).toHaveLength(50);
     });
 
     it('should handle memory pressure during large submissions', async () => {
-      const memoryIntensiveData: ContentSubmissionData = {
+      const memoryIntensiveData = createTestContentDoc({
         type: 'article',
         title: 'Memory Pressure Test',
         content: 'Testing memory management',
@@ -560,14 +679,20 @@ describe('Firebase Integration Resilience Tests', () => {
         }
       };
 
-      (firestoreService.submitUserContent as any).mockResolvedValue('memory-test-123');
+      (firebaseContentService.createContent as any).mockResolvedValue('memory-test-123');
 
       // Should handle large data structures without memory errors
-      const result = await contentSubmissionService.submitContent(memoryIntensiveData);
+      const result = await contentSubmissionService.createContent(
+        memoryIntensiveData.title,
+        memoryIntensiveData.description,
+        memoryIntensiveData.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        memoryIntensiveData.features,
+        memoryIntensiveData.tags
+      );
       expect(result).toBe('memory-test-123');
 
       // Verify data structure integrity is maintained
-      const submittedData = (firestoreService.submitUserContent as any).mock.calls[0][0];
+      const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
       expect(submittedData.metadata.largeDataStructure).toHaveLength(1000);
       expect(submittedData.metadata.largeDataStructure[0].data).toHaveLength(100);
     });
@@ -584,17 +709,23 @@ describe('Firebase Integration Resilience Tests', () => {
         metadata: { testIndex: i }
       }));
 
-      (firestoreService.submitUserContent as any).mockImplementation(
+      (firebaseContentService.createContent as any).mockImplementation(
         (data: any) => Promise.resolve(`pool-test-${data.metadata.testIndex}`)
       );
 
       // Submit multiple requests that should reuse connections
       const results = await Promise.all(
-        multipleSubmissions.map(data => contentSubmissionService.submitContent(data))
+        multipleSubmissions.map(data => contentSubmissionService.createContent(
+        data.title,
+        data.description,
+        data.tags.find(tag => tag.startsWith('content-type:'))?.split(':')[1] || 'article',
+        data.features,
+        data.tags
+      ))
       );
 
       expect(results).toHaveLength(20);
-      expect(firestoreService.submitUserContent).toHaveBeenCalledTimes(20);
+      expect(firebaseContentService.createContent).toHaveBeenCalledTimes(20);
 
       // This test documents that we need to verify proper connection cleanup
       // In a real implementation, we'd check connection pool metrics

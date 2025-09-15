@@ -4,7 +4,7 @@
  */
 
 import type { NewsletterMetadata } from '../../src/services/firebase-firestore.service';
-import type { NewsItem, ClassifiedAd, Event } from '../../src/types/core/content.types';
+import type { ContentDoc, ContentFeatures } from '../../src/types/core/content.types';
 import type { UserContent } from '../../src/services/firebase-firestore.service';
 
 // Newsletter Test Data - Based on Real Patterns
@@ -187,56 +187,10 @@ export const mockDisplayData = {
       category: 'event' as const,
       featured: true
     }
-  ] as NewsItem[],
+  ],
 
-  classifiedAds: [
-    {
-      id: 'classified-001',
-      title: 'Kayak for Sale',
-      description: 'Single person kayak, excellent condition, includes paddle and life vest.',
-      category: 'for-sale' as const,
-      price: '$450',
-      contact: {
-        name: 'Sarah Davis',
-        email: 'sarah.davis@example.com'
-      },
-      datePosted: '2024-08-15T10:30:00.000Z',
-      featured: false
-    },
-    {
-      id: 'classified-002',
-      title: 'Lawn Care Services',
-      description: 'Professional lawn care services available for Conashaugh Lakes residents. Weekly or bi-weekly options.',
-      category: 'services' as const,
-      contact: {
-        name: 'Green Thumb Landscaping',
-        phone: '(555) 123-4567'
-      },
-      datePosted: '2024-08-10T14:20:00.000Z',
-      featured: true
-    }
-  ] as ClassifiedAd[],
-
-  events: [
-    {
-      id: 'event-001',
-      title: 'Lakefront Movie Night',
-      description: 'Family-friendly outdoor movie screening at the lakefront. Bring blankets and snacks!',
-      date: '2024-08-25T20:00:00.000Z',
-      time: '8:00 PM',
-      location: 'Lakefront Grass Area',
-      organizer: 'Recreation Committee'
-    },
-    {
-      id: 'event-002',
-      title: 'Community Garage Sale',
-      description: 'Annual community-wide garage sale. Maps available at the clubhouse.',
-      date: '2024-09-07T08:00:00.000Z',
-      time: '8:00 AM - 4:00 PM',
-      location: 'Various Locations',
-      organizer: 'Community Board'
-    }
-  ] as Event[]
+  // Legacy data structures removed - use ContentDoc format instead
+  // All content should now use the unified ContentDoc architecture
 };
 
 // Error Scenarios for Testing Edge Cases

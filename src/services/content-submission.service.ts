@@ -819,40 +819,8 @@ class ContentSubmissionService {
     return sanitizedData;
   }
 
-  async submitContent(formData: Record<string, unknown>): Promise<string> {
-    logger.debug('Legacy submitContent called', { formData });
-
-    // Validate and sanitize the content first
-    const sanitizedData = this.validateAndSanitizeContent(formData);
-
-    // Convert sanitized data to UserContent format for legacy compatibility
-    const userContent: Omit<UserContent, 'id' | 'submissionDate' | 'status'> = {
-      type: (sanitizedData.type || sanitizedData.contentType) as UserContent['type'],
-      title: sanitizedData.title as string,
-      content: sanitizedData.content as string,
-      authorId: sanitizedData.authorId as string,
-      authorName: sanitizedData.authorName as string,
-      authorEmail: sanitizedData.authorEmail as string,
-      featured: Boolean(sanitizedData.featured),
-      tags: (sanitizedData.tags as string[]) || [],
-      onCalendar: Boolean(sanitizedData.onCalendar),
-      eventDate: sanitizedData.eventDate as string,
-      eventEndDate: sanitizedData.eventEndDate as string,
-      eventTime: sanitizedData.eventTime as string,
-      eventLocation: sanitizedData.eventLocation as string,
-      allDay: Boolean(sanitizedData.allDay),
-      attachments: [], // Empty array for legacy compatibility - no file attachments in this submission flow
-      metadata: {
-        ipAddress: (sanitizedData.metadata as Record<string, unknown>)?.ipAddress as string,
-        userAgent: (sanitizedData.metadata as Record<string, unknown>)?.userAgent as string,
-        submissionSource: 'web' as const
-      }
-    };
-
-    // For backward compatibility with tests, call the legacy firestore service
-    // This maintains the legacy behavior expected by existing tests
-    return await firestoreService.submitUserContent(userContent);
-  }
+  // Legacy submitContent method removed - use createContent instead
+  // This ensures all code uses the modern ContentDoc architecture
 
   async attachCanvaDesign(contentId: string, canvaDesign: unknown): Promise<void> {
     logger.debug('Attaching Canva design to content', { contentId, canvaDesign });
