@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}} - CLCA Editorial</title>
+  <style>
+    @page { 
+      margin: 0.75in;
+      size: letter;
+    }
+    
+    body { 
+      font-family: 'Georgia', 'Times New Roman', serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .clca-header {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1e3a5f 100%);
+      color: white;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+    }
+    
+    .clca-logo {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .issue-info {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .editorial-header {
+      border-bottom: 2px solid #2c5aa0;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    
+    .editorial-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c5aa0;
+      margin: 0 0 10px 0;
+      font-style: italic;
+    }
+    
+    .editorial-subtitle {
+      font-size: 14px;
+      color: #666;
+      font-style: italic;
+      margin: 0;
+    }
+    
+    .editorial-meta {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+    
+    .editorial-content {
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+    
+    .editorial-content p {
+      margin-bottom: 18px;
+      text-align: justify;
+    }
+    
+    .editorial-content p:first-child {
+      font-size: 16px;
+      font-weight: 500;
+      color: #2c5aa0;
+    }
+    
+    .editorial-content blockquote {
+      border-left: 4px solid #2c5aa0;
+      padding-left: 20px;
+      margin: 25px 0;
+      font-style: italic;
+      color: #555;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .editorial-signature {
+      text-align: right;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-style: italic;
+      color: #666;
+    }
+    
+    .featured-image {
+      max-width: 100%;
+      height: auto;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .clca-footer {
+      border-top: 2px solid #2c5aa0;
+      padding-top: 20px;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+    
+    @media print {
+      body { margin: 0; }
+      .clca-header { page-break-after: avoid; }
+      .editorial-content { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="clca-header">
+    <div class="clca-logo">CLCA Courier</div>
+    <div class="issue-info">{{issue.title}} • Issue {{issue.issueNumber}} • {{formatDate issue.publicationDate}}</div>
+  </div>
+
+  <div class="editorial-header">
+    <h1 class="editorial-title">{{title}}</h1>
+    <p class="editorial-subtitle">Editorial Opinion</p>
+  </div>
+
+  <div class="editorial-meta">
+    By {{author}} • {{formatDate createdAt}}
+  </div>
+
+  {{#if featuredImageUrl}}
+  <img src="{{featuredImageUrl}}" alt="{{title}}" class="featured-image" />
+  {{/if}}
+
+  <div class="editorial-content">
+    {{{content}}}
+  </div>
+
+  <div class="editorial-signature">
+    — {{author}}
+  </div>
+
+  <div class="clca-footer">
+    <p>Conashaugh Lakes Community Association Newsletter • Generated on {{formatDate now}}</p>
+  </div>
+</body>
+</html>

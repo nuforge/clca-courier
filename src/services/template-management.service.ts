@@ -6,6 +6,7 @@
  */
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
+import { firebaseApp } from '../config/firebase.config';
 import { logger } from '../utils/logger';
 
 export interface TemplateInfo {
@@ -61,7 +62,7 @@ export interface AvailableTemplatesResult {
 }
 
 class TemplateManagementService {
-  private readonly functions = getFunctions();
+  private readonly functions = getFunctions(firebaseApp, 'us-central1');
   private readonly previewTemplateCallable = httpsCallable(this.functions, 'previewTemplate');
   private readonly testTemplateCallable = httpsCallable(this.functions, 'testTemplate');
   private readonly getAvailableTemplatesCallable = httpsCallable(this.functions, 'getAvailableTemplatesList');

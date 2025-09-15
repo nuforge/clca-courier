@@ -9,11 +9,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAvailableTemplatesList = exports.testTemplate = exports.previewTemplate = exports.generateNewsletter = void 0;
+exports.getAvailableTemplatesList = exports.testTemplate = exports.previewTemplate = exports.generateNewsletter = exports.generateNewsletterHttp = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
+const auth_1 = require("firebase-admin/auth");
 const puppeteer_core_1 = __importDefault(require("puppeteer-core"));
 const chromium_1 = __importDefault(require("@sparticuz/chromium"));
 const pdf_lib_1 = require("pdf-lib");
@@ -22,6 +23,7 @@ const template_engine_1 = require("./template-engine");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 const storage = (0, storage_1.getStorage)();
+const auth = (0, auth_1.getAuth)();
 // Register Handlebars helpers
 (0, template_engine_1.registerHandlebarsHelpers)();
 /**
@@ -35,15 +37,62 @@ const storage = (0, storage_1.getStorage)();
  * 5. Uploads to Firebase Storage
  * 6. Updates the issue document with download URL
  */
-exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
-    // Authentication check
-    if (!request.auth) {
-        throw new https_1.HttpsError('unauthenticated', 'User must be authenticated');
+// HTTP version with CORS support using proper Firebase pattern
+exports.generateNewsletterHttp = (0, https_1.onRequest)({
+    memory: '1GiB' // Increase memory limit for PDF generation
+}, async (req, res) => {
+    // Set CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
     }
-    const { issueId } = request.data;
-    if (!issueId) {
-        throw new https_1.HttpsError('invalid-argument', 'Issue ID is required');
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+        res.status(405).send('Method Not Allowed');
+        return;
     }
+    try {
+        // Authentication check - verify Firebase token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ success: false, error: 'Unauthorized' });
+            return;
+        }
+        const token = authHeader.split('Bearer ')[1];
+        try {
+            await auth.verifyIdToken(token);
+        }
+        catch (error) {
+            res.status(401).json({ success: false, error: 'Invalid token' });
+            return;
+        }
+        const { issueId } = req.body;
+        if (!issueId) {
+            res.status(400).json({ success: false, error: 'Issue ID is required' });
+            return;
+        }
+        // Call the existing logic
+        const result = await generateNewsletterLogic(issueId);
+        res.status(200).json(Object.assign({ success: true }, result));
+    }
+    catch (error) {
+        console.error('Newsletter generation failed:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        // Return detailed error in development
+        const isDev = process.env.NODE_ENV !== 'production';
+        res.status(500).json(Object.assign({ success: false, error: error instanceof Error ? error.message : 'Newsletter generation failed' }, (isDev && {
+            stack: error instanceof Error ? error.stack : undefined,
+            details: error
+        })));
+    }
+});
+// Shared logic function
+async function generateNewsletterLogic(issueId) {
     const progressRef = db.collection('generation_progress').doc(issueId);
     try {
         // Update progress: Starting
@@ -55,7 +104,7 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
             timestamp: firestore_1.FieldValue.serverTimestamp()
         });
         // Fetch issue data
-        const issueDoc = await db.collection('newsletter_issues').doc(issueId).get();
+        const issueDoc = await db.collection('newsletters').doc(issueId).get();
         if (!issueDoc.exists) {
             throw new https_1.HttpsError('not-found', 'Newsletter issue not found');
         }
@@ -88,12 +137,23 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
             message: 'Generating PDF pages from content...'
         });
         // Launch Puppeteer with optimized Chromium
+        console.log('Launching Puppeteer with Chromium...');
+        console.log('Chromium args:', chromium_1.default.args);
+        console.log('Chromium executable path:', await chromium_1.default.executablePath());
         const browser = await puppeteer_core_1.default.launch({
-            args: chromium_1.default.args,
+            args: [
+                ...chromium_1.default.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process'
+            ],
             defaultViewport: chromium_1.default.defaultViewport,
             executablePath: await chromium_1.default.executablePath(),
             headless: true,
         });
+        console.log('Puppeteer browser launched successfully');
         const page = await browser.newPage();
         await page.setViewport({ width: 1200, height: 800 });
         // Generate PDF for each submission
@@ -154,7 +214,7 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
                     issueId,
                     issueTitle: issue.title,
                     generatedAt: new Date().toISOString(),
-                    generatedBy: request.auth.uid
+                    generatedBy: 'system'
                 }
             }
         });
@@ -169,12 +229,12 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
             message: 'Newsletter generation completed successfully!'
         });
         // Update issue document
-        await db.collection('newsletter_issues').doc(issueId).update({
+        await db.collection('newsletters').doc(issueId).update({
             status: 'ready',
             finalPdfUrl: publicUrl,
             finalPdfPath: fileName,
             generatedAt: firestore_1.FieldValue.serverTimestamp(),
-            generatedBy: request.auth.uid
+            generatedBy: 'system' // Will be updated by caller
         });
         return {
             success: true,
@@ -185,17 +245,45 @@ exports.generateNewsletter = (0, https_1.onCall)(async (request) => {
     }
     catch (error) {
         console.error('Newsletter generation failed:', error);
-        // Update progress with error
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        // Update progress with detailed error
         await progressRef.update({
             status: 'error',
             progress: 0,
             message: 'Newsletter generation failed',
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
+            errorStack: error instanceof Error ? error.stack : undefined
         });
         // Update issue status back to draft
-        await db.collection('newsletter_issues').doc(issueId).update({
+        await db.collection('newsletters').doc(issueId).update({
             status: 'draft'
         });
+        // Re-throw with more details
+        throw error instanceof Error ? error : new Error(String(error));
+    }
+}
+// Original callable version (keeping for compatibility)
+exports.generateNewsletter = (0, https_1.onCall)({
+    memory: '1GiB' // Increase memory limit for PDF generation
+}, async (request) => {
+    // Authentication check
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    const { issueId } = request.data;
+    if (!issueId) {
+        throw new https_1.HttpsError('invalid-argument', 'Issue ID is required');
+    }
+    try {
+        const result = await generateNewsletterLogic(issueId);
+        // Update with user ID
+        await db.collection('newsletters').doc(issueId).update({
+            generatedBy: request.auth.uid
+        });
+        return result;
+    }
+    catch (error) {
         throw new https_1.HttpsError('internal', 'Newsletter generation failed', error);
     }
 });

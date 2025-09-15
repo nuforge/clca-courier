@@ -19,11 +19,11 @@ const templateCache = new Map<string, {
 
 // Template mapping for different content types
 export const TEMPLATE_MAPPING = {
-  'news': { template: 'article.html', layout: 'standard' },
-  'event': { template: 'event.html', layout: 'compact' },
-  'story': { template: 'fullpage.html', layout: 'featured' },
-  'announcement': { template: 'announcement.html', layout: 'highlight' },
-  'opinion': { template: 'editorial.html', layout: 'standard' }
+  'news': { template: 'article', layout: 'standard' },
+  'event': { template: 'event', layout: 'compact' },
+  'story': { template: 'fullpage', layout: 'featured' },
+  'announcement': { template: 'announcement', layout: 'highlight' },
+  'opinion': { template: 'editorial', layout: 'standard' }
 } as const;
 
 /**

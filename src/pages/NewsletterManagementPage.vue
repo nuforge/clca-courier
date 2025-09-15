@@ -461,6 +461,7 @@ interface NewsletterIssue extends UnifiedNewsletter {
   status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
   submissions: string[]; // Array of content IDs for new issues
   finalPdfPath?: string; // Path to generated PDF
+  finalPdfUrl?: string; // URL to generated PDF
   type?: 'issue' | 'newsletter'; // Distinguish between new issues and existing newsletters
 }
 
@@ -519,6 +520,8 @@ const filteredIssues = computed(() => {
   switch (activeTab.value) {
     case 'draft':
       return draftIssues.value;
+    case 'ready':
+      return readyIssues.value;
     case 'published':
       return publishedIssues.value;
     case 'archived':
@@ -661,10 +664,11 @@ const layoutPages = (issue: NewsletterIssue) => {
 
 const viewNewsletter = (newsletter: NewsletterIssue) => {
   // For existing newsletters, open the PDF directly
-  if (newsletter.downloadUrl) {
-    window.open(newsletter.downloadUrl, '_blank');
+  const pdfUrl = newsletter.finalPdfUrl || newsletter.downloadUrl;
+  if (pdfUrl) {
+    window.open(pdfUrl, '_blank');
   } else {
-  $q.notify({
+    $q.notify({
       type: 'warning',
       message: 'No PDF available for this newsletter'
     });
@@ -935,9 +939,10 @@ const previewNewsletter = () => {
     return;
   }
 
-  if (selectedIssue.value.downloadUrl) {
+  const pdfUrl = selectedIssue.value.finalPdfUrl || selectedIssue.value.downloadUrl;
+  if (pdfUrl) {
     // Open the PDF in a new tab
-    window.open(selectedIssue.value.downloadUrl, '_blank');
+    window.open(pdfUrl, '_blank');
     $q.notify({
       type: 'positive',
       message: 'Newsletter preview opened in new tab'
@@ -953,8 +958,9 @@ const previewNewsletter = () => {
 
 
 const downloadPdf = (item: NewsletterIssue) => {
-  if (item.downloadUrl) {
-    window.open(item.downloadUrl, '_blank');
+  const pdfUrl = item.finalPdfUrl || item.downloadUrl;
+  if (pdfUrl) {
+    window.open(pdfUrl, '_blank');
   } else {
     $q.notify({
       type: 'warning',

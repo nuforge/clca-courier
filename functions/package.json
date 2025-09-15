@@ -2,7 +2,8 @@
   "name": "clca-courier-functions",
   "description": "Cloud Functions for CLCA Courier Newsletter Generation",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-templates",
+    "copy-templates": "node -e \"const fs=require('fs');const path=require('path');if(!fs.existsSync('lib/templates'))fs.mkdirSync('lib/templates',{recursive:true});fs.readdirSync('src/templates').forEach(f=>fs.copyFileSync(path.join('src/templates',f),path.join('lib/templates',f)))\"",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

@@ -30,6 +30,7 @@ interface NewsletterIssue extends UnifiedNewsletter {
   status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
   submissions: string[]; // Array of content IDs for new issues
   finalPdfPath?: string; // Path to generated PDF
+  finalPdfUrl?: string; // URL to generated PDF
 }
 
 export interface NewsletterSubmission {
@@ -164,7 +165,8 @@ class NewsletterGenerationService {
           // Extended fields for draft issues
           status: data.status || (data.isPublished ? 'published' : 'draft'),
           submissions: data.submissions || [],
-          finalPdfPath: data.finalPdfPath
+          finalPdfPath: data.finalPdfPath,
+          finalPdfUrl: data.finalPdfUrl
         } as NewsletterIssue;
       });
     } catch (error) {
@@ -340,6 +342,12 @@ class NewsletterGenerationService {
         throw new Error('User must be authenticated to generate newsletters');
       }
 
+      logger.info('Generating newsletter PDF with authentication', {
+        issueId,
+        userId: currentUser.uid,
+        userEmail: currentUser.email
+      });
+
       // Update issue status to generating
       const issueRef = doc(firestore, this.COLLECTIONS.ISSUES, issueId);
       await updateDoc(issueRef, {
@@ -348,16 +356,33 @@ class NewsletterGenerationService {
         updatedBy: firebaseAuthService.getCurrentUser()?.uid || 'system'
       });
 
-      // Call the Cloud Function
-      const { getFunctions, httpsCallable } = await import('firebase/functions');
-      const functions = getFunctions();
-      const generateNewsletter = httpsCallable(functions, 'generateNewsletter');
+      // Call the Cloud Function via HTTP (CORS-enabled)
+      const { firebaseAuth } = await import('../config/firebase.config');
+      const idToken = await firebaseAuth.currentUser?.getIdToken();
 
-      const result = await generateNewsletter({ issueId });
+      if (!idToken) {
+        throw new Error('User authentication token not available');
+      }
+
+      const response = await fetch('https://us-central1-clca-courier-27aed.cloudfunctions.net/generateNewsletterHttp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ issueId })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
 
       logger.info('Newsletter PDF generation initiated', {
         issueId,
-        result: result.data
+        result: result
       });
 
     } catch (error) {
