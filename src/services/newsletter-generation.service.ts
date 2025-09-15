@@ -1,8 +1,8 @@
 /**
- * Newsletter Generation Service
+ * Newsletter Generation Service - CORRECTED VERSION
  *
- * Handles the creation and management of newsletter issues from approved content submissions.
- * Integrates with existing content submission workflow and Firebase infrastructure.
+ * Uses the EXISTING 'newsletters' collection instead of creating duplicate collections.
+ * This maintains consistency with the documented architecture.
  */
 
 import {
@@ -16,7 +16,6 @@ import {
   addDoc,
   updateDoc,
   serverTimestamp,
-  type Timestamp,
   type UpdateData
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
@@ -24,20 +23,13 @@ import { firebaseAuthService } from './firebase-auth.service';
 import { logger } from '../utils/logger';
 import { normalizeDate } from '../utils/date-formatter';
 import type { ContentDoc } from '../types/core/content.types';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
-export interface NewsletterIssue {
-  id: string;
-  title: string;
-  issueNumber: string;
-  publicationDate: Date;
+// Extended UnifiedNewsletter to support draft issues
+interface NewsletterIssue extends UnifiedNewsletter {
   status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
-  submissions: string[]; // Array of content IDs
-  finalPdfUrl?: string;
-  finalPdfPath?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  createdBy: string;
-  updatedBy: string;
+  submissions: string[]; // Array of content IDs for new issues
+  finalPdfPath?: string; // Path to generated PDF
 }
 
 export interface NewsletterSubmission {
@@ -60,7 +52,7 @@ export interface GenerationProgress {
 
 class NewsletterGenerationService {
   private readonly COLLECTIONS = {
-    ISSUES: 'newsletter_issues',
+    ISSUES: 'newsletters', // Use existing newsletters collection
     SUBMISSIONS: 'content_submissions'
   } as const;
 
@@ -78,16 +70,30 @@ class NewsletterGenerationService {
         throw new Error('User must be authenticated to create newsletter issues');
       }
 
+      // Create issue data that matches the existing newsletters collection structure
       const issueData: Omit<NewsletterIssue, 'id'> = {
+        // Required NewsletterMetadata fields
+        filename: `newsletter-${issueNumber.trim()}.pdf`,
         title: title.trim(),
+        description: `Newsletter issue ${issueNumber.trim()}`,
+        publicationDate: publicationDate.toISOString(), // ISO string to match existing structure
         issueNumber: issueNumber.trim(),
-        publicationDate,
-        status: 'draft',
-        submissions: [],
-        createdAt: serverTimestamp() as Timestamp,
-        updatedAt: serverTimestamp() as Timestamp,
+        year: publicationDate.getFullYear(),
+        fileSize: 0, // Will be updated when PDF is generated
+        pageCount: 0, // Will be updated when PDF is generated
+        downloadUrl: '', // Will be updated when PDF is generated
+        storageRef: '', // Will be updated when PDF is generated
+        tags: ['newsletter', 'draft'],
+        featured: false,
+        isPublished: false, // Draft status
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         createdBy: currentUser.uid,
-        updatedBy: firebaseAuthService.getCurrentUser()?.uid || 'system'
+        updatedBy: currentUser.uid,
+
+        // Extended fields for draft issues
+        status: 'draft',
+        submissions: []
       };
 
       const docRef = await addDoc(
@@ -95,10 +101,11 @@ class NewsletterGenerationService {
         issueData
       );
 
-      logger.info('Newsletter issue created', {
+      logger.info('Newsletter issue created in existing newsletters collection', {
         issueId: docRef.id,
         title,
-        issueNumber
+        issueNumber,
+        collection: this.COLLECTIONS.ISSUES
       });
 
       return docRef.id;
@@ -126,18 +133,38 @@ class NewsletterGenerationService {
         const publicationDate = normalizeDate(data.publicationDate) || new Date();
 
         return {
+          // NewsletterMetadata fields
           id: doc.id,
+          filename: data.filename || `newsletter-${data.issueNumber || 'unknown'}.pdf`,
           title: data.title,
+          description: data.description || '',
+          publicationDate: publicationDate.toISOString(),
           issueNumber: data.issueNumber,
-          publicationDate,
-          status: data.status,
+          season: data.season,
+          year: data.year || publicationDate.getFullYear(),
+          month: data.month,
+          fileSize: data.fileSize || 0,
+          pageCount: data.pageCount || 0,
+          displayDate: data.displayDate,
+          sortValue: data.sortValue,
+          downloadUrl: data.downloadUrl || '',
+          storageRef: data.storageRef || '',
+          thumbnailUrl: data.thumbnailUrl,
+          storage: data.storage,
+          tags: data.tags || ['newsletter'],
+          featured: data.featured || false,
+          isPublished: data.isPublished || false,
+          createdAt: data.createdAt || new Date().toISOString(),
+          updatedAt: data.updatedAt || new Date().toISOString(),
+          createdBy: data.createdBy || 'system',
+          updatedBy: data.updatedBy || 'system',
+          searchableText: data.searchableText,
+          actions: data.actions,
+
+          // Extended fields for draft issues
+          status: data.status || (data.isPublished ? 'published' : 'draft'),
           submissions: data.submissions || [],
-          finalPdfUrl: data.finalPdfUrl,
-          finalPdfPath: data.finalPdfPath,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-          createdBy: data.createdBy,
-          updatedBy: data.updatedBy
+          finalPdfPath: data.finalPdfPath
         } as NewsletterIssue;
       });
     } catch (error) {
@@ -261,7 +288,7 @@ class NewsletterGenerationService {
       // Add only the fields that are provided
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.issueNumber !== undefined) updateData.issueNumber = updates.issueNumber;
-      if (updates.publicationDate !== undefined) updateData.publicationDate = updates.publicationDate;
+      if (updates.publicationDate !== undefined) updateData.publicationDate = updates.publicationDate.toISOString();
       if (updates.status !== undefined) updateData.status = updates.status;
 
       await updateDoc(issueRef, updateData);

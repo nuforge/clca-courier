@@ -33,7 +33,7 @@ console.log('🗂️  Setting up Firestore collections...');
 const firestoreIndexes = {
   "indexes": [
     {
-      "collectionGroup": "newsletter_issues",
+      "collectionGroup": "newsletters",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -239,7 +239,7 @@ firebase deploy --only functions
 Add these rules to your firestore.rules file:
 \`\`\`javascript
 // Newsletter issues - admin only
-match /newsletter_issues/{issueId} {
+match /newsletters/{issueId} {
   allow read, write: if request.auth != null;
 }
 

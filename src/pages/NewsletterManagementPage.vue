@@ -18,11 +18,11 @@
         </div>
         <div class="col-auto">
           <q-btn-group>
-            <q-btn
-              color="secondary"
-              icon="mdi-palette"
+          <q-btn
+            color="secondary"
+            icon="mdi-palette"
               label="Templates"
-              @click="showTemplateDialog = true"
+            @click="showTemplateDialog = true"
             />
             <q-btn
               color="info"
@@ -30,13 +30,13 @@
               label="Refresh"
               @click="loadData"
               :loading="isLoading"
-            />
-            <q-btn
-              color="primary"
-              icon="add"
+          />
+          <q-btn
+            color="primary"
+            icon="add"
               label="New Issue"
-              @click="showCreateDialog = true"
-            />
+            @click="showCreateDialog = true"
+          />
           </q-btn-group>
         </div>
       </div>
@@ -702,13 +702,13 @@
                             </q-btn>
 
                             <!-- Remove -->
-                            <q-btn
-                              flat
-                              dense
-                              icon="mdi-minus"
-                              color="negative"
+                          <q-btn
+                            flat
+                            dense
+                            icon="mdi-minus"
+                            color="negative"
                               size="sm"
-                              @click.stop="removeFromIssue(submissionId)"
+                            @click.stop="removeFromIssue(submissionId)"
                               :disable="selectedIssue?.type === 'newsletter'"
                             >
                               <q-tooltip>Remove</q-tooltip>
@@ -1052,36 +1052,29 @@ import { newsletterGenerationService } from '../services/newsletter-generation.s
 import { templateManagementService } from '../services/template-management.service';
 import { firestoreService } from '../services/firebase-firestore.service';
 import { normalizeDate, formatDate, sortByDateDesc } from '../utils/date-formatter';
-import type { NewsletterIssue } from '../services/newsletter-generation.service';
-import type { NewsletterMetadata } from '../services/firebase-firestore.service';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 import type { ContentDoc } from '../types/core/content.types';
 
 const $q = useQuasar();
 
-// Unified newsletter interface for display
-interface UnifiedNewsletterItem {
-  id: string;
-  title: string;
-  issueNumber: string;
-  publicationDate: Date;
+// Extended UnifiedNewsletter to support draft issues
+interface NewsletterIssue extends UnifiedNewsletter {
   status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
-  submissions: string[];
-  finalPdfUrl?: string | undefined;
+  submissions: string[]; // Array of content IDs for new issues
+  finalPdfPath?: string; // Path to generated PDF
   type: 'issue' | 'newsletter'; // Distinguish between new issues and existing newsletters
-  pageCount?: number | undefined;
-  filename?: string | undefined;
 }
 
 // State
 const isLoading = ref(false);
 const isCreating = ref(false);
-const issues = ref<UnifiedNewsletterItem[]>([]);
+const issues = ref<NewsletterIssue[]>([]);
 const approvedSubmissions = ref<ContentDoc[]>([]);
 const showCreateDialog = ref(false);
 const showEditDialog = ref(false);
 const showContentDialog = ref(false);
 const showLayoutDialog = ref(false);
-const selectedIssue = ref<UnifiedNewsletterItem | null>(null);
+const selectedIssue = ref<NewsletterIssue | null>(null);
 const isEditing = ref(false);
 
 // Filtering and tabs state
@@ -1322,46 +1315,24 @@ const getSubmissionType = (submissionId: string) => {
 const loadData = async () => {
   isLoading.value = true;
   try {
-    const [issuesData, newslettersData, submissionsData] = await Promise.all([
-      newsletterGenerationService.getIssues(),
-      firestoreService.getAllNewslettersForAdmin(),
+    // Now we only need to load from the unified newsletters collection
+    const [newslettersData, submissionsData] = await Promise.all([
+      newsletterGenerationService.getIssues(), // This now returns all newsletters (existing + new issues)
       newsletterGenerationService.getApprovedSubmissions()
     ]);
 
-    // Convert newsletter issues to unified format
-    const unifiedIssues: UnifiedNewsletterItem[] = issuesData.map((issue: NewsletterIssue) => {
+    // All newsletters are now in the same collection with consistent structure
+    issues.value = newslettersData.map((newsletter: NewsletterIssue) => {
       // Use centralized date formatter to handle all date types safely
-      const publicationDate = normalizeDate(issue.publicationDate) || new Date();
+      const publicationDate = normalizeDate(newsletter.publicationDate) || new Date();
 
       return {
-        id: issue.id,
-        title: issue.title,
-        issueNumber: issue.issueNumber,
-        publicationDate,
-        status: issue.status,
-        submissions: issue.submissions,
-        finalPdfUrl: issue.finalPdfUrl ?? undefined,
-        type: 'issue' as const
-      };
-    });
-
-    // Convert existing newsletters to unified format
-    const unifiedNewsletters: UnifiedNewsletterItem[] = newslettersData.map((newsletter: NewsletterMetadata) => ({
-      id: newsletter.id,
-      title: newsletter.title,
-      issueNumber: newsletter.issueNumber || newsletter.filename || 'Unknown',
-      publicationDate: normalizeDate(newsletter.publicationDate) || new Date(),
-      status: newsletter.isPublished ? 'published' : 'draft',
-      submissions: [], // Existing newsletters don't have submissions
-      finalPdfUrl: newsletter.downloadUrl,
-      type: 'newsletter' as const,
-      pageCount: newsletter.pageCount ?? undefined,
-      filename: newsletter.filename ?? undefined
-    }));
-
-    // Combine and sort by publication date using centralized date formatter
-    issues.value = [...unifiedIssues, ...unifiedNewsletters].sort(
-      (a, b) => sortByDateDesc(a.publicationDate, b.publicationDate)
+        ...newsletter,
+        publicationDate: publicationDate.toISOString(), // Convert to ISO string for consistency
+        type: newsletter.isPublished ? 'newsletter' as const : 'issue' as const
+      } as NewsletterIssue;
+    }).sort(
+      (a, b) => sortByDateDesc(new Date(a.publicationDate), new Date(b.publicationDate))
     );
 
     approvedSubmissions.value = submissionsData;
@@ -1411,29 +1382,29 @@ const createIssue = async () => {
   }
 };
 
-const viewIssue = (issue: UnifiedNewsletterItem) => {
+const viewIssue = (issue: NewsletterIssue) => {
   selectedIssue.value = issue;
   showContentDialog.value = true;
 };
 
-const layoutPages = (issue: UnifiedNewsletterItem) => {
+const layoutPages = (issue: NewsletterIssue) => {
   selectedIssue.value = issue;
   showLayoutDialog.value = true;
 };
 
-const viewNewsletter = (newsletter: UnifiedNewsletterItem) => {
+const viewNewsletter = (newsletter: NewsletterIssue) => {
   // For existing newsletters, open the PDF directly
-  if (newsletter.finalPdfUrl) {
-    window.open(newsletter.finalPdfUrl, '_blank');
+  if (newsletter.downloadUrl) {
+    window.open(newsletter.downloadUrl, '_blank');
   } else {
-    $q.notify({
+  $q.notify({
       type: 'warning',
       message: 'No PDF available for this newsletter'
     });
   }
 };
 
-const editIssue = (issue?: UnifiedNewsletterItem) => {
+const editIssue = (issue?: NewsletterIssue) => {
   if (issue) {
     selectedIssue.value = issue;
   }
@@ -1450,8 +1421,8 @@ const editIssue = (issue?: UnifiedNewsletterItem) => {
   editForm.value = {
     id: selectedIssue.value.id,
     title: selectedIssue.value.title,
-    issueNumber: selectedIssue.value.issueNumber,
-    publicationDate: selectedIssue.value.publicationDate.toISOString().split('T')[0] || '',
+    issueNumber: selectedIssue.value.issueNumber || '',
+    publicationDate: selectedIssue.value.publicationDate.split('T')[0] || '',
     status: selectedIssue.value.status || 'draft', // Default to draft for existing newsletters
     template: 'standard' // Default template
   };
@@ -1517,7 +1488,7 @@ const updateIssue = async () => {
   }
 };
 
-const unpublishIssue = (issue: UnifiedNewsletterItem) => {
+const unpublishIssue = (issue: NewsletterIssue) => {
   if (issue.status !== 'published') {
     $q.notify({
       type: 'warning',
@@ -1571,7 +1542,7 @@ const unpublishIssue = (issue: UnifiedNewsletterItem) => {
   });
 };
 
-const duplicateIssue = async (issue: UnifiedNewsletterItem) => {
+const duplicateIssue = async (issue: NewsletterIssue) => {
   if (issue.type !== 'issue') {
     $q.notify({
       type: 'warning',
@@ -1607,7 +1578,7 @@ const duplicateIssue = async (issue: UnifiedNewsletterItem) => {
   }
 };
 
-const deleteIssue = (issue: UnifiedNewsletterItem) => {
+const deleteIssue = (issue: NewsletterIssue) => {
   if (issue.type !== 'issue') {
     $q.notify({
       type: 'warning',
@@ -1705,7 +1676,7 @@ const moveContentDown = async (index: number) => {
   }
 };
 
-const generatePdf = (issue: UnifiedNewsletterItem) => {
+const generatePdf = (issue: NewsletterIssue) => {
   if (issue.type !== 'issue') {
     $q.notify({
       type: 'warning',
@@ -1744,27 +1715,27 @@ const generatePdf = (issue: UnifiedNewsletterItem) => {
           spinner: true
         });
 
-        await newsletterGenerationService.generateNewsletterPdf(issue.id);
+    await newsletterGenerationService.generateNewsletterPdf(issue.id);
 
         // Update notification to success
         loadingNotification();
-        $q.notify({
-          type: 'positive',
+    $q.notify({
+      type: 'positive',
           message: 'PDF generation started successfully!',
           caption: 'Check back in a few minutes for completion',
           timeout: 5000
-        });
+    });
 
-        // Reload data to show updated status
-        await loadData();
+    // Reload data to show updated status
+    await loadData();
 
         // Start polling for completion
         startProgressPolling(issue.id);
 
-      } catch (error) {
-        logger.error('Failed to generate PDF:', error);
-        $q.notify({
-          type: 'negative',
+  } catch (error) {
+    logger.error('Failed to generate PDF:', error);
+    $q.notify({
+      type: 'negative',
           message: 'Failed to start PDF generation',
           caption: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -1914,7 +1885,7 @@ const autoArrangeContent = () => {
 
   // Auto-arrange content in areas
   const submissions = selectedIssue.value.submissions;
-  submissions.forEach((submissionId, index) => {
+  submissions.forEach((submissionId: string, index: number) => {
     if (contentAreas.value[index]) {
       contentAreas.value[index].contentId = submissionId;
     }
@@ -1983,9 +1954,9 @@ const saveLayout = () => {
   }
 };
 
-const downloadPdf = (item: UnifiedNewsletterItem) => {
-  if (item.finalPdfUrl) {
-    window.open(item.finalPdfUrl, '_blank');
+const downloadPdf = (item: NewsletterIssue) => {
+  if (item.downloadUrl) {
+    window.open(item.downloadUrl, '_blank');
   } else {
     $q.notify({
       type: 'warning',
@@ -2024,7 +1995,7 @@ const removeFromIssue = async (submissionId: string) => {
 
   try {
     const updatedSubmissions = selectedIssue.value.submissions.filter(
-      id => id !== submissionId
+      (id: string) => id !== submissionId
     );
     await newsletterGenerationService.addSubmissionsToIssue(
       selectedIssue.value.id,
@@ -2087,11 +2058,11 @@ const previewTemplate = (templateName: string) => {
 
     selectedTemplatePreview.value = previewHtml;
 
-    $q.notify({
+      $q.notify({
       type: 'info',
       message: `Previewing ${templateInfo.displayName}`,
       caption: 'This is a local preview - actual templates may vary'
-    });
+      });
   } catch (error) {
     logger.error('Error previewing template:', error);
     $q.notify({
@@ -2106,7 +2077,7 @@ const testTemplate = (templateName: string) => {
     // Since the CORS-blocked service isn't available, show a helpful message
     const templateInfo = templateManagementService.getTemplateInfo(templateName);
 
-    $q.notify({
+      $q.notify({
       type: 'info',
       message: `Template Testing Not Available`,
       caption: `Template "${templateInfo.displayName}" would be tested here. CORS configuration needed for full functionality.`,

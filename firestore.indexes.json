@@ -89,20 +89,6 @@
       ]
     },
     {
-      "collectionGroup": "newsletter_issues",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "content",
       "queryScope": "COLLECTION",
       "fields": [

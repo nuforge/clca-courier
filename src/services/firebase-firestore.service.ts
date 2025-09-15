@@ -30,81 +30,10 @@ import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
 import { sortByDateDesc, sortByDateAsc } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
 import type { CanvaDesign } from '../services/canva/types';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
-// Newsletter metadata interface (Firebase Storage with future flexibility)
-export interface NewsletterMetadata {
-  id: string;
-  filename: string;
-  title: string;
-  description?: string;
-  publicationDate: string;
-  issueNumber?: string;
-  season?: 'spring' | 'summer' | 'fall' | 'winter';
-  year: number;
-  month?: number; // 1-12 for monthly newsletters
-  fileSize: number;
-  pageCount?: number;
-
-  // Enhanced date fields for better sorting and display
-  displayDate?: string; // Human-readable date (e.g., "August 2025", "Winter 2023")
-  sortValue?: number; // Numeric value for sorting (YYYYMM format)
-
-  // Current Firebase Storage implementation
-  downloadUrl: string; // Firebase Storage download URL
-  storageRef: string; // Firebase Storage path reference
-  thumbnailUrl?: string; // Optional thumbnail URL
-
-  // Future-ready storage configuration (optional)
-  storage?: {
-    primary: {
-      // Current: Firebase Storage
-      provider: 'firebase'; // Provider identifier
-      downloadUrl: string; // CDN-delivered URL
-      storageRef: string; // Storage path reference
-      fileSize: number; // File size
-    };
-    thumbnail?: {
-      // Optional thumbnail storage
-      provider: 'firebase'; // Provider identifier
-      downloadUrl: string; // Thumbnail URL
-      storageRef: string; // Thumbnail path
-    };
-    // Reserved for future multi-tier implementation
-    archive?: {
-      provider: 'b2' | 'r2' | 'spaces' | 'wasabi';
-      downloadUrl: string;
-      storageRef: string;
-      fileSize: number;
-    };
-  };
-
-  tags: string[];
-  featured: boolean;
-  isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string; // User UID
-  updatedBy: string; // User UID
-  searchableText?: string; // Extracted PDF text for search
-
-  // Action availability (future-ready)
-  actions: {
-    canView: boolean; // PDF available for viewing
-    canDownload: boolean; // PDF available for download
-    canSearch: boolean; // Text extracted and searchable
-    hasThumbnail: boolean; // Preview thumbnail available
-  };
-
-  // Optional: Original file information for re-import assistance
-  originalFileInfo?: {
-    name: string;
-    size: number;
-    lastModified: number;
-    relativePath?: string; // From folder selection
-    path?: string; // Full path if available
-    importHint?: string; // User-friendly hint about original location
-  };
-}
+// Use the canonical UnifiedNewsletter interface
+export type NewsletterMetadata = UnifiedNewsletter;
 
 // User-generated content interface
 export interface UserContent {
@@ -189,27 +118,8 @@ export interface UserProfile {
   };
 }
 
-// Newsletter issue interface (aggregates multiple content pieces)
-export interface NewsletterIssue {
-  id: string;
-  title: string;
-  description: string;
-  issueNumber: string;
-  publicationDate: string;
-  status: 'draft' | 'review' | 'published' | 'archived';
-  coverImageUrl?: string;
-  sections: Array<{
-    title: string;
-    order: number;
-    contentIds: string[]; // References to UserContent
-  }>;
-  contributors: string[]; // User UIDs
-  editorNotes?: string;
-  publishedBy?: string;
-  publishedAt?: string;
-  downloadUrl?: string;
-  storageRef?: string;
-}
+// NewsletterIssue interface is now defined in newsletter-generation.service.ts
+// This eliminates duplication and ensures consistency
 
 class FirebaseFirestoreService {
   private readonly COLLECTIONS = {
@@ -1204,10 +1114,10 @@ class FirebaseFirestoreService {
       }
 
       // Convert NewsletterMetadata to NewsletterDocument for versioning
-      const versioningUpdates: Partial<NewsletterDocument> = {
+      const versioningUpdates: any = {
         ...updates,
         // Map NewsletterMetadata to NewsletterDocument if needed
-        actions: updates.actions || {
+        actions: (updates.actions as { canView: boolean; canDownload: boolean; canSearch: boolean; hasThumbnail: boolean; }) || {
           canView: true,
           canDownload: true,
           canSearch: !!updates.searchableText,

@@ -63,7 +63,7 @@ export const generateNewsletter = onCall(async (request: any) => {
     });
 
     // Fetch issue data
-    const issueDoc = await db.collection('newsletter_issues').doc(issueId).get();
+    const issueDoc = await db.collection('newsletters').doc(issueId).get();
     if (!issueDoc.exists) {
       throw new HttpsError('not-found', 'Newsletter issue not found');
     }
@@ -205,7 +205,7 @@ export const generateNewsletter = onCall(async (request: any) => {
     });
 
     // Update issue document
-    await db.collection('newsletter_issues').doc(issueId).update({
+    await db.collection('newsletters').doc(issueId).update({
       status: 'ready',
       finalPdfUrl: publicUrl,
       finalPdfPath: fileName,
@@ -232,7 +232,7 @@ export const generateNewsletter = onCall(async (request: any) => {
     });
 
     // Update issue status back to draft
-    await db.collection('newsletter_issues').doc(issueId).update({
+    await db.collection('newsletters').doc(issueId).update({
       status: 'draft'
     });
 

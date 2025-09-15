@@ -122,7 +122,7 @@ describe('NewsletterGenerationService', () => {
 
       const result = await service.createIssue(issueData);
 
-      expect(mockCollection).toHaveBeenCalledWith('newsletter_issues');
+      expect(mockCollection).toHaveBeenCalledWith('newsletters');
       expect(mockAddDoc).toHaveBeenCalledWith(
         expect.objectContaining({
           title: issueData.title,
@@ -236,7 +236,7 @@ describe('NewsletterGenerationService', () => {
 
       const result = await service.getIssues();
 
-      expect(mockCollection).toHaveBeenCalledWith('newsletter_issues');
+      expect(mockCollection).toHaveBeenCalledWith('newsletters');
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('issue1');
       expect(result[1].id).toBe('issue2');
@@ -322,7 +322,7 @@ describe('NewsletterGenerationService', () => {
 
       const result = await service.getIssue('issue1');
 
-      expect(mockDoc).toHaveBeenCalledWith('newsletter_issues', 'issue1');
+      expect(mockDoc).toHaveBeenCalledWith('newsletters', 'issue1');
       expect(result).toBeDefined();
       expect(result?.id).toBe('issue1');
     });
@@ -366,7 +366,7 @@ describe('NewsletterGenerationService', () => {
 
       await service.updateIssue('issue1', updateData);
 
-      expect(mockDoc).toHaveBeenCalledWith('newsletter_issues', 'issue1');
+      expect(mockDoc).toHaveBeenCalledWith('newsletters', 'issue1');
       expect(mockUpdateDoc).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
@@ -412,7 +412,7 @@ describe('NewsletterGenerationService', () => {
 
       await service.deleteIssue('issue1');
 
-      expect(mockDoc).toHaveBeenCalledWith('newsletter_issues', 'issue1');
+      expect(mockDoc).toHaveBeenCalledWith('newsletters', 'issue1');
       expect(mockDeleteDoc).toHaveBeenCalled();
     });
 
