@@ -11,7 +11,7 @@
 - **Translation functions** - $t() for all user-facing text
 - **Firebase-first** - All data from Firestore/Auth
 - **Existing auth flow** - Build on Google OAuth system
-- **RESEARCH API ENDPOINTS** - DO NOT TRY TO CREATE A CONNECTION TO AN API WITHOUT RESEARCHING THE ACTUAL ENDPOINTS!!!
+- **Check for Official Documentation Online** - Do not guess, search!
 
 ## 🚫 ABSOLUTE PROHIBITIONS
 - Hardcoded role assignments
