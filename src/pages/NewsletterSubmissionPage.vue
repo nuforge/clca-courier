@@ -295,12 +295,20 @@ const loadAvailableTemplates = async () => {
   try {
     const result = await templateManagementService.getAvailableTemplates();
     if (result.success && result.templates.length > 0) {
-      // Convert service response to component format
-      templateOptions.value = result.templates.map(template => ({
-        label: template.displayName || template.name,
-        value: template.name,
-        description: template.description || 'Template for newsletter content'
-      }));
+      // Convert service response (string[]) to component format
+      const humanize = (name: string): string =>
+        name
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      templateOptions.value = result.templates.map((templateName: string) => {
+        const mapping = result.templateMapping?.[templateName];
+        return {
+          label: humanize(templateName),
+          value: templateName,
+          description: mapping?.layout ? `Layout: ${mapping.layout}` : 'Template for newsletter content'
+        };
+      });
     } else {
       // Fallback to hardcoded templates if service fails
       templateOptions.value = [
