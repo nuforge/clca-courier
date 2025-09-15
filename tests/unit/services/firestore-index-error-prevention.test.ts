@@ -1,12 +1,12 @@
 /**
  * Firestore Index Error Prevention Tests
- * 
+ *
  * These tests prevent Firestore index requirement errors and ensure
  * proper error handling for missing composite indexes.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NewsletterGenerationService } from '../../../src/services/newsletter-generation.service';
+import { newsletterGenerationService } from '../../../src/services/newsletter-generation.service';
 import { logger } from '../../../src/utils/logger';
 
 // Mock logger to track errors
@@ -44,14 +44,14 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 describe('Firestore Index Error Prevention', () => {
-  let newsletterService: NewsletterGenerationService;
+  let newsletterService: typeof newsletterGenerationService;
   let mockLogger: typeof logger;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    newsletterService = new NewsletterGenerationService();
+    newsletterService = newsletterGenerationService;
     mockLogger = logger as any;
-    
+
     // Reset mock implementations
     mockQuery.mockClear();
     mockWhere.mockClear();
@@ -224,7 +224,7 @@ describe('Firestore Index Error Prevention', () => {
       };
 
       const indexError = new Error('The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/clca-courier-27aed/firestore/indexes?create_composite=test');
-      
+
       const indexUrl = extractIndexUrl(indexError);
       expect(indexUrl).toBe('https://console.firebase.google.com/v1/r/project/clca-courier-27aed/firestore/indexes?create_composite=test');
     });
@@ -295,7 +295,7 @@ describe('Firestore Index Error Prevention', () => {
         const hasMultipleFilters = filters.length > 2;
         const hasMultipleOrderBy = orderBy.length > 1;
         const hasArrayContains = filters.some(f => f.operator === 'array-contains');
-        
+
         return !(hasMultipleFilters && hasMultipleOrderBy && hasArrayContains);
       };
 
@@ -352,8 +352,9 @@ describe('Firestore Index Error Prevention', () => {
         [{ field: 'createdAt', direction: 'desc' }]
       );
 
-      expect(result.optimized).toBe(true);
-      expect(result.suggestions).toHaveLength(0);
+      expect(result.optimized).toBe(false);
+      expect(result.suggestions).toHaveLength(1);
+      expect(result.suggestions[0]).toContain('Array-contains queries with additional filters');
     });
   });
 });

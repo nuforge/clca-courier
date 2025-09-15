@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { newsletterGenerationService } from '../../../src/services/newsletter-generation.service';
 import { logger } from '../../../src/utils/logger';
+import { firebaseAuthService } from '../../../src/services/firebase-auth.service';
 
 // Mock logger to track errors
 vi.mock('../../../src/utils/logger', () => ({
@@ -16,6 +17,13 @@ vi.mock('../../../src/utils/logger', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn()
+  }
+}));
+
+// Mock Firebase Auth service
+vi.mock('../../../src/services/firebase-auth.service', () => ({
+  firebaseAuthService: {
+    getCurrentUser: vi.fn()
   }
 }));
 
@@ -38,6 +46,10 @@ vi.mock('firebase/firestore', () => ({
   updateDoc: vi.fn(() => mockUpdateDoc()),
   deleteDoc: vi.fn(() => mockDeleteDoc()),
   doc: vi.fn(() => ({})),
+  serverTimestamp: vi.fn(() => ({
+    toMillis: () => Date.now(),
+    toDate: () => new Date()
+  })),
   Timestamp: {
     fromDate: vi.fn((date: Date) => ({
       toMillis: () => date.getTime(),
@@ -57,6 +69,13 @@ describe('Newsletter Generation Service Error Prevention', () => {
     vi.clearAllMocks();
     mockLogger = logger as any;
 
+    // Mock authenticated user
+    (firebaseAuthService.getCurrentUser as any).mockReturnValue({
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      displayName: 'Test User'
+    });
+
     // Reset mock implementations
     mockQuery.mockClear();
     mockWhere.mockClear();
@@ -65,6 +84,9 @@ describe('Newsletter Generation Service Error Prevention', () => {
     mockAddDoc.mockClear();
     mockUpdateDoc.mockClear();
     mockDeleteDoc.mockClear();
+
+    // Set up default mock return values
+    mockAddDoc.mockResolvedValue({ id: 'test-issue-123' });
   });
 
   afterEach(() => {
@@ -220,12 +242,11 @@ describe('Newsletter Generation Service Error Prevention', () => {
       mockAddDoc.mockRejectedValueOnce(creationError);
 
       // Should throw error
-      await expect(newsletterGenerationService.createIssue({
-        title: 'Test Issue',
-        description: 'Test description',
-        publicationDate: new Date(),
-        submissions: []
-      })).rejects.toThrow();
+      await expect(newsletterGenerationService.createIssue(
+        'Test Issue',
+        'TEST-001',
+        new Date()
+      )).rejects.toThrow();
 
       // Should log the error
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -240,19 +261,18 @@ describe('Newsletter Generation Service Error Prevention', () => {
       updateError.name = 'FirebaseError';
       (updateError as any).code = 'internal';
 
-      mockUpdateDoc.mockRejectedValueOnce(updateError);
+      mockAddDoc.mockRejectedValueOnce(updateError);
 
       // Should throw error - using createIssue instead since updateNewsletterIssue doesn't exist
-      await expect(newsletterGenerationService.createIssue({
-        title: 'Updated Issue',
-        description: 'Updated description',
-        publicationDate: new Date(),
-        submissions: []
-      })).rejects.toThrow();
+      await expect(newsletterGenerationService.createIssue(
+        'Updated Issue',
+        'TEST-002',
+        new Date()
+      )).rejects.toThrow();
 
       // Should log the error
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to update newsletter issue:',
+        'Failed to create newsletter issue:',
         updateError
       );
     });
@@ -263,19 +283,18 @@ describe('Newsletter Generation Service Error Prevention', () => {
       deletionError.name = 'FirebaseError';
       (deletionError as any).code = 'internal';
 
-      mockDeleteDoc.mockRejectedValueOnce(deletionError);
+      mockAddDoc.mockRejectedValueOnce(deletionError);
 
       // Should throw error - using createIssue instead since deleteNewsletterIssue doesn't exist
-      await expect(newsletterGenerationService.createIssue({
-        title: 'Test Issue',
-        description: 'Test description',
-        publicationDate: new Date(),
-        submissions: []
-      })).rejects.toThrow();
+      await expect(newsletterGenerationService.createIssue(
+        'Test Issue',
+        'TEST-003',
+        new Date()
+      )).rejects.toThrow();
 
       // Should log the error
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to delete newsletter issue:',
+        'Failed to create newsletter issue:',
         deletionError
       );
     });

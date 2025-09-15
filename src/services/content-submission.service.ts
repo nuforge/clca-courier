@@ -129,8 +129,11 @@ class ContentSubmissionService {
         featuresKeys: Object.keys(contentDoc.features)
       });
 
-      // Use the new Firebase ContentDoc service
-      const contentId = await firebaseContentService.createContent(contentDoc);
+      // Use the new Firebase ContentDoc service with retry logic
+      const contentId = await this.retryFirebaseOperation(
+        () => firebaseContentService.createContent(contentDoc),
+        'createContent'
+      );
 
       logger.info('Content successfully created in ContentDoc collection', {
         contentId,
@@ -393,6 +396,26 @@ class ContentSubmissionService {
       }
       if (dateFeature.end && dateFeature.start && dateFeature.end.toMillis() < dateFeature.start.toMillis()) {
         errors.push('Event end time cannot be before start time');
+      }
+
+      // Validate recurrence if present
+      if (dateFeature.recurrence) {
+        const recurrence = dateFeature.recurrence;
+        const validFrequencies = ['daily', 'weekly', 'monthly', 'yearly'];
+        const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+        if (!validFrequencies.includes(recurrence.frequency)) {
+          errors.push('Invalid recurrence frequency');
+        }
+        if (recurrence.interval && recurrence.interval <= 0) {
+          errors.push('Invalid recurrence interval');
+        }
+        if (recurrence.days && !recurrence.days.every(day => validDays.includes(day))) {
+          errors.push('Invalid recurrence days');
+        }
+        if (recurrence.endDate && dateFeature.start && recurrence.endDate.toMillis() < dateFeature.start.toMillis()) {
+          errors.push('Invalid recurrence end date');
+        }
       }
     }
 
@@ -856,6 +879,60 @@ class ContentSubmissionService {
       logger.error('Failed to attach Canva design', { contentId, error });
       throw new Error('Firestore update failed');
     }
+  }
+
+  /**
+   * Retry Firebase operations for transient failures
+   */
+  private async retryFirebaseOperation<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    maxRetries: number = 3
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+
+        // Check if this is a retryable error
+        if (this.isRetryableError(lastError) && attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+          logger.warn(`Retrying ${operationName} after transient failure`, {
+            attempt,
+            maxRetries,
+            delay,
+            error: lastError.message
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        // If not retryable or max retries reached, throw the error
+        throw lastError;
+      }
+    }
+
+    throw lastError!;
+  }
+
+  /**
+   * Check if an error is retryable (transient Firebase errors)
+   */
+  private isRetryableError(error: Error): boolean {
+    const retryablePatterns = [
+      /UNAVAILABLE/i,
+      /DEADLINE_EXCEEDED/i,
+      /RESOURCE_EXHAUSTED/i,
+      /ABORTED/i,
+      /INTERNAL/i,
+      /NETWORK/i,
+      /TIMEOUT/i
+    ];
+
+    return retryablePatterns.some(pattern => pattern.test(error.message));
   }
 }
 

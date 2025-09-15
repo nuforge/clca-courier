@@ -1,0 +1,178 @@
+name: Firebase Functions Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/firebase-functions-test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/firebase-functions-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: functions/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd functions
+        npm ci
+        
+    - name: Build TypeScript
+      run: |
+        cd functions
+        npm run build
+        
+    - name: Run unit tests
+      run: |
+        cd functions
+        npm run test:unit
+        
+    - name: Run integration tests
+      run: |
+        cd functions
+        npm run test:integration
+        
+    - name: Run error handling tests
+      run: |
+        cd functions
+        npm run test:error
+        
+    - name: Run all tests with coverage
+      run: |
+        cd functions
+        npm run test:coverage
+        
+    - name: Upload coverage to Codecov
+      if: matrix.node-version == 20
+      uses: codecov/codecov-action@v4
+      with:
+        file: functions/coverage/lcov.info
+        flags: firebase-functions
+        name: firebase-functions-coverage
+        fail_ci_if_error: false
+        
+    - name: Generate test report
+      if: matrix.node-version == 20
+      run: |
+        cd functions
+        npm run test:report
+        
+    - name: Upload test artifacts
+      if: matrix.node-version == 20
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: functions/test-reports/
+        retention-days: 30
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: functions/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd functions
+        npm ci
+        
+    - name: Run security audit
+      run: |
+        cd functions
+        npm audit --audit-level=moderate
+        
+    - name: Check for known vulnerabilities
+      run: |
+        cd functions
+        npx audit-ci --config audit-ci.json || true
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: functions/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd functions
+        npm ci
+        
+    - name: Run TypeScript compiler check
+      run: |
+        cd functions
+        npx tsc --noEmit
+        
+    - name: Run ESLint
+      run: |
+        cd functions
+        npx eslint src/**/*.ts --ext .ts || true
+
+  performance:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: functions/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd functions
+        npm ci
+        
+    - name: Build TypeScript
+      run: |
+        cd functions
+        npm run build
+        
+    - name: Run performance tests
+      run: |
+        cd functions
+        npm run test:performance || true
+        
+    - name: Check bundle size
+      run: |
+        cd functions
+        du -sh lib/ || true
+        find lib/ -name "*.js" -exec wc -c {} + | tail -1 || true

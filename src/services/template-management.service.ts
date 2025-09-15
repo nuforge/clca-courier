@@ -72,7 +72,10 @@ class TemplateManagementService {
   async getAvailableTemplates(): Promise<AvailableTemplatesResult> {
     try {
       const result = await this.getAvailableTemplatesCallable();
-      return result.data as AvailableTemplatesResult;
+      if (result && !result.data) {
+        throw new Error('Invalid response from template service');
+      }
+      return result?.data as AvailableTemplatesResult;
     } catch (error) {
       logger.error('Failed to get available templates:', error);
       return {
@@ -93,7 +96,10 @@ class TemplateManagementService {
         templateName,
         contentData
       });
-      return result.data as TemplatePreviewResult;
+      if (result && !result.data) {
+        throw new Error('Invalid response from template service');
+      }
+      return result?.data as TemplatePreviewResult;
     } catch (error) {
       logger.error('Failed to preview template:', error);
       return {
@@ -113,7 +119,10 @@ class TemplateManagementService {
         templateName,
         testData
       });
-      return result.data as TemplateTestResult;
+      if (result && !result.data) {
+        throw new Error('Invalid response from template service');
+      }
+      return result?.data as TemplateTestResult;
     } catch (error) {
       logger.error('Failed to test template:', error);
       return {

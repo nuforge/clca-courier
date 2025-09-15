@@ -306,12 +306,15 @@ describe('Component Error Boundaries and Edge Cases', () => {
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      try {
-        await wrapper.find('.q-card').trigger('click');
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Component click error');
-      }
+      // The click will trigger an error that gets logged to console
+      // We can't catch it as a promise rejection, but we can verify it was logged
+      await wrapper.find('.q-card').trigger('click');
+
+      // The error should be logged to console
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Component click error'),
+        expect.any(Error)
+      );
 
       consoleSpy.mockRestore();
     });
