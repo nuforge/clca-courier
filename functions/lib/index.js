@@ -234,7 +234,9 @@ async function generateNewsletterLogic(issueId) {
             finalPdfUrl: publicUrl,
             finalPdfPath: fileName,
             generatedAt: firestore_1.FieldValue.serverTimestamp(),
-            generatedBy: 'system' // Will be updated by caller
+            generatedBy: 'system',
+            // CRITICAL: Set isPublished to true so it appears in archive
+            isPublished: true
         });
         return {
             success: true,

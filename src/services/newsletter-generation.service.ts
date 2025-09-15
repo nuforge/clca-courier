@@ -127,7 +127,7 @@ class NewsletterGenerationService {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
+      return querySnapshot?.docs?.map(doc => {
         const data = doc.data();
 
         // Use centralized date formatter to handle all date types safely
@@ -168,7 +168,7 @@ class NewsletterGenerationService {
           finalPdfPath: data.finalPdfPath,
           finalPdfUrl: data.finalPdfUrl
         } as NewsletterIssue;
-      });
+      }) || [];
     } catch (error) {
       logger.error('Failed to fetch newsletter issues:', error);
       throw error;
@@ -190,10 +190,10 @@ class NewsletterGenerationService {
       );
 
       const querySnapshot = await getDocs(q);
-      const publishedContent = querySnapshot.docs.map(doc => ({
+      const publishedContent = querySnapshot?.docs?.map(doc => ({
         id: doc.id,
         ...doc.data()
-      } as ContentDoc));
+      } as ContentDoc)) || [];
 
       // Filter for newsletter-ready content on the client side
       const newsletterReadyContent = publishedContent.filter(content =>
@@ -208,10 +208,10 @@ class NewsletterGenerationService {
       );
 
       const legacySnapshot = await getDocs(legacyQuery);
-      const legacyApproved = legacySnapshot.docs.map(doc => ({
+      const legacyApproved = legacySnapshot?.docs?.map(doc => ({
         id: doc.id,
         ...doc.data()
-      } as ContentDoc));
+      } as ContentDoc)) || [];
 
       const legacyNewsletterReady = legacyApproved.filter(content =>
         content.tags.includes('newsletter:ready')
@@ -291,13 +291,27 @@ class NewsletterGenerationService {
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.issueNumber !== undefined) updateData.issueNumber = updates.issueNumber;
       if (updates.publicationDate !== undefined) updateData.publicationDate = updates.publicationDate.toISOString();
-      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.status !== undefined) {
+        updateData.status = updates.status;
+
+        // CRITICAL: Sync status with isPublished field for archive compatibility
+        if (updates.status === 'published') {
+          updateData.isPublished = true;
+        } else if (updates.status === 'draft' || updates.status === 'archived') {
+          updateData.isPublished = false;
+        }
+        // For 'ready' and 'generating', keep isPublished as is
+      }
 
       await updateDoc(issueRef, updateData);
 
       logger.info('Issue updated successfully', {
         issueId,
-        updates: Object.keys(updateData)
+        updates: Object.keys(updateData),
+        statusChange: updates.status ? {
+          newStatus: updates.status,
+          isPublishedSet: updates.status === 'published' ? true : updates.status === 'draft' || updates.status === 'archived' ? false : 'unchanged'
+        } : 'no status change'
       });
 
     } catch (error) {

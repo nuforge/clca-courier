@@ -285,7 +285,9 @@ async function generateNewsletterLogic(issueId: string): Promise<any> {
       finalPdfUrl: publicUrl,
       finalPdfPath: fileName,
       generatedAt: FieldValue.serverTimestamp(),
-      generatedBy: 'system' // Will be updated by caller
+      generatedBy: 'system', // Will be updated by caller
+      // CRITICAL: Set isPublished to true so it appears in archive
+      isPublished: true
     });
 
     return {
