@@ -286,7 +286,7 @@ describe('Firebase Integration Resilience Tests', () => {
         title: 'Collection Test',
         description: 'Testing collection validation',
         tags: ['content-type:article', 'category:test', 'priority:low']
-      };
+      });
 
       // Mock collection not found error
       const collectionError = new Error('NOT_FOUND: Collection "userContent" not found');
@@ -320,7 +320,7 @@ describe('Firebase Integration Resilience Tests', () => {
         eventTime: '14:00',
         eventEndTime: '13:00', // End time before start time!
         metadata: {}
-      };
+      });
 
       // Should validate that end dates/times are after start dates/times
       await expect(
@@ -350,7 +350,7 @@ describe('Firebase Integration Resilience Tests', () => {
           timezone: 'America/New_York',
           originalSubmissionTimezone: 'UTC'
         }
-      };
+      });
 
       (firebaseContentService.createContent as any).mockResolvedValue('timezone-event-123');
 
@@ -365,8 +365,8 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Verify timezone information is preserved for calendar integration
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
-      expect(submittedData.metadata.timezone).toBe('America/New_York');
-      expect(submittedData.metadata.originalSubmissionTimezone).toBe('UTC');
+      expect(submittedData.features['feat:date']?.timezone).toBe('America/New_York');
+      expect(submittedData.features['feat:date']?.originalSubmissionTimezone).toBe('UTC');
     });
 
     it('should validate recurring event configurations', async () => {
@@ -387,7 +387,7 @@ describe('Firebase Integration Resilience Tests', () => {
           daysOfWeek: [8, 9] // Invalid: days 8-9 don't exist
         },
         metadata: {}
-      };
+      });
 
       // Should validate recurrence configuration
       await expect(
@@ -415,7 +415,7 @@ describe('Firebase Integration Resilience Tests', () => {
         eventEndTime: '16:00',
         eventLocation: 'Community Center - Main Hall',
         metadata: {}
-      };
+      });
 
       // Mock existing event conflict
       const conflictError = new Error('CONFLICT: Event conflicts with existing booking');
@@ -448,7 +448,7 @@ describe('Firebase Integration Resilience Tests', () => {
         eventTime: '14:00',
         eventEndTime: '16:00',
         metadata: {}
-      };
+      });
 
       (firebaseContentService.createContent as any).mockResolvedValue('allday-event-123');
 
@@ -464,7 +464,7 @@ describe('Firebase Integration Resilience Tests', () => {
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // For all-day events, specific times should be cleared or ignored
-      expect(submittedData.allDay).toBe(true);
+      expect(submittedData.features['feat:date']?.isAllDay).toBe(true);
       // Time fields should either be undefined or set to default all-day values
       expect(
         submittedData.eventTime === undefined ||
@@ -534,7 +534,7 @@ describe('Firebase Integration Resilience Tests', () => {
         onCalendar: true,
         eventDate: '2024-08-20',
         metadata: {}
-      };
+      });
 
       // Mock partial failure - content saves but attachment upload fails
       const partialError = new Error('ATTACHMENT_UPLOAD_FAILED: Could not upload attachment-1');
@@ -570,7 +570,7 @@ describe('Firebase Integration Resilience Tests', () => {
           relatedAnnouncements: ['announcement-1', 'announcement-2'],
           parentEvent: 'annual-picnic-2024'
         }
-      };
+      });
 
       (firebaseContentService.createContent as any).mockResolvedValue('referenced-event-123');
 
@@ -586,9 +586,9 @@ describe('Firebase Integration Resilience Tests', () => {
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
 
       // Verify all references are preserved
-      expect(submittedData.metadata.relatedNewsletterIssue).toBe('newsletter-2024-08');
-      expect(submittedData.metadata.relatedAnnouncements).toEqual(['announcement-1', 'announcement-2']);
-      expect(submittedData.metadata.parentEvent).toBe('annual-picnic-2024');
+      expect(submittedData.features['feat:reference']?.relatedNewsletterIssue).toBe('newsletter-2024-08');
+      expect(submittedData.features['feat:reference']?.relatedAnnouncements).toEqual(['announcement-1', 'announcement-2']);
+      expect(submittedData.features['feat:reference']?.parentEvent).toBe('annual-picnic-2024');
     });
 
     it('should handle database transaction rollbacks', async () => {
@@ -596,7 +596,7 @@ describe('Firebase Integration Resilience Tests', () => {
         title: 'Transaction Test',
         description: 'Testing transaction rollback handling',
         tags: ['content-type:article', 'category:test', 'priority:low']
-      };
+      });
 
       // Mock transaction failure
       const transactionError = new Error('ABORTED: Transaction was aborted');
@@ -634,7 +634,7 @@ describe('Firebase Integration Resilience Tests', () => {
           tags: Array.from({ length: 50 }, (_, i) => `tag-${i}`),
           categories: Array.from({ length: 20 }, (_, i) => `category-${i}`)
         }
-      };
+      });
 
       (firebaseContentService.createContent as any).mockResolvedValue('large-batch-123');
 
@@ -654,9 +654,9 @@ describe('Firebase Integration Resilience Tests', () => {
       expect(endTime - startTime).toBeLessThan(5000);
 
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
-      expect(submittedData.content).toHaveLength(50000);
-      expect(submittedData.attachments).toHaveLength(10);
-      expect(submittedData.metadata.tags).toHaveLength(50);
+      expect(submittedData.description).toHaveLength(50000);
+      expect(submittedData.features['feat:attachment']?.attachments).toHaveLength(10);
+      expect(submittedData.tags).toHaveLength(50);
     });
 
     it('should handle memory pressure during large submissions', async () => {
@@ -677,7 +677,7 @@ describe('Firebase Integration Resilience Tests', () => {
             }
           }))
         }
-      };
+      });
 
       (firebaseContentService.createContent as any).mockResolvedValue('memory-test-123');
 
@@ -693,8 +693,8 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Verify data structure integrity is maintained
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
-      expect(submittedData.metadata.largeDataStructure).toHaveLength(1000);
-      expect(submittedData.metadata.largeDataStructure[0].data).toHaveLength(100);
+      expect(submittedData.features['feat:data']?.largeDataStructure).toHaveLength(1000);
+      expect(submittedData.features['feat:data']?.largeDataStructure[0].data).toHaveLength(100);
     });
 
     it('should implement proper connection pooling and cleanup', async () => {

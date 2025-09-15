@@ -71,8 +71,12 @@ class ContentSubmissionService {
     });
 
     try {
+      // Sanitize input data before processing
+      const sanitizedTitle = this.sanitizeText(title, 'title');
+      const sanitizedDescription = this.sanitizeText(description, 'content');
+
       // Validate input data before processing
-      const validation = this.validateContentData(title, description, features);
+      const validation = this.validateContentData(sanitizedTitle, sanitizedDescription, features);
       if (!validation.isValid) {
         const errorMessage = `Content validation failed: ${validation.errors.join(', ')}`;
         logger.error(errorMessage, { validation });
@@ -97,14 +101,15 @@ class ContentSubmissionService {
       }
 
       // Build tags array - always starts with content-type tag
-      const tags = [`content-type:${contentType.trim()}`, ...additionalTags];
+      const sanitizedAdditionalTags = additionalTags.map(tag => this.sanitizeText(tag, 'metadata'));
+      const tags = [`content-type:${contentType.trim()}`, ...sanitizedAdditionalTags];
 
       logger.debug('Content tags prepared', { tags });
 
       // Create ContentDoc using the factory function
       const contentDoc = createContentDoc({
-        title: title.trim(),
-        description: description.trim(),
+        title: sanitizedTitle.trim(),
+        description: sanitizedDescription.trim(),
         authorId: currentUser.uid,
         authorName: currentUser.displayName || 'Unknown User',
         tags,
@@ -331,6 +336,18 @@ class ContentSubmissionService {
       features,
       additionalTags
     );
+  }
+
+  /**
+   * Sanitize text content to prevent XSS attacks.
+   *
+   * @param text - Text to sanitize
+   * @param type - Type of content (title, content, etc.)
+   * @returns Sanitized text
+   */
+  private sanitizeText(text: string, type: 'title' | 'content' | 'location' | 'metadata'): string {
+    const result = sanitizeAndValidate(text, SANITIZATION_CONFIGS[type.toUpperCase() as keyof typeof SANITIZATION_CONFIGS]);
+    return result.sanitizedValue;
   }
 
   /**
