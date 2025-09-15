@@ -21,6 +21,7 @@ import {
 import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
 import { logger } from '../utils/logger';
+import { normalizeDate } from '../utils/date-formatter';
 import type { ContentDoc } from '../types/core/content.types';
 
 export interface NewsletterIssue {
@@ -117,10 +118,27 @@ class NewsletterGenerationService {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as NewsletterIssue));
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+
+        // Use centralized date formatter to handle all date types safely
+        const publicationDate = normalizeDate(data.publicationDate) || new Date();
+
+        return {
+          id: doc.id,
+          title: data.title,
+          issueNumber: data.issueNumber,
+          publicationDate,
+          status: data.status,
+          submissions: data.submissions || [],
+          finalPdfUrl: data.finalPdfUrl,
+          finalPdfPath: data.finalPdfPath,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          createdBy: data.createdBy,
+          updatedBy: data.updatedBy
+        } as NewsletterIssue;
+      });
     } catch (error) {
       logger.error('Failed to fetch newsletter issues:', error);
       throw error;

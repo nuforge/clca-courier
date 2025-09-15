@@ -90,6 +90,16 @@
             flat
             bordered
           >
+            <template v-slot:body-cell-type="props">
+              <q-td :props="props">
+                <q-badge
+                  :color="props.value === 'issue' ? 'primary' : 'secondary'"
+                  :label="props.value === 'issue' ? 'New Issue' : 'Newsletter'"
+                  :icon="props.value === 'issue' ? 'mdi-plus-circle' : 'mdi-newspaper-variant'"
+                />
+              </q-td>
+            </template>
+
             <template v-slot:body-cell-status="props">
               <q-td :props="props">
                 <q-badge
@@ -109,7 +119,9 @@
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <div class="row q-gutter-xs">
+                  <!-- View Content - only for new issues with submissions -->
                   <q-btn
+                    v-if="props.row.type === 'issue'"
                     flat
                     dense
                     size="sm"
@@ -121,7 +133,9 @@
                     <q-tooltip>View Content</q-tooltip>
                   </q-btn>
 
+                  <!-- Edit Issue - only for new issues -->
                   <q-btn
+                    v-if="props.row.type === 'issue'"
                     flat
                     dense
                     size="sm"
@@ -132,7 +146,9 @@
                     <q-tooltip>Edit Issue</q-tooltip>
                   </q-btn>
 
+                  <!-- Generate PDF - only for new issues -->
                   <q-btn
+                    v-if="props.row.type === 'issue'"
                     flat
                     dense
                     size="sm"
@@ -145,6 +161,7 @@
                     <q-tooltip>Generate PDF</q-tooltip>
                   </q-btn>
 
+                  <!-- Download PDF - for both types if PDF exists -->
                   <q-btn
                     v-if="props.row.finalPdfUrl"
                     flat
@@ -155,6 +172,19 @@
                     @click="downloadPdf(props.row)"
                   >
                     <q-tooltip>Download PDF</q-tooltip>
+                  </q-btn>
+
+                  <!-- View Newsletter - for existing newsletters -->
+                  <q-btn
+                    v-if="props.row.type === 'newsletter'"
+                    flat
+                    dense
+                    size="sm"
+                    icon="mdi-eye"
+                    color="primary"
+                    @click="viewNewsletter(props.row)"
+                  >
+                    <q-tooltip>View Newsletter</q-tooltip>
                   </q-btn>
                 </div>
               </q-td>
@@ -224,6 +254,9 @@
             <div class="text-h6">
               <q-icon name="mdi-newspaper-variant" class="q-mr-sm" />
               {{ selectedIssue?.title }} - Content Management
+              <q-badge v-if="selectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
+                Read-only (Existing Newsletter)
+              </q-badge>
             </div>
             <q-space />
             <q-btn icon="close" flat round dense v-close-popup />
@@ -238,6 +271,9 @@
                     <div class="text-h6 q-mb-md">
                       <q-icon name="mdi-file-document-outline" class="q-mr-sm" />
                       Available Content
+                      <q-badge v-if="selectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
+                        Not applicable for existing newsletters
+                      </q-badge>
                     </div>
 
                     <q-list separator>
@@ -246,7 +282,7 @@
                         :key="submission.id"
                         clickable
                         @click="addToIssue(submission.id)"
-                        :disable="selectedIssue?.submissions.includes(submission.id)"
+                        :disable="selectedIssue?.submissions.includes(submission.id) || selectedIssue?.type === 'newsletter'"
                       >
                         <q-item-section avatar>
                           <q-avatar color="primary" text-color="white">
@@ -268,7 +304,7 @@
                             icon="mdi-plus"
                             color="positive"
                             @click.stop="addToIssue(submission.id)"
-                            :disable="selectedIssue?.submissions.includes(submission.id)"
+                            :disable="selectedIssue?.submissions.includes(submission.id) || selectedIssue?.type === 'newsletter'"
                           />
                         </q-item-section>
                       </q-item>
@@ -284,6 +320,9 @@
                     <div class="text-h6 q-mb-md">
                       <q-icon name="mdi-check-circle" class="q-mr-sm" />
                       Selected Content ({{ selectedIssue?.submissions.length || 0 }})
+                      <q-badge v-if="selectedIssue?.type === 'newsletter'" color="info" class="q-ml-sm">
+                        Existing newsletters don't have selectable content
+                      </q-badge>
                     </div>
 
                     <q-list separator>
@@ -292,6 +331,7 @@
                         :key="submissionId"
                         clickable
                         @click="removeFromIssue(submissionId)"
+                        :disable="selectedIssue?.type === 'newsletter'"
                       >
                         <q-item-section avatar>
                           <q-avatar color="positive" text-color="white">
@@ -310,10 +350,18 @@
                             icon="mdi-minus"
                             color="negative"
                             @click.stop="removeFromIssue(submissionId)"
+                            :disable="selectedIssue?.type === 'newsletter'"
                           />
                         </q-item-section>
                       </q-item>
                     </q-list>
+
+                    <!-- Show message for existing newsletters -->
+                    <div v-if="selectedIssue?.type === 'newsletter'" class="text-center text-grey-6 q-pa-lg">
+                      <q-icon name="mdi-information" size="2rem" class="q-mb-sm" />
+                      <div>This is an existing newsletter with fixed content.</div>
+                      <div>Use the "View Newsletter" button to open the PDF.</div>
+                    </div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -411,19 +459,36 @@ import { logger } from '../utils/logger';
 // import { UI_ICONS } from '../constants/ui-icons';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
 import { templateManagementService } from '../services/template-management.service';
+import { firestoreService } from '../services/firebase-firestore.service';
+import { normalizeDate, formatDate, sortByDateDesc } from '../utils/date-formatter';
 import type { NewsletterIssue } from '../services/newsletter-generation.service';
+import type { NewsletterMetadata } from '../services/firebase-firestore.service';
 import type { ContentDoc } from '../types/core/content.types';
 
 const $q = useQuasar();
 
+// Unified newsletter interface for display
+interface UnifiedNewsletterItem {
+  id: string;
+  title: string;
+  issueNumber: string;
+  publicationDate: Date;
+  status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
+  submissions: string[];
+  finalPdfUrl?: string | undefined;
+  type: 'issue' | 'newsletter'; // Distinguish between new issues and existing newsletters
+  pageCount?: number | undefined;
+  filename?: string | undefined;
+}
+
 // State
 const isLoading = ref(false);
 const isCreating = ref(false);
-const issues = ref<NewsletterIssue[]>([]);
+const issues = ref<UnifiedNewsletterItem[]>([]);
 const approvedSubmissions = ref<ContentDoc[]>([]);
 const showCreateDialog = ref(false);
 const showContentDialog = ref(false);
-const selectedIssue = ref<NewsletterIssue | null>(null);
+const selectedIssue = ref<UnifiedNewsletterItem | null>(null);
 
 const newIssue = ref({
   title: '',
@@ -454,6 +519,14 @@ const availableContent = computed(() =>
 // Table columns
 const issueColumns = [
   {
+    name: 'type',
+    label: 'Type',
+    align: 'center' as const,
+    field: 'type',
+    sortable: true,
+    format: (val: string) => val === 'issue' ? 'New Issue' : 'Newsletter'
+  },
+  {
     name: 'title',
     required: true,
     label: 'Title',
@@ -473,7 +546,7 @@ const issueColumns = [
     label: 'Publication Date',
     align: 'left' as const,
     field: 'publicationDate',
-    format: (val: Date) => val.toLocaleDateString(),
+    format: (val: Date) => formatDate(val, 'SHORT'),
     sortable: true
   },
   {
@@ -518,12 +591,48 @@ const getSubmissionTitle = (submissionId: string) => {
 const loadData = async () => {
   isLoading.value = true;
   try {
-    const [issuesData, submissionsData] = await Promise.all([
+    const [issuesData, newslettersData, submissionsData] = await Promise.all([
       newsletterGenerationService.getIssues(),
+      firestoreService.getAllNewslettersForAdmin(),
       newsletterGenerationService.getApprovedSubmissions()
     ]);
 
-    issues.value = issuesData;
+    // Convert newsletter issues to unified format
+    const unifiedIssues: UnifiedNewsletterItem[] = issuesData.map((issue: NewsletterIssue) => {
+      // Use centralized date formatter to handle all date types safely
+      const publicationDate = normalizeDate(issue.publicationDate) || new Date();
+
+      return {
+        id: issue.id,
+        title: issue.title,
+        issueNumber: issue.issueNumber,
+        publicationDate,
+        status: issue.status,
+        submissions: issue.submissions,
+        finalPdfUrl: issue.finalPdfUrl ?? undefined,
+        type: 'issue' as const
+      };
+    });
+
+    // Convert existing newsletters to unified format
+    const unifiedNewsletters: UnifiedNewsletterItem[] = newslettersData.map((newsletter: NewsletterMetadata) => ({
+      id: newsletter.id,
+      title: newsletter.title,
+      issueNumber: newsletter.issueNumber || newsletter.filename || 'Unknown',
+      publicationDate: normalizeDate(newsletter.publicationDate) || new Date(),
+      status: newsletter.isPublished ? 'published' : 'draft',
+      submissions: [], // Existing newsletters don't have submissions
+      finalPdfUrl: newsletter.downloadUrl,
+      type: 'newsletter' as const,
+      pageCount: newsletter.pageCount ?? undefined,
+      filename: newsletter.filename ?? undefined
+    }));
+
+    // Combine and sort by publication date using centralized date formatter
+    issues.value = [...unifiedIssues, ...unifiedNewsletters].sort(
+      (a, b) => sortByDateDesc(a.publicationDate, b.publicationDate)
+    );
+
     approvedSubmissions.value = submissionsData;
   } catch (error) {
     logger.error('Failed to load newsletter data:', error);
@@ -571,9 +680,21 @@ const createIssue = async () => {
   }
 };
 
-const viewIssue = (issue: NewsletterIssue) => {
+const viewIssue = (issue: UnifiedNewsletterItem) => {
   selectedIssue.value = issue;
   showContentDialog.value = true;
+};
+
+const viewNewsletter = (newsletter: UnifiedNewsletterItem) => {
+  // For existing newsletters, open the PDF directly
+  if (newsletter.finalPdfUrl) {
+    window.open(newsletter.finalPdfUrl, '_blank');
+  } else {
+    $q.notify({
+      type: 'warning',
+      message: 'No PDF available for this newsletter'
+    });
+  }
 };
 
 const editIssue = () => {
@@ -584,7 +705,15 @@ const editIssue = () => {
   });
 };
 
-const generatePdf = async (issue: NewsletterIssue) => {
+const generatePdf = async (issue: UnifiedNewsletterItem) => {
+  if (issue.type !== 'issue') {
+    $q.notify({
+      type: 'warning',
+      message: 'PDF generation is only available for new issues'
+    });
+    return;
+  }
+
   try {
     await newsletterGenerationService.generateNewsletterPdf(issue.id);
 
@@ -604,14 +733,19 @@ const generatePdf = async (issue: NewsletterIssue) => {
   }
 };
 
-const downloadPdf = (issue: NewsletterIssue) => {
-  if (issue.finalPdfUrl) {
-    window.open(issue.finalPdfUrl, '_blank');
+const downloadPdf = (item: UnifiedNewsletterItem) => {
+  if (item.finalPdfUrl) {
+    window.open(item.finalPdfUrl, '_blank');
+  } else {
+    $q.notify({
+      type: 'warning',
+      message: 'No PDF available for download'
+    });
   }
 };
 
 const addToIssue = async (submissionId: string) => {
-  if (!selectedIssue.value) return;
+  if (!selectedIssue.value || selectedIssue.value.type !== 'issue') return;
 
   try {
     const updatedSubmissions = [...selectedIssue.value.submissions, submissionId];
@@ -636,7 +770,7 @@ const addToIssue = async (submissionId: string) => {
 };
 
 const removeFromIssue = async (submissionId: string) => {
-  if (!selectedIssue.value) return;
+  if (!selectedIssue.value || selectedIssue.value.type !== 'issue') return;
 
   try {
     const updatedSubmissions = selectedIssue.value.submissions.filter(
@@ -663,18 +797,19 @@ const removeFromIssue = async (submissionId: string) => {
 };
 
 // Template management methods
-const loadAvailableTemplates = async () => {
-  try {
-    const result = await templateManagementService.getAvailableTemplates();
-    if (result.success) {
-      availableTemplates.value = result.templates;
-    } else {
-      logger.error('Failed to load templates:', result.error);
-    }
-  } catch (error) {
-    logger.error('Error loading templates:', error);
-  }
-};
+// TODO: Re-enable when CORS issue is fixed
+// const loadAvailableTemplates = async () => {
+//   try {
+//     const result = await templateManagementService.getAvailableTemplates();
+//     if (result.success) {
+//       availableTemplates.value = result.templates;
+//     } else {
+//       logger.error('Failed to load templates:', result.error);
+//     }
+//   } catch (error) {
+//     logger.error('Error loading templates:', error);
+//   }
+// };
 
 const previewTemplate = async (templateName: string) => {
   try {
@@ -748,7 +883,8 @@ const getTemplateDescription = (templateName: string): string => {
 // Lifecycle
 onMounted(() => {
   void loadData();
-  void loadAvailableTemplates();
+  // TODO: Fix CORS issue with template management service
+  // void loadAvailableTemplates();
 });
 </script>
 

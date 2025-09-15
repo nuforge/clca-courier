@@ -63,17 +63,31 @@ class FirebaseAuthService {
   private avatarCache = new Map<string, string>();
   private avatarCacheExpiry = new Map<string, number>();
   private avatarRetryCount = new Map<string, number>();
+  private avatarBlockedUrls = new Set<string>(); // Track blocked URLs to prevent repeated requests
   private readonly AVATAR_CACHE_TTL = 1000 * 60 * 60; // 1 hour
-  private readonly MAX_AVATAR_RETRIES = 2; // Maximum retries before giving up
+  private readonly MAX_AVATAR_RETRIES = 1; // Maximum retries before giving up
+  private readonly AVATAR_BLOCK_DURATION = 1000 * 60 * 30; // Block for 30 minutes after rate limit
 
   /**
    * Cache avatar image as data URL with retry logic and rate limit handling
    */
   private async cacheAvatarImage(photoURL: string, cacheKey: string, retryCount = 0): Promise<void> {
     try {
+      // Circuit breaker: Check if this URL is currently blocked
+      if (this.avatarBlockedUrls.has(photoURL)) {
+        logger.debug(`Avatar URL is blocked, skipping cache attempt for user ${cacheKey}`);
+        return;
+      }
+
       // Check if we've exceeded retry limit
       if (retryCount >= this.MAX_AVATAR_RETRIES) {
-        logger.warn(`Avatar caching failed after ${this.MAX_AVATAR_RETRIES} retries, giving up for user ${cacheKey}`);
+        logger.warn(`Avatar caching failed after ${this.MAX_AVATAR_RETRIES} retries, blocking URL for user ${cacheKey}`);
+        this.avatarBlockedUrls.add(photoURL);
+        // Unblock after block duration
+        setTimeout(() => {
+          this.avatarBlockedUrls.delete(photoURL);
+          logger.debug(`Avatar URL unblocked: ${photoURL}`);
+        }, this.AVATAR_BLOCK_DURATION);
         return;
       }
 
@@ -83,17 +97,26 @@ class FirebaseAuthService {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      const response = await fetch(photoURL);
+      const response = await fetch(photoURL, {
+        method: 'GET',
+        headers: {
+          'Accept': 'image/*',
+        },
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
 
       if (response.status === 429) {
-        // Rate limited - retry with exponential backoff
-        const nextRetry = retryCount + 1;
-        const backoffDelay = Math.min(30000 * Math.pow(2, retryCount), 300000); // 30s, 60s, 120s, max 5min
-        logger.warn(`Avatar caching rate limited (attempt ${nextRetry}), retrying in ${backoffDelay/1000}s...`);
+        // Rate limited - block this URL and don't retry
+        logger.warn(`Avatar URL rate limited, blocking for ${this.AVATAR_BLOCK_DURATION/1000/60} minutes: ${photoURL}`);
+        this.avatarBlockedUrls.add(photoURL);
 
+        // Unblock after block duration
         setTimeout(() => {
-          void this.cacheAvatarImage(photoURL, cacheKey, nextRetry);
-        }, backoffDelay);
+          this.avatarBlockedUrls.delete(photoURL);
+          logger.debug(`Avatar URL unblocked: ${photoURL}`);
+        }, this.AVATAR_BLOCK_DURATION);
+
         return;
       }
 
@@ -130,9 +153,15 @@ class FirebaseAuthService {
         logger.success('Avatar cached successfully and UI updated');
       }
     } catch (error) {
-      logger.error('Error caching avatar image:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.warn(`Avatar caching timeout for user ${cacheKey}`);
+      } else {
+        logger.error('Error caching avatar image:', error);
+      }
     }
-  }  constructor() {
+  }
+
+  constructor() {
     this.initializeAuthListener();
   }
 
