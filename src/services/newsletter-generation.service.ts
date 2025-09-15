@@ -16,7 +16,8 @@ import {
   addDoc,
   updateDoc,
   serverTimestamp,
-  type Timestamp
+  type Timestamp,
+  type UpdateData
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
@@ -29,7 +30,7 @@ export interface NewsletterIssue {
   title: string;
   issueNumber: string;
   publicationDate: Date;
-  status: 'draft' | 'generating' | 'ready' | 'published';
+  status: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
   submissions: string[]; // Array of content IDs
   finalPdfUrl?: string;
   finalPdfPath?: string;
@@ -199,6 +200,71 @@ class NewsletterGenerationService {
       });
     } catch (error) {
       logger.error('Failed to add submissions to issue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing newsletter issue
+   */
+  async updateIssue(issueId: string, updates: {
+    title?: string;
+    issueNumber?: string;
+    publicationDate?: Date;
+    status?: 'draft' | 'generating' | 'ready' | 'published' | 'archived';
+  }): Promise<void> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to update issues');
+      }
+
+      const issueRef = doc(firestore, this.COLLECTIONS.ISSUES, issueId);
+      const updateData: UpdateData<NewsletterIssue> = {
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.uid
+      };
+
+      // Add only the fields that are provided
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.issueNumber !== undefined) updateData.issueNumber = updates.issueNumber;
+      if (updates.publicationDate !== undefined) updateData.publicationDate = updates.publicationDate;
+      if (updates.status !== undefined) updateData.status = updates.status;
+
+      await updateDoc(issueRef, updateData);
+
+      logger.info('Issue updated successfully', {
+        issueId,
+        updates: Object.keys(updateData)
+      });
+
+    } catch (error) {
+      logger.error('Failed to update issue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a newsletter issue
+   */
+  async deleteIssue(issueId: string): Promise<void> {
+    try {
+      const currentUser = firebaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User must be authenticated to delete issues');
+      }
+
+      const issueRef = doc(firestore, this.COLLECTIONS.ISSUES, issueId);
+      await updateDoc(issueRef, {
+        status: 'archived',
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.uid
+      });
+
+      logger.info('Issue archived successfully', { issueId });
+
+    } catch (error) {
+      logger.error('Failed to delete issue:', error);
       throw error;
     }
   }
