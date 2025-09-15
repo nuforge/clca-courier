@@ -99,6 +99,54 @@
         </div>
       </div>
 
+      <!-- Workflow Guide -->
+      <q-card class="q-mb-lg">
+        <q-card-section>
+          <div class="text-h6 q-mb-md">
+            <q-icon name="mdi-help-circle" class="q-mr-sm" />
+            Newsletter Workflow Guide
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <q-icon name="mdi-plus-circle" color="primary" size="2rem" class="q-mb-sm" />
+                  <div class="text-subtitle2">1. Create Issue</div>
+                  <div class="text-caption text-grey-6">Click "New Issue" to create a newsletter issue</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <q-icon name="mdi-format-list-bulleted" color="orange" size="2rem" class="q-mb-sm" />
+                  <div class="text-subtitle2">2. Add Content</div>
+                  <div class="text-caption text-grey-6">Click "Manage Content" to add approved submissions</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <q-icon name="mdi-file-pdf-box" color="positive" size="2rem" class="q-mb-sm" />
+                  <div class="text-subtitle2">3. Generate PDF</div>
+                  <div class="text-caption text-grey-6">Click "Generate PDF" to create the newsletter</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <q-icon name="mdi-publish" color="info" size="2rem" class="q-mb-sm" />
+                  <div class="text-subtitle2">4. Publish</div>
+                  <div class="text-caption text-grey-6">Change status to "Published" when ready</div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+
       <!-- Action Toolbar -->
       <q-card class="q-mb-lg">
         <q-card-section>
@@ -206,25 +254,34 @@
 
             <template v-slot:body-cell-submissions="props">
               <q-td :props="props">
-                <q-badge color="grey" :label="`${props.value.length} items`" />
+                <div class="column items-center q-gutter-xs">
+                  <q-badge
+                    :color="props.value.length > 0 ? 'positive' : 'grey'"
+                    :label="`${props.value.length} items`"
+                  />
+                  <div v-if="props.row.type === 'issue'" class="text-caption text-grey-6">
+                    {{ props.value.length === 0 ? 'No content' :
+                       props.row.finalPdfUrl ? 'PDF ready' :
+                       props.row.status === 'generating' ? 'Generating...' : 'Ready for PDF' }}
+                  </div>
+                </div>
               </q-td>
             </template>
 
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <div class="row q-gutter-xs">
-                  <!-- View Content - only for new issues with submissions -->
+                  <!-- Manage Content - for new issues -->
                   <q-btn
                     v-if="props.row.type === 'issue'"
                     flat
                     dense
                     size="sm"
-                    icon="mdi-eye"
+                    icon="mdi-format-list-bulleted"
                     color="primary"
                     @click="viewIssue(props.row)"
-                    :disable="props.row.submissions.length === 0"
                   >
-                    <q-tooltip>View Content</q-tooltip>
+                    <q-tooltip>Manage Content ({{ props.row.submissions.length }} items)</q-tooltip>
                   </q-btn>
 
                   <!-- Layout Pages - for issues with content -->
@@ -277,7 +334,11 @@
                     :loading="props.row.status === 'generating'"
                     :disable="props.row.submissions.length === 0 || props.row.status === 'generating'"
                   >
-                    <q-tooltip>Generate PDF</q-tooltip>
+                    <q-tooltip>
+                      {{ props.row.submissions.length === 0 ? 'Add content first' :
+                         props.row.status === 'generating' ? 'Generating PDF...' :
+                         props.row.finalPdfUrl ? 'Regenerate PDF' : 'Generate PDF' }}
+                    </q-tooltip>
                   </q-btn>
 
                   <!-- Download PDF - for both types if PDF exists -->
@@ -518,6 +579,9 @@
               {{ selectedIssue?.title }} - Content Management
               <q-badge v-if="selectedIssue?.type === 'newsletter'" color="warning" class="q-ml-sm">
                 Read-only (Existing Newsletter)
+              </q-badge>
+              <q-badge v-else color="info" class="q-ml-sm">
+                {{ selectedIssue?.submissions.length || 0 }} content items
               </q-badge>
             </div>
             <q-space />
@@ -1983,34 +2047,51 @@ const removeFromIssue = async (submissionId: string) => {
 };
 
 // Template management methods
-// TODO: Re-enable when CORS issue is fixed
-// const loadAvailableTemplates = async () => {
-//   try {
-//     const result = await templateManagementService.getAvailableTemplates();
-//     if (result.success) {
-//       availableTemplates.value = result.templates;
-//     } else {
-//       logger.error('Failed to load templates:', result.error);
-//     }
-//   } catch (error) {
-//     logger.error('Error loading templates:', error);
-//   }
-// };
-
-const previewTemplate = async (templateName: string) => {
+const loadAvailableTemplates = () => {
   try {
-    const sampleData = templateManagementService.createSampleData('news');
-    const result = await templateManagementService.previewTemplate(templateName, sampleData);
+    // Use local template info instead of calling the CORS-blocked service
+    const localTemplates = ['article', 'event', 'announcement', 'editorial', 'fullpage'];
+    availableTemplates.value = localTemplates;
 
-    if (result.success && result.html) {
-      selectedTemplatePreview.value = result.html;
-    } else {
-      logger.error('Failed to preview template:', result.error);
-      $q.notify({
-        type: 'negative',
-        message: 'Failed to preview template'
-      });
-    }
+    logger.info('Loaded local templates', { count: localTemplates.length });
+  } catch (error) {
+    logger.error('Error loading templates:', error);
+    // Fallback to basic templates
+    availableTemplates.value = ['article', 'event', 'announcement'];
+  }
+};
+
+const previewTemplate = (templateName: string) => {
+  try {
+    // Create a local preview since the CORS-blocked service isn't available
+    const templateInfo = templateManagementService.getTemplateInfo(templateName);
+    const sampleData = templateManagementService.createSampleData('news');
+
+    // Generate a simple HTML preview
+    const previewHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="border: 2px solid #1976d2; border-radius: 8px; padding: 20px; background: #f5f5f5;">
+          <h2 style="color: #1976d2; margin-top: 0;">${templateInfo.displayName}</h2>
+          <p style="color: #666; font-style: italic;">${templateInfo.description}</p>
+          <hr style="border: 1px solid #ddd; margin: 20px 0;">
+          <h3 style="color: #333;">Sample Content</h3>
+          <h4 style="color: #1976d2;">${sampleData.title}</h4>
+          <p style="line-height: 1.6; color: #333;">${sampleData.content}</p>
+          <div style="margin-top: 20px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+            <strong>Template Type:</strong> ${templateInfo.contentType}<br>
+            <strong>Layout:</strong> ${templateInfo.layout}
+          </div>
+        </div>
+      </div>
+    `;
+
+    selectedTemplatePreview.value = previewHtml;
+
+    $q.notify({
+      type: 'info',
+      message: `Previewing ${templateInfo.displayName}`,
+      caption: 'This is a local preview - actual templates may vary'
+    });
   } catch (error) {
     logger.error('Error previewing template:', error);
     $q.notify({
@@ -2020,33 +2101,19 @@ const previewTemplate = async (templateName: string) => {
   }
 };
 
-const testTemplate = async (templateName: string) => {
+const testTemplate = (templateName: string) => {
   try {
-    const sampleData = templateManagementService.createSampleData('news');
-    const result = await templateManagementService.testTemplate(templateName, sampleData);
+    // Since the CORS-blocked service isn't available, show a helpful message
+    const templateInfo = templateManagementService.getTemplateInfo(templateName);
 
-    if (result.success && result.downloadUrl) {
-      $q.notify({
-        type: 'positive',
-        message: 'Test PDF generated successfully!',
-        caption: 'Click to download',
-        actions: [
-          {
-            label: 'Download',
-            color: 'white',
-            handler: () => {
-              window.open(result.downloadUrl, '_blank');
-            }
-          }
-        ]
-      });
-    } else {
-      logger.error('Failed to test template:', result.error);
-      $q.notify({
-        type: 'negative',
-        message: 'Failed to test template'
-      });
-    }
+    $q.notify({
+      type: 'info',
+      message: `Template Testing Not Available`,
+      caption: `Template "${templateInfo.displayName}" would be tested here. CORS configuration needed for full functionality.`,
+      timeout: 5000
+    });
+
+    logger.info('Template test requested but CORS service unavailable', { templateName });
   } catch (error) {
     logger.error('Error testing template:', error);
     $q.notify({
@@ -2146,8 +2213,7 @@ watch(autoRefresh, (newValue) => {
 // Lifecycle
 onMounted(() => {
   void loadData();
-  // TODO: Fix CORS issue with template management service
-  // void loadAvailableTemplates();
+  void loadAvailableTemplates();
 });
 
 onUnmounted(() => {
