@@ -99,6 +99,10 @@
           <q-card>
             <q-tabs v-model="activeTab" dense class="text-grey" active-color="primary" indicator-color="primary"
               align="justify" narrow-indicator>
+              <q-tab name="all">
+                <q-icon name="mdi-format-list-bulleted" color="primary" class="q-mr-sm" />
+                All ({{ allContent.length }})
+              </q-tab>
               <q-tab name="draft">
                 <q-icon :name="getStatusIcon('draft').icon" :color="getStatusIcon('draft').color" class="q-mr-sm" />
                 Draft ({{ draftContent.length }})
@@ -124,6 +128,17 @@
             <q-separator />
 
             <q-tab-panels v-model="activeTab" animated>
+              <!-- All Content -->
+              <q-tab-panel name="all">
+                <ContentDocTable :content="allContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @publish="publishContent" @unpublish="unpublishContent"
+                  @archive="archiveContent" @restore="restoreContent" @reject="rejectContent" @delete="deleteContent"
+                  @view="viewContent" @toggle-featured="toggleFeaturedStatus" @toggle-newsletter-ready="toggleNewsletterReady"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-publish-actions show-unpublish-actions show-restore-actions />
+              </q-tab-panel>
+
               <!-- Draft Content -->
               <q-tab-panel name="draft">
                 <ContentDocTable :content="draftContent" :selected="selectedContent"
@@ -238,7 +253,7 @@ const { exportDesignForPrint, downloadDesign, isExporting, cleanup: cleanupCanva
 const isLoading = ref(false);
 const allContent = ref<ContentDoc[]>([]);
 const selectedContent = ref<string[]>([]);
-const activeTab = ref('draft');
+const activeTab = ref('all');
 
 // Watch for authentication readiness and check authorization
 watch(isAuthReady, (ready: boolean) => {
