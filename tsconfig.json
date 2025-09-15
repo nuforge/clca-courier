@@ -6,6 +6,7 @@
     ".quasar/dist/**/*", 
     "node_modules/**/*",
     "**/*.legacy.ts",
-    "tests/**/*"
+    "tests/**/*",
+    "functions/**/*"
   ]
 }
