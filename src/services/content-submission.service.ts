@@ -10,7 +10,7 @@ import {
 import type { ContentFeatures } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { firebaseContentService } from './firebase-content.service';
-import { firestoreService, type UserContent } from './firebase-firestore.service';
+import { firestoreService } from './firebase-firestore.service';
 import type { CanvaDesign } from './canva/types';
 import {
   serverTimestamp,
@@ -398,25 +398,8 @@ class ContentSubmissionService {
         errors.push('Event end time cannot be before start time');
       }
 
-      // Validate recurrence if present
-      if (dateFeature.recurrence) {
-        const recurrence = dateFeature.recurrence;
-        const validFrequencies = ['daily', 'weekly', 'monthly', 'yearly'];
-        const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-        if (!validFrequencies.includes(recurrence.frequency)) {
-          errors.push('Invalid recurrence frequency');
-        }
-        if (recurrence.interval && recurrence.interval <= 0) {
-          errors.push('Invalid recurrence interval');
-        }
-        if (recurrence.days && !recurrence.days.every(day => validDays.includes(day))) {
-          errors.push('Invalid recurrence days');
-        }
-        if (recurrence.endDate && dateFeature.start && recurrence.endDate.toMillis() < dateFeature.start.toMillis()) {
-          errors.push('Invalid recurrence end date');
-        }
-      }
+      // Note: Recurrence feature not implemented in current ContentDoc architecture
+      // Future enhancement: Add recurrence as separate feature or extend feat:date
     }
 
     if (features['feat:task']) {
