@@ -64,19 +64,59 @@ class FirebaseAuthService {
   private avatarCacheExpiry = new Map<string, number>();
   private avatarRetryCount = new Map<string, number>();
   private avatarBlockedUrls = new Set<string>(); // Track blocked URLs to prevent repeated requests
+  private globalAvatarBlocked = false; // Global circuit breaker for all avatar requests
+  private activeAvatarRequests = 0; // Track concurrent requests
   private readonly AVATAR_CACHE_TTL = 1000 * 60 * 60; // 1 hour
   private readonly MAX_AVATAR_RETRIES = 1; // Maximum retries before giving up
   private readonly AVATAR_BLOCK_DURATION = 1000 * 60 * 30; // Block for 30 minutes after rate limit
+  private readonly MAX_CONCURRENT_AVATAR_REQUESTS = 3; // Limit concurrent requests
 
   /**
    * Cache avatar image as data URL with retry logic and rate limit handling
    */
   private async cacheAvatarImage(photoURL: string, cacheKey: string, retryCount = 0): Promise<void> {
     try {
+      // Skip caching for URLs that commonly have CORS restrictions
+      const corsBlockedDomains = [
+        'googleusercontent.com',
+        'googleapis.com',
+        'facebook.com',
+        'fbcdn.net',
+        'twitter.com',
+        'twimg.com',
+        'github.com',
+        'githubusercontent.com'
+      ];
+
+      const hasCorsRestrictions = corsBlockedDomains.some(domain => photoURL.includes(domain));
+      if (hasCorsRestrictions) {
+        logger.debug(`Skipping avatar caching for URL with CORS restrictions: ${photoURL}`);
+        return;
+      }
+
+      // Global circuit breaker: If we've hit rate limits globally, stop all avatar requests
+      if (this.globalAvatarBlocked) {
+        logger.debug(`Global avatar circuit breaker is open, skipping cache attempt for user ${cacheKey}`);
+        return;
+      }
+
       // Circuit breaker: Check if this URL is currently blocked
       if (this.avatarBlockedUrls.has(photoURL)) {
         logger.debug(`Avatar URL is blocked, skipping cache attempt for user ${cacheKey}`);
         return;
+      }
+
+      // Throttle concurrent requests to prevent overwhelming the service
+      if (this.activeAvatarRequests >= this.MAX_CONCURRENT_AVATAR_REQUESTS) {
+        logger.debug(`Too many concurrent avatar requests (${this.activeAvatarRequests}), skipping for user ${cacheKey}`);
+        return;
+      }
+
+      // Add progressive delay based on retry count to avoid rapid-fire requests
+      if (retryCount > 0) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, max 10s
+        logger.debug(`Adding ${delay}ms delay before retry ${retryCount} for user ${cacheKey}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
       // Check if we've exceeded retry limit
@@ -97,24 +137,49 @@ class FirebaseAuthService {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      const response = await fetch(photoURL, {
+      // Rotate user agents to appear more like real browsers (Stack Overflow solution)
+      const userAgents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
+      ];
+      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+
+      // Increment active request counter
+      this.activeAvatarRequests++;
+      logger.debug(`Starting avatar request ${this.activeAvatarRequests}/${this.MAX_CONCURRENT_AVATAR_REQUESTS} for user ${cacheKey}`);
+
+      try {
+        const response = await fetch(photoURL, {
         method: 'GET',
         headers: {
           'Accept': 'image/*',
-        },
+          'User-Agent': randomUserAgent,
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        } as HeadersInit,
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
       if (response.status === 429) {
-        // Rate limited - block this URL and don't retry
+        // Rate limited - block this URL and activate global circuit breaker
         logger.warn(`Avatar URL rate limited, blocking for ${this.AVATAR_BLOCK_DURATION/1000/60} minutes: ${photoURL}`);
         this.avatarBlockedUrls.add(photoURL);
+
+        // Activate global circuit breaker to prevent all avatar requests
+        this.globalAvatarBlocked = true;
+        logger.error(`GLOBAL AVATAR CIRCUIT BREAKER ACTIVATED - All avatar requests blocked for ${this.AVATAR_BLOCK_DURATION/1000/60} minutes`);
 
         // Unblock after block duration
         setTimeout(() => {
           this.avatarBlockedUrls.delete(photoURL);
-          logger.debug(`Avatar URL unblocked: ${photoURL}`);
+          this.globalAvatarBlocked = false;
+          logger.info(`Avatar URL and global circuit breaker unblocked: ${photoURL}`);
         }, this.AVATAR_BLOCK_DURATION);
 
         return;
@@ -151,6 +216,17 @@ class FirebaseAuthService {
 
         this.notifyListeners(); // Trigger UI update
         logger.success('Avatar cached successfully and UI updated');
+      }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          logger.warn(`Avatar caching timeout for user ${cacheKey}`);
+        } else {
+          logger.error('Error caching avatar image:', error);
+        }
+      } finally {
+        // Always decrement the active request counter
+        this.activeAvatarRequests = Math.max(0, this.activeAvatarRequests - 1);
+        logger.debug(`Completed avatar request, active requests: ${this.activeAvatarRequests}`);
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
