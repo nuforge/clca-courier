@@ -138,7 +138,7 @@
               <q-tab-panel name="published">
                 <ContentDocTable :content="publishedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @unpublish="unpublishContent" @archive="archiveContent" @view="viewContent"
-                  @toggle-featured="toggleFeaturedStatus"
+                  @toggle-featured="toggleFeaturedStatus" @toggle-newsletter-ready="toggleNewsletterReady"
                   :show-canva-export="true" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
                   show-unpublish-actions />
@@ -482,6 +482,26 @@ const toggleFeaturedStatus = async (contentId: string, featured: boolean) => {
     $q.notify({
       type: 'negative',
       message: 'Failed to update featured status'
+    });
+  }
+};
+
+// Newsletter-ready status toggle
+const toggleNewsletterReady = async (contentId: string, newsletterReady: boolean) => {
+  try {
+    await firebaseContentService.toggleNewsletterReady(contentId, newsletterReady);
+
+    $q.notify({
+      type: 'positive',
+      message: newsletterReady ? 'Content marked as newsletter-ready' : 'Content unmarked as newsletter-ready'
+    });
+
+    // Content will be updated automatically via the subscription
+  } catch (error) {
+    logger.error('Error toggling newsletter-ready status:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update newsletter-ready status'
     });
   }
 };

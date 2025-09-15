@@ -157,6 +157,22 @@
                 <q-tooltip>{{ $t(TRANSLATION_KEYS.CANVA.DOWNLOAD_DESIGN) }}</q-tooltip>
               </q-btn>
             </template>
+
+            <!-- Newsletter Ready Toggle (for published content) -->
+            <template v-if="props.row.status === 'published'">
+              <q-btn
+                flat
+                round
+                size="sm"
+                :icon="props.row.tags.includes('newsletter:ready') ? 'mdi-newspaper-variant' : 'mdi-newspaper-variant-outline'"
+                :color="props.row.tags.includes('newsletter:ready') ? 'primary' : 'grey'"
+                @click="handleToggleNewsletterReady(props.row.id, !props.row.tags.includes('newsletter:ready'))"
+              >
+                <q-tooltip>
+                  {{ props.row.tags.includes('newsletter:ready') ? 'Remove from Newsletter' : 'Add to Newsletter' }}
+                </q-tooltip>
+              </q-btn>
+            </template>
           </div>
         </q-td>
       </template>
@@ -205,6 +221,7 @@ const emit = defineEmits<{
   'delete': [id: string];
   'view': [content: ContentDoc];
   'toggle-featured': [id: string, featured: boolean];
+  'toggle-newsletter-ready': [id: string, newsletterReady: boolean];
   'export-for-print': [content: ContentDoc];
   'download-design': [exportUrl: string, filename: string];
 }>();
@@ -218,6 +235,11 @@ const isExportingContent = computed(() => props.isExportingContent || (() => fal
 // Helper method to handle toggle featured
 const handleToggleFeatured = (id: string, featured: boolean) => {
   emit('toggle-featured', id, featured);
+};
+
+// Helper method to handle toggle newsletter ready
+const handleToggleNewsletterReady = (id: string, newsletterReady: boolean) => {
+  emit('toggle-newsletter-ready', id, newsletterReady);
 };
 
 // Helper method to get feature tags

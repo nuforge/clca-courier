@@ -322,6 +322,55 @@ export class FirebaseContentService {
   }
 
   /**
+   * Toggle newsletter-ready status for content
+   */
+  async toggleNewsletterReady(contentId: string, newsletterReady: boolean): Promise<void> {
+    try {
+      logger.debug('Toggling newsletter-ready status', { contentId, newsletterReady });
+
+      // Get the current content to access its tags
+      const contentDoc = doc(db, this.collectionName, contentId);
+      const contentSnapshot = await getDoc(contentDoc);
+
+      if (!contentSnapshot.exists()) {
+        throw new Error('Content not found');
+      }
+
+      const currentData = contentSnapshot.data();
+      let updatedTags = [...(currentData.tags || [])];
+
+      if (newsletterReady) {
+        // Add newsletter:ready tag if not present
+        if (!updatedTags.includes('newsletter:ready')) {
+          updatedTags.push('newsletter:ready');
+        }
+      } else {
+        // Remove newsletter:ready tag if present
+        updatedTags = updatedTags.filter(tag => tag !== 'newsletter:ready');
+      }
+
+      // Update the content tags
+      await updateDoc(contentDoc, {
+        tags: updatedTags,
+        'timestamps.updated': serverTimestamp() as Timestamp
+      });
+
+      logger.info('Newsletter-ready status updated successfully', {
+        contentId,
+        newsletterReady,
+        tagsCount: updatedTags.length
+      });
+    } catch (error) {
+      logger.error('Failed to toggle newsletter-ready status', {
+        contentId,
+        newsletterReady,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Get content by ID
    */
   async getContentById(contentId: string): Promise<ContentDoc | null> {

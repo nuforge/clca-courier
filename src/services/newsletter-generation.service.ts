@@ -151,23 +151,56 @@ class NewsletterGenerationService {
    */
   async getApprovedSubmissions(): Promise<ContentDoc[]> {
     try {
-      // Query for content that is approved (we'll filter newsletter:ready in the client)
+      // Query for content that is either:
+      // 1. Published and marked as newsletter:ready, OR
+      // 2. Has status:approved tag and newsletter:ready tag
       const q = query(
         collection(firestore, 'content'),
-        where('tags', 'array-contains', 'status:approved'),
-        orderBy('createdAt', 'desc')
+        where('status', '==', 'published'),
+        orderBy('timestamps.created', 'desc')
       );
 
       const querySnapshot = await getDocs(q);
-      const allApproved = querySnapshot.docs.map(doc => ({
+      const publishedContent = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as ContentDoc));
 
       // Filter for newsletter-ready content on the client side
-      return allApproved.filter(content =>
+      const newsletterReadyContent = publishedContent.filter(content =>
         content.tags.includes('newsletter:ready')
       );
+
+      // Also check for content with status:approved tag (legacy support)
+      const legacyQuery = query(
+        collection(firestore, 'content'),
+        where('tags', 'array-contains', 'status:approved'),
+        orderBy('timestamps.created', 'desc')
+      );
+
+      const legacySnapshot = await getDocs(legacyQuery);
+      const legacyApproved = legacySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as ContentDoc));
+
+      const legacyNewsletterReady = legacyApproved.filter(content =>
+        content.tags.includes('newsletter:ready')
+      );
+
+      // Combine and deduplicate by ID
+      const allNewsletterReady = [...newsletterReadyContent, ...legacyNewsletterReady];
+      const uniqueContent = allNewsletterReady.filter((content, index, self) =>
+        index === self.findIndex(c => c.id === content.id)
+      );
+
+      logger.info('Found newsletter-ready content', {
+        count: uniqueContent.length,
+        published: newsletterReadyContent.length,
+        legacy: legacyNewsletterReady.length
+      });
+
+      return uniqueContent;
     } catch (error) {
       logger.error('Failed to fetch approved submissions:', error);
       throw error;
