@@ -12,7 +12,7 @@
           <iframe
             :srcdoc="previewHtml"
             class="preview-iframe"
-            sandbox="allow-same-origin"
+            sandbox="allow-same-origin allow-scripts"
           />
         </div>
       </q-card-section>
