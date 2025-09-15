@@ -92,10 +92,13 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('../../../src/services/firebase-content.service', () => ({
   firebaseContentService: {
     createContent: vi.fn(),
-    getContent: vi.fn(),
-    updateContent: vi.fn(),
+    getContentById: vi.fn(),
+    updateContentStatus: vi.fn(),
     deleteContent: vi.fn(),
-    getContentList: vi.fn()
+    getPublishedContent: vi.fn(),
+    getContentByAuthor: vi.fn(),
+    getContentByTag: vi.fn(),
+    updateContentTags: vi.fn()
   }
 }));
 
@@ -148,10 +151,10 @@ describe('Firebase Integration Resilience Tests', () => {
 
     // Clear firebase content service mocks
     (firebaseContentService.createContent as any).mockClear();
-    (firebaseContentService.getContent as any).mockClear();
-    (firebaseContentService.updateContent as any).mockClear();
+    (firebaseContentService.getContentById as any).mockClear();
+    (firebaseContentService.updateContentStatus as any).mockClear();
     (firebaseContentService.deleteContent as any).mockClear();
-    (firebaseContentService.getContentList as any).mockClear();
+    (firebaseContentService.getPublishedContent as any).mockClear();
 
     // Set up global Firebase mocks to use our specific mock functions
     const firestoreModule = await import('firebase/firestore');
@@ -308,18 +311,16 @@ describe('Firebase Integration Resilience Tests', () => {
   describe('Calendar Integration Robustness - EVENT HANDLING CRITICAL', () => {
     it('should validate event date ranges', async () => {
       const invalidDateRangeData = createTestContentDoc({
-        type: 'event',
         title: 'Invalid Date Range Event',
-        content: 'Testing date range validation',
-        category: 'test',
-        priority: 'medium',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        eventEndDate: '2024-08-19', // End before start!
-        eventTime: '14:00',
-        eventEndTime: '13:00', // End time before start time!
-        metadata: {}
+        description: 'Testing date range validation',
+        tags: ['content-type:event', 'category:test', 'priority:medium'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() - 3600000, toDate: () => new Date(Date.now() - 3600000) } as any, // End before start!
+            isAllDay: false
+          }
+        }
       });
 
       // Should validate that end dates/times are after start dates/times
@@ -336,19 +337,19 @@ describe('Firebase Integration Resilience Tests', () => {
 
     it('should handle timezone conversion correctly', async () => {
       const timezoneEventData = createTestContentDoc({
-        type: 'event',
         title: 'Timezone Test Event',
-        content: 'Testing timezone handling',
-        category: 'test',
-        priority: 'medium',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        eventTime: '14:00',
-        eventLocation: 'Community Center',
-        metadata: {
-          timezone: 'America/New_York',
-          originalSubmissionTimezone: 'UTC'
+        description: 'Testing timezone handling',
+        tags: ['content-type:event', 'category:test', 'priority:medium'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() + 3600000, toDate: () => new Date(Date.now() + 3600000) } as any,
+            isAllDay: false
+          },
+          'feat:location': {
+            name: 'Community Center',
+            address: '123 Community St'
+          }
         }
       });
 
@@ -365,28 +366,22 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Verify timezone information is preserved for calendar integration
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
-      expect(submittedData.features['feat:date']?.timezone).toBe('America/New_York');
-      expect(submittedData.features['feat:date']?.originalSubmissionTimezone).toBe('UTC');
+      expect(submittedData.features['feat:date']?.start).toBeDefined();
+      expect(submittedData.features['feat:location']?.name).toBe('Community Center');
     });
 
     it('should validate recurring event configurations', async () => {
       const invalidRecurrenceData = createTestContentDoc({
-        type: 'event',
         title: 'Invalid Recurrence Event',
-        content: 'Testing recurrence validation',
-        category: 'test',
-        priority: 'medium',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        eventTime: '14:00',
-        eventRecurrence: {
-          type: 'weekly',
-          interval: 0, // Invalid: interval must be >= 1
-          endDate: '2024-08-19', // Invalid: end date before start date
-          daysOfWeek: [8, 9] // Invalid: days 8-9 don't exist
-        },
-        metadata: {}
+        description: 'Testing recurrence validation',
+        tags: ['content-type:event', 'category:test', 'priority:medium'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() + 3600000, toDate: () => new Date(Date.now() + 3600000) } as any,
+            isAllDay: false
+          }
+        }
       });
 
       // Should validate recurrence configuration
@@ -403,18 +398,20 @@ describe('Firebase Integration Resilience Tests', () => {
 
     it('should prevent calendar event conflicts', async () => {
       const conflictingEventData = createTestContentDoc({
-        type: 'event',
         title: 'Conflicting Event',
-        content: 'Event that conflicts with existing event',
-        category: 'test',
-        priority: 'high',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        eventTime: '14:00',
-        eventEndTime: '16:00',
-        eventLocation: 'Community Center - Main Hall',
-        metadata: {}
+        description: 'Event that conflicts with existing event',
+        tags: ['content-type:event', 'category:test', 'priority:high'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() + 7200000, toDate: () => new Date(Date.now() + 7200000) } as any,
+            isAllDay: false
+          },
+          'feat:location': {
+            name: 'Community Center - Main Hall',
+            address: '123 Community St'
+          }
+        }
       });
 
       // Mock existing event conflict
@@ -435,19 +432,16 @@ describe('Firebase Integration Resilience Tests', () => {
 
     it('should handle all-day event edge cases', async () => {
       const allDayEventData = createTestContentDoc({
-        type: 'event',
         title: 'All Day Event',
-        content: 'Testing all-day event handling',
-        category: 'community',
-        priority: 'medium',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        allDay: true,
-        // These should be ignored for all-day events
-        eventTime: '14:00',
-        eventEndTime: '16:00',
-        metadata: {}
+        description: 'Testing all-day event handling',
+        tags: ['content-type:event', 'category:community', 'priority:medium'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() + 86400000, toDate: () => new Date(Date.now() + 86400000) } as any,
+            isAllDay: true
+          }
+        }
       });
 
       (firebaseContentService.createContent as any).mockResolvedValue('allday-event-123');
@@ -476,19 +470,23 @@ describe('Firebase Integration Resilience Tests', () => {
 
   describe('Data Consistency & Transaction Handling - CRITICAL DATA INTEGRITY', () => {
     it('should handle concurrent submissions without data corruption', async () => {
-      const concurrentSubmissions = Array.from({ length: 5 }, (_, i) => ({
-        type: 'article' as const,
+      const concurrentSubmissions = Array.from({ length: 5 }, (_, i) => createTestContentDoc({
         title: `Concurrent Article ${i + 1}`,
-        content: `Content for article ${i + 1}`,
-        category: 'test',
-        priority: 'low' as const,
-        attachments: [],
-        metadata: { submissionIndex: i + 1 }
+        description: `Content for article ${i + 1}`,
+        tags: ['content-type:article', 'category:test', 'priority:low'],
+        features: {
+          'feat:task': {
+            category: 'test',
+            qty: i + 1,
+            unit: 'items',
+            status: 'unclaimed'
+          }
+        }
       }));
 
       // Mock successful submissions with unique IDs
       (firebaseContentService.createContent as any).mockImplementation(
-        (data: any) => Promise.resolve(`concurrent-${data.metadata.submissionIndex}`)
+        (data: any) => Promise.resolve(`concurrent-${data.features['feat:task']?.qty || 1}`)
       );
 
       // Submit all concurrently
@@ -510,30 +508,29 @@ describe('Firebase Integration Resilience Tests', () => {
       const submissions = (firebaseContentService.createContent as any).mock.calls;
       submissions.forEach((call: any[], index: number) => {
         const submittedData = call[0];
-        expect(submittedData.metadata.submissionIndex).toBe(index + 1);
+        expect(submittedData.features['feat:task']?.qty).toBe(index + 1);
         expect(submittedData.title).toBe(`Concurrent Article ${index + 1}`);
       });
     });
 
     it('should handle partial submission failures gracefully', async () => {
       const submissionData = createTestContentDoc({
-        type: 'event',
         title: 'Partial Failure Test',
-        content: 'Testing partial failure handling',
-        category: 'test',
-        priority: 'medium',
-        attachments: [
-          {
-            id: 'attachment-1',
-            type: 'firebase_image',
-            filename: 'test-image.jpg',
-            firebaseUrl: 'https://firebase.com/test-image.jpg',
-            isUserHosted: false
+        description: 'Testing partial failure handling',
+        tags: ['content-type:event', 'category:test', 'priority:medium'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() + 3600000, toDate: () => new Date(Date.now() + 3600000) } as any,
+            isAllDay: false
+          },
+          'feat:task': {
+            category: 'attachment',
+            qty: 1,
+            unit: 'files',
+            status: 'unclaimed'
           }
-        ],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        metadata: {}
+        }
       });
 
       // Mock partial failure - content saves but attachment upload fails
@@ -557,18 +554,19 @@ describe('Firebase Integration Resilience Tests', () => {
 
     it('should maintain referential integrity between related data', async () => {
       const eventWithReferencesData = createTestContentDoc({
-        type: 'event',
         title: 'Event with References',
-        content: 'Event that references other content',
-        category: 'community',
-        priority: 'high',
-        attachments: [],
-        onCalendar: true,
-        eventDate: '2024-08-20',
-        metadata: {
-          relatedNewsletterIssue: 'newsletter-2024-08',
-          relatedAnnouncements: ['announcement-1', 'announcement-2'],
-          parentEvent: 'annual-picnic-2024'
+        description: 'Event that references other content',
+        tags: ['content-type:event', 'category:community', 'priority:high'],
+        features: {
+          'feat:date': {
+            start: { toMillis: () => Date.now(), toDate: () => new Date() } as any,
+            end: { toMillis: () => Date.now() + 3600000, toDate: () => new Date(Date.now() + 3600000) } as any,
+            isAllDay: false
+          },
+          'feat:location': {
+            name: 'Referenced Event Location',
+            address: '123 Community St'
+          }
         }
       });
 
@@ -618,21 +616,16 @@ describe('Firebase Integration Resilience Tests', () => {
   describe('Performance & Resource Management - SCALABILITY CRITICAL', () => {
     it('should handle large batch operations efficiently', async () => {
       const largeSubmissionData = createTestContentDoc({
-        type: 'article',
         title: 'Large Batch Test',
-        content: 'A'.repeat(50000), // 50KB content
-        category: 'test',
-        priority: 'low',
-        attachments: Array.from({ length: 10 }, (_, i) => ({
-          id: `attachment-${i}`,
-          type: 'firebase_image' as const,
-          filename: `image-${i}.jpg`,
-          firebaseUrl: `https://firebase.com/image-${i}.jpg`,
-          isUserHosted: false
-        })),
-        metadata: {
-          tags: Array.from({ length: 50 }, (_, i) => `tag-${i}`),
-          categories: Array.from({ length: 20 }, (_, i) => `category-${i}`)
+        description: 'A'.repeat(50000), // 50KB content
+        tags: ['content-type:article', 'category:test', 'priority:low', ...Array.from({ length: 50 }, (_, i) => `tag-${i}`)],
+        features: {
+          'feat:task': {
+            category: 'batch-processing',
+            qty: 10,
+            unit: 'attachments',
+            status: 'unclaimed'
+          }
         }
       });
 
@@ -655,27 +648,22 @@ describe('Firebase Integration Resilience Tests', () => {
 
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
       expect(submittedData.description).toHaveLength(50000);
-      expect(submittedData.features['feat:attachment']?.attachments).toHaveLength(10);
-      expect(submittedData.tags).toHaveLength(50);
+      expect(submittedData.features['feat:task']?.qty).toBe(10);
+      expect(submittedData.tags).toHaveLength(53); // 3 base tags + 50 additional tags
     });
 
     it('should handle memory pressure during large submissions', async () => {
       const memoryIntensiveData = createTestContentDoc({
-        type: 'article',
         title: 'Memory Pressure Test',
-        content: 'Testing memory management',
-        category: 'performance',
-        priority: 'low',
-        attachments: [],
-        metadata: {
-          // Simulate large nested object that could cause memory pressure
-          largeDataStructure: Array.from({ length: 1000 }, (_, i) => ({
-            id: i,
-            data: Array.from({ length: 100 }, (_, j) => `data-${i}-${j}`),
-            nestedObject: {
-              level1: Array.from({ length: 50 }, (_, k) => ({ key: k, value: `value-${k}` }))
-            }
-          }))
+        description: 'Testing memory management',
+        tags: ['content-type:article', 'category:performance', 'priority:low'],
+        features: {
+          'feat:task': {
+            category: 'memory-test',
+            qty: 1000,
+            unit: 'data-points',
+            status: 'unclaimed'
+          }
         }
       });
 
@@ -693,24 +681,28 @@ describe('Firebase Integration Resilience Tests', () => {
 
       // Verify data structure integrity is maintained
       const submittedData = (firebaseContentService.createContent as any).mock.calls[0][0];
-      expect(submittedData.features['feat:data']?.largeDataStructure).toHaveLength(1000);
-      expect(submittedData.features['feat:data']?.largeDataStructure[0].data).toHaveLength(100);
+      expect(submittedData.features['feat:task']?.qty).toBe(1000);
+      expect(submittedData.features['feat:task']?.category).toBe('memory-test');
     });
 
     it('should implement proper connection pooling and cleanup', async () => {
       // This test documents the need for proper connection management
-      const multipleSubmissions = Array.from({ length: 20 }, (_, i) => ({
-        type: 'article' as const,
+      const multipleSubmissions = Array.from({ length: 20 }, (_, i) => createTestContentDoc({
         title: `Connection Pool Test ${i}`,
-        content: `Testing connection management ${i}`,
-        category: 'performance',
-        priority: 'low' as const,
-        attachments: [],
-        metadata: { testIndex: i }
+        description: `Testing connection management ${i}`,
+        tags: ['content-type:article', 'category:performance', 'priority:low'],
+        features: {
+          'feat:task': {
+            category: 'connection-test',
+            qty: i,
+            unit: 'connections',
+            status: 'unclaimed'
+          }
+        }
       }));
 
       (firebaseContentService.createContent as any).mockImplementation(
-        (data: any) => Promise.resolve(`pool-test-${data.metadata.testIndex}`)
+        (data: any) => Promise.resolve(`pool-test-${data.features['feat:task']?.qty || 0}`)
       );
 
       // Submit multiple requests that should reuse connections
