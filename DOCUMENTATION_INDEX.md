@@ -1,14 +1,15 @@
 # CLCA Courier - Documentation Index
 **Updated:** January 15, 2025  
-**Status:** 🚀 **NEWSLETTER MANAGEMENT ENHANCEMENTS COMPLETE** - Major UI/UX improvements implemented and production ready  
-**Organization:** ✅ **CLEAN** - Documentation updated with recent newsletter management improvements
+**Status:** 🚨 **CRITICAL TEST SUITE REMEDIATION REQUIRED** - Newsletter management complete, 60 test failures need immediate attention  
+**Organization:** ✅ **CLEAN** - Documentation updated with critical test issues and remediation plan
 
 ---
 
 ## 📚 CURRENT ACTIVE DOCUMENTATION
 
 ### **📊 Current Project Status**
-- **[docs/current-status/NEWSLETTER_MANAGEMENT_ENHANCEMENTS_JANUARY_15_2025.md](docs/current-status/NEWSLETTER_MANAGEMENT_ENHANCEMENTS_JANUARY_15_2025.md)** ⭐ **LATEST** - Newsletter management system enhancements complete
+- **[docs/current-status/TEST_SUITE_REMEDIATION_PLAN_JANUARY_15_2025.md](docs/current-status/TEST_SUITE_REMEDIATION_PLAN_JANUARY_15_2025.md)** 🚨 **CRITICAL** - Comprehensive test suite remediation plan and critical issues
+- **[docs/current-status/NEWSLETTER_MANAGEMENT_ENHANCEMENTS_JANUARY_15_2025.md](docs/current-status/NEWSLETTER_MANAGEMENT_ENHANCEMENTS_JANUARY_15_2025.md)** ⭐ **COMPLETE** - Newsletter management system enhancements complete
 - **[docs/current-status/DEPLOYMENT_STATUS_CURRENT.md](docs/current-status/DEPLOYMENT_STATUS_CURRENT.md)** ⭐ **PRIMARY** - GitHub Pages deployment readiness and infrastructure
 - **[docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md](docs/current-status/PROJECT_STATUS_SEPTEMBER_11_2025.md)** ⭐ **CURRENT** - Overall project status and capabilities
 - **[docs/current-status/NEXT_PRIORITIES_SEPTEMBER_11_2025.md](docs/current-status/NEXT_PRIORITIES_SEPTEMBER_11_2025.md)** ⭐ **CURRENT** - Next development priorities
@@ -162,40 +163,55 @@ The documentation is now **cleanly organized** for GitHub Pages deployment. All 
 
 ---
 
-## 🎯 NEXT STEPS
+## 🎯 NEXT STEPS - CRITICAL TEST SUITE REMEDIATION
 
-### **Phase 1: Test Suite Remediation** (Immediate Priority)
-1. **Fix Terminal Hanging Issues**: Implement timeout protection for test commands
-2. **Resolve Mock Initialization**: Fix circular dependency issues in test mocks
-3. **Update Test Expectations**: Align tests with new newsletter management functionality
-4. **Add Component Tests**: Test reactive UI updates in IssueContentDialog
-5. **Production Validation**: Ensure all enhancements work correctly in production
+### **Phase 1: Critical Mock Initialization Fixes** (Immediate Priority - CRITICAL)
+1. **Fix Circular Dependencies**: Resolve `Cannot access 'mockSubmitContent' before initialization` errors
+2. **Fix Firebase Mock Issues**: Resolve `Cannot access 'mockHttpsCallable' before initialization` errors
+3. **Fix Firestore Mock Issues**: Resolve `Cannot access 'mockFirestore' before initialization` errors
+4. **Expected Result**: 15-20 tests should pass immediately
+5. **Files to Fix**: NewsletterSubmissionPage, Cloud Functions, Template Management tests
 
-### **Phase 2: Newsletter Management Testing** (Next Priority)
-1. **Unit Test Coverage**: Add comprehensive tests for unpublish functionality
-2. **Integration Testing**: Test PDF generation workflow with thumbnail creation
-3. **UI/UX Testing**: Validate reactive updates and icon changes
-4. **Error Handling Tests**: Test error recovery and rollback scenarios
-5. **Performance Testing**: Validate real-time updates don't impact performance
+### **Phase 2: Component Testing Infrastructure** (High Priority)
+1. **Add Missing Quasar Mocks**: Add `QSpace`, `QCardActions`, and other missing component mocks
+2. **Fix Vue Component Method Access**: Resolve `createIssue`, `addToIssue`, `removeFromIssue` not found errors
+3. **Fix Component Error Boundaries**: Resolve unhandled exceptions in component tests
+4. **Expected Result**: 10-15 component tests should pass
+5. **Files to Fix**: NewsletterManagementPage, TemplatePreview, CanvaLogo tests
 
-### **Phase 3: Production Deployment** (Future)
-1. **GitHub Pages Deployment**: Deploy enhanced newsletter management system
-2. **User Training**: Document new workflow for content managers
-3. **Monitoring Setup**: Track usage of new functionality
-4. **Feedback Collection**: Gather user feedback on improvements
+### **Phase 3: Firebase Mock Configuration** (High Priority)
+1. **Complete Firebase Auth Mocks**: Add missing `onAuthStateChanged` export
+2. **Fix Test Data Mismatches**: Align expected vs actual IDs in test data
+3. **Update Firestore Mock Expectations**: Fix timestamp and data structure mismatches
+4. **Expected Result**: 15-20 Firebase service tests should pass
+5. **Files to Fix**: Firebase Auth, Firestore, and integration tests
 
-### **Future Enhancements** (Planned)
-- Advanced content collaboration features
-- Enhanced analytics and reporting
-- Mobile application development
-- Third-party integrations expansion
+### **Phase 4: Service Integration Alignment** (Medium Priority)
+1. **Align Mock Expectations**: Update tests to match actual service behavior
+2. **Fix Method Signature Mismatches**: Update test calls to match implementation
+3. **Fix CORS Error Prevention Tests**: Align mock configurations with actual service methods
+4. **Expected Result**: 10-15 service integration tests should pass
+5. **Files to Fix**: CORS error prevention, service integration tests
+
+### **Phase 5: Production Validation** (Final Priority)
+1. **Achieve 95%+ Test Success Rate**: Target 970+ passing tests out of 1015
+2. **Validate Newsletter Management**: Ensure all enhancements work correctly in production
+3. **Performance Testing**: Validate real-time updates don't impact performance
+4. **GitHub Pages Deployment**: Deploy enhanced newsletter management system
+
+### **Success Metrics**
+- **Current**: 955/1015 tests passing (94.1% success rate)
+- **Target**: 970+/1015 tests passing (95%+ success rate)
+- **Critical Issues**: 60 test failures identified and categorized
+- **Build Status**: ✅ SUCCESS - All TypeScript compilation passed
+- **Linting Status**: ✅ SUCCESS - No ESLint errors
 
 ---
 
 **Documentation maintained by:** CLCA Courier Development Team  
 **Last comprehensive update:** January 15, 2025  
-**System version:** Newsletter Management Enhanced v1.1 - Major UI/UX improvements complete
+**System version:** Newsletter Management Enhanced v1.1 - Major UI/UX improvements complete, Critical test suite remediation required
 
-**Next Milestone:** Test suite remediation and production deployment of enhanced newsletter management system.
+**Next Milestone:** CRITICAL - Fix 60 test failures to achieve 95%+ test success rate and complete production deployment.
 
-**Recent Achievement:** Newsletter management system enhancements complete - Unpublish functionality, reactive UI updates, thumbnail generation, and enhanced PDF generation workflow all implemented and working in production.
+**Recent Achievement:** Newsletter management system enhancements complete and working in production. Critical test suite issues identified: 60 test failures due to mock initialization, component testing, and Firebase configuration issues. Build and linting pass successfully.
