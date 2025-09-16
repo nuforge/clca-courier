@@ -504,5 +504,19 @@ export default {
     layoutControls: 'Controles de Diseño',
     pagePreview: 'Vista Previa de Página',
     contentFlow: 'Flujo de Contenido'
+  },
+
+  // Page Layout Designer Page
+  pageLayoutDesigner: {
+    title: 'Diseñador de Diseño de Página',
+    description: 'Diseña y organiza diseños de páginas de boletín con gestión de contenido de arrastrar y soltar',
+    layoutPreview: 'Vista Previa del Diseño',
+    designMode: 'Modo de Diseño',
+    previewMode: 'Modo de Vista Previa',
+    backToManagement: 'Volver a Gestión de Boletín',
+    saveAndReturn: 'Guardar y Volver',
+    layoutSaved: 'Diseño guardado exitosamente',
+    layoutLoadError: 'Error al cargar datos del diseño',
+    noIssueSelected: 'No se seleccionó una edición para el diseño'
   }
 };

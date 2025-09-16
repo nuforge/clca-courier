@@ -419,14 +419,6 @@
         v-model="showTemplateDialog"
       />
 
-      <!-- Page Layout Management Dialog -->
-      <PageLayoutDialog
-        v-model="showLayoutDialog"
-        :selected-issue="selectedIssue"
-        :approved-submissions="approvedSubmissions"
-        @preview-newsletter="previewNewsletter"
-        @content-updated="loadData"
-      />
     </div>
   </q-page>
 </template>
@@ -434,6 +426,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
 import { logger } from '../utils/logger';
 // import { UI_ICONS } from '../constants/ui-icons';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
@@ -445,9 +438,9 @@ import type { ContentDoc } from '../types/core/content.types';
 import CreateIssueDialog from '../components/newsletter-management/CreateIssueDialog.vue';
 import EditIssueDialog from '../components/newsletter-management/EditIssueDialog.vue';
 import TemplateManagementDialog from '../components/newsletter-management/TemplateManagementDialog.vue';
-import PageLayoutDialog from '../components/newsletter-management/PageLayoutDialog.vue';
 
 const $q = useQuasar();
+const router = useRouter();
 
 // Extended UnifiedNewsletter to support draft issues
 interface NewsletterIssue extends UnifiedNewsletter {
@@ -464,7 +457,6 @@ const issues = ref<NewsletterIssue[]>([]);
 const approvedSubmissions = ref<ContentDoc[]>([]);
 const showCreateDialog = ref(false);
 const showEditDialog = ref(false);
-const showLayoutDialog = ref(false);
 const selectedIssue = ref<NewsletterIssue | null>(null);
 
 // Filtering and tabs state
@@ -645,8 +637,8 @@ const loadData = async () => {
 
 
 const viewIssue = (issue: NewsletterIssue) => {
-  selectedIssue.value = issue;
-  showLayoutDialog.value = true;
+  // Navigate to the dedicated page layout designer page
+  void router.push(`/admin/newsletters/${issue.id}/layout`);
 };
 
 const viewNewsletter = (newsletter: NewsletterIssue) => {
@@ -985,44 +977,6 @@ const startProgressPolling = (issueId: string) => {
   }, 600000);
 };
 
-
-const previewNewsletter = (previewData?: { issue: NewsletterIssue; layout: Record<string, unknown> }) => {
-  // Use the issue from preview data if provided, otherwise use selected issue
-  const issueToPreview = previewData?.issue || selectedIssue.value;
-
-  if (!issueToPreview) {
-    $q.notify({
-      type: 'warning',
-      message: 'No issue selected for preview'
-    });
-    return;
-  }
-
-  // Log the preview data for debugging
-  if (previewData) {
-    logger.info('Previewing newsletter with layout data', {
-      issueId: issueToPreview.id,
-      issueTitle: issueToPreview.title,
-      layout: previewData.layout
-    });
-  }
-
-  const pdfUrl = issueToPreview.finalPdfUrl || issueToPreview.downloadUrl;
-  if (pdfUrl) {
-    // Open the PDF in a new tab
-    window.open(pdfUrl, '_blank');
-    $q.notify({
-      type: 'positive',
-      message: `Newsletter preview opened: ${issueToPreview.title}`
-    });
-  } else {
-    $q.notify({
-      type: 'warning',
-      message: 'No PDF available for preview. Generate PDF first.',
-      caption: `Issue: ${issueToPreview.title} - Use the "Generate PDF" button to create a preview`
-    });
-  }
-};
 
 
 const downloadPdf = (item: NewsletterIssue) => {

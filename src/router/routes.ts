@@ -43,6 +43,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/admin/dashboard', redirect: '/admin' },
       { path: '/admin/content', component: () => import('pages/ContentManagementPage.vue') },
       { path: '/admin/newsletters', component: () => import('pages/NewsletterManagementPage.vue') },
+      { path: '/admin/newsletters/:issueId/layout', component: () => import('pages/PageLayoutDesignerPage.vue') },
       { path: '/admin/theme', component: () => import('pages/ThemeEditorPage.vue') },
       { path: '/admin/test-content-v2', component: () => import('pages/TestContentV2Page.vue') },
       { path: '/admin/canva-demo', component: () => import('pages/CanvaDemoPage.vue') },

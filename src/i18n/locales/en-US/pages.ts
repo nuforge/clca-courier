@@ -511,5 +511,19 @@ export default {
     layoutControls: 'Layout Controls',
     pagePreview: 'Page Preview',
     contentFlow: 'Content Flow'
+  },
+
+  // Page Layout Designer Page
+  pageLayoutDesigner: {
+    title: 'Page Layout Designer',
+    description: 'Design and arrange newsletter page layouts with drag-and-drop content management',
+    layoutPreview: 'Layout Preview',
+    designMode: 'Design Mode',
+    previewMode: 'Preview Mode',
+    backToManagement: 'Back to Newsletter Management',
+    saveAndReturn: 'Save & Return',
+    layoutSaved: 'Layout saved successfully',
+    layoutLoadError: 'Failed to load layout data',
+    noIssueSelected: 'No issue selected for layout design'
   }
 };

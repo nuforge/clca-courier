@@ -114,7 +114,12 @@ export default {
     autoArrangeContent: 'Auto-Arrange Content',
     clearAllPages: 'Clear All Pages',
     previewNewsletter: 'Preview Newsletter',
-    saveLayout: 'Save Layout'
+    saveLayout: 'Save Layout',
+    addToIssue: 'Add to Issue',
+    removeFromIssue: 'Remove from Issue',
+    removePage: 'Remove Page',
+    removeContent: 'Remove Content',
+    generatePdf: 'Generate PDF'
   },
 
   status: {

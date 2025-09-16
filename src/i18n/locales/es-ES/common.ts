@@ -115,7 +115,12 @@ export default {
     autoArrangeContent: 'Organizar Contenido Automáticamente',
     clearAllPages: 'Limpiar Todas las Páginas',
     previewNewsletter: 'Vista Previa del Boletín',
-    saveLayout: 'Guardar Diseño'
+    saveLayout: 'Guardar Diseño',
+    addToIssue: 'Agregar a la Edición',
+    removeFromIssue: 'Quitar de la Edición',
+    removePage: 'Quitar Página',
+    removeContent: 'Quitar Contenido',
+    generatePdf: 'Generar PDF'
   },
 
   status: {

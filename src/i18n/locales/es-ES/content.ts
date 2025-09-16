@@ -299,5 +299,17 @@ export default {
       everyNMonths: 'Cada {n} meses',
       everyNYears: 'Cada {n} años'
     }
-  }
+  },
+
+  // Additional Newsletter Layout Dialog keys
+  activeInLayout: 'Activo en diseño',
+  layoutArea: 'Área de Diseño',
+  inLayout: 'En Diseño',
+  noContentInIssue: 'No hay contenido en esta edición',
+  dragContentHere: 'Arrastra contenido de la lista disponible',
+  existingNewsletterReadonly: 'Este es un boletín existente con contenido fijo',
+  emptyContentArea: 'Área de contenido vacía',
+  availableAreas: 'Áreas Disponibles',
+  totalContent: 'Contenido Total',
+  statistics: 'Estadísticas'
 };
