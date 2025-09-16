@@ -285,10 +285,11 @@
                         v-for="(area, index) in contentAreas"
                         :key="index"
                         class="content-area"
-                        :class="{ 'has-content': area.contentId }"
+                        :class="{ 'has-content': area.contentId, 'drag-over': dragOverArea === index }"
                         @drop="handleAreaDrop($event, index)"
-                        @dragover.prevent
-                        @dragenter.prevent
+                        @dragover.prevent="handleDragOver($event, index)"
+                        @dragenter.prevent="handleDragEnter($event, index)"
+                        @dragleave.prevent="handleDragLeave($event)"
                       >
                         <div v-if="area.contentId" class="content-preview">
                           <div class="content-title">{{ getSubmissionTitle(area.contentId) }}</div>
@@ -420,7 +421,7 @@
         <q-card-section class="row items-center q-pb-none">
           <div id="layout-preview-title" class="text-h6">
             <q-icon name="mdi-eye" class="q-mr-sm" />
-            Layout Preview - {{ selectedIssue?.title }}
+            Layout Preview - {{ localSelectedIssue?.title }}
           </div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
@@ -431,8 +432,8 @@
             <div class="preview-newsletter">
               <!-- Newsletter Header -->
               <div class="preview-header">
-                <div class="preview-title">{{ selectedIssue?.title }}</div>
-                <div class="preview-date">{{ formatDate(selectedIssue?.publicationDate || new Date(), 'LONG') }}</div>
+                <div class="preview-title">{{ localSelectedIssue?.title }}</div>
+                <div class="preview-date">{{ formatDate(localSelectedIssue?.publicationDate || new Date(), 'LONG') }}</div>
               </div>
 
               <!-- Content Areas Preview -->
@@ -543,6 +544,7 @@ const contentAreas = ref([
 ]);
 const draggedContentId = ref<string | null>(null);
 const showLayoutPreview = ref(false);
+const dragOverArea = ref<number | null>(null);
 
 // Content management state
 const availableContentExpanded = ref(true);
@@ -592,28 +594,37 @@ const templateOptions = [
 const availableContent = computed(() => {
   if (!localSelectedIssue.value) return props.approvedSubmissions;
 
-  return props.approvedSubmissions.filter(submission => {
-    // Filter out content already in the issue
-    const notInIssue = !localSelectedIssue.value?.submissions.includes(submission.id);
+  const searchLower = contentSearchQuery.value.toLowerCase();
+  const issueSubmissions = new Set(localSelectedIssue.value.submissions);
 
-    // Apply search filter
-    const matchesSearch = !contentSearchQuery.value ||
-      submission.title.toLowerCase().includes(contentSearchQuery.value.toLowerCase()) ||
-      submission.description.toLowerCase().includes(contentSearchQuery.value.toLowerCase());
+  return props.approvedSubmissions.filter(submission => {
+    // Filter out content already in the issue (optimized with Set)
+    if (issueSubmissions.has(submission.id)) return false;
+
+    // Apply search filter (optimized with early return)
+    if (contentSearchQuery.value &&
+        !submission.title.toLowerCase().includes(searchLower) &&
+        !submission.description.toLowerCase().includes(searchLower)) {
+      return false;
+    }
 
     // Apply status filter
-    const matchesStatus = selectedContentStatus.value === 'all' ||
-      submission.status === selectedContentStatus.value;
+    if (selectedContentStatus.value !== 'all' && submission.status !== selectedContentStatus.value) {
+      return false;
+    }
 
-    return notInIssue && matchesSearch && matchesStatus;
+    return true;
   });
 });
 
 const issueContent = computed(() => {
   if (!localSelectedIssue.value) return [];
 
+  // Create a map for O(1) lookups instead of O(n) finds
+  const submissionsMap = new Map(props.approvedSubmissions.map(s => [s.id, s]));
+
   return localSelectedIssue.value.submissions
-    .map(submissionId => props.approvedSubmissions.find(s => s.id === submissionId))
+    .map(submissionId => submissionsMap.get(submissionId))
     .filter(Boolean) as ContentDoc[];
 });
 
@@ -769,8 +780,31 @@ const handleDrop = (event: DragEvent) => {
   // Handle general drop if needed
 };
 
+// Drag and drop visual feedback handlers
+const handleDragOver = (event: DragEvent, areaIndex: number) => {
+  event.preventDefault();
+  dragOverArea.value = areaIndex;
+};
+
+const handleDragEnter = (event: DragEvent, areaIndex: number) => {
+  event.preventDefault();
+  dragOverArea.value = areaIndex;
+};
+
+const handleDragLeave = (event: DragEvent) => {
+  event.preventDefault();
+  // Only clear if leaving the area completely (not a child element)
+  const currentTarget = event.currentTarget as HTMLElement;
+  const relatedTarget = event.relatedTarget as Node;
+  if (currentTarget && !currentTarget.contains(relatedTarget)) {
+    dragOverArea.value = null;
+  }
+};
+
 const handleAreaDrop = (event: DragEvent, areaIndex: number) => {
   event.preventDefault();
+  dragOverArea.value = null; // Clear drag over state
+
   const contentId = event.dataTransfer?.getData('text/plain') || draggedContentId.value;
   const source = event.dataTransfer?.getData('application/x-source') || 'library';
 
@@ -800,7 +834,7 @@ const removeFromArea = (areaIndex: number) => {
 
     $q.notify({
       type: 'info',
-      message: 'Content removed from layout area'
+      message: t('notifications.contentRemovedFromLayoutArea') || 'Content removed from layout area'
     });
   }
 };
@@ -811,7 +845,7 @@ const addPage = () => {
 
   $q.notify({
     type: 'positive',
-    message: `Page ${newPageId} added`
+    message: t('notifications.pageAdded', { pageNumber: newPageId }) || `Page ${newPageId} added`
   });
 };
 
@@ -820,7 +854,7 @@ const removePage = () => {
     const removedPage = pages.value.pop();
     $q.notify({
       type: 'info',
-      message: `Page ${removedPage?.id} removed`
+      message: t('notifications.pageRemoved', { pageNumber: removedPage?.id }) || `Page ${removedPage?.id} removed`
     });
   }
 };
@@ -858,7 +892,7 @@ const changeTemplate = (templateValue: string) => {
 
   $q.notify({
     type: 'positive',
-    message: `Template changed to ${templateOptions.find(t => t.value === templateValue)?.label}`
+    message: t('notifications.templateChanged', { templateName: templateOptions.find(t => t.value === templateValue)?.label }) || `Template changed to ${templateOptions.find(t => t.value === templateValue)?.label}`
   });
 };
 
