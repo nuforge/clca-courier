@@ -182,50 +182,23 @@ class NewsletterGenerationService {
     try {
       logger.info('Loading approved submissions for newsletter inclusion');
 
-      // Query for published content from the content collection
-      const publishedQuery = query(
+      // Query for published content from the ContentDoc collection
+      const contentQuery = query(
         collection(firestore, 'content'),
         where('status', '==', 'published'),
         orderBy('timestamps.created', 'desc')
       );
 
-      // Query for approved content from content_submissions collection
-      const approvedQuery = query(
-        collection(firestore, 'content_submissions'),
-        where('status', 'in', ['approved', 'published']),
-        orderBy('submissionDate', 'desc')
-      );
-
-      // Execute both queries in parallel
-      const [publishedSnapshot, approvedSnapshot] = await Promise.all([
-        getDocs(publishedQuery).catch(() => ({ docs: [] })), // Graceful fallback if collection doesn't exist
-        getDocs(approvedQuery).catch(() => ({ docs: [] }))   // Graceful fallback if collection doesn't exist
-      ]);
-
-      // Process published content
-      const publishedContent = publishedSnapshot?.docs?.map(doc => ({
+      const contentSnapshot = await getDocs(contentQuery);
+      const content = contentSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      } as ContentDoc)) || [];
-
-      // Process approved submissions
-      const approvedContent = approvedSnapshot?.docs?.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as ContentDoc)) || [];
-
-      // Combine all content and deduplicate by ID
-      const allContent = [...publishedContent, ...approvedContent];
-      const uniqueContent = allContent.filter((content, index, self) =>
-        index === self.findIndex(c => c.id === content.id)
-      );
+      } as ContentDoc));
 
       // Log detailed information for debugging
       logger.info('Content loading results', {
-        publishedCount: publishedContent.length,
-        approvedCount: approvedContent.length,
-        totalUniqueCount: uniqueContent.length,
-        contentSample: uniqueContent.slice(0, 3).map(c => ({
+        totalCount: content.length,
+        contentSample: content.slice(0, 3).map(c => ({
           id: c.id,
           title: c.title,
           status: c.status,
@@ -234,18 +207,19 @@ class NewsletterGenerationService {
       });
 
       // If no content found, provide helpful debug information
-      if (uniqueContent.length === 0) {
-        logger.warn('No approved content found - this might indicate:', {
+      if (content.length === 0) {
+        logger.warn('No published content found - this might indicate:', {
           possibleIssues: [
-            'No content has been published/approved yet',
-            'Content might be in a different collection',
+            'No content has been published yet',
+            'Content might be in draft status',
             'Firestore security rules might be blocking access',
             'Content status values might be different than expected'
-          ]
+          ],
+          collectionChecked: 'content'
         });
       }
 
-      return uniqueContent;
+      return content;
     } catch (error) {
       logger.error('Failed to fetch approved submissions:', error);
       throw error;
