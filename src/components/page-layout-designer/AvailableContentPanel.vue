@@ -58,6 +58,10 @@
               </div>
             </div>
 
+            <div v-if="availableContent.length === 0" class="text-center text-grey-6 q-pa-md">
+              <q-icon name="mdi-information" size="2rem" class="q-mb-sm" />
+              <div>{{ $t('content.noAvailableContent') || 'No available content matches your search' }}</div>
+            </div>
             <!-- Available Content List -->
             <q-list separator>
               <q-item
@@ -101,10 +105,6 @@
               </q-item>
             </q-list>
 
-            <div v-if="availableContent.length === 0" class="text-center text-grey-6 q-pa-md">
-              <q-icon name="mdi-information" size="2rem" class="q-mb-sm" />
-              <div>{{ $t('content.noAvailableContent') || 'No available content matches your search' }}</div>
-            </div>
           </q-card-section>
         </div>
       </q-slide-transition>
@@ -264,9 +264,6 @@ const handleRemoveFromIssue = async (submissionId: string) => {
 </script>
 
 <style scoped>
-.available-content-panel {
-  height: 100%;
-}
 
 .available-content-item,
 .issue-content-item {
