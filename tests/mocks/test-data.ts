@@ -5,7 +5,7 @@
 
 import type { NewsletterMetadata } from '../../src/services/firebase-firestore.service';
 import type { ContentDoc, ContentFeatures } from '../../src/types/core/content.types';
-import type { UserContent } from '../../src/services/firebase-firestore.service';
+// Legacy UserContent import removed - all tests now use ContentDoc
 
 // Newsletter Test Data - Based on Real Patterns
 export const mockNewsletterData = {

@@ -12,9 +12,9 @@ import {
 import {
   firestoreService,
   type NewsletterMetadata,
-  type UserContent,
   type UserProfile,
 } from '../services/firebase-firestore.service';
+import type { ContentDoc } from '../types/core/content.types';
 import { type UserRole } from '../composables/useRoleAuth';
 import {
   firebaseStorageService,
@@ -310,7 +310,7 @@ export function useFirebaseStorage() {
 }
 
 export function useFirebaseUserContent() {
-  const pendingContent = ref<UserContent[]>([]);
+  const pendingContent = ref<ContentDoc[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const { isAuthenticated } = useFirebaseAuth();
@@ -323,13 +323,16 @@ export function useFirebaseUserContent() {
     (authenticated: boolean) => {
       if (authenticated) {
         // Set up subscription when user logs in
-        logger.info('User authenticated - setting up pending content subscription');
-        unsubscribe = firestoreService.subscribeToPendingContent((data) => {
-          pendingContent.value = data;
-        });
+        logger.info('User authenticated - setting up content subscription');
+        // TODO: Implement ContentDoc-based subscription
+        // unsubscribe = firebaseContentService.subscribeToAllContent((data) => {
+        //   pendingContent.value = data.filter(item => item.status === 'draft');
+        // });
+        logger.info('Content subscription temporarily disabled during migration');
+        pendingContent.value = [];
       } else {
         // Clean up subscription when user logs out
-        logger.info('User not authenticated - cleaning up pending content subscription');
+        logger.info('User not authenticated - cleaning up content subscription');
         unsubscribe?.();
         unsubscribe = null;
         pendingContent.value = []; // Clear content when not authenticated
@@ -376,12 +379,14 @@ export function useFirebaseUserContent() {
   // Update content status (for editors)
   const updateContentStatus = async (
     contentId: string,
-    status: UserContent['status'],
+    status: ContentDoc['status'],
     reviewNotes?: string,
   ) => {
     try {
-      await firestoreService.updateContentStatus(contentId, status, reviewNotes);
-      logger.success('Content status updated:', contentId, status);
+      // TODO: Implement using ContentDoc status update
+      // await firebaseContentService.updateContentStatus(contentId, status, reviewNotes);
+      logger.info('Content status update temporarily disabled during migration');
+      logger.success('Content status update requested:', contentId, status);
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update status';
       logger.error('Failed to update content status:', err);
@@ -394,7 +399,11 @@ export function useFirebaseUserContent() {
     try {
       isLoading.value = true;
       error.value = null;
-      pendingContent.value = await firestoreService.getPendingContent();
+      // TODO: Implement using ContentDoc with status filter
+      // pendingContent.value = await firebaseContentService.getAllContent()
+      //   .then(content => content.filter(item => item.status === 'draft'));
+      logger.info('Pending content loading temporarily disabled during migration');
+      pendingContent.value = [];
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load pending content';
       logger.error('Failed to load pending content:', err);

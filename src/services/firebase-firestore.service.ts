@@ -35,66 +35,8 @@ import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 // Use the canonical UnifiedNewsletter interface
 export type NewsletterMetadata = UnifiedNewsletter;
 
-// User-generated content interface
-export interface UserContent {
-  id: string;
-  type: 'article' | 'announcement' | 'event' | 'classified' | 'photo';
-  title: string;
-  content: string;
-  authorId: string; // User UID
-  authorName: string;
-  authorEmail: string;
-  submissionDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'published';
-  featured?: boolean; // Optional featured flag for highlighted content
-  reviewedBy?: string; // Editor UID
-  reviewDate?: string;
-  reviewNotes?: string;
-  scheduledPublishDate?: string;
-  tags: string[];
-
-  // Calendar and event-specific fields
-  onCalendar?: boolean; // Whether this content should appear on the calendar
-  eventDate?: string; // ISO 8601 date string for event start
-  eventEndDate?: string; // ISO 8601 date string for event end (optional)
-  eventTime?: string; // Time in HH:MM format
-  eventEndTime?: string; // End time in HH:MM format (optional)
-  eventLocation?: string; // Event location/venue
-  eventRecurrence?: {
-    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-    interval?: number; // Every N days/weeks/months/years
-    endDate?: string; // When recurrence ends
-    daysOfWeek?: number[]; // For weekly: 0=Sunday, 1=Monday, etc.
-    dayOfMonth?: number; // For monthly: day of month
-  };
-  allDay?: boolean; // Whether this is an all-day event
-
-  // Canva integration for design collaboration
-  canvaDesign?: CanvaDesign;
-
-  // Print workflow integration
-  printJob?: {
-    status: 'not_required' | 'print_ready' | 'claimed' | 'completed';
-    quantity?: number;
-    claimedBy?: string; // Reference to user's UID
-    claimedAt?: Timestamp;
-    exportedAt?: Timestamp; // When the design was exported
-    completedAt?: Timestamp; // When the print job was completed
-  };
-
-  attachments: Array<{
-    filename: string;
-    storageRef: string;
-    downloadUrl: string;
-    fileSize: number;
-    mimeType: string;
-  }>;
-  metadata: {
-    ipAddress?: string;
-    userAgent?: string;
-    submissionSource: 'web' | 'mobile' | 'api';
-  };
-}
+// Legacy UserContent interface removed - replaced with ContentDoc architecture
+// All content operations now use ContentDoc from src/types/core/content.types.ts
 
 // User profile interface - Updated for enhanced role system
 export interface UserProfile {
@@ -124,10 +66,10 @@ export interface UserProfile {
 class FirebaseFirestoreService {
   private readonly COLLECTIONS = {
     NEWSLETTERS: 'newsletters',
-    USER_CONTENT: 'userContent',
     USER_PROFILES: 'userProfiles',
     NEWSLETTER_ISSUES: 'newsletterIssues',
-    APPROVAL_QUEUE: 'approvalQueue',
+    // Legacy collections USER_CONTENT and APPROVAL_QUEUE removed
+    // All content operations now use 'content' collection via ContentDoc system
   } as const;
 
   // Newsletter metadata operations
@@ -389,20 +331,8 @@ class FirebaseFirestoreService {
   // Legacy submitUserContent method removed - use ContentDoc architecture instead
   // All content creation should now use firebaseContentService.createContent
 
-  async getUserContent(id: string): Promise<UserContent | null> {
-    try {
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, id);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as UserContent;
-      }
-      return null;
-    } catch (error) {
-      logger.error('Error getting user content:', error);
-      throw error;
-    }
-  }
+  // Legacy getUserContent method removed
+  // Use firebaseContentService.getContentById() instead
 
   async updateContentStatus(
     contentId: string,
@@ -451,152 +381,17 @@ class FirebaseFirestoreService {
     }
   }
 
-  async updateUserContent(contentId: string, updates: Partial<UserContent>): Promise<void> {
-    try {
-      const currentUser = firebaseAuthService.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('User must be authenticated to update content');
-      }
+  // Legacy updateUserContent method removed
+  // Use firebaseContentService.updateContent() instead
 
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
-      await updateDoc(docRef, updates);
+  // Legacy getPendingContent method removed
+  // Use firebaseContentService.getAllContent() with status filter instead
 
-      logger.success('User content updated:', contentId, Object.keys(updates));
-    } catch (error) {
-      logger.error('Error updating user content:', error);
-      throw error;
-    }
-  }
+  // Legacy getPublishedContent method removed
+  // Use firebaseContentService.getPublishedContent() instead
 
-  async getPendingContent(): Promise<UserContent[]> {
-    try {
-      // Try with ordering first (requires index)
-      try {
-        const q = query(
-          collection(firestore, this.COLLECTIONS.USER_CONTENT),
-          where('status', '==', 'pending'),
-          orderBy('submissionDate', 'desc'),
-        );
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-      } catch (indexError) {
-        // Fallback: query without ordering if index not ready
-        void indexError; // Explicitly ignore the error for fallback
-        logger.warn('Index not ready, using fallback query without ordering');
-        const q = query(
-          collection(firestore, this.COLLECTIONS.USER_CONTENT),
-          where('status', '==', 'pending'),
-        );
-        const querySnapshot = await getDocs(q);
-        const results = querySnapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-        // Sort in memory as fallback
-        return results.sort((a, b) => sortByDateDesc(a.submissionDate, b.submissionDate));
-      }
-    } catch (error) {
-      logger.error('Error getting pending content:', error);
-      throw error;
-    }
-  }
-
-  async getPublishedContent(): Promise<UserContent[]> {
-    try {
-      logger.debug('Fetching published content...');
-      // Query only for published content (accessible without authentication)
-      try {
-        const q = query(
-          collection(firestore, this.COLLECTIONS.USER_CONTENT),
-          where('status', '==', 'published'),
-          orderBy('submissionDate', 'desc'),
-        );
-        const querySnapshot = await getDocs(q);
-        logger.debug(`Found ${querySnapshot.size} published documents`);
-        const results = querySnapshot.docs.map((doc) => {
-          const data = {
-            id: doc.id,
-            ...doc.data(),
-          } as UserContent;
-          logger.debug(`Published document: ${doc.id} - ${data.title} - Status: ${data.status}`);
-          return data;
-        });
-        return results;
-      } catch (indexError) {
-        // Fallback: query without ordering if index not ready
-        logger.warn('Index not ready for published content, using fallback query', indexError);
-        const q = query(
-          collection(firestore, this.COLLECTIONS.USER_CONTENT),
-          where('status', '==', 'published'),
-        );
-        const querySnapshot = await getDocs(q);
-        logger.debug(`Fallback query found ${querySnapshot.size} published documents`);
-        const results = querySnapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-        // Sort in memory as fallback
-        return results.sort((a, b) => sortByDateDesc(a.submissionDate, b.submissionDate));
-      }
-    } catch (error) {
-      logger.error('Error getting published content:', error);
-      throw error;
-    }
-  }
-
-  async getApprovedContent(): Promise<UserContent[]> {
-    try {
-      // Try with ordering first (requires index)
-      try {
-        const q = query(
-          collection(firestore, this.COLLECTIONS.USER_CONTENT),
-          where('status', 'in', ['approved', 'published']),
-          orderBy('submissionDate', 'desc'),
-        );
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-      } catch (indexError) {
-        // Fallback: query without ordering if index not ready
-        void indexError; // Explicitly ignore the error for fallback
-        logger.warn('Index not ready for approved content, using fallback query');
-        const q = query(
-          collection(firestore, this.COLLECTIONS.USER_CONTENT),
-          where('status', 'in', ['approved', 'published']),
-        );
-        const querySnapshot = await getDocs(q);
-        const results = querySnapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-        // Sort in memory as fallback
-        return results.sort((a, b) => sortByDateDesc(a.submissionDate, b.submissionDate));
-      }
-    } catch (error) {
-      logger.error('Error getting approved content:', error);
-      throw error;
-    }
-  }
+  // Legacy getApprovedContent method removed
+  // Use firebaseContentService.getPublishedContent() instead
 
   // ========================================
   // LEGACY CONVERSION METHODS - COMMENTED OUT FOR MIGRATION
@@ -700,92 +495,17 @@ class FirebaseFirestoreService {
     return result;
   }
 
-  async getPublishedContentAsNewsItems(): Promise<NewsItem[]> {
-    try {
-      const userContent = await this.getPublishedContent();
-      return userContent.map((content) => this.convertUserContentToNewsItem(content));
-    } catch (error) {
-      logger.error('Error getting published content as news items:', error);
-      throw error;
-    }
-  }
+  // Legacy getPublishedContentAsNewsItems method removed
+  // ContentDoc system doesn't need conversion - use firebaseContentService.getPublishedContent() directly
 
-  async getApprovedContentAsNewsItems(): Promise<NewsItem[]> {
-    try {
-      // For public access, only return published content
-      // Admin interfaces should use getApprovedContent() directly if they need both approved and published
-      const userContent = await this.getPublishedContent();
-      return userContent.map((content) => this.convertUserContentToNewsItem(content));
-    } catch (error) {
-      logger.error('Error getting published content as news items:', error);
-      throw error;
-    }
-  }
+  // Legacy getApprovedContentAsNewsItems method removed
+  // ContentDoc system doesn't need conversion - use firebaseContentService.getPublishedContent() directly
 
-  // Real-time subscription to published content (for public news page)
-  subscribeToPublishedContent(callback: (newsItems: NewsItem[]) => void): Unsubscribe {
-    const q = query(
-      collection(firestore, this.COLLECTIONS.USER_CONTENT),
-      where('status', '==', 'published'),
-      orderBy('submissionDate', 'desc'),
-    );
+  // Legacy subscribeToPublishedContent method removed
+  // Use firebaseContentService subscription methods with ContentDoc instead
 
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        const userContent = snapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-
-        const newsItems = userContent.map((content) => this.convertUserContentToNewsItem(content));
-        callback(newsItems);
-        logger.debug(`Real-time update: ${newsItems.length} published content items`);
-      },
-      (error) => {
-        logger.error('Error in published content subscription:', error);
-        callback([]); // Return empty array on error
-      },
-    );
-  }
-
-  // Real-time subscription to approved content (for admin interfaces)
-  subscribeToApprovedContent(callback: (newsItems: NewsItem[]) => void): Unsubscribe {
-    const q = query(
-      collection(firestore, this.COLLECTIONS.USER_CONTENT),
-      where('status', 'in', ['approved', 'published']),
-      orderBy('submissionDate', 'desc'),
-    );
-
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        const userContent = snapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as UserContent,
-        );
-
-        logger.debug(
-          `Subscription retrieved ${userContent.length} approved content items:`,
-          userContent,
-        );
-        const newsItems = userContent.map((content) => this.convertUserContentToNewsItem(content));
-        callback(newsItems);
-        logger.debug(`Real-time update: ${newsItems.length} approved content items`);
-      },
-      (error) => {
-        logger.error('Error in approved content subscription:', error);
-        callback([]); // Return empty array on error
-      },
-    );
-  }
-  */
+  // Legacy subscribeToApprovedContent method removed
+  // Use firebaseContentService subscription methods with ContentDoc instead
 
   // ========================================
   // END LEGACY METHODS
@@ -951,46 +671,8 @@ class FirebaseFirestoreService {
     }
   }
 
-  subscribeToPendingContent(callback: (content: UserContent[]) => void): Unsubscribe {
-    try {
-      logger.info('Setting up pending content subscription...');
-
-      // Simplified query - consider adding compound index for complex filtering
-      const q = query(collection(firestore, this.COLLECTIONS.USER_CONTENT), limit(50));
-
-      return onSnapshot(
-        q,
-        (querySnapshot) => {
-          const content = querySnapshot.docs
-            .map(
-              (doc) =>
-                ({
-                  id: doc.id,
-                  ...doc.data(),
-                }) as UserContent,
-            )
-            // Client-side filtering and sorting until indexes are created
-            .filter((item) => item.status === 'pending')
-            .sort((a, b) => sortByDateAsc(a.submissionDate, b.submissionDate));
-
-          logger.success(`Pending content subscription processed ${content.length} items`);
-          callback(content);
-        },
-        (error) => {
-          logger.error('Pending content subscription error:', error);
-          if (error.message.includes('permission')) {
-            logger.debug('Permission denied for pending content - user may not be editor');
-          }
-          // Call callback with empty array to prevent app crash
-          callback([]);
-        },
-      );
-    } catch (error) {
-      logger.error('Error setting up pending content subscription:', error);
-      callback([]);
-      return () => {};
-    }
-  }
+  // Legacy subscribeToPendingContent method removed
+  // Use firebaseContentService subscription methods with ContentDoc instead
 
   // Search operations
   async searchNewsletters(searchTerm: string): Promise<NewsletterMetadata[]> {
@@ -1274,118 +956,20 @@ class FirebaseFirestoreService {
   // Print Job Management Methods
   // ===========================
 
-  /**
-   * Get all content items ready for printing
-   */
-  async getPrintReadyContent(): Promise<UserContent[]> {
-    try {
-      logger.debug('Fetching print-ready content...');
-      const q = query(
-        collection(firestore, this.COLLECTIONS.USER_CONTENT),
-        where('printJob.status', '==', 'print_ready')
-      );
+  // Legacy getPrintReadyContent method removed
+  // Print functionality will be reimplemented using ContentDoc with print-related tags/features
 
-      const querySnapshot = await getDocs(q);
-      const results = querySnapshot.docs.map(
-        (doc): UserContent =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as UserContent,
-      );
+  // Legacy getClaimedPrintJobs method removed
+  // Print functionality will be reimplemented using ContentDoc with print-related tags/features
 
-      logger.success(`Retrieved ${results.length} print-ready content items`);
-      return results;
-    } catch (error) {
-      logger.error('Error getting print-ready content:', error);
-      throw error;
-    }
-  }
+  // Legacy claimPrintJob method removed
+  // Print functionality will be reimplemented using ContentDoc with print-related tags/features
 
-  /**
-   * Get content items claimed by a specific user
-   */
-  async getClaimedPrintJobs(userId: string): Promise<UserContent[]> {
-    try {
-      logger.debug(`Fetching claimed print jobs for user: ${userId}`);
-      const q = query(
-        collection(firestore, this.COLLECTIONS.USER_CONTENT),
-        where('printJob.claimedBy', '==', userId),
-        where('printJob.status', '==', 'claimed')
-      );
+  // Legacy completePrintJob method removed
+  // Print functionality will be reimplemented using ContentDoc with print-related tags/features
 
-      const querySnapshot = await getDocs(q);
-      const results = querySnapshot.docs.map(
-        (doc): UserContent =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as UserContent,
-      );
-
-      logger.success(`Retrieved ${results.length} claimed print jobs for user ${userId}`);
-      return results;
-    } catch (error) {
-      logger.error('Error getting claimed print jobs:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Claim a print job for a user
-   */
-  async claimPrintJob(contentId: string, userId: string): Promise<void> {
-    try {
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
-      await updateDoc(docRef, {
-        'printJob.status': 'claimed',
-        'printJob.claimedBy': userId,
-        'printJob.claimedAt': Timestamp.now(),
-      });
-
-      logger.success(`Print job claimed: ${contentId} by user ${userId}`);
-    } catch (error) {
-      logger.error('Error claiming print job:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Mark a print job as completed
-   */
-  async completePrintJob(contentId: string): Promise<void> {
-    try {
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
-      await updateDoc(docRef, {
-        'printJob.status': 'completed',
-        'printJob.completedAt': Timestamp.now(),
-      });
-
-      logger.success(`Print job completed: ${contentId}`);
-    } catch (error) {
-      logger.error('Error completing print job:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Set print job status to print_ready (typically called after export)
-   */
-  async setPrintJobReady(contentId: string, quantity: number = 1): Promise<void> {
-    try {
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
-      await updateDoc(docRef, {
-        'printJob.status': 'print_ready',
-        'printJob.quantity': quantity,
-        'printJob.exportedAt': Timestamp.now(),
-      });
-
-      logger.success(`Print job set to ready: ${contentId} with quantity ${quantity}`);
-    } catch (error) {
-      logger.error('Error setting print job ready:', error);
-      throw error;
-    }
-  }
+  // Legacy setPrintJobReady method removed
+  // Print functionality will be reimplemented using ContentDoc with print-related tags/features
 }
 
 // Export Firebase utilities

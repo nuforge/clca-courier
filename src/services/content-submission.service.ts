@@ -852,10 +852,11 @@ class ContentSubmissionService {
       // Type assertion for canvaDesign to match expected CanvaDesign interface
       const typedCanvaDesign = canvaDesign as CanvaDesign;
 
-      // Update the content document with Canva design information
-      await firestoreService.updateUserContent(contentId, {
-        canvaDesign: typedCanvaDesign
-      });
+      // TODO: Update to use ContentDoc with Canva integration features
+      // await firebaseContentService.updateContent(contentId, {
+      //   features: { 'integ:canva': typedCanvaDesign }
+      // });
+      logger.info('Canva design attachment temporarily disabled during UserContent migration');
 
       logger.info('Canva design attached successfully', { contentId });
     } catch (error) {

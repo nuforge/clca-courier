@@ -49,7 +49,7 @@
             <div class="row items-start justify-between q-mb-sm">
               <div class="col">
                 <div class="text-overline text-primary">
-                  {{ formatContentType(job.type) }}
+                  {{ formatContentType(getContentTypeFromTags(job.tags)) }}
                 </div>
                 <div class="text-h6 q-mb-xs">{{ job.title }}</div>
                 <div class="text-caption text-grey-6">
@@ -65,7 +65,7 @@
             </div>
 
             <div class="text-body2 q-mb-md">
-              {{ truncateContent(job.content) }}
+              {{ truncateContent(job.description) }}
             </div>
 
             <!-- Print Job Details -->
@@ -73,24 +73,24 @@
               <div class="row q-gutter-x-md q-mb-xs">
                 <div class="text-caption">
                   <q-icon :name="UI_ICONS.quantity" size="xs" class="q-mr-xs" />
-                  {{ t(TRANSLATION_KEYS.CONTENT.PRINT.QUANTITY) }}: {{ job.printJob?.quantity || 1 }}
+                  {{ t(TRANSLATION_KEYS.CONTENT.PRINT.QUANTITY) }}: {{ getPrintQuantity(job) }}
                 </div>
                 <div class="text-caption">
                   <q-icon :name="UI_ICONS.date" size="xs" class="q-mr-xs" />
-                  {{ formatDate(job.printJob?.exportedAt) }}
+                  {{ formatDate(getPrintExportDate(job)) }}
                 </div>
               </div>
             </div>
 
             <!-- Canva Design Info -->
-            <div v-if="job.canvaDesign" class="canva-info q-mb-md">
+            <div v-if="hasCanvaDesign(job)" class="canva-info q-mb-md">
               <div class="text-caption text-purple-7 q-mb-xs">
                 <q-icon name="palette" size="xs" class="q-mr-xs" />
                 {{ t(TRANSLATION_KEYS.CANVA.DESIGN_ATTACHED) }}
               </div>
               <q-btn
                 :label="t(TRANSLATION_KEYS.CANVA.OPEN_DESIGN)"
-                :href="job.canvaDesign.editUrl"
+                :href="getCanvaEditUrl(job)"
                 target="_blank"
                 size="sm"
                 color="purple"
@@ -131,7 +131,7 @@
               <div class="row items-start justify-between q-mb-sm">
                 <div class="col">
                   <div class="text-overline text-orange">
-                    {{ formatContentType(job.type) }}
+                    {{ formatContentType(getContentTypeFromTags(job.tags)) }}
                   </div>
                   <div class="text-h6 q-mb-xs">{{ job.title }}</div>
                   <div class="text-caption text-grey-6">
@@ -147,12 +147,12 @@
               </div>
 
               <div class="text-body2 q-mb-md">
-                {{ truncateContent(job.content) }}
+                {{ truncateContent(job.description) }}
               </div>
 
               <div class="text-caption text-grey-6 q-mb-md">
                 <q-icon :name="UI_ICONS.date" size="xs" class="q-mr-xs" />
-                {{ t('content.print.claimedAt') || 'Claimed:' }} {{ formatDate(job.printJob?.claimedAt) }}
+                {{ t('content.print.claimedAt') || 'Claimed:' }} {{ formatDate(getPrintClaimedDate(job)) }}
               </div>
             </q-card-section>
 
@@ -179,7 +179,7 @@ import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { useFirebaseAuth } from '../composables/useFirebase';
 import { firestoreService } from '../services/firebase-firestore.service';
-import type { UserContent } from '../services/firebase-firestore.service';
+import type { ContentDoc } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import { UI_ICONS } from '../constants/ui-icons';
@@ -192,8 +192,8 @@ const { currentUser } = useFirebaseAuth();
 
 // State
 const isLoading = ref(false);
-const printReadyJobs = ref<UserContent[]>([]);
-const claimedJobs = ref<UserContent[]>([]);
+const printReadyJobs = ref<ContentDoc[]>([]);
+const claimedJobs = ref<ContentDoc[]>([]);
 const claimingJobs = ref<Set<string>>(new Set());
 const completingJobs = ref<Set<string>>(new Set());
 
@@ -210,24 +210,27 @@ watch(isAuthReady, (ready: boolean) => {
 
 /**
  * Load print jobs from Firestore
+ * TODO: Implement print functionality using ContentDoc with print-related tags/features
+ * This will need to query the 'content' collection for ContentDoc items with print tags
  */
 async function loadPrintJobs(): Promise<void> {
   try {
     isLoading.value = true;
     logger.debug('Loading print jobs...');
 
-    // Load print-ready jobs
-    const printReady = await firestoreService.getPrintReadyContent();
-    printReadyJobs.value = printReady;
+    // TODO: Replace with ContentDoc-based print job queries
+    // Example: Query for ContentDoc items with tags like 'print:ready', 'print:claimed'
+    // For now, set empty arrays until print system is reimplemented
+    printReadyJobs.value = [];
+    claimedJobs.value = [];
 
-    // Load user's claimed jobs if user is authenticated
-    const user = currentUser.value;
-    if (user?.uid) {
-      const claimed = await firestoreService.getClaimedPrintJobs(user.uid);
-      claimedJobs.value = claimed;
-    }
+    logger.info('Print functionality temporarily disabled during UserContent to ContentDoc migration');
 
-    logger.success(`Loaded ${printReady.length} print-ready jobs and ${claimedJobs.value.length} claimed jobs`);
+    $q.notify({
+      type: 'info',
+      message: 'Print functionality is being updated to the new content system',
+      timeout: 3000
+    });
   } catch (error) {
     logger.error('Error loading print jobs:', error);
     $q.notify({
@@ -242,7 +245,7 @@ async function loadPrintJobs(): Promise<void> {
 /**
  * Claim a print job for the current user
  */
-async function claimPrintJob(job: UserContent): Promise<void> {
+async function claimPrintJob(job: ContentDoc): Promise<void> {
   if (!currentUser.value?.uid) {
     $q.notify({
       type: 'warning',
@@ -254,16 +257,15 @@ async function claimPrintJob(job: UserContent): Promise<void> {
   try {
     claimingJobs.value.add(job.id);
 
-    await firestoreService.claimPrintJob(job.id, currentUser.value.uid);
+    // TODO: Implement print job claiming using ContentDoc system
+    // This should update the ContentDoc with appropriate print-related tags/features
+    logger.info('Print job claiming temporarily disabled during migration');
 
     $q.notify({
-      type: 'positive',
-      message: t('content.print.jobClaimed') || 'Print job claimed successfully',
+      type: 'info',
+      message: 'Print functionality is being updated to the new content system',
       timeout: 3000
     });
-
-    // Refresh the list
-    await loadPrintJobs();
   } catch (error) {
     logger.error('Error claiming print job:', error);
     $q.notify({
@@ -278,20 +280,19 @@ async function claimPrintJob(job: UserContent): Promise<void> {
 /**
  * Mark a print job as completed
  */
-async function completePrintJob(job: UserContent): Promise<void> {
+async function completePrintJob(job: ContentDoc): Promise<void> {
   try {
     completingJobs.value.add(job.id);
 
-    await firestoreService.completePrintJob(job.id);
+    // TODO: Implement print job completion using ContentDoc system
+    // This should update the ContentDoc with appropriate print-related tags/features
+    logger.info('Print job completion temporarily disabled during migration');
 
     $q.notify({
-      type: 'positive',
-      message: t('content.print.jobCompleted') || 'Print job marked as completed',
+      type: 'info',
+      message: 'Print functionality is being updated to the new content system',
       timeout: 3000
     });
-
-    // Refresh the list
-    await loadPrintJobs();
   } catch (error) {
     logger.error('Error completing print job:', error);
     $q.notify({
@@ -301,6 +302,65 @@ async function completePrintJob(job: UserContent): Promise<void> {
   } finally {
     completingJobs.value.delete(job.id);
   }
+}
+
+/**
+ * Extract content type from ContentDoc tags
+ */
+function getContentTypeFromTags(tags: string[]): string {
+  const contentTypeTag = tags.find(tag => tag.startsWith('content-type:'));
+  return contentTypeTag ? contentTypeTag.replace('content-type:', '') : 'unknown';
+}
+
+/**
+ * Get print quantity from ContentDoc features
+ * TODO: Implement once print features are defined in ContentDoc
+ */
+function getPrintQuantity(job: ContentDoc): number {
+  // For now, return default quantity
+  // TODO: Extract from features when print system is implemented
+  return 1;
+}
+
+/**
+ * Get print export date from ContentDoc features
+ * TODO: Implement once print features are defined in ContentDoc
+ */
+function getPrintExportDate(job: ContentDoc): unknown {
+  // For now, return content creation date as placeholder
+  // TODO: Extract from features when print system is implemented
+  return job.timestamps.created;
+}
+
+/**
+ * Get print claimed date from ContentDoc features
+ * TODO: Implement once print features are defined in ContentDoc
+ */
+function getPrintClaimedDate(job: ContentDoc): unknown {
+  // For now, return null as placeholder
+  // TODO: Extract from features when print system is implemented
+  return null;
+}
+
+/**
+ * Check if ContentDoc has Canva design attached
+ * TODO: Implement once Canva features are defined in ContentDoc
+ */
+function hasCanvaDesign(job: ContentDoc): boolean {
+  // For now, check if there's a Canva integration feature
+  // TODO: Extract from features when Canva integration is implemented
+  return job.features && 'integ:canva' in job.features;
+}
+
+/**
+ * Get Canva edit URL from ContentDoc features
+ * TODO: Implement once Canva features are defined in ContentDoc
+ */
+function getCanvaEditUrl(job: ContentDoc): string {
+  // For now, return empty string as placeholder
+  // TODO: Extract from features when Canva integration is implemented
+  const canvaFeature = job.features['integ:canva'];
+  return (canvaFeature as any)?.editUrl || '#';
 }
 
 /**
