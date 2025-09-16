@@ -277,6 +277,12 @@ export default {
     }
   },
 
+  // Newsletter Layout Dialog
+  availableContent: 'Available Content',
+  noAvailableContent: 'No available content',
+  issueContentLibrary: 'Issue Content Library',
+  dropContentHere: 'Drop content here',
+
   management: 'Content Management',
   managementDescription: 'Review, approve, and manage user-submitted content for publication',
   submitted: 'Submitted',

@@ -214,6 +214,12 @@ export default {
     }
   },
 
+  // Newsletter Layout Dialog
+  availableContent: 'Contenido Disponible',
+  noAvailableContent: 'No hay contenido disponible',
+  issueContentLibrary: 'Biblioteca de Contenido del Número',
+  dropContentHere: 'Suelta contenido aquí',
+
   management: 'Gestión de Contenido',
   managementDescription: 'Revisar, aprobar y gestionar contenido enviado por usuarios para publicación',
   submitted: 'Enviado',

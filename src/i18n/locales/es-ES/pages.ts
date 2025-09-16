@@ -496,5 +496,13 @@ export default {
   contentSubmission: {
     title: 'Enviar Contenido',
     subtitle: 'Comparte tu contenido con la comunidad a través de nuestro proceso de envío guiado'
+  },
+
+  // Newsletter Management Page
+  newsletterManagement: {
+    pageLayoutManager: 'Gestor de Diseño de Página y Contenido',
+    layoutControls: 'Controles de Diseño',
+    pagePreview: 'Vista Previa de Página',
+    contentFlow: 'Flujo de Contenido'
   }
 };

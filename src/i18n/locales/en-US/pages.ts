@@ -503,5 +503,13 @@ export default {
   contentSubmission: {
     title: 'Submit Content',
     subtitle: 'Share your content with the community through our guided submission process'
+  },
+
+  // Newsletter Management Page
+  newsletterManagement: {
+    pageLayoutManager: 'Page Layout & Content Manager',
+    layoutControls: 'Layout Controls',
+    pagePreview: 'Page Preview',
+    contentFlow: 'Content Flow'
   }
 };

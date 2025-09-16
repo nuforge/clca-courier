@@ -693,7 +693,7 @@ watch(() => props.selectedIssue, (newIssue) => {
   } else {
     localSelectedIssue.value = null;
   }
-}, { immediate: true, deep: true });
+}, { immediate: true });
 
 // Content management methods
 const addToIssue = async (submission: ContentDoc) => {

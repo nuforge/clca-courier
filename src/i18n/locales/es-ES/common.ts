@@ -30,6 +30,7 @@ export default {
   no: 'No',
   ok: 'Aceptar',
   none: 'Ninguno',
+  all: 'Todos',
   back: 'Atrás',
   next: 'Siguiente',
   previous: 'Anterior',
@@ -49,6 +50,14 @@ export default {
   by: 'Por',
   preview: 'Vista previa',
   backToTop: 'Volver Arriba',
+  page: 'Página',
+  pages: 'Páginas',
+  contentItems: 'elementos de contenido',
+  readOnly: 'Solo lectura',
+  layout: 'Diseño',
+  templateStyle: 'Estilo de Plantilla',
+  order: 'Orden',
+  template: 'Plantilla',
 
   accessibility: {
     showActions: 'Mostrar menú de acciones',
@@ -101,7 +110,12 @@ export default {
     reject: 'Rechazar',
     publish: 'Publicar',
     unpublish: 'Despublicar',
-    contact: 'Contáctanos'
+    contact: 'Contáctanos',
+    addPage: 'Agregar Página',
+    autoArrangeContent: 'Organizar Contenido Automáticamente',
+    clearAllPages: 'Limpiar Todas las Páginas',
+    previewNewsletter: 'Vista Previa del Boletín',
+    saveLayout: 'Guardar Diseño'
   },
 
   status: {
@@ -119,5 +133,27 @@ export default {
     success: 'Éxito',
     error: 'Error',
     warning: 'Advertencia'
+  },
+
+  notifications: {
+    contentAddedToIssue: 'Contenido agregado al número',
+    failedToAddContent: 'Error al agregar contenido al número',
+    contentRemovedFromIssue: 'Contenido eliminado del número',
+    failedToRemoveContent: 'Error al eliminar contenido del número',
+    contentAddedToLayoutArea: 'Contenido agregado al área de diseño',
+    contentRemovedFromLayoutArea: 'Contenido eliminado del área de diseño',
+    pageAdded: 'Página {pageNumber} agregada',
+    pageRemoved: 'Página {pageNumber} eliminada',
+    templateChanged: 'Plantilla cambiada a {templateName}',
+    contentAutoArranged: 'Contenido organizado automáticamente en áreas de diseño',
+    allPagesCleared: 'Todas las páginas eliminadas',
+    noIssueSelected: 'Ningún número seleccionado para vista previa',
+    newsletterPdfOpened: 'PDF del boletín abierto: {title}',
+    showingLayoutPreview: 'Mostrando vista previa del diseño (PDF no disponible aún)',
+    generatePdfHint: 'Generar PDF para crear una versión imprimible',
+    layoutSaved: '¡Diseño guardado exitosamente!',
+    failedToSaveLayout: 'Error al guardar el diseño',
+    pdfGenerationInitiated: 'Generación de PDF iniciada',
+    pdfGenerationHint: 'Esto creará un PDF del diseño actual'
   }
 };

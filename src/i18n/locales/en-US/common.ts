@@ -30,6 +30,7 @@ export default {
   no: 'No',
   ok: 'OK',
   none: 'None',
+  all: 'All',
   back: 'Back',
   next: 'Next',
   previous: 'Previous',
@@ -48,6 +49,14 @@ export default {
   clearSelection: 'Clear Selection',
   by: 'By',
   backToTop: 'Back to Top',
+  page: 'Page',
+  pages: 'Pages',
+  contentItems: 'content items',
+  readOnly: 'Read-only',
+  layout: 'Layout',
+  templateStyle: 'Template Style',
+  order: 'Order',
+  template: 'Template',
 
   accessibility: {
     showActions: 'Show actions menu',
@@ -100,7 +109,12 @@ export default {
     reject: 'Reject',
     publish: 'Publish',
     unpublish: 'Unpublish',
-    contact: 'Contact Us'
+    contact: 'Contact Us',
+    addPage: 'Add Page',
+    autoArrangeContent: 'Auto-Arrange Content',
+    clearAllPages: 'Clear All Pages',
+    previewNewsletter: 'Preview Newsletter',
+    saveLayout: 'Save Layout'
   },
 
   status: {
@@ -118,6 +132,28 @@ export default {
     success: 'Success',
     error: 'Error',
     warning: 'Warning'
+  },
+
+  notifications: {
+    contentAddedToIssue: 'Content added to issue',
+    failedToAddContent: 'Failed to add content to issue',
+    contentRemovedFromIssue: 'Content removed from issue',
+    failedToRemoveContent: 'Failed to remove content from issue',
+    contentAddedToLayoutArea: 'Content added to layout area',
+    contentRemovedFromLayoutArea: 'Content removed from layout area',
+    pageAdded: 'Page {pageNumber} added',
+    pageRemoved: 'Page {pageNumber} removed',
+    templateChanged: 'Template changed to {templateName}',
+    contentAutoArranged: 'Content auto-arranged in layout areas',
+    allPagesCleared: 'All pages cleared',
+    noIssueSelected: 'No issue selected for preview',
+    newsletterPdfOpened: 'Newsletter PDF opened: {title}',
+    showingLayoutPreview: 'Showing layout preview (no PDF available yet)',
+    generatePdfHint: 'Generate PDF to create a printable version',
+    layoutSaved: 'Layout saved successfully!',
+    failedToSaveLayout: 'Failed to save layout',
+    pdfGenerationInitiated: 'PDF generation initiated',
+    pdfGenerationHint: 'This will create a PDF from the current layout'
   },
 
   preview: 'Preview'
