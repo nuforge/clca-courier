@@ -292,6 +292,39 @@ const uniqueContent = allContent.filter((content, index, self) =>
 
 ---
 
+## 🔗 ENHANCED DOCUMENTATION RESOURCES
+
+### **📋 NEW: Comprehensive Removal Plan** 
+**[docs/LEGACY_CONTENT_SYSTEM_COMPREHENSIVE_REMOVAL_PLAN.md](LEGACY_CONTENT_SYSTEM_COMPREHENSIVE_REMOVAL_PLAN.md)** 🚨 **CRITICAL**
+- Complete field mapping from UserContent to ContentDoc
+- Method replacement vs removal analysis
+- Phased implementation plan with priorities
+- Search patterns for finding obsolete code
+- Firebase collection cleanup procedures
+
+### **🔍 NEW: Automated Legacy Reference Scanner**
+**Scripts for finding all legacy references:**
+- **Windows**: `scripts/find-legacy-content-references.ps1`
+- **Unix/Mac**: `scripts/find-legacy-content-references.sh`
+
+**Usage:**
+```bash
+# PowerShell (Windows)
+.\scripts\find-legacy-content-references.ps1
+
+# Bash (Unix/Mac)
+chmod +x scripts/find-legacy-content-references.sh
+./scripts/find-legacy-content-references.sh
+```
+
+### **🎯 Implementation Priority Order**
+1. **Read**: [LEGACY_CONTENT_SYSTEM_COMPREHENSIVE_REMOVAL_PLAN.md](LEGACY_CONTENT_SYSTEM_COMPREHENSIVE_REMOVAL_PLAN.md)
+2. **Scan**: Run the legacy reference scanner to assess current state
+3. **Execute**: Follow the phased implementation plan
+4. **Verify**: Re-run scanner after each phase to confirm cleanup
+
+---
+
 **Documentation created by:** AI Assistant  
-**Date:** January 15, 2025  
+**Date:** January 15, 2025 (Updated: January 16, 2025)  
 **Status:** 🚨 **READY FOR IMMEDIATE LEGACY SYSTEM ELIMINATION**
