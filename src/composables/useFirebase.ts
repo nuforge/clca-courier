@@ -116,17 +116,17 @@ export function useFirebaseNewsletters() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  let unsubscribe: (() => void) | null = null;
+  // TODO: Implement proper unsubscribe when newsletter subscription is restored
 
   // Subscribe to newsletter updates
   onMounted(() => {
-    unsubscribe = firestoreService.subscribeToNewsletters((data) => {
-      newsletters.value = data;
-    });
+    // TODO: Implement newsletter subscription using ContentDoc architecture
+    // This will need to be replaced with proper newsletter service subscription
+    logger.info('Newsletter subscription temporarily disabled during UserContent to ContentDoc migration');
   });
 
   onUnmounted(() => {
-    unsubscribe?.();
+    // TODO: Implement proper cleanup when newsletter subscription is restored
   });
 
   // Load all newsletters
@@ -144,11 +144,14 @@ export function useFirebaseNewsletters() {
   };
 
   // Search newsletters
-  const searchNewsletters = async (searchTerm: string) => {
+  const searchNewsletters = () => {
     try {
       isLoading.value = true;
       error.value = null;
-      return await firestoreService.searchNewsletters(searchTerm);
+      // TODO: Implement newsletter search using ContentDoc architecture
+      // This will need to be replaced with proper newsletter service search
+      logger.info('Newsletter search temporarily disabled during UserContent to ContentDoc migration');
+      return [];
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Search failed';
       logger.error('Newsletter search failed:', err);
@@ -377,10 +380,9 @@ export function useFirebaseUserContent() {
   };
 
   // Update content status (for editors)
-  const updateContentStatus = async (
+  const updateContentStatus = (
     contentId: string,
     status: ContentDoc['status'],
-    reviewNotes?: string,
   ) => {
     try {
       // TODO: Implement using ContentDoc status update
@@ -395,7 +397,7 @@ export function useFirebaseUserContent() {
   };
 
   // Load pending content
-  const loadPendingContent = async () => {
+  const loadPendingContent = () => {
     try {
       isLoading.value = true;
       error.value = null;
@@ -431,11 +433,14 @@ export function useFirebaseUserProfile() {
   const error = ref<string | null>(null);
 
   // Load user profile
-  const loadUserProfile = async (uid: string) => {
+  const loadUserProfile = () => {
     try {
       isLoading.value = true;
       error.value = null;
-      userProfile.value = await firestoreService.getUserProfile(uid);
+      // TODO: Implement user profile loading using ContentDoc architecture
+      // This will need to be replaced with proper user profile service
+      logger.info('User profile loading temporarily disabled during UserContent to ContentDoc migration');
+      userProfile.value = null;
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load profile';
       logger.error('Failed to load user profile:', err);
@@ -445,7 +450,7 @@ export function useFirebaseUserProfile() {
   };
 
   // Create user profile
-  const createUserProfile = async (profile: Omit<UserProfile, 'createdAt' | 'lastLoginAt'>) => {
+  const createUserProfile = (profile: Omit<UserProfile, 'createdAt' | 'lastLoginAt'>) => {
     try {
       // SECURITY: Force role to 'reader' for new users - admin roles must be set server-side
       const secureProfile = {
@@ -455,7 +460,9 @@ export function useFirebaseUserProfile() {
         isApproved: false, // Require approval
       };
 
-      await firestoreService.createUserProfile(secureProfile);
+      // TODO: Implement user profile creation using ContentDoc architecture
+      // This will need to be replaced with proper user profile service
+      logger.info('User profile creation temporarily disabled during UserContent to ContentDoc migration');
       userProfile.value = {
         ...secureProfile,
         createdAt: new Date().toISOString(),
@@ -470,9 +477,11 @@ export function useFirebaseUserProfile() {
   };
 
   // Update user profile
-  const updateUserProfile = async (uid: string, updates: Partial<UserProfile>) => {
+  const updateUserProfile = (uid: string, updates: Partial<UserProfile>) => {
     try {
-      await firestoreService.updateUserProfile(uid, updates);
+      // TODO: Implement user profile update using ContentDoc architecture
+      // This will need to be replaced with proper user profile service
+      logger.info('User profile update temporarily disabled during UserContent to ContentDoc migration');
       if (userProfile.value) {
         userProfile.value = { ...userProfile.value, ...updates };
       }

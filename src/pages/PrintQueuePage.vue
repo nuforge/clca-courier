@@ -73,7 +73,7 @@
               <div class="row q-gutter-x-md q-mb-xs">
                 <div class="text-caption">
                   <q-icon :name="UI_ICONS.quantity" size="xs" class="q-mr-xs" />
-                  {{ t(TRANSLATION_KEYS.CONTENT.PRINT.QUANTITY) }}: {{ getPrintQuantity(job) }}
+                  {{ t(TRANSLATION_KEYS.CONTENT.PRINT.QUANTITY) }}: {{ getPrintQuantity() }}
                 </div>
                 <div class="text-caption">
                   <q-icon :name="UI_ICONS.date" size="xs" class="q-mr-xs" />
@@ -152,7 +152,7 @@
 
               <div class="text-caption text-grey-6 q-mb-md">
                 <q-icon :name="UI_ICONS.date" size="xs" class="q-mr-xs" />
-                {{ t('content.print.claimedAt') || 'Claimed:' }} {{ formatDate(getPrintClaimedDate(job)) }}
+                {{ t('content.print.claimedAt') || 'Claimed:' }} {{ formatDate(getPrintClaimedDate()) }}
               </div>
             </q-card-section>
 
@@ -178,7 +178,7 @@ import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { useFirebaseAuth } from '../composables/useFirebase';
-import { firestoreService } from '../services/firebase-firestore.service';
+// Legacy firestoreService import removed - print functionality will be reimplemented with ContentDoc
 import type { ContentDoc } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
@@ -213,7 +213,7 @@ watch(isAuthReady, (ready: boolean) => {
  * TODO: Implement print functionality using ContentDoc with print-related tags/features
  * This will need to query the 'content' collection for ContentDoc items with print tags
  */
-async function loadPrintJobs(): Promise<void> {
+function loadPrintJobs(): void {
   try {
     isLoading.value = true;
     logger.debug('Loading print jobs...');
@@ -245,7 +245,7 @@ async function loadPrintJobs(): Promise<void> {
 /**
  * Claim a print job for the current user
  */
-async function claimPrintJob(job: ContentDoc): Promise<void> {
+function claimPrintJob(_job: ContentDoc): void {
   if (!currentUser.value?.uid) {
     $q.notify({
       type: 'warning',
@@ -255,7 +255,7 @@ async function claimPrintJob(job: ContentDoc): Promise<void> {
   }
 
   try {
-    claimingJobs.value.add(job.id);
+    claimingJobs.value.add(_job.id);
 
     // TODO: Implement print job claiming using ContentDoc system
     // This should update the ContentDoc with appropriate print-related tags/features
@@ -273,16 +273,16 @@ async function claimPrintJob(job: ContentDoc): Promise<void> {
       message: t('content.print.claimError') || 'Failed to claim print job'
     });
   } finally {
-    claimingJobs.value.delete(job.id);
+    claimingJobs.value.delete(_job.id);
   }
 }
 
 /**
  * Mark a print job as completed
  */
-async function completePrintJob(job: ContentDoc): Promise<void> {
+function completePrintJob(_job: ContentDoc): void {
   try {
-    completingJobs.value.add(job.id);
+    completingJobs.value.add(_job.id);
 
     // TODO: Implement print job completion using ContentDoc system
     // This should update the ContentDoc with appropriate print-related tags/features
@@ -300,7 +300,7 @@ async function completePrintJob(job: ContentDoc): Promise<void> {
       message: t('content.print.completeError') || 'Failed to complete print job'
     });
   } finally {
-    completingJobs.value.delete(job.id);
+    completingJobs.value.delete(_job.id);
   }
 }
 
@@ -316,7 +316,7 @@ function getContentTypeFromTags(tags: string[]): string {
  * Get print quantity from ContentDoc features
  * TODO: Implement once print features are defined in ContentDoc
  */
-function getPrintQuantity(job: ContentDoc): number {
+function getPrintQuantity(): number {
   // For now, return default quantity
   // TODO: Extract from features when print system is implemented
   return 1;
@@ -336,7 +336,7 @@ function getPrintExportDate(job: ContentDoc): unknown {
  * Get print claimed date from ContentDoc features
  * TODO: Implement once print features are defined in ContentDoc
  */
-function getPrintClaimedDate(job: ContentDoc): unknown {
+function getPrintClaimedDate(): unknown {
   // For now, return null as placeholder
   // TODO: Extract from features when print system is implemented
   return null;
@@ -360,7 +360,7 @@ function getCanvaEditUrl(job: ContentDoc): string {
   // For now, return empty string as placeholder
   // TODO: Extract from features when Canva integration is implemented
   const canvaFeature = job.features['integ:canva'];
-  return (canvaFeature as any)?.editUrl || '#';
+  return (canvaFeature as Record<string, unknown>)?.editUrl as string || '#';
 }
 
 /**
@@ -397,13 +397,13 @@ function formatDate(timestamp: unknown): string {
 }
 
 // Lifecycle
-onMounted(async () => {
+onMounted(() => {
   if (isAuthReady.value && requireEditor()) {
-    await loadPrintJobs();
+    loadPrintJobs();
 
     // Set up auto-refresh every 30 seconds
     refreshInterval = window.setInterval(() => {
-      void loadPrintJobs();
+      loadPrintJobs();
     }, 30000);
   }
 });

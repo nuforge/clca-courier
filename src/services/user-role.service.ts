@@ -17,7 +17,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
-import { firestoreService } from './firebase-firestore.service';
+// Legacy firestoreService import removed - will be replaced with proper user profile service
 import { logger } from '../utils/logger';
 import type {
   UserRoleType,
@@ -267,7 +267,9 @@ class UserRoleService {
       await setDoc(assignmentRef, { userId, ...assignmentData });
 
       // Update user profile with new role
-      await firestoreService.updateUserProfile(userId, { role });
+      // TODO: Implement user profile update using ContentDoc architecture
+      // This will need to be replaced with proper user profile service
+      logger.info('User profile update temporarily disabled during UserContent to ContentDoc migration');
 
       // Create transition record
       await this.createRoleTransition(userId, currentRole, role, 'assignment', assignedBy, reason);
@@ -293,9 +295,12 @@ class UserRoleService {
       }
 
       // Try user profile first (primary source)
-      const userProfile = await firestoreService.getUserProfile(userId);
-      if (userProfile?.role && isValidRole(userProfile.role)) {
-        const validRole: UserRoleType = userProfile.role;
+      // TODO: Implement user profile loading using ContentDoc architecture
+      // This will need to be replaced with proper user profile service
+      logger.info('User profile loading temporarily disabled during UserContent to ContentDoc migration');
+      const userProfile = null;
+      if (userProfile && 'role' in userProfile && isValidRole((userProfile as Record<string, unknown>).role as UserRoleType)) {
+        const validRole: UserRoleType = (userProfile as Record<string, unknown>).role as UserRoleType;
         this.userRoleCache.set(userId, validRole);
         return validRole;
       }

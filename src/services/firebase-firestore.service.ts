@@ -6,20 +6,15 @@
 import {
   doc,
   getDoc,
-  updateDoc,
   deleteDoc,
   deleteField,
   collection,
   query,
   where,
-  orderBy,
   limit,
   getDocs,
   addDoc,
-  onSnapshot,
   serverTimestamp,
-  Timestamp,
-  type Unsubscribe,
   type FieldValue,
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
@@ -27,9 +22,8 @@ import { firebaseAuthService } from './firebase-auth.service';
 import { newsletterVersioningService } from './newsletter-versioning.service';
 import { logger } from '../utils/logger';
 import { safeSetDoc, safeAddDoc } from '../utils/safe-firebase';
-import { sortByDateDesc, sortByDateAsc } from '../utils/date-formatter';
+import { sortByDateDesc } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
-import type { CanvaDesign } from '../services/canva/types';
 import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
 // Use the canonical UnifiedNewsletter interface
@@ -334,52 +328,11 @@ class FirebaseFirestoreService {
   // Legacy getUserContent method removed
   // Use firebaseContentService.getContentById() instead
 
-  async updateContentStatus(
-    contentId: string,
-    status: UserContent['status'],
-    reviewNotes?: string,
-  ): Promise<void> {
-    try {
-      const currentUser = firebaseAuthService.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('User must be authenticated to update content status');
-      }
+  // Legacy updateContentStatus method removed
+  // Use firebaseContentService.updateContentStatus() instead
 
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
-      const updates: Partial<UserContent> = {
-        status,
-        reviewedBy: currentUser.uid,
-        reviewDate: new Date().toISOString(),
-      };
-
-      if (reviewNotes) {
-        updates.reviewNotes = reviewNotes;
-      }
-
-      await updateDoc(docRef, updates);
-      logger.success('Content status updated:', contentId, status);
-    } catch (error) {
-      logger.error('Error updating content status:', error);
-      throw error;
-    }
-  }
-
-  async updateContentFeaturedStatus(contentId: string, featured: boolean): Promise<void> {
-    try {
-      const currentUser = firebaseAuthService.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('User must be authenticated to update featured status');
-      }
-
-      const docRef = doc(firestore, this.COLLECTIONS.USER_CONTENT, contentId);
-      await updateDoc(docRef, { featured });
-
-      logger.success('Content featured status updated:', contentId, featured);
-    } catch (error) {
-      logger.error('Error updating content featured status:', error);
-      throw error;
-    }
-  }
+  // Legacy updateContentFeaturedStatus method removed
+  // Use firebaseContentService.updateContent() with tags instead
 
   // Legacy updateUserContent method removed
   // Use firebaseContentService.updateContent() instead
@@ -909,12 +862,8 @@ class FirebaseFirestoreService {
             where('isPublished', '==', true),
           ),
         ),
-        getDocs(
-          query(
-            collection(firestore, this.COLLECTIONS.USER_CONTENT),
-            where('status', '==', 'pending'),
-          ),
-        ),
+        // Legacy USER_CONTENT collection removed - pending content now tracked via ContentDoc
+        Promise.resolve({ size: 0 }),
         getDocs(collection(firestore, this.COLLECTIONS.USER_PROFILES)),
       ]);
 

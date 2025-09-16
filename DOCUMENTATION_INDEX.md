@@ -16,8 +16,6 @@
 - **[tests/ERROR_PREVENTION_FINAL_SUMMARY.md](tests/ERROR_PREVENTION_FINAL_SUMMARY.md)** ⭐ **COMPLETE** - Comprehensive error prevention test suite (56 tests)
 - **[tests/CORS_ERROR_PREVENTION_SUMMARY.md](tests/CORS_ERROR_PREVENTION_SUMMARY.md)** ⭐ **COMPLETE** - CORS error prevention specific solution guide
 - **[LEGACY_CODE_REMOVAL_COMPLETE_SUMMARY.md](LEGACY_CODE_REMOVAL_COMPLETE_SUMMARY.md)** ⭐ **COMPLETE** - Legacy code removal and modernization complete
-- **[docs/LEGACY_CONTENT_SYSTEM_COMPREHENSIVE_REMOVAL_PLAN.md](docs/LEGACY_CONTENT_SYSTEM_COMPREHENSIVE_REMOVAL_PLAN.md)** 🚨 **CRITICAL** - Complete UserContent to ContentDoc migration plan
-- **[docs/LEGACY_CONTENT_REMOVAL_DOCUMENTATION.md](docs/LEGACY_CONTENT_REMOVAL_DOCUMENTATION.md)** 🚨 **IMPLEMENTATION GUIDE** - Legacy content system elimination plan
 
 ### **🏗️ Architecture & Design**
 - **[docs/architecture.md](docs/architecture.md)** - System architecture overview

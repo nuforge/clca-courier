@@ -10,8 +10,8 @@ import {
 import type { ContentFeatures } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { firebaseContentService } from './firebase-content.service';
-import { firestoreService } from './firebase-firestore.service';
-import type { CanvaDesign } from './canva/types';
+// Legacy firestoreService import removed - ContentDoc integration will be implemented
+// Legacy CanvaDesign import removed - will be reimplemented with ContentDoc features
 import {
   serverTimestamp,
   type Timestamp
@@ -845,14 +845,12 @@ class ContentSubmissionService {
   // Legacy submitContent method removed - use createContent instead
   // This ensures all code uses the modern ContentDoc architecture
 
-  async attachCanvaDesign(contentId: string, canvaDesign: unknown): Promise<void> {
+  attachCanvaDesign(contentId: string, canvaDesign: unknown): void {
     logger.debug('Attaching Canva design to content', { contentId, canvaDesign });
 
     try {
-      // Type assertion for canvaDesign to match expected CanvaDesign interface
-      const typedCanvaDesign = canvaDesign as CanvaDesign;
-
       // TODO: Update to use ContentDoc with Canva integration features
+      // const typedCanvaDesign = canvaDesign as CanvaDesign;
       // await firebaseContentService.updateContent(contentId, {
       //   features: { 'integ:canva': typedCanvaDesign }
       // });

@@ -447,7 +447,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { firestoreService } from '../services/firebase-firestore.service';
+// Legacy firestoreService import removed - will be replaced with proper content service
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import CategoriesDialog from '../components/admin/CategoriesDialog.vue';
@@ -484,14 +484,17 @@ const showAddAdminDialog = ref(false);
 const showRolesDialog = ref(false);
 
 // Methods
-const refreshStats = async () => {
+const refreshStats = () => {
   isLoadingStats.value = true;
   try {
     // Get content statistics
-    const allContent = await firestoreService.getApprovedContent();
+    // TODO: Implement content statistics using ContentDoc architecture
+    // This will need to be replaced with proper content service
+    logger.info('Content statistics temporarily disabled during UserContent to ContentDoc migration');
+    const allContent: unknown[] = [];
     stats.value.totalContent = allContent.length;
-    stats.value.pendingReviews = allContent.filter(c => c.status === 'pending').length;
-    stats.value.publishedContent = allContent.filter(c => c.status === 'published').length;
+    stats.value.pendingReviews = allContent.filter((c: unknown) => (c as Record<string, unknown>).status === 'pending').length;
+    stats.value.publishedContent = allContent.filter((c: unknown) => (c as Record<string, unknown>).status === 'published').length;
 
     // Get newsletter statistics (future: from newsletter service)
     stats.value.newsletters = 24; // Placeholder value

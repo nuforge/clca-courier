@@ -5,7 +5,7 @@
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFirebase } from './useFirebase';
-import { firestoreService } from '../services/firebase-firestore.service';
+// Legacy firestoreService import removed - will be replaced with proper user profile service
 import type { UserProfile } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 
@@ -66,7 +66,7 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
   };
 
   // Load user profile and role
-  const loadUserProfile = async () => {
+  const loadUserProfile = () => {
     if (!auth.currentUser.value) {
       userProfile.value = null;
       return;
@@ -74,20 +74,19 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
 
     isLoading.value = true;
     try {
-      const profile = await firestoreService.getUserProfile(auth.currentUser.value.uid);
+      // TODO: Implement user profile loading using ContentDoc architecture
+      // This will need to be replaced with proper user profile service
+      logger.info('User profile loading temporarily disabled during UserContent to ContentDoc migration');
+      const profile = null;
       userProfile.value = profile;
       logger.debug('User profile loaded:', {
         uid: auth.currentUser.value.uid,
-        role: profile?.role,
+        role: 'unknown', // TODO: Get actual role when profile service is restored
         email: auth.currentUser.value.email
       });
 
       // Log detailed role information for debugging
-      if (profile) {
-        logger.info(`User ${profile.email} has role: ${profile.role}`);
-      } else {
-        logger.warn(`No profile found for user ${auth.currentUser.value.email}, defaulting to reader role`);
-      }
+      logger.warn(`No profile found for user ${auth.currentUser.value.email}, defaulting to reader role`);
     } catch (error) {
       logger.error('Error loading user profile:', error);
       userProfile.value = null;

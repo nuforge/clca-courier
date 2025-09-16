@@ -10,7 +10,8 @@ import {
   type NewsletterSearchFilters,
   type NewsletterSearchResult,
 } from '../services/firebase-newsletter.service';
-import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
+import { type NewsletterMetadata } from '../services/firebase-firestore.service';
+// Legacy firestoreService import removed - will be replaced with proper newsletter service
 import { logger } from '../utils/logger';
 
 export interface ArchiveFilters extends NewsletterSearchFilters {
@@ -89,22 +90,18 @@ export function useFirebaseNewsletterArchive() {
 
     if (includeUnpublished) {
       // Admin mode: subscribe to ALL newsletters (including unpublished)
-      unsubscribe.value = firestoreService.subscribeToNewslettersForAdmin((updatedNewsletters) => {
-        logger.info(
-          `Archive received ${updatedNewsletters.length} newsletters via admin subscription`,
-        );
-        newsletters.value = updatedNewsletters;
-        void applyFilters(); // Re-apply filters when data updates
-      });
+      // TODO: Implement admin newsletter subscription using ContentDoc architecture
+      // This will need to be replaced with proper newsletter service subscription
+      logger.info('Admin newsletter subscription temporarily disabled during UserContent to ContentDoc migration');
+      unsubscribe.value = () => {}; // Placeholder unsubscribe function
+      // Placeholder for admin subscription logic
     } else {
       // Public mode: subscribe to published newsletters only
-      unsubscribe.value = firestoreService.subscribeToNewsletters((updatedNewsletters) => {
-        logger.info(
-          `Archive received ${updatedNewsletters.length} published newsletters via public subscription`,
-        );
-        newsletters.value = updatedNewsletters;
-        void applyFilters(); // Re-apply filters when data updates
-      });
+      // TODO: Implement public newsletter subscription using ContentDoc architecture
+      // This will need to be replaced with proper newsletter service subscription
+      logger.info('Public newsletter subscription temporarily disabled during UserContent to ContentDoc migration');
+      unsubscribe.value = () => {}; // Placeholder unsubscribe function
+      // Placeholder for public subscription logic
     }
   };
 

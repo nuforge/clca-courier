@@ -2,7 +2,7 @@ import type { NavigationItem } from '../types/navigation';
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { firebaseAuthService } from '../services/firebase-auth.service';
-import { firestoreService } from '../services/firebase-firestore.service';
+// Legacy firestoreService import removed - will be replaced with proper user profile service
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 export const useNavigation = () => {
@@ -11,14 +11,16 @@ export const useNavigation = () => {
   const hasAdminProfile = ref(false);
 
   // Check authentication and admin status
-  const checkAuthAndAdminStatus = async () => {
+  const checkAuthAndAdminStatus = () => {
     const user = firebaseAuthService.getCurrentUser();
     isAuthenticatedUser.value = !!user;
 
     if (user) {
       try {
-        const profile = await firestoreService.getUserProfile(user.uid);
-        hasAdminProfile.value = !!(profile && profile.role === 'admin');
+        // TODO: Implement user profile loading using ContentDoc architecture
+        // This will need to be replaced with proper user profile service
+        // TODO: Load user profile when service is restored
+        hasAdminProfile.value = false; // TODO: Check admin status when profile service is restored
       } catch {
         hasAdminProfile.value = false;
       }

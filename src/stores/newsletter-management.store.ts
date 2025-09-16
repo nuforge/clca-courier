@@ -6,7 +6,7 @@ import type {
   ProcessingStates,
 } from '../types/core/content-management.types';
 import { firebaseNewsletterService } from '../services/firebase-newsletter.service';
-import { firestoreService } from '../services/firebase-firestore.service';
+// Legacy firestoreService import removed - will be replaced with proper newsletter service
 import { logger } from '../utils/logger';
 import {
   validateNewsletter,
@@ -59,13 +59,11 @@ export const useNewsletterManagementStore = defineStore('newsletter-management',
   // Setup reactive subscription for admin view (including unpublished)
   const setupReactiveSubscription = () => {
     logger.info('Setting up reactive admin subscription for newsletter management...');
-    unsubscribe.value = firestoreService.subscribeToNewslettersForAdmin((updatedNewsletters) => {
-      logger.info(`Received ${updatedNewsletters.length} newsletters via reactive subscription`);
-
-      // Validate incoming newsletters from subscription
-      const validatedNewsletters = validateIncomingNewsletters(updatedNewsletters);
-      newsletters.value = validatedNewsletters;
-    });
+    // TODO: Implement admin newsletter subscription using ContentDoc architecture
+    // This will need to be replaced with proper newsletter service subscription
+    logger.info('Admin newsletter subscription temporarily disabled during UserContent to ContentDoc migration');
+    unsubscribe.value = () => {}; // Placeholder unsubscribe function
+    // Placeholder for admin subscription logic
   };
 
   // =============================================

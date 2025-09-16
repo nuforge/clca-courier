@@ -111,11 +111,11 @@ class FirebaseNewsletterService {
       logger.info('Initializing Firebase Newsletter Service...');
 
       // Set up real-time subscription to newsletters
-      this.unsubscribe = firestoreService.subscribeToNewsletters((newsletters) => {
-        this._newsletters.value = newsletters;
-        this.updateStats();
-        logger.success(`Real-time update: ${newsletters.length} newsletters loaded`);
-      });
+      // TODO: Implement newsletter subscription using ContentDoc architecture
+      // This will need to be replaced with proper newsletter service subscription
+      logger.info('Newsletter subscription temporarily disabled during UserContent to ContentDoc migration');
+      this.unsubscribe = () => {}; // Placeholder unsubscribe function
+      // Placeholder for newsletter subscription logic
 
       // Load initial data
       await this.loadNewsletters();
@@ -183,7 +183,7 @@ class FirebaseNewsletterService {
   /**
    * Search newsletters with enhanced features and accessibility
    */
-  async searchNewsletters(
+  searchNewsletters(
     query: string,
     filters: NewsletterSearchFilters = {},
   ): Promise<NewsletterSearchResult> {
@@ -199,7 +199,10 @@ class FirebaseNewsletterService {
 
       if (query.trim()) {
         // Use Firebase text search with enhanced relevance
-        results = await firestoreService.searchNewsletters(query);
+        // TODO: Implement newsletter search using ContentDoc architecture
+        // This will need to be replaced with proper newsletter service search
+        logger.info('Newsletter search temporarily disabled during UserContent to ContentDoc migration');
+        results = [];
 
         // Count match types for analytics
         results.forEach((newsletter) => {
@@ -228,7 +231,7 @@ class FirebaseNewsletterService {
 
       const searchTime = Date.now() - startTime;
 
-      return {
+      return Promise.resolve({
         newsletters: results,
         totalCount: results.length,
         searchStats: {
@@ -239,7 +242,7 @@ class FirebaseNewsletterService {
           partialMatches,
         },
         suggestions,
-      };
+      });
     } catch (error) {
       logger.error('Error searching newsletters:', error);
       throw error;
