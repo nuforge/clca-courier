@@ -4,6 +4,9 @@
 -->
 <template>
   <div class="available-content-panel">
+    <!-- Debug Panel (Development/Troubleshooting) -->
+    <ContentDebugPanel />
+
     <!-- Available Content Section (Collapsible) -->
     <q-card flat bordered class="q-mb-md">
       <q-card-section>
@@ -223,6 +226,7 @@
 <script setup lang="ts">
 import { usePageLayoutDesigner } from '../../composables/usePageLayoutDesigner';
 import type { ContentDoc } from '../../types/core/content.types';
+import ContentDebugPanel from './ContentDebugPanel.vue';
 
 const {
   selectedIssue,

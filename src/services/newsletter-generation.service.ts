@@ -180,54 +180,70 @@ class NewsletterGenerationService {
    */
   async getApprovedSubmissions(): Promise<ContentDoc[]> {
     try {
-      // Query for content that is either:
-      // 1. Published and marked as newsletter:ready, OR
-      // 2. Has status:approved tag and newsletter:ready tag
-      const q = query(
+      logger.info('Loading approved submissions for newsletter inclusion');
+
+      // Query for published content from the content collection
+      const publishedQuery = query(
         collection(firestore, 'content'),
         where('status', '==', 'published'),
         orderBy('timestamps.created', 'desc')
       );
 
-      const querySnapshot = await getDocs(q);
-      const publishedContent = querySnapshot?.docs?.map(doc => ({
+      // Query for approved content from content_submissions collection
+      const approvedQuery = query(
+        collection(firestore, 'content_submissions'),
+        where('status', 'in', ['approved', 'published']),
+        orderBy('submissionDate', 'desc')
+      );
+
+      // Execute both queries in parallel
+      const [publishedSnapshot, approvedSnapshot] = await Promise.all([
+        getDocs(publishedQuery).catch(() => ({ docs: [] })), // Graceful fallback if collection doesn't exist
+        getDocs(approvedQuery).catch(() => ({ docs: [] }))   // Graceful fallback if collection doesn't exist
+      ]);
+
+      // Process published content
+      const publishedContent = publishedSnapshot?.docs?.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as ContentDoc)) || [];
 
-      // Filter for newsletter-ready content on the client side
-      const newsletterReadyContent = publishedContent.filter(content =>
-        content.tags.includes('newsletter:ready')
-      );
-
-      // Also check for content with status:approved tag (legacy support)
-      const legacyQuery = query(
-        collection(firestore, 'content'),
-        where('tags', 'array-contains', 'status:approved'),
-        orderBy('timestamps.created', 'desc')
-      );
-
-      const legacySnapshot = await getDocs(legacyQuery);
-      const legacyApproved = legacySnapshot?.docs?.map(doc => ({
+      // Process approved submissions
+      const approvedContent = approvedSnapshot?.docs?.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as ContentDoc)) || [];
 
-      const legacyNewsletterReady = legacyApproved.filter(content =>
-        content.tags.includes('newsletter:ready')
-      );
-
-      // Combine and deduplicate by ID
-      const allNewsletterReady = [...newsletterReadyContent, ...legacyNewsletterReady];
-      const uniqueContent = allNewsletterReady.filter((content, index, self) =>
+      // Combine all content and deduplicate by ID
+      const allContent = [...publishedContent, ...approvedContent];
+      const uniqueContent = allContent.filter((content, index, self) =>
         index === self.findIndex(c => c.id === content.id)
       );
 
-      logger.info('Found newsletter-ready content', {
-        count: uniqueContent.length,
-        published: newsletterReadyContent.length,
-        legacy: legacyNewsletterReady.length
+      // Log detailed information for debugging
+      logger.info('Content loading results', {
+        publishedCount: publishedContent.length,
+        approvedCount: approvedContent.length,
+        totalUniqueCount: uniqueContent.length,
+        contentSample: uniqueContent.slice(0, 3).map(c => ({
+          id: c.id,
+          title: c.title,
+          status: c.status,
+          tags: c.tags?.slice(0, 3) || []
+        }))
       });
+
+      // If no content found, provide helpful debug information
+      if (uniqueContent.length === 0) {
+        logger.warn('No approved content found - this might indicate:', {
+          possibleIssues: [
+            'No content has been published/approved yet',
+            'Content might be in a different collection',
+            'Firestore security rules might be blocking access',
+            'Content status values might be different than expected'
+          ]
+        });
+      }
 
       return uniqueContent;
     } catch (error) {

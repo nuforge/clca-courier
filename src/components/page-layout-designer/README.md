@@ -167,6 +167,78 @@ Benefits of the refactor:
 - **Performance**: Better code splitting and lazy loading
 - **Developer Experience**: Smaller files are easier to work with
 
+## Debugging and Troubleshooting
+
+### 🔍 **Content Debug Panel**
+
+The Page Layout Designer includes a comprehensive debugging panel to help identify content loading issues:
+
+**Activation Methods:**
+- **Development**: Automatically enabled in dev mode
+- **Production**: Add `?debug` to URL or run `togglePageLayoutDebug()` in browser console
+- **Persistent**: Set `localStorage.setItem('pageLayoutDebug', 'true')`
+
+**Debug Information Provided:**
+- **Content Loading Summary**: Total loaded vs available vs filtered counts
+- **Filter Status**: Current search query and status filters
+- **Content Breakdown**: Count by status (published, approved, draft, etc.)
+- **Sample Data**: JSON preview of actual content structure
+- **Troubleshooting Tips**: Specific guidance based on current state
+
+### 🚨 **Common Issues and Solutions**
+
+#### **Available Content is Empty**
+**Symptoms:** Debug panel shows content loaded but available count is 0
+
+**Potential Causes:**
+1. **Overly Restrictive Service Query**: Check `getApprovedSubmissions()` method
+2. **Content Already in Issue**: Content appears in "In Issue" count instead
+3. **Status Filter Mismatch**: Content status doesn't match selected filter
+4. **Missing Required Tags**: Content lacks `newsletter:ready` tag (legacy implementation)
+
+**Solutions:**
+1. Check debug panel's "Content by Status" section
+2. Verify content has expected status values
+3. Reset status filter to "All" to see all content
+4. Check Firestore collections (`content` and `content_submissions`)
+
+#### **No Content Loaded at All**
+**Symptoms:** Debug panel shows 0 total loaded
+
+**Potential Causes:**
+1. **Firestore Security Rules**: Rules block content access
+2. **Collection Name Mismatch**: Content in different collection than expected
+3. **Authentication Issues**: User not properly authenticated
+4. **Network/Firebase Connection**: Firebase connection problems
+
+**Solutions:**
+1. Check browser dev tools for Firestore errors
+2. Verify user authentication status  
+3. Check Firestore security rules allow read access
+4. Confirm collection names match service implementation
+
+### 🧪 **Testing Strategy**
+
+**Unit Tests:**
+- `tests/unit/composables/usePageLayoutDesigner.test.ts`: Composable filtering logic
+- `tests/unit/services/newsletter-generation.service.test.ts`: Content loading service
+
+**Integration Tests:**
+- Page-level tests verifying full content flow
+- End-to-end tests with real Firestore data
+
+**Manual Testing:**
+- Use debug panel to verify content loading
+- Test different filter combinations
+- Verify content appears in correct sections
+
+### 📊 **Performance Monitoring**
+
+The debug panel helps identify performance issues:
+- **Large Content Counts**: Monitor total loaded vs filtered ratios
+- **Inefficient Filtering**: High "Filtered Out" counts may indicate inefficient queries
+- **Missing Indexes**: Firestore query errors in browser console
+
 ## Future Enhancements
 
 Potential areas for future improvement:
@@ -175,3 +247,5 @@ Potential areas for future improvement:
 - Add undo/redo functionality
 - Enhanced drag and drop with visual guides
 - Template marketplace integration
+- Advanced content filtering and sorting options
+- Real-time content collaboration features

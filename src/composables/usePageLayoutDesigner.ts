@@ -117,12 +117,11 @@ export function usePageLayoutDesigner() {
 
   // Available content (filtered)
   const availableContent = computed(() => {
-    if (!selectedIssue.value) return approvedSubmissions.value;
-
+    // Always start with all approved submissions
     const searchLower = contentSearchQuery.value.toLowerCase();
-    const issueSubmissions = new Set(selectedIssue.value.submissions);
+    const issueSubmissions = new Set(selectedIssue.value?.submissions || []);
 
-    return approvedSubmissions.value.filter(submission => {
+    const filtered = approvedSubmissions.value.filter(submission => {
       // Filter out content already in the issue
       if (issueSubmissions.has(submission.id)) return false;
 
@@ -140,6 +139,23 @@ export function usePageLayoutDesigner() {
 
       return true;
     });
+
+    // Debug logging to help identify content issues
+    logger.debug('Available content filtered', {
+      totalSubmissions: approvedSubmissions.value.length,
+      filteredCount: filtered.length,
+      selectedStatus: selectedContentStatus.value,
+      searchQuery: contentSearchQuery.value,
+      issueSubmissionsCount: issueSubmissions.size,
+      submissionSample: approvedSubmissions.value.slice(0, 3).map(s => ({
+        id: s.id,
+        title: s.title,
+        status: s.status,
+        tags: s.tags
+      }))
+    });
+
+    return filtered;
   });
 
   // Issue content (content already in the issue)

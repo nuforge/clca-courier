@@ -122,6 +122,33 @@ export default {
     generatePdf: 'Generate PDF'
   },
 
+  debug: {
+    contentDebugging: 'Content Debugging',
+    contentLoadingSummary: 'Content Loading Summary',
+    totalLoaded: 'Total Loaded',
+    availableNow: 'Available Now',
+    inIssue: 'In Issue',
+    filtered: 'Filtered Out',
+    currentFilters: 'Current Filters',
+    status: 'Status',
+    search: 'Search',
+    noFiltersActive: 'No filters active',
+    contentByStatus: 'Content by Status',
+    sampleContent: 'Sample Content Data',
+    showSampleData: 'Show sample data',
+    troubleshootingTips: 'Troubleshooting Tips',
+    noContentLoaded: 'No content loaded',
+    checkFirestoreRules: 'Check Firestore security rules and collection names',
+    allContentFiltered: 'All content filtered out',
+    checkFilters: 'Check status filter and search query',
+    contentLoadingWorking: 'Content loading is working correctly',
+    contentAvailable: 'Content is available for newsletter layout'
+  },
+
+  dialogs: {
+    clearAllPagesConfirm: 'Are you sure you want to clear all content from the layout?'
+  },
+
   status: {
     pending: 'Pending',
     approved: 'Approved',

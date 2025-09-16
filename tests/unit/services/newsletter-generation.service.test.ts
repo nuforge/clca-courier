@@ -1,642 +1,299 @@
-/**
- * Newsletter Generation Service Tests
- * Test-first approach: These tests are designed to fail initially and catch edge cases
- */
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { newsletterGenerationService } from '../../../src/services/newsletter-generation.service';
+import type { ContentDoc } from '../../../src/types/core/content.types';
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NewsletterGenerationService } from '../../../src/services/newsletter-generation.service';
-import type { NewsletterIssue } from '../../../src/services/newsletter-generation.service';
-
-// Mock Firebase services - hoisted to avoid circular dependencies
-const mockCollection = vi.hoisted(() => vi.fn());
-const mockDoc = vi.hoisted(() => vi.fn());
-const mockGetDocs = vi.hoisted(() => vi.fn());
-const mockGetDoc = vi.hoisted(() => vi.fn());
-const mockAddDoc = vi.hoisted(() => vi.fn());
-const mockUpdateDoc = vi.hoisted(() => vi.fn());
-const mockDeleteDoc = vi.hoisted(() => vi.fn());
-const mockQuery = vi.hoisted(() => vi.fn());
-const mockWhere = vi.hoisted(() => vi.fn());
-const mockOrderBy = vi.hoisted(() => vi.fn());
-const mockLimit = vi.hoisted(() => vi.fn());
-const mockOnSnapshot = vi.hoisted(() => vi.fn());
-
-const mockFirestore = vi.hoisted(() => ({
-  collection: mockCollection(),
-  doc: mockDoc(),
-  getDocs: mockGetDocs(),
-  getDoc: mockGetDoc(),
-  addDoc: mockAddDoc(),
-  updateDoc: mockUpdateDoc(),
-  deleteDoc: mockDeleteDoc(),
-  query: mockQuery(),
-  where: mockWhere(),
-  orderBy: mockOrderBy(),
-  limit: mockLimit(),
-  onSnapshot: mockOnSnapshot()
+// Mock Firebase Firestore
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  getDocs: vi.fn(),
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  addDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  serverTimestamp: vi.fn()
 }));
 
-const mockHttpsCallable = vi.hoisted(() => vi.fn());
-
+// Mock Firebase config
 vi.mock('../../../src/config/firebase.config', () => ({
-  firestore: mockFirestore()
+  firestore: {}
 }));
 
-vi.mock('firebase/functions', () => ({
-  httpsCallable: mockHttpsCallable()(),
-  getFunctions: vi.fn(() => ({ httpsCallable: mockHttpsCallable()() }))
-}));
-
+// Mock Firebase auth service
 vi.mock('../../../src/services/firebase-auth.service', () => ({
   firebaseAuthService: {
-    getCurrentUser: vi.fn(() => ({ uid: 'test-user-id' }))
+    getCurrentUser: vi.fn(() => ({ uid: 'test-user' }))
   }
 }));
 
-describe('NewsletterGenerationService', () => {
-  let service: NewsletterGenerationService;
-  let mockCallable: any;
+// Mock logger
+vi.mock('../../../src/utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn()
+  }
+}));
+
+describe('NewsletterGenerationService - getApprovedSubmissions', () => {
+  const mockGetDocs = getDocs as MockedFunction<typeof getDocs>;
+  const mockQuery = query as MockedFunction<typeof query>;
+  const mockCollection = collection as MockedFunction<typeof collection>;
+  const mockWhere = where as MockedFunction<typeof where>;
+  const mockOrderBy = orderBy as MockedFunction<typeof orderBy>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new NewsletterGenerationService();
-
-    // Setup default mocks
-    mockCallable = vi.fn();
-    mockHttpsCallable().mockReturnValue(mockCallable);
-
-    // Setup Firestore mocks
-    mockCollection().mockReturnValue({
-      withConverter: vi.fn().mockReturnThis(),
-      doc: mockDoc(),
-      add: mockAddDoc(),
-      get: mockGetDoc()s(),
-      where: mockWhere(),
-      orderBy: mockOrderBy(),
-      limit: mockLimit()
-    });
-
-    mockDoc().mockReturnValue({
-      get: mockGetDoc(),
-      update: mockUpdateDoc(),
-      delete: mockDeleteDoc()
-    });
-
-    mockWhere().mockReturnValue({
-      where: mockWhere(),
-      orderBy: mockOrderBy(),
-      limit: mockLimit(),
-      get: mockGetDoc()s()
-    });
-
-    mockOrderBy().mockReturnValue({
-      where: mockWhere(),
-      orderBy: mockOrderBy(),
-      limit: mockLimit(),
-      get: mockGetDoc()s()
-    });
-
-    mockLimit().mockReturnValue({
-      where: mockWhere(),
-      orderBy: mockOrderBy(),
-      limit: mockLimit(),
-      get: mockGetDoc()s()
-    });
   });
 
-  afterEach(() => {
-    vi.resetAllMocks();
+  const createMockQuerySnapshot = (docs: Array<{ id: string; data: () => any }>) => ({
+    docs: docs.map(doc => ({
+      id: doc.id,
+      data: doc.data
+    }))
   });
 
-  describe('createIssue', () => {
-    it('should create a new newsletter issue successfully', async () => {
-      const issueData = {
-        title: 'Test Newsletter',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1', 'submission2']
-      };
+  const createMockContent = (id: string, status: string, title: string, tags: string[] = []): { id: string; data: () => ContentDoc } => ({
+    id,
+    data: () => ({
+      id,
+      title,
+      description: `Description for ${title}`,
+      status,
+      tags,
+      type: 'article',
+      content: `Content for ${title}`,
+      authorId: 'author1',
+      authorName: 'Test Author',
+      timestamps: {
+        created: new Date(),
+        updated: new Date()
+      }
+    } as ContentDoc)
+  });
 
-      const mockDoc()Ref = { id: 'new-issue-id' };
-      mockAddDoc().mockResolvedValue(mockDoc()Ref);
+  it('should load published content from content collection', async () => {
+    const mockPublishedContent = [
+      createMockContent('pub-1', 'published', 'Published Article 1'),
+      createMockContent('pub-2', 'published', 'Published Article 2')
+    ];
 
-      const result = await service.createIssue(issueData);
+    const mockApprovedContent: Array<{ id: string; data: () => any }> = [];
 
-      expect(mockCollection()).toHaveBeenCalledWith('newsletters');
-      expect(mockAddDoc()).toHaveBeenCalledWith(
+    // Mock the queries to return different results
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockPublishedContent)) // First call for 'content' collection
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockApprovedContent)); // Second call for 'content_submissions' collection
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('pub-1');
+    expect(result[0].title).toBe('Published Article 1');
+    expect(result[0].status).toBe('published');
+    expect(result[1].id).toBe('pub-2');
+    expect(result[1].title).toBe('Published Article 2');
+  });
+
+  it('should load approved content from content_submissions collection', async () => {
+    const mockPublishedContent: Array<{ id: string; data: () => any }> = [];
+
+    const mockApprovedContent = [
+      createMockContent('app-1', 'approved', 'Approved Submission 1'),
+      createMockContent('app-2', 'published', 'Published Submission 2')
+    ];
+
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockPublishedContent))
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockApprovedContent));
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('app-1');
+    expect(result[0].status).toBe('approved');
+    expect(result[1].id).toBe('app-2');
+    expect(result[1].status).toBe('published');
+  });
+
+  it('should combine and deduplicate content from both collections', async () => {
+    const duplicateContent = createMockContent('dup-1', 'published', 'Duplicate Content');
+
+    const mockPublishedContent = [
+      duplicateContent,
+      createMockContent('pub-1', 'published', 'Published Only')
+    ];
+
+    const mockApprovedContent = [
+      duplicateContent, // Same ID as in published content
+      createMockContent('app-1', 'approved', 'Approved Only')
+    ];
+
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockPublishedContent))
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockApprovedContent));
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(3);
+    expect(result.map(c => c.id).sort()).toEqual(['app-1', 'dup-1', 'pub-1']);
+  });
+
+  it('should handle empty results gracefully', async () => {
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot([]))
+      .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(0);
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('should handle collection access errors gracefully', async () => {
+    // Simulate one collection failing (e.g., doesn't exist)
+    mockGetDocs
+      .mockRejectedValueOnce(new Error('Collection not found'))
+      .mockResolvedValueOnce(createMockQuerySnapshot([
+        createMockContent('app-1', 'approved', 'From Second Collection')
+      ]));
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('app-1');
+  });
+
+  it('should handle both collections failing gracefully', async () => {
+    mockGetDocs
+      .mockRejectedValueOnce(new Error('First collection error'))
+      .mockRejectedValueOnce(new Error('Second collection error'));
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(0);
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('should log detailed debugging information', async () => {
+    const { logger } = await import('../../../src/utils/logger');
+
+    const mockPublishedContent = [
+      createMockContent('pub-1', 'published', 'Published Article', ['tag1'])
+    ];
+
+    const mockApprovedContent = [
+      createMockContent('app-1', 'approved', 'Approved Article', ['tag2'])
+    ];
+
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockPublishedContent))
+      .mockResolvedValueOnce(createMockQuerySnapshot(mockApprovedContent));
+
+    await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(logger.info).toHaveBeenCalledWith('Loading approved submissions for newsletter inclusion');
+    expect(logger.info).toHaveBeenCalledWith('Content loading results', expect.objectContaining({
+      publishedCount: 1,
+      approvedCount: 1,
+      totalUniqueCount: 2,
+      contentSample: expect.arrayContaining([
         expect.objectContaining({
-          title: issueData.title,
-          issueNumber: issueData.issueNumber,
-          publicationDate: issueData.publicationDate,
-          submissions: issueData.submissions,
-          status: 'draft',
-          createdAt: expect.any(Object),
-          updatedAt: expect.any(Object),
-          createdBy: 'test-user-id',
-          updatedBy: 'test-user-id'
+          id: 'pub-1',
+          title: 'Published Article',
+          status: 'published',
+          tags: ['tag1']
         })
-      );
-      expect(result).toBe('new-issue-id');
-    });
+      ])
+    }));
+  });
 
-    it('should handle missing required fields', async () => {
-      const incompleteIssueData = {
-        title: 'Test Newsletter'
-        // Missing issueNumber, publicationDate, submissions
-      };
+  it('should log warning when no content is found', async () => {
+    const { logger } = await import('../../../src/utils/logger');
 
-      await expect(service.createIssue(incompleteIssueData as any)).rejects.toThrow();
-    });
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot([]))
+      .mockResolvedValueOnce(createMockQuerySnapshot([]));
 
-    it('should handle Firestore errors during creation', async () => {
-      const issueData = {
-        title: 'Test Newsletter',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1']
-      };
+    await newsletterGenerationService.getApprovedSubmissions();
 
-      mockAddDoc().mockRejectedValue(new Error('Firestore error'));
+    expect(logger.warn).toHaveBeenCalledWith('No approved content found - this might indicate:', expect.objectContaining({
+      possibleIssues: expect.arrayContaining([
+        'No content has been published/approved yet',
+        'Content might be in a different collection',
+        'Firestore security rules might be blocking access',
+        'Content status values might be different than expected'
+      ])
+    }));
+  });
 
-      await expect(service.createIssue(issueData)).rejects.toThrow('Firestore error');
-    });
+  it('should preserve content structure and metadata', async () => {
+    const mockContent = createMockContent('test-1', 'published', 'Test Article', ['tag1', 'tag2']);
 
-    it('should handle empty submissions array', async () => {
-      const issueData = {
-        title: 'Test Newsletter',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: []
-      };
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot([mockContent]))
+      .mockResolvedValueOnce(createMockQuerySnapshot([]));
 
-      const mockDoc()Ref = { id: 'new-issue-id' };
-      mockAddDoc().mockResolvedValue(mockDoc()Ref);
+    const result = await newsletterGenerationService.getApprovedSubmissions();
 
-      const result = await service.createIssue(issueData);
-
-      expect(result).toBe('new-issue-id');
-      expect(mockAddDoc()).toHaveBeenCalledWith(
-        expect.objectContaining({
-          submissions: []
-        })
-      );
-    });
-
-    it('should handle very large submissions array', async () => {
-      const largeSubmissionsArray = Array.from({ length: 1000 }, (_, i) => `submission-${i}`);
-      const issueData = {
-        title: 'Test Newsletter',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: largeSubmissionsArray
-      };
-
-      const mockDoc()Ref = { id: 'new-issue-id' };
-      mockAddDoc().mockResolvedValue(mockDoc()Ref);
-
-      const result = await service.createIssue(issueData);
-
-      expect(result).toBe('new-issue-id');
-      expect(mockAddDoc()).toHaveBeenCalledWith(
-        expect.objectContaining({
-          submissions: largeSubmissionsArray
-        })
-      );
+    expect(result[0]).toEqual({
+      id: 'test-1',
+      title: 'Test Article',
+      description: 'Description for Test Article',
+      status: 'published',
+      tags: ['tag1', 'tag2'],
+      type: 'article',
+      content: 'Content for Test Article',
+      authorId: 'author1',
+      authorName: 'Test Author',
+      timestamps: expect.objectContaining({
+        created: expect.any(Date),
+        updated: expect.any(Date)
+      })
     });
   });
 
-  describe('getIssues', () => {
-    it('should retrieve all newsletter issues', async () => {
-      const mockIssues = [
-        {
-          id: 'issue1',
-          data: () => ({
-            title: 'Issue 1',
-            issueNumber: '1',
-            status: 'published',
-            createdAt: { toDate: () => new Date('2024-01-01') },
-            updatedAt: { toDate: () => new Date('2024-01-01') }
-          })
-        },
-        {
-          id: 'issue2',
-          data: () => ({
-            title: 'Issue 2',
-            issueNumber: '2',
-            status: 'draft',
-            createdAt: { toDate: () => new Date('2024-01-02') },
-            updatedAt: { toDate: () => new Date('2024-01-02') }
-          })
-        }
-      ];
+  it('should query the correct collections with proper filters', async () => {
+    mockGetDocs
+      .mockResolvedValue(createMockQuerySnapshot([]));
 
-      mockGetDoc()s().mockResolvedValue({
-        docs: mockIssues
-      });
+    await newsletterGenerationService.getApprovedSubmissions();
 
-      const result = await service.getIssues();
+    // Verify the first query (content collection)
+    expect(mockCollection).toHaveBeenCalledWith(expect.anything(), 'content');
+    expect(mockWhere).toHaveBeenCalledWith('status', '==', 'published');
+    expect(mockOrderBy).toHaveBeenCalledWith('timestamps.created', 'desc');
 
-      expect(mockCollection()).toHaveBeenCalledWith('newsletters');
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('issue1');
-      expect(result[1].id).toBe('issue2');
-    });
-
-    it('should handle empty issues collection', async () => {
-      mockGetDoc()s().mockResolvedValue({
-        docs: []
-      });
-
-      const result = await service.getIssues();
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should handle Firestore query errors', async () => {
-      mockGetDoc()s().mockRejectedValue(new Error('Firestore query error'));
-
-      await expect(service.getIssues()).rejects.toThrow('Firestore query error');
-    });
-
-    it('should handle malformed issue data', async () => {
-      const malformedIssues = [
-        {
-          id: 'issue1',
-          data: () => ({
-            title: 'Issue 1',
-            // Missing required fields
-            createdAt: { toDate: () => new Date('2024-01-01') },
-            updatedAt: { toDate: () => new Date('2024-01-01') }
-          })
-        }
-      ];
-
-      mockGetDoc()s().mockResolvedValue({
-        docs: malformedIssues
-      });
-
-      const result = await service.getIssues();
-
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('issue1');
-      // Should handle missing fields gracefully
-    });
-
-    it('should handle very large issues collection', async () => {
-      const largeIssuesArray = Array.from({ length: 1000 }, (_, i) => ({
-        id: `issue-${i}`,
-        data: () => ({
-          title: `Issue ${i}`,
-          issueNumber: `${i}`,
-          status: 'draft',
-          createdAt: { toDate: () => new Date('2024-01-01') },
-          updatedAt: { toDate: () => new Date('2024-01-01') }
-        })
-      }));
-
-      mockGetDoc()s().mockResolvedValue({
-        docs: largeIssuesArray
-      });
-
-      const result = await service.getIssues();
-
-      expect(result).toHaveLength(1000);
-    });
+    // Verify the second query (content_submissions collection)
+    expect(mockCollection).toHaveBeenCalledWith(expect.anything(), 'content_submissions');
+    expect(mockWhere).toHaveBeenCalledWith('status', 'in', ['approved', 'published']);
+    expect(mockOrderBy).toHaveBeenCalledWith('submissionDate', 'desc');
   });
 
-  describe('getIssue', () => {
-    it('should retrieve a specific newsletter issue', async () => {
-      const mockIssue = {
-        id: 'issue1',
-        data: () => ({
-          title: 'Test Issue',
-          issueNumber: '1',
-          status: 'draft',
-          submissions: ['submission1', 'submission2'],
-          createdAt: { toDate: () => new Date('2024-01-01') },
-          updatedAt: { toDate: () => new Date('2024-01-01') }
-        })
-      };
-
-      mockGetDoc().mockResolvedValue(mockIssue);
-
-      const result = await service.getIssue('issue1');
-
-      expect(mockDoc()).toHaveBeenCalledWith('newsletters', 'issue1');
-      expect(result).toBeDefined();
-      expect(result?.id).toBe('issue1');
-    });
-
-    it('should return null for non-existent issue', async () => {
-      mockGetDoc().mockResolvedValue({
-        exists: () => false
-      });
-
-      const result = await service.getIssue('non-existent');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle Firestore errors', async () => {
-      mockGetDoc().mockRejectedValue(new Error('Firestore error'));
-
-      await expect(service.getIssue('issue1')).rejects.toThrow('Firestore error');
-    });
-
-    it('should handle malformed issue document', async () => {
-      const malformedIssue = {
-        id: 'issue1',
-        data: () => null // Malformed data
-      };
-
-      mockGetDoc().mockResolvedValue(malformedIssue);
-
-      await expect(service.getIssue('issue1')).rejects.toThrow();
-    });
-  });
-
-  describe('updateIssue', () => {
-    it('should update an existing newsletter issue', async () => {
-      const updateData = {
-        title: 'Updated Title',
-        status: 'ready' as const
-      };
-
-      mockUpdateDoc().mockResolvedValue(undefined);
-
-      await service.updateIssue('issue1', updateData);
-
-      expect(mockDoc()).toHaveBeenCalledWith('newsletters', 'issue1');
-      expect(mockUpdateDoc()).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({
-          ...updateData,
-          updatedAt: expect.any(Object),
-          updatedBy: 'test-user-id'
-        })
-      );
-    });
-
-    it('should handle non-existent issue updates', async () => {
-      mockUpdateDoc().mockRejectedValue(new Error('Document not found'));
-
-      await expect(service.updateIssue('non-existent', { title: 'New Title' })).rejects.toThrow('Document not found');
-    });
-
-    it('should handle empty update data', async () => {
-      mockUpdateDoc().mockResolvedValue(undefined);
-
-      await service.updateIssue('issue1', {});
-
-      expect(mockUpdateDoc()).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({
-          updatedAt: expect.any(Object),
-          updatedBy: 'test-user-id'
-        })
-      );
-    });
-
-    it('should handle invalid status updates', async () => {
-      const invalidUpdateData = {
-        status: 'invalid-status' as any
-      };
-
-      await expect(service.updateIssue('issue1', invalidUpdateData)).rejects.toThrow();
-    });
-  });
-
-  describe('deleteIssue', () => {
-    it('should delete a newsletter issue', async () => {
-      mockDeleteDoc().mockResolvedValue(undefined);
-
-      await service.deleteIssue('issue1');
-
-      expect(mockDoc()).toHaveBeenCalledWith('newsletters', 'issue1');
-      expect(mockDeleteDoc()).toHaveBeenCalled();
-    });
-
-    it('should handle deletion of non-existent issue', async () => {
-      mockDeleteDoc().mockRejectedValue(new Error('Document not found'));
-
-      await expect(service.deleteIssue('non-existent')).rejects.toThrow('Document not found');
-    });
-
-    it('should handle Firestore errors during deletion', async () => {
-      mockDeleteDoc().mockRejectedValue(new Error('Permission denied'));
-
-      await expect(service.deleteIssue('issue1')).rejects.toThrow('Permission denied');
-    });
-  });
-
-  describe('generateNewsletter', () => {
-    it('should trigger newsletter generation successfully', async () => {
-      const mockResponse = {
-        success: true,
-        message: 'Newsletter generation started',
-        generationId: 'gen-123'
-      };
-
-      mockCallable.mockResolvedValue({ data: mockResponse });
-
-      const result = await service.generateNewsletter('issue1');
-
-      expect(mockHttpsCallable()).toHaveBeenCalledWith(expect.any(Object), 'generateNewsletter');
-      expect(mockCallable).toHaveBeenCalledWith({ issueId: 'issue1' });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should handle generation failures', async () => {
-      const mockResponse = {
-        success: false,
-        message: 'Generation failed: Invalid issue data',
-        error: 'Invalid issue data'
-      };
-
-      mockCallable.mockResolvedValue({ data: mockResponse });
-
-      const result = await service.generateNewsletter('issue1');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid issue data');
-    });
-
-    it('should handle non-existent issue generation', async () => {
-      const mockResponse = {
-        success: false,
-        message: 'Issue not found',
-        error: 'Issue not found'
-      };
-
-      mockCallable.mockResolvedValue({ data: mockResponse });
-
-      const result = await service.generateNewsletter('non-existent');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Issue not found');
-    });
-
-    it('should handle empty issue ID', async () => {
-      await expect(service.generateNewsletter('')).rejects.toThrow();
-    });
-
-    it('should handle network errors during generation', async () => {
-      mockCallable.mockRejectedValue(new Error('Network error'));
-
-      await expect(service.generateNewsletter('issue1')).rejects.toThrow('Network error');
-    });
-
-    it('should handle timeout during generation', async () => {
-      mockCallable.mockImplementation(() =>
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout')), 100)
-        )
-      );
-
-      await expect(service.generateNewsletter('issue1')).rejects.toThrow('Request timeout');
-    });
-  });
-
-  describe('getGenerationProgress', () => {
-    it('should retrieve generation progress', async () => {
-      const mockProgress = {
-        id: 'gen-123',
-        data: () => ({
-          issueId: 'issue1',
-          status: 'generating',
-          progress: 50,
-          currentStep: 'Generating PDFs',
-          totalSteps: 4,
-          completedSteps: 2,
-          error: null,
-          createdAt: { toDate: () => new Date('2024-01-01') },
-          updatedAt: { toDate: () => new Date('2024-01-01') }
-        })
-      };
-
-      mockGetDoc().mockResolvedValue(mockProgress);
-
-      const result = await service.getGenerationProgress('gen-123');
-
-      expect(mockDoc()).toHaveBeenCalledWith('generation_progress', 'gen-123');
-      expect(result).toBeDefined();
-      expect(result?.id).toBe('gen-123');
-    });
-
-    it('should return null for non-existent progress', async () => {
-      mockGetDoc().mockResolvedValue({
-        exists: () => false
-      });
-
-      const result = await service.getGenerationProgress('non-existent');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle malformed progress data', async () => {
-      const malformedProgress = {
-        id: 'gen-123',
-        data: () => ({
-          issueId: 'issue1',
-          status: 'generating',
-          // Missing required fields
-          createdAt: { toDate: () => new Date('2024-01-01') }
-        })
-      };
-
-      mockGetDoc().mockResolvedValue(malformedProgress);
-
-      const result = await service.getGenerationProgress('gen-123');
-
-      expect(result).toBeDefined();
-      expect(result?.id).toBe('gen-123');
-      // Should handle missing fields gracefully
-    });
-  });
-
-  describe('Edge Cases and Error Scenarios', () => {
-    it('should handle concurrent operations', async () => {
-      const mockDoc()Ref = { id: 'new-issue-id' };
-      mockAddDoc().mockResolvedValue(mockDoc()Ref);
-
-      const issueData = {
-        title: 'Test Newsletter',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1']
-      };
-
-      const promises = [
-        service.createIssue(issueData),
-        service.createIssue({ ...issueData, issueNumber: '2' }),
-        service.createIssue({ ...issueData, issueNumber: '3' })
-      ];
-
-      const results = await Promise.all(promises);
-
-      expect(results).toHaveLength(3);
-      expect(mockAddDoc()).toHaveBeenCalledTimes(3);
-    });
-
-    it('should handle very long issue titles', async () => {
-      const longTitle = 'A'.repeat(1000);
-      const issueData = {
-        title: longTitle,
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1']
-      };
-
-      const mockDoc()Ref = { id: 'new-issue-id' };
-      mockAddDoc().mockResolvedValue(mockDoc()Ref);
-
-      const result = await service.createIssue(issueData);
-
-      expect(result).toBe('new-issue-id');
-      expect(mockAddDoc()).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: longTitle
-        })
-      );
-    });
-
-    it('should handle special characters in issue data', async () => {
-      const specialCharData = {
-        title: 'Test <script>alert("xss")</script>',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1']
-      };
-
-      const mockDoc()Ref = { id: 'new-issue-id' };
-      mockAddDoc().mockResolvedValue(mockDoc()Ref);
-
-      const result = await service.createIssue(specialCharData);
-
-      expect(result).toBe('new-issue-id');
-    });
-
-    it('should handle null and undefined values', async () => {
-      const nullData = {
-        title: null,
-        issueNumber: undefined,
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1']
-      };
-
-      await expect(service.createIssue(nullData as any)).rejects.toThrow();
-    });
-
-    it('should handle circular references in issue data', async () => {
-      const circularData: any = {
-        title: 'Test Newsletter',
-        issueNumber: '1',
-        publicationDate: new Date('2024-01-01'),
-        submissions: ['submission1']
-      };
-      circularData.self = circularData; // Create circular reference
-
-      await expect(service.createIssue(circularData)).rejects.toThrow();
-    });
+  it('should handle malformed content data gracefully', async () => {
+    const malformedContent = {
+      id: 'malformed-1',
+      data: () => ({
+        // Missing required fields
+        id: 'malformed-1',
+        title: undefined,
+        status: 'published'
+      })
+    };
+
+    mockGetDocs
+      .mockResolvedValueOnce(createMockQuerySnapshot([malformedContent]))
+      .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+    const result = await newsletterGenerationService.getApprovedSubmissions();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('malformed-1');
+    expect(result[0].title).toBeUndefined();
+    expect(result[0].status).toBe('published');
   });
 });

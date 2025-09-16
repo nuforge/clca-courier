@@ -123,6 +123,33 @@ export default {
     generatePdf: 'Generar PDF'
   },
 
+  debug: {
+    contentDebugging: 'Depuración de Contenido',
+    contentLoadingSummary: 'Resumen de Carga de Contenido',
+    totalLoaded: 'Total Cargado',
+    availableNow: 'Disponible Ahora',
+    inIssue: 'En Edición',
+    filtered: 'Filtrado',
+    currentFilters: 'Filtros Actuales',
+    status: 'Estado',
+    search: 'Búsqueda',
+    noFiltersActive: 'Sin filtros activos',
+    contentByStatus: 'Contenido por Estado',
+    sampleContent: 'Datos de Contenido de Muestra',
+    showSampleData: 'Mostrar datos de muestra',
+    troubleshootingTips: 'Consejos de Resolución de Problemas',
+    noContentLoaded: 'No se cargó contenido',
+    checkFirestoreRules: 'Verificar reglas de seguridad de Firestore y nombres de colecciones',
+    allContentFiltered: 'Todo el contenido filtrado',
+    checkFilters: 'Verificar filtro de estado y consulta de búsqueda',
+    contentLoadingWorking: 'La carga de contenido funciona correctamente',
+    contentAvailable: 'El contenido está disponible para el diseño del boletín'
+  },
+
+  dialogs: {
+    clearAllPagesConfirm: '¿Estás seguro de que quieres limpiar todo el contenido del diseño?'
+  },
+
   status: {
     pending: 'Pendiente',
     approved: 'Aprobado',
