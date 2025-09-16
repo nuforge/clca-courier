@@ -14,8 +14,12 @@ import {
   limit,
   getDocs,
   addDoc,
+  updateDoc,
+  orderBy,
+  onSnapshot,
   serverTimestamp,
   type FieldValue,
+  type Unsubscribe,
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
@@ -351,102 +355,7 @@ class FirebaseFirestoreService {
   // These will be replaced with ContentDoc queries
   // ========================================
 
-  /*
-  // Convert UserContent to NewsItem for display
-  convertUserContentToNewsItem(userContent: UserContent): NewsItem {
-    // Map content type to category
-    const categoryMap: Record<string, 'news' | 'announcement' | 'event'> = {
-      article: 'news',
-      announcement: 'announcement',
-      event: 'event',
-      classified: 'announcement', // Map classified to announcement
-      photo: 'announcement', // Map photo to announcement
-    };
-
-    // Convert Firestore Timestamp to ISO string for NewsItem
-    const dateString = normalizeDate(userContent.submissionDate)?.toISOString() || new Date().toISOString();
-
-    return {
-      id: userContent.id,
-      title: userContent.title,
-      summary:
-        userContent.content.substring(0, 200) + (userContent.content.length > 200 ? '...' : ''),
-      content: userContent.content,
-      author: userContent.authorName,
-      date: dateString,
-      category: categoryMap[userContent.type] || 'news',
-      featured: userContent.featured ?? false, // Use featured property if set, default to false
-    };
-  }
-
-  // Convert UserContent to ClassifiedAd for display
-  convertUserContentToClassifiedAd(userContent: UserContent): ClassifiedAd {
-    // Map classified content type to specific classified categories
-    const classifiedCategoryMap: Record<string, 'for-sale' | 'services' | 'wanted' | 'free'> = {
-      'for-sale': 'for-sale',
-      'services': 'services',
-      'wanted': 'wanted',
-      'free': 'free'
-    };
-
-    // Extract price from content if mentioned (simple regex match)
-    const priceMatch = userContent.content.match(/\$\d+(?:\.\d{2})?/);
-
-    // Convert Firestore Timestamp to ISO string for ClassifiedAd
-    const dateString = normalizeDate(userContent.submissionDate)?.toISOString() || new Date().toISOString();
-
-    const contact: { name: string; email?: string; phone?: string } = {
-      name: userContent.authorName,
-      email: userContent.authorEmail
-    };
-
-    const result: ClassifiedAd = {
-      id: userContent.id,
-      title: userContent.title,
-      description: userContent.content,
-      category: classifiedCategoryMap[userContent.type] || 'for-sale', // Default to for-sale
-      contact: contact,
-      datePosted: dateString,
-      featured: userContent.featured ?? false
-    };
-
-    // Only add price if it was found
-    if (priceMatch) {
-      result.price = priceMatch[0];
-    }
-
-    return result;
-  }
-
-  // Convert UserContent to Event for display
-  convertUserContentToEvent(userContent: UserContent): Event {
-    // Extract time from content (simple regex match for common time formats)
-    const timeMatch = userContent.content.match(/\b(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)|\d{1,2}:\d{2})\b/);
-    const time = timeMatch?.[1] ?? 'TBD';
-
-    // Extract location from content (look for common location indicators)
-    const locationMatch = userContent.content.match(/(?:at|location:|venue:)\s*([^\n.]+)/i);
-    const location = locationMatch?.[1]?.trim();
-
-    // Convert Firestore Timestamp to ISO string for Event
-    const dateString = normalizeDate(userContent.submissionDate)?.toISOString() || new Date().toISOString();
-
-    const result: Event = {
-      id: userContent.id,
-      title: userContent.title,
-      description: userContent.content,
-      date: dateString,
-      time: time,
-      organizer: userContent.authorName
-    };
-
-    // Only add location if it exists
-    if (location) {
-      result.location = location;
-    }
-
-    return result;
-  }
+  // Legacy conversion methods removed - ContentDoc architecture eliminates the need for conversion
 
   // Legacy getPublishedContentAsNewsItems method removed
   // ContentDoc system doesn't need conversion - use firebaseContentService.getPublishedContent() directly

@@ -54,7 +54,7 @@ export interface GenerationProgress {
 class NewsletterGenerationService {
   private readonly COLLECTIONS = {
     ISSUES: 'newsletters', // Use existing newsletters collection
-    SUBMISSIONS: 'content_submissions'
+    CONTENT: 'content' // Use the new ContentDoc collection
   } as const;
 
   /**
@@ -183,10 +183,10 @@ class NewsletterGenerationService {
       logger.info('Loading approved submissions for newsletter inclusion');
 
       // Query for published content from the ContentDoc collection
+      // Remove orderBy to avoid index requirements - we'll sort client-side
       const contentQuery = query(
         collection(firestore, 'content'),
-        where('status', '==', 'published'),
-        orderBy('timestamps.created', 'desc')
+        where('status', '==', 'published')
       );
 
       const contentSnapshot = await getDocs(contentQuery);
@@ -194,6 +194,13 @@ class NewsletterGenerationService {
         id: doc.id,
         ...doc.data()
       } as ContentDoc));
+
+      // Sort client-side by creation date (newest first)
+      content.sort((a, b) => {
+        const aTime = a.timestamps?.created?.toDate?.() || new Date(0);
+        const bTime = b.timestamps?.created?.toDate?.() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
+      });
 
       // Log detailed information for debugging
       logger.info('Content loading results', {
