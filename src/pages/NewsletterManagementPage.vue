@@ -271,30 +271,17 @@
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <div class="row q-gutter-xs">
-                  <!-- Manage Content - for new issues -->
+                  <!-- Manage Content & Layout - for new issues -->
                   <q-btn
                     v-if="props.row.type === 'issue'"
                     flat
                     dense
                     size="sm"
-                    icon="mdi-format-list-bulleted"
+                    icon="mdi-view-dashboard"
                     color="primary"
                     @click="viewIssue(props.row)"
                   >
-                    <q-tooltip>Manage Content ({{ props.row.submissions.length }} items)</q-tooltip>
-                  </q-btn>
-
-                  <!-- Layout Pages - for issues with content -->
-                  <q-btn
-                    v-if="props.row.type === 'issue' && props.row.submissions.length > 0"
-                    flat
-                    dense
-                    size="sm"
-                    icon="mdi-view-dashboard"
-                    color="info"
-                    @click="layoutPages(props.row)"
-                  >
-                    <q-tooltip>Layout Pages</q-tooltip>
+                    <q-tooltip>Manage Content & Layout ({{ props.row.submissions.length }} items)</q-tooltip>
                   </q-btn>
 
                   <!-- Edit Issue - for all issues -->
@@ -426,13 +413,6 @@
         @preview-template="previewTemplate"
       />
 
-      <!-- Issue Content Dialog -->
-      <IssueContentDialog
-        v-model="showContentDialog"
-        :selected-issue="selectedIssue"
-        :approved-submissions="approvedSubmissions"
-        @content-updated="loadData"
-      />
 
       <!-- Template Management Dialog -->
       <TemplateManagementDialog
@@ -445,6 +425,7 @@
         :selected-issue="selectedIssue"
         :approved-submissions="approvedSubmissions"
         @preview-newsletter="previewNewsletter"
+        @content-updated="loadData"
       />
     </div>
   </q-page>
@@ -463,7 +444,6 @@ import type { ContentDoc } from '../types/core/content.types';
 // Dialog components
 import CreateIssueDialog from '../components/newsletter-management/CreateIssueDialog.vue';
 import EditIssueDialog from '../components/newsletter-management/EditIssueDialog.vue';
-import IssueContentDialog from '../components/newsletter-management/IssueContentDialog.vue';
 import TemplateManagementDialog from '../components/newsletter-management/TemplateManagementDialog.vue';
 import PageLayoutDialog from '../components/newsletter-management/PageLayoutDialog.vue';
 
@@ -484,7 +464,6 @@ const issues = ref<NewsletterIssue[]>([]);
 const approvedSubmissions = ref<ContentDoc[]>([]);
 const showCreateDialog = ref(false);
 const showEditDialog = ref(false);
-const showContentDialog = ref(false);
 const showLayoutDialog = ref(false);
 const selectedIssue = ref<NewsletterIssue | null>(null);
 
@@ -666,11 +645,6 @@ const loadData = async () => {
 
 
 const viewIssue = (issue: NewsletterIssue) => {
-  selectedIssue.value = issue;
-  showContentDialog.value = true;
-};
-
-const layoutPages = (issue: NewsletterIssue) => {
   selectedIssue.value = issue;
   showLayoutDialog.value = true;
 };
@@ -1012,8 +986,11 @@ const startProgressPolling = (issueId: string) => {
 };
 
 
-const previewNewsletter = () => {
-  if (!selectedIssue.value) {
+const previewNewsletter = (previewData?: { issue: NewsletterIssue; layout: Record<string, unknown> }) => {
+  // Use the issue from preview data if provided, otherwise use selected issue
+  const issueToPreview = previewData?.issue || selectedIssue.value;
+
+  if (!issueToPreview) {
     $q.notify({
       type: 'warning',
       message: 'No issue selected for preview'
@@ -1021,19 +998,28 @@ const previewNewsletter = () => {
     return;
   }
 
-  const pdfUrl = selectedIssue.value.finalPdfUrl || selectedIssue.value.downloadUrl;
+  // Log the preview data for debugging
+  if (previewData) {
+    logger.info('Previewing newsletter with layout data', {
+      issueId: issueToPreview.id,
+      issueTitle: issueToPreview.title,
+      layout: previewData.layout
+    });
+  }
+
+  const pdfUrl = issueToPreview.finalPdfUrl || issueToPreview.downloadUrl;
   if (pdfUrl) {
     // Open the PDF in a new tab
     window.open(pdfUrl, '_blank');
     $q.notify({
       type: 'positive',
-      message: 'Newsletter preview opened in new tab'
+      message: `Newsletter preview opened: ${issueToPreview.title}`
     });
   } else {
     $q.notify({
       type: 'warning',
       message: 'No PDF available for preview. Generate PDF first.',
-      caption: 'Use the "Generate PDF" button to create a preview'
+      caption: `Issue: ${issueToPreview.title} - Use the "Generate PDF" button to create a preview`
     });
   }
 };
