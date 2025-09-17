@@ -275,35 +275,6 @@
         <!-- Right Column: Event Details Pane -->
         <div class="col-12 col-lg-4 q-gutter-sm">
 
-           <!-- Monthly Events List -->
-           <q-card flat class="shadow-1">
-             <q-card-section>
-               <div class="text-h6 q-mb-md text-weight-light">
-                 <q-icon name="mdi-calendar-month" class="q-mr-sm" color="primary" />
-                 {{ $t(TRANSLATION_KEYS.CONTENT.CALENDAR.EVENTS_FOR_MONTH, { month: monthName, year: calendarState.currentYear }) }}
-               </div>
-
-               <!-- Upcoming Events Section -->
-               <div class="q-mb-lg">
-                 <EventsListSection
-                   :title="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.UPCOMING_EVENTS)"
-                   :events-grouped="upcomingEventsGrouped"
-                   icon="mdi-calendar-clock"
-                   icon-color="primary"
-                   chip-color="primary"
-                   empty-icon="mdi-calendar-clock"
-                   :empty-message="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.NO_UPCOMING_EVENTS)"
-                   :get-event-icon="getEventIcon"
-                   :get-event-color="getEventColor"
-                   :is-expansion-open="isExpansionOpen"
-                   :on-expansion-change="onExpansionChange"
-                   @event-click="onEventClick"
-                   @expand-all="expandAllUpcoming"
-                   @collapse-all="collapseAllUpcoming"
-                 />
-               </div>
-              </q-card-section>
-             </q-card>
               <q-card flat class="shadow-1">
                 <q-card-section>
 
@@ -440,16 +411,6 @@ const monthlyEventsGrouped = computed(() => {
   return grouped.sort((a, b) => a.date.localeCompare(b.date));
 });
 
-// Computed for upcoming events only (today and future)
-const upcomingEventsGrouped = computed(() => {
-  const today = new Date();
-  const todayISO = today.toISOString().split('T')[0] ?? '';
-
-  return monthlyEventsGrouped.value.filter(dayGroup => {
-    // Include today and future dates
-    return dayGroup.date >= todayISO;
-  });
-});
 
 
 // Computed to determine if an expansion item should be open
@@ -636,22 +597,6 @@ const refreshEvents = () => {
   void loadEventsForMonth(calendarState.value.currentYear, calendarState.value.currentMonth);
 };
 
-// Expand/Collapse All functionality
-const expandAllUpcoming = () => {
-  upcomingEventsGrouped.value.forEach(dayGroup => {
-    expansionState.value[dayGroup.date] = true;
-    autoOpenedDays.value.add(dayGroup.date);
-  });
-  logger.debug('🗓️ Expanded all upcoming events');
-};
-
-const collapseAllUpcoming = () => {
-  upcomingEventsGrouped.value.forEach(dayGroup => {
-    expansionState.value[dayGroup.date] = false;
-    autoOpenedDays.value.delete(dayGroup.date);
-  });
-  logger.debug('🗓️ Collapsed all upcoming events');
-};
 
 const expandAllEvents = () => {
   monthlyEventsGrouped.value.forEach(dayGroup => {
