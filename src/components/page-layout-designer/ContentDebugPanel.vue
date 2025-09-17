@@ -163,15 +163,17 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
+const store = usePageLayoutDesignerStore();
 const {
   approvedSubmissions,
   availableContent,
   issueContent,
   selectedContentStatus,
   contentSearchQuery
-} = usePageLayoutDesignerStore();
+} = storeToRefs(store);
 
 // Show debug panel (can be toggled via dev tools or URL param)
 const showDebugPanel = ref(

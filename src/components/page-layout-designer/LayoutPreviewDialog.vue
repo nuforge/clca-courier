@@ -105,23 +105,28 @@
 import { computed, nextTick, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
 
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
 const $q = useQuasar();
 const { t } = useI18n();
 
+const store = usePageLayoutDesignerStore();
 const {
   selectedIssue,
   contentAreas,
   currentTemplate,
+  showLayoutPreview
+} = storeToRefs(store);
+
+const {
   templateOptions,
-  showLayoutPreview,
   getSubmissionTitle,
   getSubmissionIcon,
   getSubmissionPreview,
   formatDate
-} = usePageLayoutDesignerStore();
+} = store;
 
 // Computed properties
 const getTemplateLabel = computed(() => (templateValue: string) => {

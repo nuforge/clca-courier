@@ -119,19 +119,24 @@
 
 <script setup lang="ts">
 import { watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 import type { ContentDoc } from '../../types/core/content.types';
 
+const store = usePageLayoutDesignerStore();
 const {
   selectedIssue,
   availableContentExpanded,
   contentSearchQuery,
   selectedContentStatus,
+  availableContent
+} = storeToRefs(store);
+
+const {
   contentStatusOptions,
-  availableContent,
   getSubmissionIcon,
   addToIssue
-} = usePageLayoutDesignerStore();
+} = store;
 
 // Watch for changes to availableContent to ensure reactivity
 watch(availableContent, (newContent, oldContent) => {
@@ -145,8 +150,8 @@ watch(availableContent, (newContent, oldContent) => {
 // Watch for changes to selectedIssue to ensure reactivity
 watch(() => selectedIssue, (newIssue, oldIssue) => {
   console.log('🔧 AvailableContentPanel - selectedIssue changed:', {
-    oldIssue: oldIssue ? { id: oldIssue.id, title: oldIssue.title, submissions: oldIssue.submissions } : null,
-    newIssue: newIssue ? { id: newIssue.id, title: newIssue.title, submissions: newIssue.submissions } : null
+    oldIssue: oldIssue ? { id: oldIssue.value?.id, title: oldIssue.value?.title, submissions: oldIssue.value?.submissions } : null,
+    newIssue: newIssue ? { id: newIssue.value?.id, title: newIssue.value?.title, submissions: newIssue.value?.submissions } : null
   });
 }, { deep: true, immediate: true });
 

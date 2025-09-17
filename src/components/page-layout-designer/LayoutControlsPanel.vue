@@ -124,26 +124,31 @@
 import { computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
 const $q = useQuasar();
 const { t } = useI18n();
 
+const store = usePageLayoutDesignerStore();
 const {
   selectedIssue,
   currentTemplate,
   pages,
   contentAreas,
-  templateOptions,
   issueContent,
-  showLayoutPreview,
+  showLayoutPreview
+} = storeToRefs(store);
+
+const {
+  templateOptions,
   addPage,
   removePage,
   changeTemplate,
   autoArrangeContent,
   clearAllPages,
   saveLayout
-} = usePageLayoutDesignerStore();
+} = store;
 
 // Computed statistics
 const contentInLayoutCount = computed(() => {

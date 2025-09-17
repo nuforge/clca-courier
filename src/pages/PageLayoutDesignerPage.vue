@@ -83,6 +83,7 @@ import { onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
 import { logger } from '../utils/logger';
 import { usePageLayoutDesignerStore } from '../stores/page-layout-designer.store';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
@@ -99,25 +100,26 @@ const route = useRoute();
 const $q = useQuasar();
 const { t } = useI18n();
 
+const store = usePageLayoutDesignerStore();
+const { selectedIssue } = storeToRefs(store);
 const {
-  selectedIssue,
   initializeWithIssue,
   navigateBack,
   saveLayout
-} = usePageLayoutDesignerStore();
+} = store;
 
 // Watch for changes to selectedIssue to ensure reactivity
 watch(() => selectedIssue, (newIssue, oldIssue) => {
   console.log('🔧 PageLayoutDesignerPage - selectedIssue changed:', {
-    oldIssue: oldIssue ? { id: oldIssue.id, title: oldIssue.title, submissions: oldIssue.submissions } : null,
-    newIssue: newIssue ? { id: newIssue.id, title: newIssue.title, submissions: newIssue.submissions } : null
+    oldIssue: oldIssue ? { id: oldIssue.value?.id, title: oldIssue.value?.title, submissions: oldIssue.value?.submissions } : null,
+    newIssue: newIssue ? { id: newIssue.value?.id, title: newIssue.value?.title, submissions: newIssue.value?.submissions } : null
   });
 
-  if (newIssue) {
+  if (newIssue?.value) {
     logger.info('Selected issue updated in page', {
-      issueId: newIssue.id,
-      title: newIssue.title,
-      submissionsCount: newIssue.submissions.length
+      issueId: newIssue.value.id,
+      title: newIssue.value.title,
+      submissionsCount: newIssue.value.submissions.length
     });
   }
 }, { deep: true, immediate: true });
@@ -173,7 +175,7 @@ const loadIssueData = async () => {
 };
 
 const previewNewsletter = () => {
-  if (!selectedIssue) {
+  if (!selectedIssue.value) {
     $q.notify({
       type: 'warning',
       message: t('notifications.noIssueSelected') || 'No issue selected for preview'
@@ -182,14 +184,14 @@ const previewNewsletter = () => {
   }
 
   // Check if there's a PDF available first
-  const pdfUrl = selectedIssue.finalPdfUrl || selectedIssue.downloadUrl;
+  const pdfUrl = selectedIssue.value.finalPdfUrl || selectedIssue.value.downloadUrl;
   if (pdfUrl) {
     // If PDF exists, open it in new tab
     window.open(pdfUrl, '_blank');
     $q.notify({
       type: 'positive',
-      message: t('notifications.newsletterPdfOpened', { title: selectedIssue.title }) ||
-               `Newsletter PDF opened: ${selectedIssue.title}`
+      message: t('notifications.newsletterPdfOpened', { title: selectedIssue.value.title }) ||
+               `Newsletter PDF opened: ${selectedIssue.value.title}`
     });
   } else {
     // If no PDF, show layout preview dialog

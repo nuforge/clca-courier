@@ -119,21 +119,26 @@
 
 <script setup lang="ts">
 import { watch, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
+const store = usePageLayoutDesignerStore();
 const {
   selectedIssue,
-  issueContent,
+  issueContent
+} = storeToRefs(store);
+
+const {
   isContentInLayout,
   getContentLayoutInfo,
   getSubmissionIcon,
   removeFromIssue
-} = usePageLayoutDesignerStore();
+} = store;
 
 // Create a local computed that forces reactivity
 const localIssueContent = computed(() => {
   console.log('🔧 IssueContentPanel - localIssueContent computed called');
-  return issueContent;
+  return issueContent.value;
 });
 
 // Watch for changes to issueContent to ensure reactivity
@@ -148,8 +153,8 @@ watch(issueContent, (newContent, oldContent) => {
 // Watch for changes to selectedIssue to ensure reactivity
 watch(() => selectedIssue, (newIssue, oldIssue) => {
   console.log('🔧 IssueContentPanel - selectedIssue changed:', {
-    oldIssue: oldIssue ? { id: oldIssue.id, title: oldIssue.title, submissions: oldIssue.submissions } : null,
-    newIssue: newIssue ? { id: newIssue.id, title: newIssue.title, submissions: newIssue.submissions } : null
+    oldIssue: oldIssue ? { id: oldIssue.value?.id, title: oldIssue.value?.title, submissions: oldIssue.value?.submissions } : null,
+    newIssue: newIssue ? { id: newIssue.value?.id, title: newIssue.value?.title, submissions: newIssue.value?.submissions } : null
   });
 }, { deep: true, immediate: true });
 

@@ -107,25 +107,30 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
 const $q = useQuasar();
 const { t } = useI18n();
 
+const store = usePageLayoutDesignerStore();
 const {
   selectedIssue,
   contentAreas,
   draggedContentId,
   dragOverArea,
+  approvedSubmissions
+} = storeToRefs(store);
+
+const {
   templateOptions,
   getSubmissionTitle,
   getSubmissionIcon,
   removeFromArea,
   changeTemplate,
   formatDate,
-  addToIssue,
-  approvedSubmissions
-} = usePageLayoutDesignerStore();
+  addToIssue
+} = store;
 
 // Drag and drop handlers
 const handleDrop = (event: DragEvent) => {
