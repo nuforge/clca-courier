@@ -124,7 +124,7 @@
 import { computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
-import { usePageLayoutDesigner } from '../../composables/usePageLayoutDesigner';
+import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
 const $q = useQuasar();
 const { t } = useI18n();
@@ -143,7 +143,7 @@ const {
   autoArrangeContent,
   clearAllPages,
   saveLayout
-} = usePageLayoutDesigner();
+} = usePageLayoutDesignerStore();
 
 // Computed statistics
 const contentInLayoutCount = computed(() => {

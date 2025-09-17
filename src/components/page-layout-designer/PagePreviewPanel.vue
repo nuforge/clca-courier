@@ -107,7 +107,7 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
-import { usePageLayoutDesigner } from '../../composables/usePageLayoutDesigner';
+import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
 const $q = useQuasar();
 const { t } = useI18n();
@@ -125,7 +125,7 @@ const {
   formatDate,
   addToIssue,
   approvedSubmissions
-} = usePageLayoutDesigner();
+} = usePageLayoutDesignerStore();
 
 // Drag and drop handlers
 const handleDrop = (event: DragEvent) => {

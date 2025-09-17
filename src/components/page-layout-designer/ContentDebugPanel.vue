@@ -163,7 +163,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { usePageLayoutDesigner } from '../../composables/usePageLayoutDesigner';
+import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
 const {
   approvedSubmissions,
@@ -171,7 +171,7 @@ const {
   issueContent,
   selectedContentStatus,
   contentSearchQuery
-} = usePageLayoutDesigner();
+} = usePageLayoutDesignerStore();
 
 // Show debug panel (can be toggled via dev tools or URL param)
 const showDebugPanel = ref(
