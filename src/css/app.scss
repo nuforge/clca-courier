@@ -3,6 +3,71 @@
 @use './typography' as *;
 @use './colors' as *;
 
+// ===================================
+// TABLET/TOUCH DEVICE SCROLL PREVENTION
+// ===================================
+// Prevent unwanted scrolling on iPad and other tablet devices
+
+html, body {
+  // Prevent overscroll bounce on iOS devices
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  
+  // Prevent elastic scrolling on touch devices
+  -webkit-overflow-scrolling: touch;
+  
+  // Ensure proper touch behavior
+  touch-action: manipulation;
+  
+  // Prevent zoom on double-tap (iOS Safari)
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  
+  // Allow text selection in content areas
+  .q-page, .q-card, .q-dialog, .q-drawer {
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+// Prevent horizontal scrolling on mobile devices
+body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+// Ensure proper touch behavior for interactive elements
+.q-btn, .q-item, .q-card, .q-dialog, .q-drawer {
+  touch-action: manipulation;
+}
+
+// Prevent overscroll on specific containers
+.q-layout, .q-page-container, .q-page {
+  overscroll-behavior: contain;
+}
+
+// Fix for iOS Safari viewport issues
+@supports (-webkit-touch-callout: none) {
+  html, body {
+    // Prevent iOS Safari from adding extra space at bottom
+    height: 100%;
+    height: -webkit-fill-available;
+  }
+  
+  .q-layout {
+    min-height: 100%;
+    min-height: -webkit-fill-available;
+  }
+}
+
 a {
   color: var(--q-primary);
   text-decoration: none;

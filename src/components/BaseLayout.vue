@@ -103,20 +103,34 @@ const toggleDrawer = () => {
 
 <style lang="scss" scoped>
 .main-layout {
+  // Prevent unwanted scrolling on tablet devices
+  touch-action: manipulation;
+  overscroll-behavior: contain;
+
   .main-content {
     min-height: 100vh;
+    // Ensure proper touch behavior for main content area
+    touch-action: pan-y;
+    overscroll-behavior: contain;
 
     .q-page {
       min-height: calc(100vh - 160px); // Account for header and footer space
       display: flex;
       flex-direction: column;
+      // Allow vertical scrolling within page content
+      touch-action: pan-y;
+      overscroll-behavior: contain;
 
       .col {
         flex: 1;
+        // Prevent horizontal scrolling
+        overflow-x: hidden;
+        touch-action: pan-y;
       }
 
       .col-auto {
         flex: none;
+        touch-action: manipulation;
       }
     }
   }
