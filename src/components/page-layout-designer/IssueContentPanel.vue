@@ -127,8 +127,7 @@ const {
   isContentInLayout,
   getContentLayoutInfo,
   getSubmissionIcon,
-  removeFromIssue,
-  draggedContentId
+  removeFromIssue
 } = usePageLayoutDesignerStore();
 
 // Create a local computed that forces reactivity
@@ -147,7 +146,7 @@ watch(issueContent, (newContent, oldContent) => {
 }, { deep: true, immediate: true });
 
 // Watch for changes to selectedIssue to ensure reactivity
-watch(selectedIssue, (newIssue, oldIssue) => {
+watch(() => selectedIssue, (newIssue, oldIssue) => {
   console.log('🔧 IssueContentPanel - selectedIssue changed:', {
     oldIssue: oldIssue ? { id: oldIssue.id, title: oldIssue.title, submissions: oldIssue.submissions } : null,
     newIssue: newIssue ? { id: newIssue.id, title: newIssue.title, submissions: newIssue.submissions } : null
@@ -156,7 +155,6 @@ watch(selectedIssue, (newIssue, oldIssue) => {
 
 // Drag and drop handlers
 const handleDragStart = (event: DragEvent, contentId: string, source: 'available' | 'library' = 'library') => {
-  draggedContentId = contentId;
   if (event.dataTransfer) {
     event.dataTransfer.setData('text/plain', contentId);
     event.dataTransfer.setData('application/x-source', source);

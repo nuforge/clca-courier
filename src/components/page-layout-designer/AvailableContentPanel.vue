@@ -130,8 +130,7 @@ const {
   contentStatusOptions,
   availableContent,
   getSubmissionIcon,
-  addToIssue,
-  draggedContentId
+  addToIssue
 } = usePageLayoutDesignerStore();
 
 // Watch for changes to availableContent to ensure reactivity
@@ -144,7 +143,7 @@ watch(availableContent, (newContent, oldContent) => {
 }, { deep: true, immediate: true });
 
 // Watch for changes to selectedIssue to ensure reactivity
-watch(selectedIssue, (newIssue, oldIssue) => {
+watch(() => selectedIssue, (newIssue, oldIssue) => {
   console.log('🔧 AvailableContentPanel - selectedIssue changed:', {
     oldIssue: oldIssue ? { id: oldIssue.id, title: oldIssue.title, submissions: oldIssue.submissions } : null,
     newIssue: newIssue ? { id: newIssue.id, title: newIssue.title, submissions: newIssue.submissions } : null
@@ -152,7 +151,7 @@ watch(selectedIssue, (newIssue, oldIssue) => {
 }, { deep: true, immediate: true });
 
 // Watch for changes to search and filter to ensure reactivity
-watch([contentSearchQuery, selectedContentStatus], ([newQuery, newStatus], [oldQuery, oldStatus]) => {
+watch([() => contentSearchQuery, () => selectedContentStatus], ([newQuery, newStatus], [oldQuery, oldStatus]) => {
   console.log('🔧 AvailableContentPanel - search/filter changed:', {
     oldQuery,
     newQuery,
@@ -163,7 +162,6 @@ watch([contentSearchQuery, selectedContentStatus], ([newQuery, newStatus], [oldQ
 
 // Drag and drop handlers
 const handleDragStart = (event: DragEvent, contentId: string, source: 'available' | 'library' = 'library') => {
-  draggedContentId = contentId;
   if (event.dataTransfer) {
     event.dataTransfer.setData('text/plain', contentId);
     event.dataTransfer.setData('application/x-source', source);

@@ -58,119 +58,6 @@
       <!-- Available Content & Content Library Panel -->
 
 
-
-    <!-- Issue Content Library -->
-    <q-card flat bordered >
-      <q-card-section>
-        <div class="text-h6 q-mb-md">
-          <q-icon name="mdi-library" class="q-mr-sm" />
-          {{ $t('content.issueContentLibrary') || 'Issue Content Library' }}
-          <q-badge color="info" class="q-ml-sm">
-            {{ issueContent.length }}
-          </q-badge>
-        </div>
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <q-list separator>
-          <q-item
-            v-for="(submission, index) in issueContent"
-            :key="submission.id"
-            class="issue-content-item"
-            :class="{ 'in-layout': isContentInLayout(submission.id) }"
-            clickable
-            @click="handleRemoveFromIssue(submission.id)"
-            :disable="selectedIssue?.type === 'newsletter'"
-            draggable="true"
-            @dragstart="handleDragStart($event, submission.id, 'library')"
-          >
-            <q-item-section avatar>
-              <q-avatar :color="getSubmissionIcon(submission.id).color" text-color="white" size="sm">
-                <q-icon :name="getSubmissionIcon(submission.id).icon" />
-                <!-- Layout indicator overlay -->
-                <q-badge
-                  v-if="isContentInLayout(submission.id)"
-                  floating
-                  color="positive"
-                  :label="getContentLayoutInfo(submission.id)?.areaIndex || '?'"
-                  class="layout-badge"
-                />
-              </q-avatar>
-            </q-item-section>
-
-            <q-item-section>
-              <q-item-label class="text-body2">
-                {{ submission.title }}
-                <q-icon
-                  v-if="isContentInLayout(submission.id)"
-                  name="mdi-view-dashboard"
-                  color="positive"
-                  size="xs"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>{{ $t('content.activeInLayout') || 'Active in layout' }}</q-tooltip>
-                </q-icon>
-              </q-item-label>
-              <q-item-label caption>
-                {{ getSubmissionIcon(submission.id).label }} • {{ $t('common.order') || 'Order' }}: {{ index + 1 }}
-                <span v-if="isContentInLayout(submission.id)" class="text-positive">
-                  • {{ $t('content.layoutArea') || 'Layout Area' }} {{ getContentLayoutInfo(submission.id)?.areaIndex }}
-                  ({{ getContentLayoutInfo(submission.id)?.areaSize }})
-                </span>
-              </q-item-label>
-            </q-item-section>
-
-            <q-item-section side>
-              <div class="column q-gutter-xs">
-                <!-- Layout status indicator -->
-                <div v-if="isContentInLayout(submission.id)" class="row items-center">
-                  <q-chip
-                    dense
-                    size="sm"
-                    color="positive"
-                    text-color="white"
-                    icon="mdi-view-dashboard"
-                    class="layout-status-chip"
-                  >
-                    {{ $t('content.inLayout') || 'In Layout' }}
-                  </q-chip>
-                </div>
-
-                <div class="row q-gutter-xs">
-                  <q-btn
-                    flat
-                    dense
-                    icon="mdi-minus"
-                    color="negative"
-                    size="sm"
-                    @click.stop="handleRemoveFromIssue(submission.id)"
-                    :disable="selectedIssue?.type === 'newsletter'"
-                    :aria-label="$t('actions.removeFromIssue') || 'Remove from Issue'"
-                  >
-                    <q-tooltip>{{ $t('actions.removeFromIssue') || 'Remove from Issue' }}</q-tooltip>
-                  </q-btn>
-                  <q-icon name="mdi-drag-horizontal" color="grey-5" size="sm" />
-                </div>
-              </div>
-            </q-item-section>
-          </q-item>
-        </q-list>
-
-        <div v-if="issueContent.length === 0" class="text-center text-grey-6 q-pa-md">
-          <q-icon name="mdi-plus-circle-outline" size="2rem" class="q-mb-sm" />
-          <div>{{ $t('content.noContentInIssue') || 'No content in this issue' }}</div>
-          <div class="text-caption">{{ $t('content.dragContentHere') || 'Drag content from available list' }}</div>
-        </div>
-
-        <!-- Read-only message for existing newsletters -->
-        <div v-if="selectedIssue?.type === 'newsletter'" class="text-center text-grey-6 q-pa-md">
-          <q-icon name="mdi-information" size="2rem" class="q-mb-sm" />
-          <div>{{ $t('content.existingNewsletterReadonly') || 'This is an existing newsletter with fixed content' }}</div>
-        </div>
-      </q-card-section>
-    </q-card>
-
-
     <IssueContentPanel />
         <AvailableContentPanel />
       </div>
@@ -214,20 +101,13 @@ const { t } = useI18n();
 
 const {
   selectedIssue,
-  issueContent,
   initializeWithIssue,
-  isContentInLayout,
-  getContentLayoutInfo,
-  getSubmissionIcon,
   navigateBack,
-  saveLayout,
-  draggedContentId,
-  showLayoutPreview,
-  removeFromIssue
+  saveLayout
 } = usePageLayoutDesignerStore();
 
 // Watch for changes to selectedIssue to ensure reactivity
-watch(selectedIssue, (newIssue, oldIssue) => {
+watch(() => selectedIssue, (newIssue, oldIssue) => {
   console.log('🔧 PageLayoutDesignerPage - selectedIssue changed:', {
     oldIssue: oldIssue ? { id: oldIssue.id, title: oldIssue.title, submissions: oldIssue.submissions } : null,
     newIssue: newIssue ? { id: newIssue.id, title: newIssue.title, submissions: newIssue.submissions } : null
@@ -313,7 +193,6 @@ const previewNewsletter = () => {
     });
   } else {
     // If no PDF, show layout preview dialog
-    showLayoutPreview = true;
     $q.notify({
       type: 'info',
       message: t('notifications.showingLayoutPreview') || 'Showing layout preview (no PDF available yet)',
@@ -331,18 +210,6 @@ const handleSaveLayout = () => {
   }
 };
 
-// Drag and drop handlers
-const handleDragStart = (event: DragEvent, contentId: string, source: 'available' | 'library' = 'library') => {
-  draggedContentId = contentId;
-  if (event.dataTransfer) {
-    event.dataTransfer.setData('text/plain', contentId);
-    event.dataTransfer.setData('application/x-source', source);
-  }
-};
-
-const handleRemoveFromIssue = async (submissionId: string) => {
-  await removeFromIssue(submissionId);
-};
 
 // Lifecycle
 onMounted(() => {
