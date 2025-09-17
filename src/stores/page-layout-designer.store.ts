@@ -299,7 +299,7 @@ export const usePageLayoutDesignerStore = defineStore('page-layout-designer', ()
 
   // Content management methods
   const addToIssue = async (submission: ContentDoc) => {
-    if (!selectedIssue.value || selectedIssue.value.type !== 'issue') return;
+    if (!selectedIssue.value) return;
 
     try {
       const updatedSubmissions = [...selectedIssue.value.submissions, submission.id];
@@ -327,7 +327,7 @@ export const usePageLayoutDesignerStore = defineStore('page-layout-designer', ()
   };
 
   const removeFromIssue = async (submissionId: string) => {
-    if (!selectedIssue.value || selectedIssue.value.type !== 'issue') return;
+    if (!selectedIssue.value) return;
 
     try {
       const updatedSubmissions = selectedIssue.value.submissions.filter(

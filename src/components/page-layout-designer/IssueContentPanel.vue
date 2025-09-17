@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed } from 'vue';
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 
@@ -140,23 +140,6 @@ const localIssueContent = computed(() => {
   console.log('🔧 IssueContentPanel - localIssueContent computed called');
   return issueContent.value;
 });
-
-// Watch for changes to issueContent to ensure reactivity
-watch(issueContent, (newContent, oldContent) => {
-  console.log('🔧 IssueContentPanel - issueContent changed:', {
-    oldContentLength: oldContent?.length || 0,
-    newContentLength: newContent?.length || 0,
-    newContentTitles: newContent?.map(c => c.title) || []
-  });
-}, { deep: true, immediate: true });
-
-// Watch for changes to selectedIssue to ensure reactivity
-watch(() => selectedIssue, (newIssue, oldIssue) => {
-  console.log('🔧 IssueContentPanel - selectedIssue changed:', {
-    oldIssue: oldIssue ? { id: oldIssue.value?.id, title: oldIssue.value?.title, submissions: oldIssue.value?.submissions } : null,
-    newIssue: newIssue ? { id: newIssue.value?.id, title: newIssue.value?.title, submissions: newIssue.value?.submissions } : null
-  });
-}, { deep: true, immediate: true });
 
 // Drag and drop handlers
 const handleDragStart = (event: DragEvent, contentId: string, source: 'available' | 'library' = 'library') => {

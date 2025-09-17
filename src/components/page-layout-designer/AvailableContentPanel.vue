@@ -118,7 +118,6 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePageLayoutDesignerStore } from '../../stores/page-layout-designer.store';
 import type { ContentDoc } from '../../types/core/content.types';
@@ -138,32 +137,6 @@ const {
   addToIssue
 } = store;
 
-// Watch for changes to availableContent to ensure reactivity
-watch(availableContent, (newContent, oldContent) => {
-  console.log('🔧 AvailableContentPanel - availableContent changed:', {
-    oldContentLength: oldContent?.length || 0,
-    newContentLength: newContent?.length || 0,
-    newContentTitles: newContent?.map(c => c.title) || []
-  });
-}, { deep: true, immediate: true });
-
-// Watch for changes to selectedIssue to ensure reactivity
-watch(() => selectedIssue, (newIssue, oldIssue) => {
-  console.log('🔧 AvailableContentPanel - selectedIssue changed:', {
-    oldIssue: oldIssue ? { id: oldIssue.value?.id, title: oldIssue.value?.title, submissions: oldIssue.value?.submissions } : null,
-    newIssue: newIssue ? { id: newIssue.value?.id, title: newIssue.value?.title, submissions: newIssue.value?.submissions } : null
-  });
-}, { deep: true, immediate: true });
-
-// Watch for changes to search and filter to ensure reactivity
-watch([() => contentSearchQuery, () => selectedContentStatus], ([newQuery, newStatus], [oldQuery, oldStatus]) => {
-  console.log('🔧 AvailableContentPanel - search/filter changed:', {
-    oldQuery,
-    newQuery,
-    oldStatus,
-    newStatus
-  });
-}, { immediate: true });
 
 // Drag and drop handlers
 const handleDragStart = (event: DragEvent, contentId: string, source: 'available' | 'library' = 'library') => {
