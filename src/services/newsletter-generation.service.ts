@@ -121,14 +121,21 @@ class NewsletterGenerationService {
    */
   async getIssues(): Promise<NewsletterIssue[]> {
     try {
+      logger.debug('[SERVICE] Fetching newsletter issues from collection:', this.COLLECTIONS.ISSUES);
+
       const q = query(
         collection(firestore, this.COLLECTIONS.ISSUES),
         orderBy('createdAt', 'desc')
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot?.docs?.map(doc => {
+      const issues = querySnapshot?.docs?.map(doc => {
         const data = doc.data();
+        logger.debug('[SERVICE] Processing issue document:', {
+          id: doc.id,
+          title: data.title,
+          submissions: data.submissions
+        });
 
         // Use centralized date formatter to handle all date types safely
         const publicationDate = normalizeDate(data.publicationDate) || new Date();
@@ -169,6 +176,14 @@ class NewsletterGenerationService {
           finalPdfUrl: data.finalPdfUrl
         } as NewsletterIssue;
       }) || [];
+
+      logger.debug('[SERVICE] Issues processed:', {
+        count: issues.length,
+        issueIds: issues.map(i => i.id),
+        issueTitles: issues.map(i => i.title)
+      });
+
+      return issues;
     } catch (error) {
       logger.error('Failed to fetch newsletter issues:', error);
       throw error;
@@ -182,14 +197,24 @@ class NewsletterGenerationService {
     try {
       logger.info('Loading approved submissions for newsletter inclusion');
 
-      // Query for published content from the ContentDoc collection
+      // Query for both approved and published content from the ContentDoc collection
       const contentQuery = query(
         collection(firestore, 'content'),
-        where('status', '==', 'published'),
+        where('tags', 'array-contains', 'newsletter:ready'),
         orderBy('timestamps.created', 'desc')
       );
 
+      logger.debug('[SERVICE] Executing content query for newsletter:ready tag');
       const contentSnapshot = await getDocs(contentQuery);
+
+      logger.debug('[SERVICE] Content query results:', {
+        docsCount: contentSnapshot.docs.length,
+        docs: contentSnapshot.docs.map(doc => ({
+          id: doc.id,
+          data: doc.data()
+        }))
+      });
+
       const content = contentSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -215,7 +240,8 @@ class NewsletterGenerationService {
             'Firestore security rules might be blocking access',
             'Content status values might be different than expected'
           ],
-          collectionChecked: 'content'
+          collectionChecked: 'content',
+          tagSearched: 'newsletter:ready'
         });
       }
 

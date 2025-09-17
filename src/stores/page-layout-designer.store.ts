@@ -1,15 +1,16 @@
 /**
- * Page Layout Designer Composable
- * Manages state and functionality for the page layout design system
+ * Page Layout Designer Store
+ * Pinia store for managing page layout design state across components
  */
 
+import { defineStore } from 'pinia';
 import { ref, computed, nextTick } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { logger } from '../utils/logger';
 import { formatDate } from '../utils/date-formatter';
-import { useSiteTheme } from './useSiteTheme';
+import { useSiteTheme } from '../composables/useSiteTheme';
 import { contentUtils } from '../types/core/content.types';
 import { newsletterGenerationService } from '../services/newsletter-generation.service';
 import type { ContentDoc } from '../types/core/content.types';
@@ -47,7 +48,7 @@ export interface LayoutData {
   contentAreas: ContentArea[];
 }
 
-export function usePageLayoutDesigner() {
+export const usePageLayoutDesignerStore = defineStore('page-layout-designer', () => {
   const $q = useQuasar();
   const { t } = useI18n();
   const router = useRouter();
@@ -114,100 +115,101 @@ export function usePageLayoutDesigner() {
     { label: t('content.status.approved'), value: 'approved' },
     { label: t('content.status.published'), value: 'published' }
   ]);
-// Available content (ALL newsletter:ready content, not filtered by issue)
-const availableContent = computed(() => {
-  console.log('🔧 availableContent computed called - approvedSubmissions.value:', approvedSubmissions.value);
-  console.log('🔧 availableContent computed called - approvedSubmissions.value.length:', approvedSubmissions.value.length);
 
-  const searchLower = contentSearchQuery.value.toLowerCase();
+  // Available content (ALL newsletter:ready content, not filtered by issue)
+  const availableContent = computed(() => {
+    console.log('�� availableContent computed called - approvedSubmissions.value:', approvedSubmissions.value);
+    console.log('�� availableContent computed called - approvedSubmissions.value.length:', approvedSubmissions.value.length);
 
-  const filtered = approvedSubmissions.value.filter(submission => {
-    // Apply search filter
-    if (contentSearchQuery.value &&
-        !submission.title.toLowerCase().includes(searchLower) &&
-        !submission.description.toLowerCase().includes(searchLower)) {
-      return false;
+    const searchLower = contentSearchQuery.value.toLowerCase();
+
+    const filtered = approvedSubmissions.value.filter(submission => {
+      // Apply search filter
+      if (contentSearchQuery.value &&
+          !submission.title.toLowerCase().includes(searchLower) &&
+          !submission.description.toLowerCase().includes(searchLower)) {
+        return false;
+      }
+
+      // Apply status filter
+      if (selectedContentStatus.value !== 'all' && submission.status !== selectedContentStatus.value) {
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log('🔧 availableContent computed result - filtered.length:', filtered.length);
+
+    // Debug logging to help identify content issues
+    logger.debug('[CONTENT] Available content filtered', {
+      totalSubmissions: approvedSubmissions.value.length,
+      filteredCount: filtered.length,
+      selectedStatus: selectedContentStatus.value,
+      searchQuery: contentSearchQuery.value,
+      submissionSample: approvedSubmissions.value.slice(0, 3).map(s => ({
+        id: s.id,
+        title: s.title,
+        status: s.status,
+        tags: s.tags
+      }))
+    });
+
+    return filtered;
+  });
+
+  // Issue content (content already in the issue)
+  const issueContent = computed(() => {
+    console.log('🔧 issueContent computed called - selectedIssue.value:', selectedIssue.value);
+    console.log('🔧 issueContent computed called - approvedSubmissions.value.length:', approvedSubmissions.value.length);
+
+    // Add debug logging BEFORE the early return
+    logger.debug('[CONTENT] Issue content computed triggered', {
+      hasSelectedIssue: !!selectedIssue.value,
+      selectedIssueId: selectedIssue.value?.id,
+      selectedIssueSubmissions: selectedIssue.value?.submissions,
+      approvedSubmissionsCount: approvedSubmissions.value.length
+    });
+
+    if (!selectedIssue.value) {
+      logger.debug('[CONTENT] No selected issue, returning empty array');
+      return [];
     }
 
-    // Apply status filter
-    if (selectedContentStatus.value !== 'all' && submission.status !== selectedContentStatus.value) {
-      return false;
-    }
+    const submissionsMap = new Map(approvedSubmissions.value.map(s => [s.id, s]));
 
-    return true;
+    logger.debug('[CONTENT] Issue content filtered', {
+      selectedIssue: selectedIssue.value,
+      approvedSubmissions: approvedSubmissions.value,
+      totalSubmissions: approvedSubmissions.value.length,
+      submissionsMap: submissionsMap,
+      submissionSample: approvedSubmissions.value.slice(0, 3).map(s => ({
+        id: s.id,
+        title: s.title,
+        status: s.status,
+        tags: s.tags
+      })),
+      issueSubmissions: selectedIssue.value.submissions,
+      mappedResults: selectedIssue.value.submissions.map(submissionId => ({
+        submissionId,
+        found: !!submissionsMap.get(submissionId),
+        content: submissionsMap.get(submissionId)?.title
+      }))
+    });
+
+    const result = selectedIssue.value.submissions
+      .map(submissionId => submissionsMap.get(submissionId))
+      .filter(Boolean) as ContentDoc[];
+
+    console.log('🔧 issueContent computed result - result.length:', result.length);
+
+    logger.debug('[CONTENT] Issue content result', {
+      resultCount: result.length,
+      resultTitles: result.map(r => r.title)
+    });
+
+    return result;
   });
-
-  console.log('🔧 availableContent computed result - filtered.length:', filtered.length);
-
-  // Debug logging to help identify content issues
-  logger.debug('[CONTENT] Available content filtered', {
-    totalSubmissions: approvedSubmissions.value.length,
-    filteredCount: filtered.length,
-    selectedStatus: selectedContentStatus.value,
-    searchQuery: contentSearchQuery.value,
-    submissionSample: approvedSubmissions.value.slice(0, 3).map(s => ({
-      id: s.id,
-      title: s.title,
-      status: s.status,
-      tags: s.tags
-    }))
-  });
-
-  return filtered;
-});
-
-// Issue content (content already in the issue)
-const issueContent = computed(() => {
-  console.log('🔧 issueContent computed called - selectedIssue.value:', selectedIssue.value);
-  console.log('🔧 issueContent computed called - approvedSubmissions.value.length:', approvedSubmissions.value.length);
-
-  // Add debug logging BEFORE the early return
-  logger.debug('[CONTENT] Issue content computed triggered', {
-    hasSelectedIssue: !!selectedIssue.value,
-    selectedIssueId: selectedIssue.value?.id,
-    selectedIssueSubmissions: selectedIssue.value?.submissions,
-    approvedSubmissionsCount: approvedSubmissions.value.length
-  });
-
-  if (!selectedIssue.value) {
-    logger.debug('[CONTENT] No selected issue, returning empty array');
-    return [];
-  }
-
-  const submissionsMap = new Map(approvedSubmissions.value.map(s => [s.id, s]));
-
-  logger.debug('[CONTENT] Issue content filtered', {
-    selectedIssue: selectedIssue.value,
-    approvedSubmissions: approvedSubmissions.value,
-    totalSubmissions: approvedSubmissions.value.length,
-    submissionsMap: submissionsMap,
-    submissionSample: approvedSubmissions.value.slice(0, 3).map(s => ({
-      id: s.id,
-      title: s.title,
-      status: s.status,
-      tags: s.tags
-    })),
-    issueSubmissions: selectedIssue.value.submissions,
-    mappedResults: selectedIssue.value.submissions.map(submissionId => ({
-      submissionId,
-      found: !!submissionsMap.get(submissionId),
-      content: submissionsMap.get(submissionId)?.title
-    }))
-  });
-
-  const result = selectedIssue.value.submissions
-    .map(submissionId => submissionsMap.get(submissionId))
-    .filter(Boolean) as ContentDoc[];
-
-  console.log('🔧 issueContent computed result - result.length:', result.length);
-
-  logger.debug('[CONTENT] Issue content result', {
-    resultCount: result.length,
-    resultTitles: result.map(r => r.title)
-  });
-
-  return result;
-});
 
   // Check if content is actively placed in layout
   const isContentInLayout = (contentId: string): boolean => {
@@ -268,7 +270,7 @@ const issueContent = computed(() => {
     selectedIssue.value = issue ? { ...issue } : null;
     approvedSubmissions.value = submissions;
 
-    console.log('🔧 After setting values:', {
+    console.log('�� After setting values:', {
       selectedIssueValue: selectedIssue.value,
       approvedSubmissionsCount: approvedSubmissions.value.length
     });
@@ -532,4 +534,4 @@ const issueContent = computed(() => {
     saveLayout,
     formatDate
   };
-}
+});
