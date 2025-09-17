@@ -1,31 +1,24 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useContentStore } from '../stores/content-store';
-import { useTheme } from '../composables/useTheme';
-import { useI18n } from 'vue-i18n';
-import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
-// import { useRoleAuth } from '../composables/useRoleAuth'; // Preserved for future admin features
+import { useRoleAuth } from '../composables/useRoleAuth';
+import { useRoute, useRouter } from 'vue-router';
 import type { ContentDoc } from '../types/core/content.types';
-import { contentUtils } from '../types/core/content.types';
 import { logger } from '../utils/logger';
+import UnifiedContentList from '../components/UnifiedContentList.vue';
 import { normalizeDate } from '../utils/date-formatter';
-import ContentCard from '../components/ContentCard.vue';
-import { useSiteTheme } from '../composables/useSiteTheme';
-import { UI_ICONS } from '../constants/ui-icons';
+import { contentUtils } from '../types/core/content.types';
 
 // Following copilot instructions: Use centralized logging, unified types, proper TypeScript
 const contentStore = useContentStore();
-const { t } = useI18n();
-// const { isEditor } = useRoleAuth(); // Preserved for future admin features
-const { cardClasses, isDarkMode } = useTheme();
-
-// Theme system for consistent icons and colors
-const { getContentIcon } = useSiteTheme();
+const { isEditor } = useRoleAuth();
+const route = useRoute();
+const router = useRouter();
 
 // Loading state from store
 const isLoading = computed(() => contentStore.isLoading);
 
-// State for filters, search, and sorting
+// State for filters, search, and sorting - following copilot instructions: STRICT TYPESCRIPT
 const searchQuery = ref<string>('');
 const selectedCategory = ref<string>('all');
 const sortBy = ref<string>('date');
@@ -33,65 +26,51 @@ const sortOrder = ref<'asc' | 'desc'>('desc');
 const showDialog = ref<boolean>(false);
 const selectedItem = ref<ContentDoc | null>(null);
 
-// View toggle
+// Content type filter
+const contentType = ref<'all' | 'news' | 'classifieds'>('all');
+
+// View toggle - following copilot instructions: Enhanced UI patterns
 const viewMode = ref<'list' | 'card'>('list');
 
-// Dynamic categories from actual ContentDoc data
-const allCategories = computed((): string[] => {
-  const categories = new Set<string>();
+// Debug viewMode changes
+watch(viewMode, (newMode, oldMode) => {
+  logger.debug('View mode changed:', { from: oldMode, to: newMode });
+}, { immediate: true });
 
-  contentStore.contentItems.forEach(item => {
-    const contentType = contentUtils.getContentType(item);
-    if (contentType) {
-      categories.add(contentType);
-    }
-  });
-
-  return Array.from(categories).sort();
+// Categories for filtering - following copilot instructions: Dynamic content discovery
+const allCategories = computed(() => {
+  const newsCategories = ['news', 'announcement', 'event'];
+  const classifiedCategories = ['for-sale', 'services', 'wanted', 'free'];
+  return [...newsCategories, ...classifiedCategories];
 });
 
-// Category options with icons for dropdown
-const categoryOptions = computed(() => {
-  const options: Array<{
-    label: string;
-    value: string;
-    icon: string;
-    color: string;
-  }> = [
-    {
-      label: t(TRANSLATION_KEYS.COMMUNITY.FILTERS.ALL_CATEGORIES),
-      value: 'all',
-      icon: UI_ICONS.filter,
-      color: 'grey'
-    }
-  ];
+// Unified content items - following copilot instructions: Unified Newsletter types (adapting pattern)
+const unifiedContent = computed(() => {
+  const content: Array<(ContentDoc) & { contentType: 'news' | 'classifieds' }> = [];
 
-  allCategories.value.forEach(cat => {
-    const categoryConfig = getContentIcon(cat);
-    options.push({
-      label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' '),
-      value: cat,
-      icon: categoryConfig.icon,
-      color: categoryConfig.color
+  logger.debug('Building unified content:', {
+    newsItemsCount: contentStore.newsItems.length,
+    classifiedsCount: contentStore.classifieds.length,
+    contentTypeFilter: contentType.value
+  });
+
+  // Add news items with content type marker
+  if (contentType.value === 'all' || contentType.value === 'news') {
+    contentStore.newsItems.forEach(item => {
+      content.push({ ...item, contentType: 'news' as const });
     });
-  });
-
-  return options;
-});
-
-// Sort options for dropdown
-const sortOptions = computed(() => [
-  {
-    label: t(TRANSLATION_KEYS.COMMUNITY.FILTERS.SORT_NEWEST_FIRST),
-    value: 'desc',
-    icon: 'mdi-sort-calendar-descending'
-  },
-  {
-    label: t(TRANSLATION_KEYS.COMMUNITY.FILTERS.SORT_OLDEST_FIRST),
-    value: 'asc',
-    icon: 'mdi-sort-calendar-ascending'
   }
-]);
+
+  // Add classified ads with content type marker
+  if (contentType.value === 'all' || contentType.value === 'classifieds') {
+    contentStore.classifieds.forEach(item => {
+      content.push({ ...item, contentType: 'classifieds' as const });
+    });
+  }
+
+  logger.debug('Unified content result:', { totalItems: content.length });
+  return content;
+});
 
 // Main content filtering and sorting
 const filteredContent = computed(() => {
@@ -134,20 +113,23 @@ const filteredContent = computed(() => {
   return filtered;
 });
 
-// Featured content
 const featuredContent = computed(() =>
   filteredContent.value.filter(item => item.tags.includes('featured')).slice(0, 3)
 );
 
-// Theme classes
-const greyTextClass = computed(() =>
-  isDarkMode.value ? 'text-grey-4' : 'text-grey-7'
-);
+// Theme classes - following copilot instructions: Theme awareness
+const cardClasses = computed(() => {
+  if (contentStore.isDarkMode) {
+    return 'bg-dark text-white q-dark';
+  } else {
+    return 'bg-white text-dark';
+  }
+});
 
-// Admin check (preserved for future use)
-// const isAdmin = computed(() => isEditor.value);
+// Admin check - following copilot instructions: Role-based access patterns
+const isAdmin = computed(() => isEditor.value);
 
-// Event handlers
+// Event handlers - following copilot instructions: Proper TypeScript typing
 function showItemDetail(item: ContentDoc): void {
   selectedItem.value = item;
   showDialog.value = true;
@@ -156,9 +138,11 @@ function showItemDetail(item: ContentDoc): void {
 function clearFilters(): void {
   searchQuery.value = '';
   selectedCategory.value = 'all';
+  contentType.value = 'all';
   sortBy.value = 'date';
   sortOrder.value = 'desc';
 }
+
 
 // Helper functions
 function formatCategoryName(category: string): string {
@@ -175,214 +159,225 @@ function getDateFromItem(item: ContentDoc): Date {
   return publishedDate || createdDate || new Date();
 }
 
-// Lifecycle
+// Initialize content - following copilot instructions: Async promise handling
 onMounted((): void => {
+  // Set initial filter from URL query params
+  const typeParam = route.query.type as string;
+  if (typeParam === 'news' || typeParam === 'classifieds') {
+    contentType.value = typeParam;
+  }
+
   void contentStore.loadInitialData().then(() => {
     logger.debug('Community content page initialized successfully');
   }).catch((error: unknown) => {
     logger.error('Error initializing community content page:', error);
   });
 });
-</script>
 
-<template>
+// Watch for content type changes and update URL - following copilot instructions: Enhanced UI patterns
+watch(contentType, (newType: string) => {
+  // Update URL query params without navigation
+  const query = { ...route.query };
+  if (newType === 'all') {
+    delete query.type;
+  } else {
+    query.type = newType;
+  }
+
+  void router.replace({ query }).catch((error: unknown) => {
+    logger.warn('Failed to update URL query params:', error);
+  });
+});
+</script><template>
   <q-page padding>
     <div class="q-pa-md">
-      <!-- Header Section -->
-      <div class="row justify-between items-center q-mb-md">
-        <div class="col">
-          <h1 class="text-h4 q-my-none">{{ t(TRANSLATION_KEYS.COMMUNITY.TITLE) }}</h1>
-          <p class="text-body2" :class="greyTextClass">
-            {{ t(TRANSLATION_KEYS.COMMUNITY.SUBTITLE) }}
-          </p>
-        </div>
+      <div class="row justify-center">
+        <div class="col-12 col-md-10 col-lg-8">
+          <!-- Header Section -->
+          <q-card flat :class="cardClasses" class="q-mb-md">
+            <q-card-section>
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-h4 q-mb-md">
+                    <q-icon name="mdi-newspaper" class="q-mr-sm" />
+                    Community Content
+                  </div>
+                  <p class="text-body1">
+                    Stay informed with the latest news, updates, classifieds, and community announcements.
+                    Use the filters below to find exactly what you're looking for.
+                  </p>
+                </div>
+                <div class="col-auto">
+                  <q-btn color="primary" icon="create" label="Submit Content"
+                    @click="$router.push('/contribute/submit')" class="q-mr-sm" />
+                  <q-btn v-if="isAdmin" color="secondary" icon="mdi-cog" label="Manage Content"
+                    @click="$router.push('/admin/content')" outline />
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
 
-        <!-- View Toggle -->
-        <div class="col-auto">
-          <q-btn-toggle
-            v-model="viewMode"
-            toggle-color="primary"
-            :options="[
-              { label: 'List', value: 'list', icon: 'mdi-view-list' },
-              { label: 'Cards', value: 'card', icon: 'mdi-view-grid' }
-            ]"
-            dense
-            outline
-          />
-        </div>
-      </div>
+          <!-- Filters and Search Section -->
+          <q-card flat :class="cardClasses" class="q-mb-md">
+            <q-card-section>
+              <div class="row q-col-gutter-md">
+                <!-- Search -->
+                <div class="col-12 col-md-4">
+                  <q-input
+                    v-model="searchQuery"
+                    label="Search content..."
+                    outlined
+                    dense
+                    clearable
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="search" />
+                    </template>
+                  </q-input>
+                </div>
 
-      <!-- Filters Section -->
-      <q-card :class="cardClasses" class="q-mb-md">
-        <q-card-section>
-          <div class="row q-col-gutter-md">
-            <!-- Search -->
-            <div class="col-12 col-md-4">
-              <q-input
-                v-model="searchQuery"
-                placeholder="Search content..."
-                outlined
-                clearable
-                dense
-              >
-                <template v-slot:prepend>
-                  <q-icon name="mdi-magnify" />
-                </template>
-              </q-input>
-            </div>
 
-            <!-- Category Filter -->
-            <div class="col-12 col-md-3">
-              <q-select
-                v-model="selectedCategory"
-                :options="categoryOptions"
-                option-label="label"
-                option-value="value"
-                emit-value
-                map-options
-                outlined
-                dense
-                label="Category"
-              >
-                <template v-slot:option="scope">
-                  <q-item v-bind="scope.itemProps">
-                    <q-item-section avatar>
-                      <q-icon :name="scope.opt.icon" :color="scope.opt.color" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ scope.opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </div>
+                <!-- Category Filter -->
+                <div class="col-12 col-md-2">
+                  <q-select
+                    v-model="selectedCategory"
+                    :options="[
+                      { label: 'All Categories', value: 'all' },
+                      ...allCategories.map(cat => ({
+                        label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' '),
+                        value: cat
+                      }))
+                    ]"
+                    label="Category"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                  />
+                </div>
 
-            <!-- Sort -->
-            <div class="col-12 col-md-3">
-              <q-select
-                v-model="sortOrder"
-                :options="sortOptions"
-                option-label="label"
-                option-value="value"
-                emit-value
-                map-options
-                outlined
-                dense
-                label="Sort by"
-              />
-            </div>
+                <!-- Sort By -->
+                <div class="col-12 col-md-2">
+                  <q-select
+                    v-model="sortBy"
+                    :options="[
+                      { label: 'Date', value: 'date' },
+                      { label: 'Title', value: 'title' }
+                    ]"
+                    label="Sort By"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                  />
+                </div>
 
-            <!-- Clear Filters -->
-            <div class="col-12 col-md-2">
-              <q-btn
-                @click="clearFilters"
-                outline
-                color="grey"
-                label="Clear"
-                class="full-width"
-                dense
-              />
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
+                <!-- Sort Order -->
+                <div class="col-12 col-md-2">
+                  <q-select
+                    v-model="sortOrder"
+                    :options="[
+                      { label: 'Newest First', value: 'desc' },
+                      { label: 'Oldest First', value: 'asc' }
+                    ]"
+                    label="Order"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                  />
+                </div>
+              </div>
 
-      <!-- Loading State -->
-      <div v-if="isLoading" class="text-center q-py-xl">
-        <q-spinner size="48px" color="primary" />
-        <div class="q-mt-md">Loading content...</div>
-      </div>
+                            <!-- Filter Actions -->
+              <div class="row q-mt-md items-center">
+                <div class="col">
+                  <q-btn
+                    flat
+                    color="primary"
+                    icon="clear"
+                    label="Clear All Filters"
+                    @click="clearFilters"
+                    size="sm"
+                  />
+                  <q-chip
+                    v-if="filteredContent.length !== unifiedContent.length"
+                    color="primary"
+                    text-color="white"
+                    class="q-ml-sm"
+                  >
+                    {{ filteredContent.length }} of {{ unifiedContent.length }} items
+                  </q-chip>
+                </div>
+                <div class="col-auto">
+                  <q-btn-toggle
+                    v-model="viewMode"
+                    toggle-color="primary"
+                    :options="[
+                      { label: 'List', value: 'list', icon: 'view_list' },
+                      { label: 'Cards', value: 'card', icon: 'view_module' }
+                    ]"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
 
-      <!-- Content List -->
-      <div v-else-if="filteredContent.length > 0">
-        <!-- Featured Content (if any) -->
-        <div v-if="featuredContent.length > 0" class="q-mb-lg">
-          <h5 class="text-h6 q-mb-md">Featured Content</h5>
-          <div class="row q-col-gutter-md">
-            <div
-              v-for="item in featuredContent"
-              :key="item.id"
-              class="col-12 col-md-4"
-            >
-              <ContentCard
-                :content="item"
-                variant="featured"
-                @click="showItemDetail"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- All Content -->
-        <div>
-          <h5 class="text-h6 q-mb-md">
-            All Content ({{ filteredContent.length }})
-          </h5>
-
-          <!-- Grid View -->
-          <div v-if="viewMode === 'card'" class="row q-col-gutter-md">
-            <div
-              v-for="item in filteredContent"
-              :key="item.id"
-              class="col-12 col-md-6 col-lg-4"
-            >
-              <ContentCard
-                :content="item"
-                variant="card"
-                @click="showItemDetail"
-              />
-            </div>
-          </div>
-
-          <!-- List View -->
-          <div v-else>
-            <ContentCard
-              v-for="item in filteredContent"
-              :key="item.id"
-              :content="item"
-              variant="list"
-              class="q-mb-md"
-              @click="showItemDetail"
+          <!-- Featured Content Section -->
+          <div v-if="!isLoading && featuredContent.length > 0" class="q-mb-xl">
+            <div class="text-h5 q-mb-md">Featured Content</div>
+            <UnifiedContentList
+              :items="featuredContent"
+              @item-click="showItemDetail"
             />
           </div>
+
+          <!-- Loading State -->
+          <div v-if="isLoading" class="text-center q-py-xl">
+            <q-spinner-dots size="50px" color="primary" />
+            <div class="text-h6 q-mt-md">Loading content...</div>
+          </div>
+
+          <!-- All Content List -->
+          <div v-else>
+            <div class="text-h5 q-mb-md">
+              {{ contentType === 'news' ? 'News & Updates' :
+                 contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
+            </div>
+
+            <UnifiedContentList
+              :items="filteredContent"
+              :variant="viewMode"
+              empty-message="No content found"
+              empty-icon="search_off"
+              @item-click="showItemDetail"
+            />
+
+            <!-- Debug info -->
+            <div class="q-mt-md text-caption text-grey">
+              Debug: {{ filteredContent.length }} items, viewMode: {{ viewMode }}
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Empty State -->
-      <q-card v-else :class="cardClasses">
-        <q-card-section class="text-center q-py-xl">
-          <q-icon name="mdi-inbox-outline" size="64px" :class="greyTextClass" />
-          <div class="text-h6 q-mt-md" :class="greyTextClass">
-            No content found
-          </div>
-          <div class="text-body2" :class="greyTextClass">
-            Try adjusting your search or filter criteria
-          </div>
-          <q-btn
-            @click="clearFilters"
-            color="primary"
-            outline
-            label="Clear Filters"
-            class="q-mt-md"
-          />
+    <!-- Content Detail Dialog -->
+    <q-dialog v-model="showDialog" position="right" full-height>
+      <q-card :class="cardClasses" style="width: 500px; max-width: 90vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ selectedItem?.title }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
-      </q-card>
 
-      <!-- Content Detail Dialog -->
-      <q-dialog v-model="showDialog" maximized>
-        <q-card v-if="selectedItem" :class="cardClasses">
-          <q-toolbar>
-            <q-toolbar-title>
-              {{ selectedItem.title }}
-            </q-toolbar-title>
-            <q-btn flat round dense icon="mdi-close" @click="showDialog = false" />
-          </q-toolbar>
 
-          <q-card-section>
+        <q-card-section v-if="selectedItem">
             <div class="text-overline q-mb-sm">
               {{ formatCategoryName(getContentTypeFromItem(selectedItem)) }}
             </div>
-            <div class="text-body2 q-mb-md" :class="greyTextClass">
+            <div class="text-body2 q-mb-md" >
               By {{ selectedItem.authorName }} •
               {{ getDateFromItem(selectedItem).toLocaleDateString() }}
             </div>
@@ -390,14 +385,7 @@ onMounted((): void => {
               {{ selectedItem.description }}
             </div>
           </q-card-section>
-        </q-card>
-      </q-dialog>
-    </div>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
-
-<style scoped>
-.full-width {
-  width: 100%;
-}
-</style>
