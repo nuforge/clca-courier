@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useTheme } from '../composables/useTheme';
 import type { ContentDoc } from '../types/core/content.types';
 import ContentCard from './ContentCard.vue';
 
@@ -31,12 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-const { cardClasses, isDarkMode } = useTheme();
 
-// Theme-aware classes - following copilot instructions: Theme awareness
-const greyTextClass = computed(() =>
-  isDarkMode.value ? 'text-grey-4' : 'text-grey-7'
-);
 
 // Event handlers - following copilot instructions: Proper TypeScript typing
 function handleItemClick(item: ContentDoc): void {
@@ -54,7 +47,7 @@ function handleItemDelete(item: ContentDoc): void {
 
 <template>
   <!-- Grid Layout for Card/Featured Variants -->
-  <div v-if="props.variant === 'card' || props.variant === 'featured'" class="row q-col-gutter-md">
+  <div v-if="props.variant === 'card' || props.variant === 'featured'" class="row q-gutter-md">
     <div
       v-for="item in props.items"
       :key="item.id"
@@ -69,14 +62,14 @@ function handleItemDelete(item: ContentDoc): void {
         @delete="handleItemDelete"
       />
     </div>
-
+    csdsadsadsadadsad
     <!-- Empty State for Grid -->
     <div v-if="props.items.length === 0" class="col-12">
-      <q-card :class="cardClasses">
+      <q-card >
         <q-card-section class="text-center q-py-xl">
-          <q-icon :name="props.emptyIcon" size="48px" :class="greyTextClass" />
-          <div class="text-h6 q-mt-md" :class="greyTextClass">{{ props.emptyMessage }}</div>
-          <div class="text-body2" :class="greyTextClass">
+          <q-icon :name="props.emptyIcon" size="48px" />
+          <div class="text-h6 q-mt-md">{{ props.emptyMessage }}</div>
+          <div class="text-body2">
             Try adjusting your search or filter criteria
           </div>
         </q-card-section>
@@ -85,16 +78,17 @@ function handleItemDelete(item: ContentDoc): void {
   </div>
 
   <!-- List Layout -->
-  <q-card v-else :class="cardClasses">
+  <div v-else >
+
     <q-card-section v-if="props.items.length === 0" class="text-center q-py-xl">
-      <div class="text-h6 q-mt-md" :class="greyTextClass">{{ props.emptyMessage }}</div>
-      <div class="text-body2" :class="greyTextClass">
+      <div class="text-h6 q-mt-md" >{{ props.emptyMessage }}</div>
+      <div class="text-body2">
         Try adjusting your search or filter criteria
       </div>
     </q-card-section>
 
     <q-card-section v-else class="q-pa-none">
-      <q-list separator>
+      <q-list separator class="q-gutter-md bg-transparent">
         <ContentCard
           v-for="item in props.items"
           :key="item.id"
@@ -107,5 +101,5 @@ function handleItemDelete(item: ContentDoc): void {
         />
       </q-list>
     </q-card-section>
-  </q-card>
+  </div>
 </template>

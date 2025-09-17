@@ -192,7 +192,7 @@ watch(contentType, (newType: string) => {
   <q-page padding>
     <div class="q-pa-md">
       <div class="row justify-center">
-        <div class="col-12 col-md-10 col-lg-8">
+        <div class="col-12 col-md-10 col-lg-8 q-col-gutter-sm">
           <!-- Header Section -->
           <q-card flat :class="cardClasses" class="q-mb-md">
             <q-card-section>
@@ -325,8 +325,8 @@ watch(contentType, (newType: string) => {
           </q-card>
 
           <!-- Featured Content Section -->
-          <div v-if="!isLoading && featuredContent.length > 0" class="q-mb-xl">
-            <div class="text-h5 q-mb-md">Featured Content</div>
+          <div v-if="!isLoading && featuredContent.length > 0" class="q-col-gutter-sm">
+            <div class="text-h5">Featured Content</div>
             <UnifiedContentList
               :items="featuredContent"
               @item-click="showItemDetail"
@@ -340,11 +340,9 @@ watch(contentType, (newType: string) => {
           </div>
 
           <!-- All Content List -->
-          <div v-else>
-            <div class="text-h5 q-mb-md">
-              {{ contentType === 'news' ? 'News & Updates' :
-                 contentType === 'classifieds' ? 'Classifieds & Ads' : 'All Content' }}
-            </div>
+          <div v-else class="q-col-gutter-sm">
+
+            <div class="text-h5">News & Updates</div>
 
             <UnifiedContentList
               :items="filteredContent"

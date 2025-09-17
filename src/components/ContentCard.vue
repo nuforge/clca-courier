@@ -1,7 +1,6 @@
 <template>
   <q-card
-    class="content-card cursor-pointer transition-all duration-200 hover:shadow-lg"
-    :class="cardClasses"
+    class="cursor-pointer transition-all duration-200 hover:shadow-lg"
     @click="handleCardClick"
   >
     <!-- Header Section -->
@@ -30,6 +29,69 @@
           </div>
         </div>
 
+      </div>
+      </q-card-section>
+
+
+    <!-- Author and Timestamp Footer -->
+    <q-card-section class="q-pt-none text-caption text-grey-6">
+      <div class="row items-center q-gutter-sm">
+        <span>{{ formatDate(content.timestamps.created) }}</span>
+        <span>{{ $t('content.byAuthor', { author: content.authorName }) }}</span>
+      </div>
+    </q-card-section>
+    <!-- Content Description -->
+    <q-card-section class="q-pt-sm">
+      <p class="text-body2 q-ma-none">{{ content.description }}</p>
+    </q-card-section>
+
+    <q-card-section class="q-pb-none">
+    <div v-if="content">
+
+      <!-- Date Feature Widget -->
+      <EventDateWidget
+        v-if="contentUtils.hasFeature(content, 'feat:date')"
+        :dateFeature="content.features['feat:date']"
+        class="q-mb-sm"
+      />
+
+
+      <!-- Location Feature Widget -->
+      <LocationWidget
+        v-if="contentUtils.hasFeature(content, 'feat:location')"
+        :locationFeature="content.features['feat:location']"
+        class="q-mb-sm"
+      />
+
+      <!-- Task Feature Widget -->
+      <TaskWidget
+        v-if="contentUtils.hasFeature(content, 'feat:task')"
+        :taskFeature="content.features['feat:task']"
+        :canClaim="canClaimTask"
+        @claim-task="handleClaimTask"
+        class="q-mb-sm"
+      />
+
+                <!-- Event Tags -->
+                <div v-if="content.tags.length > 0" class="q-mb-md">
+                  <div class="text-subtitle2 q-mb-xs">
+                    <q-icon name="mdi-tag" class="q-mr-xs" />
+                    {{ $t(TRANSLATION_KEYS.CONTENT.TAGS) }}
+                  </div>
+                  <div class="q-gutter-xs">
+                    <TagDisplay
+                      :tags="displayTags"
+                      variant="flat"
+                      size="sm"
+                      square
+                      dense
+                    />
+                  </div>
+                </div>
+
+              </div>
+              </q-card-section>
+              <q-card-section class="q-pb-none">
         <!-- Actions Menu -->
         <q-btn
           v-if="showActions"
@@ -57,71 +119,14 @@
             </q-list>
           </q-menu>
         </q-btn>
-      </div>
     </q-card-section>
 
-    <!-- Content Description -->
-    <q-card-section class="q-pt-sm">
-      <p class="text-body2 q-ma-none">{{ content.description }}</p>
-    </q-card-section>
-
-    <!-- Feature Widgets Section -->
-    <q-card-section v-if="hasAnyFeature" class="q-pt-none">
-      <!-- Date Feature Widget -->
-      <EventDateWidget
-        v-if="contentUtils.hasFeature(content, 'feat:date')"
-        :dateFeature="content.features['feat:date']"
-        class="q-mb-sm"
-      />
-
-      <!-- Task Feature Widget -->
-      <TaskWidget
-        v-if="contentUtils.hasFeature(content, 'feat:task')"
-        :taskFeature="content.features['feat:task']"
-        :canClaim="canClaimTask"
-        @claim-task="handleClaimTask"
-        class="q-mb-sm"
-      />
-
-      <!-- Location Feature Widget -->
-      <LocationWidget
-        v-if="contentUtils.hasFeature(content, 'feat:location')"
-        :locationFeature="content.features['feat:location']"
-        class="q-mb-sm"
-      />
-
-      <!-- Canva Integration Widget -->
-      <CanvaWidget
-        v-if="contentUtils.hasFeature(content, 'integ:canva')"
-        :canvaFeature="content.features['integ:canva']"
-        class="q-mb-sm"
-      />
-    </q-card-section>
-
-    <!-- Footer Section with Tags -->
-    <q-card-section v-if="displayTags.length > 0" class="q-pt-none">
-      <TagDisplay
-        :tags="displayTags"
-        variant="flat"
-        :max-display="3"
-        :show-more="true"
-      />
-    </q-card-section>
-
-    <!-- Author and Timestamp Footer -->
-    <q-card-section class="q-pt-none text-caption text-grey-6">
-      <div class="row items-center justify-between">
-        <span>{{ $t('content.byAuthor', { author: content.authorName }) }}</span>
-        <span>{{ formatDate(content.timestamps.created) }}</span>
-      </div>
-    </q-card-section>
   </q-card>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useTheme } from '../composables/useTheme';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { formatDate } from '../utils/date-formatter';
 import { logger } from '../utils/logger';
@@ -132,8 +137,8 @@ import {
 import EventDateWidget from './widgets/EventDateWidget.vue';
 import TaskWidget from './widgets/TaskWidget.vue';
 import LocationWidget from './widgets/LocationWidget.vue';
-import CanvaWidget from './widgets/CanvaWidget.vue';
 import TagDisplay from './common/TagDisplay.vue';
+import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 interface Props {
   content: ContentDoc;
@@ -158,18 +163,10 @@ const emit = defineEmits<Emits>();
 // Composables
 const { t } = useI18n();
 const { getContentIcon } = useSiteTheme();
-const { cardClasses: themeCardClasses } = useTheme();
 
 // Local state
 const showActionsMenu = ref(false);
 
-// Computed properties for mechanical feature-driven rendering
-const hasAnyFeature = computed(() => {
-  return contentUtils.hasFeature(props.content, 'feat:date') ||
-         contentUtils.hasFeature(props.content, 'feat:task') ||
-         contentUtils.hasFeature(props.content, 'feat:location') ||
-         contentUtils.hasFeature(props.content, 'integ:canva');
-});
 
 const canClaimTask = computed(() => {
   return contentUtils.hasFeature(props.content, 'feat:task') &&
@@ -186,18 +183,11 @@ const getContentTypeIcon = computed(() => {
   return getContentIcon(contentType || 'unknown');
 });
 
+
+
 const displayTags = computed(() => {
   // Filter out content-type tags since they're shown separately
   return props.content.tags.filter(tag => !tag.startsWith('content-type:'));
-});
-
-const cardClasses = computed(() => {
-  const baseClasses = 'content-card';
-  const variantClasses = props.variant === 'featured'
-    ? 'q-pa-lg border-left-4 border-primary'
-    : '';
-
-  return `${baseClasses} ${themeCardClasses.value} ${variantClasses}`;
 });
 
 // Methods
