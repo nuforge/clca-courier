@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 
 /**
  * Generic item type - supports both NewsletterMetadata and ContentDoc
@@ -111,8 +112,7 @@ import { computed, ref, watch } from 'vue';
 type BaseItem = {
   id: string;
   title?: string;
-  [key: string]: unknown;
-};
+} & Record<string, unknown>;
 
 /**
  * Pagination configuration interface
@@ -124,10 +124,10 @@ export interface PaginationConfig {
 }
 
 /**
- * Component props interface
+ * Component props interface - accepts either BaseItem or UnifiedNewsletter
  */
 interface Props {
-  items: BaseItem[];
+  items: (BaseItem | UnifiedNewsletter)[];
   variant?: 'list' | 'grid' | 'compact';
   emptyMessage?: string;
   loading?: boolean;
@@ -169,11 +169,11 @@ const paginatedItems = computed(() => {
 });
 
 // Helper methods
-const getItemId = (item: BaseItem): string => {
+const getItemId = (item: BaseItem | UnifiedNewsletter): string => {
   return item.id;
 };
 
-const getItemTitle = (item: BaseItem): string => {
+const getItemTitle = (item: BaseItem | UnifiedNewsletter): string => {
   return item.title || item.id || 'Untitled';
 };
 

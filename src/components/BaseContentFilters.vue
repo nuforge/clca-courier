@@ -25,7 +25,7 @@
             dense
             clearable
             debounce="300"
-            @update:model-value="onSearchInput"
+            @update:model-value="(value: string | number | null) => onSearchInput(String(value || ''))"
           >
             <template v-slot:prepend>
               <q-icon name="search" />
@@ -227,18 +227,18 @@
             </q-chip>
 
             <!-- Toggle Filter Chips -->
-            <q-chip
-              v-for="(value, key) in internalFilters"
-              :key="key"
-              v-if="typeof value === 'boolean' && value === true"
-              removable
-              @remove="internalFilters[key] = false; onFilterChange()"
-              color="purple"
-              text-color="white"
-              dense
-            >
-              {{ getToggleLabel(key) }}
-            </q-chip>
+            <template v-for="(value, key) in internalFilters" :key="key">
+              <q-chip
+                v-if="typeof value === 'boolean' && value === true"
+                removable
+                @remove="internalFilters[key] = false; onFilterChange()"
+                color="purple"
+                text-color="white"
+                dense
+              >
+                {{ getToggleLabel(String(key)) }}
+              </q-chip>
+            </template>
           </div>
         </div>
       </div>

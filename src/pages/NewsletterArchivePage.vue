@@ -206,11 +206,11 @@
               :empty-message="getEmptyMessage()"
             >
               <template #item="{ item }">
-                <NewsletterCard 
-                  :newsletter="item" 
+                <NewsletterCard
+                  :newsletter="item as UnifiedNewsletter"
                   :show-admin-controls="isAdmin"
-                  @metadata-updated="onNewsletterMetadataUpdated" 
-                  @refresh-needed="onRefreshNeeded" 
+                  @metadata-updated="onNewsletterMetadataUpdated"
+                  @refresh-needed="onRefreshNeeded"
                 />
               </template>
             </BaseContentList>
@@ -241,11 +241,11 @@
                 :empty-message="`No newsletters found for ${yearGroup.year}`"
               >
                 <template #item="{ item }">
-                  <NewsletterCard 
-                    :newsletter="item" 
+                  <NewsletterCard
+                    :newsletter="item as UnifiedNewsletter"
                     :show-admin-controls="isAdmin"
-                    @metadata-updated="onNewsletterMetadataUpdated" 
-                    @refresh-needed="onRefreshNeeded" 
+                    @metadata-updated="onNewsletterMetadataUpdated"
+                    @refresh-needed="onRefreshNeeded"
                   />
                 </template>
               </BaseContentList>
@@ -263,6 +263,7 @@ import { useI18n } from 'vue-i18n';
 import { useTheme } from '../composables/useTheme';
 import { useFirebaseNewsletterArchive } from '../composables/useFirebaseNewsletterArchive';
 import { type NewsletterMetadata } from '../services/firebase-firestore.service';
+import type { UnifiedNewsletter } from '../types/core/newsletter.types';
 import NewsletterCard from '../components/NewsletterCard.vue';
 import BaseContentList from '../components/BaseContentList.vue';
 import BaseContentFilters, { type FilterConfig, type FilterState } from '../components/BaseContentFilters.vue';
@@ -358,12 +359,6 @@ const monthOptions = computed(() => [
   { label: t(TRANSLATION_KEYS.DATES.MONTHS.DECEMBER), value: 12 }
 ]);
 
-const pageCountOptions = computed(() => [
-  { label: t('newsletter.pages1to5') || '1-5 pages', value: '1-5' },
-  { label: t('newsletter.pages6to10') || '6-10 pages', value: '6-10' },
-  { label: t('newsletter.pages11to20') || '11-20 pages', value: '11-20' },
-  { label: t('newsletter.pages20plus') || '20+ pages', value: '20+' }
-]);
 
 // Filter configuration for BaseContentFilters
 const filterConfig = computed<FilterConfig>(() => ({
@@ -432,12 +427,6 @@ const getEmptyMessage = (): string => {
   return 'No newsletters are currently available';
 };
 
-// Enhanced search and filter methods
-const handleSearchSubmit = () => {
-  if (searchInput.value.trim()) {
-    void debouncedSearch(searchInput.value);
-  }
-};
 
 const applySuggestion = (suggestion: string) => {
   searchInput.value = suggestion;
