@@ -45,6 +45,7 @@
         </div>
       </div>
 
+
       <!-- Debug Panel -->
       <div class="q-mb-md">
         <q-expansion-item icon="mdi-bug" :label="$t('pages.themeEditor.sections.debugInfo')" :class="backgroundClasses.surface">
@@ -79,554 +80,361 @@
       <div class="row q-col-gutter-lg">
         <!-- Left Panel - Editor -->
         <div class="col-12 col-lg-6">
-          <q-card>
-            <q-tabs v-model="activeTab" class="text-grey-6" dense>
-              <q-tab name="contentTypes" :label="$t('pages.themeEditor.tabs.contentTypes')" :icon="UI_ICONS.fileMultiple" />
-              <q-tab name="categories" :label="$t('pages.themeEditor.tabs.categories')" :icon="UI_ICONS.tagMultiple" />
-              <q-tab name="colors" :label="$t('pages.themeEditor.tabs.colors')" :icon="UI_ICONS.paletteOutline" />
-              <q-tab name="status" :label="$t('pages.themeEditor.tabs.status')" :icon="UI_ICONS.circleOutline" />
-            </q-tabs>
-
-            <q-separator />
-
-            <q-tab-panels v-model="activeTab" animated>
-              <!-- Content Types Tab -->
-              <q-tab-panel name="contentTypes" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.contentTypes') }}</div>
-
-                <q-expansion-item
-                  v-for="(config, type) in editableTheme.contentTypes"
-                  :key="type"
-                  :label="config.label"
-                  :icon="config.icon"
-                  class="q-mb-sm"
-                >
-                  <q-card flat bordered class="q-pa-md">
-                    <div class="row q-col-gutter-md">
-                      <div class="col-12 col-md-6">
-                        <q-input
-                          v-model="config.label"
-                          :label="$t('pages.themeEditor.fields.displayLabel')"
-                          outlined
-                          dense
-                        />
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <IconPicker
-                          v-model="config.icon"
-                          :label="$t('pages.themeEditor.fields.icon')"
-                          :hint="$t('pages.themeEditor.fields.iconHint')"
-                        />
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <q-select
-                          v-model="config.color"
-                          :options="getColorOptionsForField()"
-                          :label="$t('pages.themeEditor.fields.color')"
-                          outlined
-                          dense
-                          option-value="value"
-                          option-label="label"
-                          emit-value
-                          map-options
-                        >
-                          <template v-slot:append>
-                            <ColorPreview
-                              :color-value="config.color"
-                              size="sm"
-                              shape="circle"
-                            />
-                          </template>
-                          <template v-slot:option="scope">
-                            <q-item v-bind="scope.itemProps">
-                              <q-item-section avatar>
-                                <ColorPreview
-                                  :color-value="scope.opt.preview || scope.opt.value"
-                                  size="xs"
-                                  shape="circle"
-                                />
-                              </q-item-section>
-                              <q-item-section>
-                                <q-item-label>{{ scope.opt.label }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                          </template>
-                        </q-select>
-                      </div>
-                      <div class="col-12">
-                        <q-input
-                          v-model="config.description"
-                          :label="$t('pages.themeEditor.fields.description')"
-                          type="textarea"
-                          outlined
-                          dense
-                          rows="2"
-                        />
-                      </div>
-                    </div>
-                  </q-card>
-                </q-expansion-item>
-              </q-tab-panel>
-
-              <!-- Categories Tab -->
-              <q-tab-panel name="categories" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.sections.categoryMappings') }}</div>
-
-                <q-expansion-item
-                  v-for="(mappings, contentType) in editableTheme.categoryMappings"
-                  :key="contentType"
-                  :icon="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
-                  class="q-mb-sm"
-                >
-                  <template v-slot:header>
-                    <q-item-section avatar>
-                      <q-icon
-                        :name="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
-                        :color="editableTheme.contentTypes[contentType]?.color || 'grey'"
+          <!-- Base Tabbed Content Component -->
+          <BaseTabbedContent
+            :tabs="tabConfig"
+            :active-tab="activeTab"
+            @update:active-tab="activeTab = $event"
+          >
+            <!-- Content Types Tab Slot -->
+            <template #contentTypes>
+              <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.contentTypes') }}</div>
+              <q-expansion-item
+                v-for="(config, type) in editableTheme.contentTypes"
+                :key="type"
+                :label="config.label"
+                :icon="config.icon"
+                class="q-mb-sm"
+              >
+                <q-card flat bordered class="q-pa-md">
+                  <div class="row q-col-gutter-md">
+                    <div class="col-12 col-md-6">
+                      <q-input
+                        v-model="config.label"
+                        :label="$t('pages.themeEditor.fields.displayLabel')"
+                        outlined
+                        dense
                       />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label class="text-weight-medium">
-                        {{ formatLabel(String(contentType)) }}
-                      </q-item-label>
-                      <q-item-label caption>
-                        {{ Object.keys(mappings).length }} categories
-                      </q-item-label>
-                    </q-item-section>
-                  </template>
-
-                  <q-card flat bordered class="q-pa-md">
-                    <div class="row q-col-gutter-md">
-                      <div
-                        v-for="(config, category) in mappings"
-                        :key="category"
-                        class="col-12 col-md-6"
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <IconPicker
+                        v-model="config.icon"
+                        :label="$t('pages.themeEditor.fields.icon')"
+                        :hint="$t('pages.themeEditor.fields.iconHint')"
+                      />
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <q-select
+                        v-model="config.color"
+                        :options="getColorOptionsForField()"
+                        :label="$t('pages.themeEditor.fields.color')"
+                        outlined
+                        dense
+                        option-value="value"
+                        option-label="label"
+                        emit-value
+                        map-options
                       >
-                        <q-expansion-item
-                          :icon="config.icon"
-                          class="category-item"
-                        >
-                          <template v-slot:header>
+                        <template v-slot:append>
+                          <ColorPreview
+                            :color-value="config.color"
+                            size="sm"
+                            shape="circle"
+                          />
+                        </template>
+                        <template v-slot:option="scope">
+                          <q-item v-bind="scope.itemProps">
                             <q-item-section avatar>
                               <ColorPreview
-                                :color-value="resolvePreviewColor(config.color)"
-
-                                size="sm"
+                                :color-value="scope.opt.preview || scope.opt.value"
+                                size="xs"
                                 shape="circle"
                               />
                             </q-item-section>
                             <q-item-section>
-                              <q-item-label class="text-weight-medium">
-                                <q-icon :name="config.icon" class="q-mr-xs" />
-                                {{ config.label }}
-                              </q-item-label>
-                              <q-item-label caption>
-                                {{ category }}
-                              </q-item-label>
+                              <q-item-label>{{ scope.opt.label }}</q-item-label>
                             </q-item-section>
-                          </template>
-
-                          <q-card flat class="q-pa-sm">
-                            <q-input
-                              v-model="config.label"
-                              label="Label"
-                              outlined
-                              dense
-                              class="q-mb-sm"
-                            />
-
-                            <IconPicker
-                              v-model="config.icon"
-                              label="Icon"
-                              dense
-                              class="q-mb-sm"
-                            />
-
-                            <q-select
-                              v-model="config.color"
-                              :options="getColorOptionsForField()"
-                              label="Color"
-                              outlined
-                              dense
-                              option-value="value"
-                              option-label="label"
-                              emit-value
-                              map-options
-                            >
-                              <template v-slot:append>
-                                <ColorPreview
-                                  :color-value="config.color"
-                                  size="sm"
-                                  shape="circle"
-                                />
-                              </template>
-                              <template v-slot:option="scope">
-                                <q-item v-bind="scope.itemProps">
-                                  <q-item-section avatar>
-                                    <ColorPreview
-                                      :color-value="scope.opt.preview || scope.opt.value"
-                                      size="xs"
-                                      shape="circle"
-                                    />
-                                  </q-item-section>
-                                  <q-item-section>
-                                    <q-item-label>{{ scope.opt.label }}</q-item-label>
-                                  </q-item-section>
-                                </q-item>
-                              </template>
-                            </q-select>
-                          </q-card>
-                        </q-expansion-item>
-                      </div>
+                          </q-item>
+                        </template>
+                      </q-select>
                     </div>
-                  </q-card>
-                </q-expansion-item>
-              </q-tab-panel>
-
-              <!-- Colors Tab -->
-              <q-tab-panel name="colors" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.colors') }}</div>
-
-                <!-- Primary Colors -->
-                <q-card class="q-mb-md">
-                  <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">{{ $t('pages.themeEditor.colors.primary') }}</div>
-                    <div class="row q-col-gutter-sm">
-                      <div class="col-12 col-md-4">
-                        <ColorPicker
-                          v-model="editableTheme.colors.primary"
-                          :label="$t('pages.themeEditor.colors.primary')"
-                          :default-value="DEFAULT_SITE_THEME.colors.primary"
-                        />
-                      </div>
-                      <div class="col-12 col-md-4">
-                        <ColorPicker
-                          v-model="editableTheme.colors.secondary"
-                          :label="$t('pages.themeEditor.colors.secondary')"
-                          :default-value="DEFAULT_SITE_THEME.colors.secondary"
-                        />
-                      </div>
-                      <div class="col-12 col-md-4">
-                        <ColorPicker
-                          v-model="editableTheme.colors.accent"
-                          :label="$t('pages.themeEditor.colors.accent')"
-                          :default-value="DEFAULT_SITE_THEME.colors.accent"
-                        />
-                      </div>
+                    <div class="col-12">
+                      <q-input
+                        v-model="config.description"
+                        :label="$t('pages.themeEditor.fields.description')"
+                        type="textarea"
+                        outlined
+                        dense
+                        rows="2"
+                      />
                     </div>
-                  </q-card-section>
+                  </div>
                 </q-card>
+              </q-expansion-item>
+            </template>
 
-                <!-- Content Type Colors -->
-                <q-card>
-                  <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">{{ $t('pages.themeEditor.tabs.contentTypes') }}</div>
-                    <div class="row q-col-gutter-sm">
-                      <div
-                        v-for="(color, type) in editableTheme.colors.contentTypes"
-                        :key="type"
-                        class="col-12 col-md-6"
-                      >
-                        <ColorPicker
-                          v-model="editableTheme.colors.contentTypes[type]"
-                          :label="formatLabel(String(type))"
-                          :default-value="getDefaultColorForContentType(String(type))"
-                        />
-                      </div>
-                    </div>
-                  </q-card-section>
-                </q-card>
-              </q-tab-panel>
+            <!-- Categories Tab Slot -->
+            <template #categories>
+              <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.sections.categoryMappings') }}</div>
+              <q-expansion-item
+                v-for="(mappings, contentType) in editableTheme.categoryMappings"
+                :key="contentType"
+                :icon="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
+                class="q-mb-sm"
+              >
+                <template v-slot:header>
+                  <q-item-section avatar>
+                    <q-icon
+                      :name="editableTheme.contentTypes[contentType]?.icon || 'mdi-folder'"
+                      :color="editableTheme.contentTypes[contentType]?.color || 'grey'"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-weight-medium">
+                      {{ formatLabel(String(contentType)) }}
+                    </q-item-label>
+                    <q-item-label caption>
+                      {{ Object.keys(mappings).length }} categories
+                    </q-item-label>
+                  </q-item-section>
+                </template>
 
-              <!-- Status Tab -->
-              <q-tab-panel name="status" class="q-pa-md">
-                <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.status') }}</div>
-
-                <div class="row q-col-gutter-md">
-                  <div
-                    v-for="(config, status) in editableTheme.statusMappings"
-                    :key="status"
-                    class="col-12 col-md-6"
-                  >
-                    <q-expansion-item
-                      class="status-item"
+                <q-card flat bordered class="q-pa-md">
+                  <div class="row q-col-gutter-md">
+                    <div
+                      v-for="(config, category) in mappings"
+                      :key="category"
+                      class="col-12 col-md-6"
                     >
-                      <template v-slot:header>
-                        <q-item-section avatar>
-                          <ColorPreview
-                            :color-value="resolvePreviewColor(config.color)"
-                            size="sm"
-                            shape="circle"
-                          />
-                        </q-item-section>
-                        <q-item-section>
-                          <q-item-label class="text-weight-medium">
-                            <q-icon :name="config.icon" class="q-mr-xs" />
-                            {{ config.label }}
-                          </q-item-label>
-                          <q-item-label caption>
-                            {{ status }}
-                          </q-item-label>
-                        </q-item-section>
-                      </template>
-
-                      <q-card flat class="q-pa-md">
-                        <q-input
-                          v-model="config.label"
-                          :label="$t('pages.themeEditor.fields.label')"
-                          outlined
-                          dense
-                          class="q-mb-sm"
-                        />
-
-                        <IconPicker
-                          v-model="config.icon"
-                          :label="$t('pages.themeEditor.fields.icon')"
-                          dense
-                          class="q-mb-sm"
-                        />
-
-                        <q-select
-                          v-model="config.color"
-                          :options="getColorOptionsForField()"
-                          :label="$t('pages.themeEditor.fields.color')"
-                          outlined
-                          dense
-                          class="q-mb-sm"
-                          option-value="value"
-                          option-label="label"
-                          emit-value
-                          map-options
-                        >
-                          <template v-slot:append>
+                      <q-expansion-item
+                        :icon="config.icon"
+                        class="category-item"
+                      >
+                        <template v-slot:header>
+                          <q-item-section avatar>
                             <ColorPreview
-                              :color-value="config.color"
+                              :color-value="resolvePreviewColor(config.color)"
                               size="sm"
                               shape="circle"
                             />
-                          </template>
-                          <template v-slot:option="scope">
-                            <q-item v-bind="scope.itemProps">
-                              <q-item-section avatar>
-                                <ColorPreview
-                                  :color-value="scope.opt.preview || scope.opt.value"
-                                  size="xs"
-                                  shape="circle"
-                                />
-                              </q-item-section>
-                              <q-item-section>
-                                <q-item-label>{{ scope.opt.label }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                          </template>
-                        </q-select>
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label class="text-weight-medium">
+                              <q-icon :name="config.icon" class="q-mr-xs" />
+                              {{ config.label }}
+                            </q-item-label>
+                            <q-item-label caption>
+                              {{ category }}
+                            </q-item-label>
+                          </q-item-section>
+                        </template>
 
-                        <q-input
-                          v-model="config.description"
-                          :label="$t('pages.themeEditor.fields.description')"
-                          outlined
-                          dense
-                        />
-                      </q-card>
-                    </q-expansion-item>
+                        <q-card flat class="q-pa-sm">
+                          <q-input
+                            v-model="config.label"
+                            label="Label"
+                            outlined
+                            dense
+                            class="q-mb-sm"
+                          />
+
+                          <IconPicker
+                            v-model="config.icon"
+                            label="Icon"
+                            dense
+                            class="q-mb-sm"
+                          />
+
+                          <q-select
+                            v-model="config.color"
+                            :options="getColorOptionsForField()"
+                            label="Color"
+                            outlined
+                            dense
+                            option-value="value"
+                            option-label="label"
+                            emit-value
+                            map-options
+                          >
+                            <template v-slot:append>
+                              <ColorPreview
+                                :color-value="config.color"
+                                size="sm"
+                                shape="circle"
+                              />
+                            </template>
+                            <template v-slot:option="scope">
+                              <q-item v-bind="scope.itemProps">
+                                <q-item-section avatar>
+                                  <ColorPreview
+                                    :color-value="scope.opt.preview || scope.opt.value"
+                                    size="xs"
+                                    shape="circle"
+                                  />
+                                </q-item-section>
+                                <q-item-section>
+                                  <q-item-label>{{ scope.opt.label }}</q-item-label>
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                          </q-select>
+                        </q-card>
+                      </q-expansion-item>
+                    </div>
                   </div>
+                </q-card>
+              </q-expansion-item>
+            </template>
+
+            <!-- Colors Tab Slot -->
+            <template #colors>
+              <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.colors') }}</div>
+
+              <!-- Primary Colors -->
+              <q-card class="q-mb-md">
+                <q-card-section>
+                  <div class="text-subtitle2 q-mb-md">{{ $t('pages.themeEditor.colors.primary') }}</div>
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12 col-md-4">
+                      <ColorPicker
+                        v-model="editableTheme.colors.primary"
+                        :label="$t('pages.themeEditor.colors.primary')"
+                        :default-value="DEFAULT_SITE_THEME.colors.primary"
+                      />
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <ColorPicker
+                        v-model="editableTheme.colors.secondary"
+                        :label="$t('pages.themeEditor.colors.secondary')"
+                        :default-value="DEFAULT_SITE_THEME.colors.secondary"
+                      />
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <ColorPicker
+                        v-model="editableTheme.colors.accent"
+                        :label="$t('pages.themeEditor.colors.accent')"
+                        :default-value="DEFAULT_SITE_THEME.colors.accent"
+                      />
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <!-- Content Type Colors -->
+              <q-card>
+                <q-card-section>
+                  <div class="text-subtitle2 q-mb-md">{{ $t('pages.themeEditor.tabs.contentTypes') }}</div>
+                  <div class="row q-col-gutter-sm">
+                    <div
+                      v-for="(color, type) in editableTheme.colors.contentTypes"
+                      :key="type"
+                      class="col-12 col-md-6"
+                    >
+                      <ColorPicker
+                        v-model="editableTheme.colors.contentTypes[type]"
+                        :label="formatLabel(String(type))"
+                        :default-value="getDefaultColorForContentType(String(type))"
+                      />
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </template>
+
+            <!-- Status Tab Slot -->
+            <template #status>
+              <div class="text-subtitle1 q-mb-md">{{ $t('pages.themeEditor.tabs.status') }}</div>
+
+              <div class="row q-col-gutter-md">
+                <div
+                  v-for="(config, status) in editableTheme.statusMappings"
+                  :key="status"
+                  class="col-12 col-md-6"
+                >
+                  <q-expansion-item
+                    class="status-item"
+                  >
+                    <template v-slot:header>
+                      <q-item-section avatar>
+                        <ColorPreview
+                          :color-value="resolvePreviewColor(config.color)"
+                          size="sm"
+                          shape="circle"
+                        />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">
+                          <q-icon :name="config.icon" class="q-mr-xs" />
+                          {{ config.label }}
+                        </q-item-label>
+                        <q-item-label caption>
+                          {{ status }}
+                        </q-item-label>
+                      </q-item-section>
+                    </template>
+
+                    <q-card flat class="q-pa-md">
+                      <q-input
+                        v-model="config.label"
+                        :label="$t('pages.themeEditor.fields.label')"
+                        outlined
+                        dense
+                        class="q-mb-sm"
+                      />
+
+                      <IconPicker
+                        v-model="config.icon"
+                        :label="$t('pages.themeEditor.fields.icon')"
+                        dense
+                        class="q-mb-sm"
+                      />
+
+                      <q-select
+                        v-model="config.color"
+                        :options="getColorOptionsForField()"
+                        :label="$t('pages.themeEditor.fields.color')"
+                        outlined
+                        dense
+                        class="q-mb-sm"
+                        option-value="value"
+                        option-label="label"
+                        emit-value
+                        map-options
+                      >
+                        <template v-slot:append>
+                          <ColorPreview
+                            :color-value="config.color"
+                            size="sm"
+                            shape="circle"
+                          />
+                        </template>
+                        <template v-slot:option="scope">
+                          <q-item v-bind="scope.itemProps">
+                            <q-item-section avatar>
+                              <ColorPreview
+                                :color-value="scope.opt.preview || scope.opt.value"
+                                size="xs"
+                                shape="circle"
+                              />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ scope.opt.label }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </template>
+                      </q-select>
+
+                      <q-input
+                        v-model="config.description"
+                        :label="$t('pages.themeEditor.fields.description')"
+                        outlined
+                        dense
+                      />
+                    </q-card>
+                  </q-expansion-item>
                 </div>
-              </q-tab-panel>
-            </q-tab-panels>
-          </q-card>
+              </div>
+            </template>
+          </BaseTabbedContent>
         </div>
 
         <!-- Right Panel - Live Preview -->
         <div class="col-12 col-lg-6">
-          <q-card class="sticky-top">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">
-                <q-icon :name="UI_ICONS.eye" class="q-mr-sm" />
-                Live Preview
-              </div>
-
-              <!-- Color Palette Preview -->
-              <div class="q-mb-lg">
-                <div class="text-subtitle1 q-mb-sm">Color Palette</div>
-
-                <!-- Theme Colors and Content Type Colors in same row -->
-                <div class="row q-col-gutter-lg">
-                  <!-- Theme Colors Column -->
-                  <div class="col-12 col-md-6">
-                    <div class="text-body2 text-grey-6 q-mb-sm">Theme Colors</div>
-                    <div class="row q-gutter-sm">
-                      <div class="col-auto">
-                        <ColorPreview
-                          :color-value="resolvePreviewColor(editableTheme.colors.primary)"
-                          label="Primary"
-                          size="md"
-                          shape="rounded"
-                          show-label
-                        />
-                      </div>
-                      <div class="col-auto">
-                        <ColorPreview
-                          :color-value="resolvePreviewColor(editableTheme.colors.secondary)"
-                          label="Secondary"
-                          size="md"
-                          shape="rounded"
-                          show-label
-                        />
-                      </div>
-                      <div class="col-auto">
-                        <ColorPreview
-                          :color-value="resolvePreviewColor(editableTheme.colors.accent)"
-                          label="Accent"
-                          size="md"
-                          shape="rounded"
-                          show-label
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Content Type Colors Column -->
-                  <div class="col-12 col-md-6">
-                    <div class="text-body2 text-grey-6 q-mb-sm">Content Type Colors</div>
-                    <div class="row q-gutter-xs">
-                      <div
-                        v-for="(color, type) in editableTheme.colors.contentTypes"
-                        :key="type"
-                        class="col-auto"
-                      >
-                        <ColorPreview
-                          :color-value="resolvePreviewColor(color)"
-                          :label="formatLabel(String(type))"
-                          size="sm"
-                          shape="circle"
-                          show-label
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Content Types Preview -->
-              <div class="q-mb-lg">
-                <div class="text-subtitle1 q-mb-sm">Content Types</div>
-                <div class="row q-gutter-sm">
-                  <div
-                    v-for="(config, type) in editableTheme.contentTypes"
-                    :key="type"
-                    class="col-auto"
-                  >
-                    <q-btn
-                      :icon="config.icon"
-                      :label="config.label"
-                      :color="resolvePreviewColor(config.color)"
-                      no-caps
-                      size="sm"
-                      class="q-pa-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Categories Preview -->
-              <div class="q-mb-lg">
-                <div class="text-subtitle1 q-mb-sm">Sample Categories</div>
-                <q-expansion-item
-                  v-for="(mappings, contentType) in editableTheme.categoryMappings"
-                  :key="contentType"
-                  :label="formatLabel(String(contentType))"
-                  :icon="editableTheme.contentTypes[contentType]?.icon"
-                  class="q-mb-sm"
-                  dense
-                >
-                  <div class="q-pa-sm">
-                    <div class="row q-gutter-xs">
-                      <q-chip
-                        v-for="(config, category) in mappings"
-                        :key="category"
-                        :icon="config.icon"
-                        :color="resolvePreviewColor(config.color)"
-                        text-color="white"
-                        size="sm"
-                      >
-                        {{ config.label }}
-                      </q-chip>
-                    </div>
-                  </div>
-                </q-expansion-item>
-              </div>
-
-              <!-- Status Preview -->
-              <div class="q-mb-lg">
-                <div class="text-subtitle1 q-mb-sm">Status Indicators</div>
-                <div class="row q-gutter-sm">
-                  <q-badge
-                    v-for="(config, status) in editableTheme.statusMappings"
-                    :key="status"
-                    :icon="config.icon"
-                    :color="resolvePreviewColor(config.color)"
-                    text-color="white"
-                    class="q-pa-sm"
-                  >
-                    {{ config.label }}
-                  </q-badge>
-                </div>
-              </div>
-
-              <!-- Sample Content Card -->
-              <div class="q-mb-lg">
-                <div class="text-subtitle1 q-mb-sm">Sample Content Card</div>
-                <q-card bordered>
-                  <q-card-section>
-                    <div class="row items-center">
-                      <q-icon
-                        :name="getPreviewCategoryIcon('event', 'meeting')"
-                        :color="resolvePreviewColor(editableTheme.categoryMappings.event?.meeting?.color || 'primary')"
-                        size="md"
-                        class="q-mr-md"
-                      />
-                      <div class="col">
-                        <div class="text-h6">Sample Meeting</div>
-                        <div class="text-body2 text-grey-6">This shows how meeting events will appear</div>
-                      </div>
-                      <q-badge
-                        :icon="editableTheme.statusMappings.published?.icon || 'mdi-earth'"
-                        :color="resolvePreviewColor(editableTheme.statusMappings.published?.color || 'positive')"
-                        text-color="white"
-                      >
-                        {{ editableTheme.statusMappings.published?.label || 'Published' }}
-                      </q-badge>
-                    </div>
-                  </q-card-section>
-                </q-card>
-
-                <!-- Additional sample showing social event -->
-                <q-card bordered class="q-mt-md">
-                  <q-card-section>
-                    <div class="row items-center">
-                      <q-icon
-                        :name="getPreviewCategoryIcon('event', 'social')"
-                        :color="resolvePreviewColor(getCategoryTheme('event', 'social', editableTheme).color)"
-                        size="md"
-                        class="q-mr-md"
-                      />
-                      <div class="col">
-                        <div class="text-h6">Sample Social Event</div>
-                        <div class="text-body2 text-grey-6">This shows how social events will appear</div>
-                      </div>
-                      <q-badge
-                        :icon="getStatusTheme('published', editableTheme).icon"
-                        :color="resolvePreviewColor(getStatusTheme('published', editableTheme).color)"
-                        text-color="white"
-                      >
-                        {{ getStatusTheme('published', editableTheme).label }}
-                      </q-badge>
-                    </div>
-                  </q-card-section>
-                </q-card>
-              </div>
-            </q-card-section>
-          </q-card>
+          <!-- Base Preview Panel Component -->
+          <BasePreviewPanel
+            :preview-data="editableTheme"
+            preview-type="theme"
+          />
         </div>
       </div>
     </div>
@@ -636,6 +444,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { useTheme } from '../composables/useTheme';
 import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme, getStatusTheme } from '../config/site-theme.config';
@@ -644,8 +453,11 @@ import { UI_ICONS } from '../constants/ui-icons';
 import ColorPicker from '../components/theme/ColorPicker.vue';
 import IconPicker from '../components/theme/IconPicker.vue';
 import ColorPreview from '../components/theme/ColorPreview.vue';
+import BaseTabbedContent, { type TabConfig } from '../components/BaseTabbedContent.vue';
+import BasePreviewPanel from '../components/BasePreviewPanel.vue';
 
 const $q = useQuasar();
+const { t: $t } = useI18n();
 const { backgroundClasses } = useTheme();
 const {
   theme,
@@ -659,6 +471,34 @@ const {
 // State
 const activeTab = ref('contentTypes');
 const isSaving = ref(false);
+
+// Tab configuration for BaseTabbedContent component
+const tabConfig = computed<TabConfig[]>(() => [
+  {
+    name: 'contentTypes',
+    label: $t('pages.themeEditor.tabs.contentTypes'),
+    icon: UI_ICONS.fileMultiple,
+    description: 'Configure content type icons, colors, and labels'
+  },
+  {
+    name: 'categories',
+    label: $t('pages.themeEditor.tabs.categories'),
+    icon: UI_ICONS.tagMultiple,
+    description: 'Configure category mappings and styling'
+  },
+  {
+    name: 'colors',
+    label: $t('pages.themeEditor.tabs.colors'),
+    icon: UI_ICONS.paletteOutline,
+    description: 'Configure theme colors and palette'
+  },
+  {
+    name: 'status',
+    label: $t('pages.themeEditor.tabs.status'),
+    icon: UI_ICONS.circleOutline,
+    description: 'Configure status indicators and colors'
+  }
+]);
 
 // Use a local editable copy that syncs with the store
 const editableTheme = ref(getThemeForEditing());
