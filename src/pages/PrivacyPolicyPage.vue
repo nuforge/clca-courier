@@ -1,7 +1,196 @@
 <script setup lang="ts">
-import { useTheme } from '../composables/useTheme'
+import { computed } from 'vue';
+import { useTheme } from '../composables/useTheme';
+import BaseContentList from '../components/BaseContentList.vue';
+import BaseActionToolbar from '../components/BaseActionToolbar.vue';
 
-const { cardClasses } = useTheme()
+const { cardClasses } = useTheme();
+
+// Local type for privacy content items that extends BaseItem
+interface PrivacyContentItem extends Record<string, unknown> {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  type: string;
+  content?: string | string[] | Record<string, unknown> | null;
+  contact?: string;
+}
+
+// Local interfaces for ActionToolbar data
+interface ActionButton {
+  label: string;
+  icon: string;
+  color: string;
+  style?: 'outline' | 'flat';
+  size?: 'sm' | 'md';
+  to?: string;
+  action?: string;
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+interface ActionSection {
+  title: string;
+  titleIcon: string;
+  description: string;
+  primaryAction: ActionButton;
+  secondaryActions: ActionButton[];
+}
+
+// Transform privacy content into structured data for BaseContentList
+const privacyContentSections = computed(() => [
+  {
+    id: 'introduction',
+    title: 'Introduction',
+    description: 'The Courier at Conashaugh Lakes ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.',
+    icon: 'mdi-information',
+    type: 'privacy-section',
+    content: 'Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access our website or services.'
+  },
+  {
+    id: 'information-collection',
+    title: 'Information We Collect',
+    description: 'We collect different types of information to provide and improve our services to you.',
+    icon: 'mdi-database',
+    type: 'privacy-section',
+    content: {
+      personal: {
+        title: 'Personal Information',
+        description: 'We may collect personal information that you voluntarily provide to us when you:',
+        items: [
+          'Subscribe to our newsletter',
+          'Submit articles, photos, or other content',
+          'Contact us via email or contact forms',
+          'Participate in community events or surveys'
+        ]
+      },
+      nonPersonal: {
+        title: 'Non-Personal Information',
+        description: 'We may automatically collect certain non-personal information, including:',
+        items: [
+          'Browser type and version',
+          'Operating system',
+          'IP address (anonymized)',
+          'Pages visited and time spent on our website',
+          'Referral sources'
+        ]
+      }
+    }
+  },
+  {
+    id: 'information-use',
+    title: 'How We Use Your Information',
+    description: 'We use the information we collect to:',
+    icon: 'mdi-account-cog',
+    type: 'privacy-section',
+    content: [
+      'Deliver our newsletter and community updates',
+      'Respond to your inquiries and provide customer support',
+      'Process and publish submitted content (with your permission)',
+      'Improve our website and services',
+      'Communicate about community events and activities',
+      'Ensure website security and prevent abuse'
+    ]
+  },
+  {
+    id: 'information-sharing',
+    title: 'Information Sharing and Disclosure',
+    description: 'We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except in the following circumstances:',
+    icon: 'mdi-share-variant',
+    type: 'privacy-section',
+    content: [
+      'When required by law or legal process',
+      'To protect our rights, property, or safety, or that of our users',
+      'With your explicit consent for specific purposes',
+      'With trusted service providers who assist in operating our website (under strict confidentiality agreements)'
+    ]
+  },
+  {
+    id: 'data-security',
+    title: 'Data Security',
+    description: 'We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.',
+    icon: 'mdi-shield-check',
+    type: 'privacy-section',
+    content: 'However, no method of transmission over the internet or electronic storage is 100% secure, and we cannot guarantee absolute security.'
+  },
+  {
+    id: 'cookies-tracking',
+    title: 'Cookies and Tracking Technologies',
+    description: 'Our website may use cookies and similar tracking technologies to enhance your browsing experience.',
+    icon: 'mdi-cookie',
+    type: 'privacy-section',
+    content: {
+      purposes: [
+        'Remember your preferences and settings',
+        'Analyze website traffic and usage patterns',
+        'Provide personalized content',
+        'Improve website functionality'
+      ],
+      note: 'You can control cookie settings through your browser preferences.'
+    }
+  },
+  {
+    id: 'your-rights',
+    title: 'Your Rights and Choices',
+    description: 'You have the right to:',
+    icon: 'mdi-account-check',
+    type: 'privacy-section',
+    content: [
+      'Access, update, or delete your personal information',
+      'Unsubscribe from our newsletter at any time',
+      'Request information about how we use your data',
+      'Object to certain uses of your information',
+      'Request data portability where applicable'
+    ],
+    contact: 'To exercise these rights, please contact us at info@conashaughlakes.com.'
+  },
+  {
+    id: 'childrens-privacy',
+    title: 'Children\'s Privacy',
+    description: 'Our website is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.',
+    icon: 'mdi-account-child',
+    type: 'privacy-section',
+    content: 'If we become aware that we have collected personal information from a child under 13, we will take steps to delete such information.'
+  },
+  {
+    id: 'policy-updates',
+    title: 'Updates to This Policy',
+    description: 'We may update this Privacy Policy from time to time. When we do, we will post the updated policy on this page and update the "Last updated" date.',
+    icon: 'mdi-update',
+    type: 'privacy-section',
+    content: 'We encourage you to review this policy periodically to stay informed about how we protect your information.'
+  }
+]);
+
+// Navigation actions for BaseActionToolbar
+const navigationActions = computed<ActionSection[]>(() => [
+  {
+    title: 'Page Navigation',
+    titleIcon: 'mdi-navigation',
+    description: 'Navigate to related pages and contact information',
+    primaryAction: {
+      label: 'Back to Home',
+      icon: 'mdi-home',
+      color: 'primary',
+      to: '/'
+    },
+    secondaryActions: [
+      {
+        label: 'Terms of Service',
+        icon: 'mdi-file-document-outline',
+        color: 'secondary',
+        to: '/terms'
+      },
+      {
+        label: 'Contact Us',
+        icon: 'mdi-email',
+        color: 'info',
+        to: '/about'
+      }
+    ]
+  }
+]);
 </script>
 
 <template>
@@ -22,169 +211,83 @@ const { cardClasses } = useTheme()
             </q-card-section>
           </q-card>
 
-          <!-- Introduction -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Introduction</div>
-              <p class="text-body1 q-mb-md">
-                The Courier at Conashaugh Lakes ("we," "our," or "us") is committed to protecting your privacy.
-                This Privacy Policy explains how we collect, use, disclose, and safeguard your information when
-                you visit our website and use our services.
-              </p>
-              <p class="text-body1">
-                Please read this privacy policy carefully. If you do not agree with the terms of this privacy
-                policy, please do not access our website or services.
-              </p>
-            </q-card-section>
-          </q-card>
+          <!-- Privacy Content Sections -->
+          <BaseContentList
+            :items="privacyContentSections"
+            variant="list"
+            :loading="false"
+            empty-message="No privacy content available"
+          >
+            <template #item="{ item }">
+              <q-card flat :class="cardClasses" class="q-mb-md">
+                <q-card-section>
+                  <div class="text-h6 q-mb-md">
+                    <q-icon :name="(item as PrivacyContentItem).icon" class="q-mr-sm" />
+                    {{ item.title }}
+                  </div>
+                  <p class="text-body1 q-mb-md">
+                    {{ (item as PrivacyContentItem).description }}
+                  </p>
 
-          <!-- Information We Collect -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Information We Collect</div>
+                  <!-- Handle different content types -->
+                  <div v-if="typeof (item as PrivacyContentItem).content === 'string'" class="text-body1">
+                    {{ (item as PrivacyContentItem).content }}
+                  </div>
+                  <div v-else-if="Array.isArray((item as PrivacyContentItem).content)" class="text-body1">
+                    <ul class="q-ml-lg">
+                      <li v-for="contentItem in (item as PrivacyContentItem).content as string[]" :key="contentItem" class="q-mb-sm">
+                        {{ contentItem }}
+                      </li>
+                    </ul>
+                  </div>
+                  <div v-else-if="typeof (item as PrivacyContentItem).content === 'object' && (item as PrivacyContentItem).content">
+                    <!-- Handle complex content objects like information collection -->
+                    <div v-if="((item as PrivacyContentItem).content as Record<string, any>)?.personal" class="q-mb-md">
+                      <div class="text-subtitle1 q-mb-sm">{{ ((item as PrivacyContentItem).content as Record<string, any>).personal.title }}</div>
+                      <p class="text-body1 q-mb-md">{{ ((item as PrivacyContentItem).content as Record<string, any>).personal.description }}</p>
+                      <ul class="text-body1 q-mb-md q-ml-lg">
+                        <li v-for="personalItem in ((item as PrivacyContentItem).content as Record<string, any>).personal.items" :key="personalItem" class="q-mb-sm">
+                          {{ personalItem }}
+                        </li>
+                      </ul>
+                    </div>
+                    <div v-if="((item as PrivacyContentItem).content as Record<string, any>)?.nonPersonal" class="q-mb-md">
+                      <div class="text-subtitle1 q-mb-sm">{{ ((item as PrivacyContentItem).content as Record<string, any>).nonPersonal.title }}</div>
+                      <p class="text-body1 q-mb-md">{{ ((item as PrivacyContentItem).content as Record<string, any>).nonPersonal.description }}</p>
+                      <ul class="text-body1 q-ml-lg">
+                        <li v-for="nonPersonalItem in ((item as PrivacyContentItem).content as Record<string, any>).nonPersonal.items" :key="nonPersonalItem" class="q-mb-sm">
+                          {{ nonPersonalItem }}
+                        </li>
+                      </ul>
+                    </div>
+                    <!-- Handle cookies content -->
+                    <div v-if="((item as PrivacyContentItem).content as Record<string, any>)?.purposes" class="q-mb-md">
+                      <p class="text-body1 q-mb-md">These technologies help us:</p>
+                      <ul class="text-body1 q-mb-md q-ml-lg">
+                        <li v-for="purpose in ((item as PrivacyContentItem).content as Record<string, any>).purposes" :key="purpose" class="q-mb-sm">
+                          {{ purpose }}
+                        </li>
+                      </ul>
+                      <p class="text-body1">{{ ((item as PrivacyContentItem).content as Record<string, any>).note }}</p>
+                    </div>
+                  </div>
 
-              <div class="text-subtitle1 q-mb-sm">Personal Information</div>
-              <p class="text-body1 q-mb-md">
-                We may collect personal information that you voluntarily provide to us when you:
-              </p>
-              <ul class="text-body1 q-mb-md">
-                <li>Subscribe to our newsletter</li>
-                <li>Submit articles, photos, or other content</li>
-                <li>Contact us via email or contact forms</li>
-                <li>Participate in community events or surveys</li>
-              </ul>
-
-              <div class="text-subtitle1 q-mb-sm">Non-Personal Information</div>
-              <p class="text-body1 q-mb-md">
-                We may automatically collect certain non-personal information, including:
-              </p>
-              <ul class="text-body1">
-                <li>Browser type and version</li>
-                <li>Operating system</li>
-                <li>IP address (anonymized)</li>
-                <li>Pages visited and time spent on our website</li>
-                <li>Referral sources</li>
-              </ul>
-            </q-card-section>
-          </q-card>
-
-          <!-- How We Use Your Information -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">How We Use Your Information</div>
-              <p class="text-body1 q-mb-md">
-                We use the information we collect to:
-              </p>
-              <ul class="text-body1">
-                <li>Deliver our newsletter and community updates</li>
-                <li>Respond to your inquiries and provide customer support</li>
-                <li>Process and publish submitted content (with your permission)</li>
-                <li>Improve our website and services</li>
-                <li>Communicate about community events and activities</li>
-                <li>Ensure website security and prevent abuse</li>
-              </ul>
-            </q-card-section>
-          </q-card>
-
-          <!-- Information Sharing -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Information Sharing and Disclosure</div>
-              <p class="text-body1 q-mb-md">
-                We do not sell, trade, or otherwise transfer your personal information to third parties without
-                your consent, except in the following circumstances:
-              </p>
-              <ul class="text-body1">
-                <li>When required by law or legal process</li>
-                <li>To protect our rights, property, or safety, or that of our users</li>
-                <li>With your explicit consent for specific purposes</li>
-                <li>With trusted service providers who assist in operating our website (under strict confidentiality
-                  agreements)</li>
-              </ul>
-            </q-card-section>
-          </q-card>
-
-          <!-- Data Security -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Data Security</div>
-              <p class="text-body1">
-                We implement appropriate technical and organizational security measures to protect your personal
-                information against unauthorized access, alteration, disclosure, or destruction. However, no method
-                of transmission over the internet or electronic storage is 100% secure, and we cannot guarantee
-                absolute security.
-              </p>
-            </q-card-section>
-          </q-card>
-
-          <!-- Cookies and Tracking -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Cookies and Tracking Technologies</div>
-              <p class="text-body1 q-mb-md">
-                Our website may use cookies and similar tracking technologies to enhance your browsing experience.
-                These technologies help us:
-              </p>
-              <ul class="text-body1">
-                <li>Remember your preferences and settings</li>
-                <li>Analyze website traffic and usage patterns</li>
-                <li>Provide personalized content</li>
-                <li>Improve website functionality</li>
-              </ul>
-              <p class="text-body1 q-mt-md">
-                You can control cookie settings through your browser preferences.
-              </p>
-            </q-card-section>
-          </q-card>
-
-          <!-- Your Rights -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Your Rights and Choices</div>
-              <p class="text-body1 q-mb-md">
-                You have the right to:
-              </p>
-              <ul class="text-body1">
-                <li>Access, update, or delete your personal information</li>
-                <li>Unsubscribe from our newsletter at any time</li>
-                <li>Request information about how we use your data</li>
-                <li>Object to certain uses of your information</li>
-                <li>Request data portability where applicable</li>
-              </ul>
-              <p class="text-body1 q-mt-md">
-                To exercise these rights, please contact us at info@conashaughlakes.com.
-              </p>
-            </q-card-section>
-          </q-card>
-
-          <!-- Children's Privacy -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Children's Privacy</div>
-              <p class="text-body1">
-                Our website is not intended for children under 13 years of age. We do not knowingly collect
-                personal information from children under 13. If we become aware that we have collected personal
-                information from a child under 13, we will take steps to delete such information.
-              </p>
-            </q-card-section>
-          </q-card>
-
-          <!-- Updates -->
-          <q-card flat :class="cardClasses" class="q-mb-md">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">Updates to This Policy</div>
-              <p class="text-body1">
-                We may update this Privacy Policy from time to time. When we do, we will post the updated policy
-                on this page and update the "Last updated" date. We encourage you to review this policy periodically
-                to stay informed about how we protect your information.
-              </p>
-            </q-card-section>
-          </q-card>
+                  <!-- Contact information for rights section -->
+                  <div v-if="(item as PrivacyContentItem).contact" class="text-body1 q-mt-md">
+                    {{ (item as PrivacyContentItem).contact }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </template>
+          </BaseContentList>
 
           <!-- Contact Information -->
           <q-card flat :class="cardClasses" class="q-mb-lg">
             <q-card-section>
-              <div class="text-h6 q-mb-md">Contact Us</div>
+              <div class="text-h6 q-mb-md">
+                <q-icon name="mdi-phone" class="q-mr-sm" />
+                Contact Us
+              </div>
               <p class="text-body1 q-mb-md">
                 If you have questions or concerns about this Privacy Policy, please contact us:
               </p>
@@ -200,18 +303,15 @@ const { cardClasses } = useTheme()
               </div>
             </q-card-section>
           </q-card>
+
+          <!-- Navigation Actions -->
+          <BaseActionToolbar
+            :sections="navigationActions"
+            :columns="1"
+          />
         </div>
       </div>
     </div>
   </q-page>
 </template>
 
-<style scoped>
-ul {
-  margin-left: 1.5rem;
-}
-
-li {
-  margin-bottom: 0.5rem;
-}
-</style>
