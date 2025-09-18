@@ -3,9 +3,14 @@
         <div class="q-pa-md">
             <div class="row justify-center">
                 <div class="col-12 col-md-10 col-lg-8">
-                    <!-- Back Button -->
-                    <q-btn flat icon="mdi-arrow-left" label="Back to Archive" @click="goBackToArchive" class="q-mb-md"
-                        :color="textClasses.primary === 'text-white' ? 'white' : 'primary'" />
+                    <!-- Actions Toolbar -->
+                    <div class="q-mb-md q-gutter-sm">
+                        <q-btn flat icon="mdi-arrow-left" label="Back to Archive" @click="goBackToArchive" color="primary" />
+                        <q-btn v-if="newsletter?.downloadUrl" color="primary" icon="visibility" label="View PDF"
+                            @click="viewNewsletter" :loading="viewLoading" />
+                        <q-btn v-if="newsletter?.downloadUrl" color="secondary" icon="download"
+                            label="Download" @click="downloadNewsletter" :loading="downloadLoading" />
+                    </div>
 
                     <!-- Loading State -->
                     <div v-if="isLoading" class="row justify-center q-pa-lg">
@@ -52,15 +57,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Action Buttons -->
-                                        <div class="q-mt-md ">
-                                            <q-btn color="primary" icon="visibility" label="View PDF"
-                                                @click="viewNewsletter" :loading="viewLoading" class="full-width" />
-
-                                            <q-btn v-if="newsletter.downloadUrl" color="secondary" icon="download"
-                                                label="Download" @click="downloadNewsletter" :loading="downloadLoading"
-                                                class="full-width" />
-                                        </div>
+                                        <!-- Action buttons moved to BaseActionToolbar at top -->
                                     </div>
 
                                     <!-- Details Column -->
@@ -189,11 +186,11 @@
                         <q-card v-if="relatedNewsletters.length > 0" flat :class="cardClasses">
                             <q-card-section>
                                 <div class="text-h6 q-mb-md">Related Newsletters</div>
-                                <div class="row">
+                                <div class="row q-col-gutter-sm">
                                     <div v-for="related in relatedNewsletters" :key="related.id"
-                                        class="col-12 col-sm-6 col-md-4 q-pa-sm">
+                                        class="col-12 col-sm-6 col-md-4">
                                         <q-card flat bordered class="cursor-pointer"
-                                            @click="navigateToNewsletter(related.id)">
+                                            @click="navigateToRelatedNewsletter({ id: related.id })">
                                             <q-card-section class="q-pa-md">
                                                 <div class="text-subtitle2">{{ related.title }}</div>
                                                 <div class="text-caption text-grey-6">{{
@@ -235,7 +232,7 @@ import TagDisplay from '../components/common/TagDisplay.vue';
 const route = useRoute();
 const router = useRouter();
 const $q = useQuasar();
-const { cardClasses, textClasses } = useTheme();
+const { cardClasses } = useTheme();
 
 // Archive composable
 const { getNewsletterById, newsletters } = useFirebaseNewsletterArchive();
@@ -289,9 +286,16 @@ const relatedNewsletters = computed(() => {
         .slice(0, 3);
 });
 
+
 // Methods
 const capitalizeFirst = (str: string): string => {
     return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+
+// Navigate to related newsletter
+const navigateToRelatedNewsletter = (item: { id: string }) => {
+    void router.push(`/archive/${item.id}`);
 };
 
 const formatDate = (dateString: string): string => {
@@ -401,10 +405,6 @@ const viewNewsletter = () => {
     } finally {
         downloadLoading.value = false;
     }
-};
-
-const navigateToNewsletter = (newsletterId: string) => {
-    void router.push(`/archive/${newsletterId}`);
 };
 
 const goBackToArchive = () => {

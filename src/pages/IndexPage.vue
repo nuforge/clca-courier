@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useTheme } from '../composables/useTheme';
 import { useContentStore } from '../stores/content-store';
 import { getPublicPath } from '../utils/path-utils';
@@ -6,6 +7,7 @@ import { normalizeDate } from '../utils/date-formatter';
 import { useI18n } from 'vue-i18n';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import type { ContentDoc } from '../types/core/content.types';
+import BaseStatsGrid from '../components/BaseStatsGrid.vue';
 
 const { cardClasses, textClasses } = useTheme();
 const contentStore = useContentStore();
@@ -30,26 +32,17 @@ const formatEventDate = (event: ContentDoc): string => {
 const heroBackgroundImage = getPublicPath('images/hero-background.jpg');
 // Original Google Drive URL (CORS blocked): 'https://drive.google.com/file/d/14M00bRp3NxPG2d1Itj-E9WAmmB_C6vWh/view?usp=sharing'
 
-// Hero actions
-const heroActions = [
-  {
-    label: t(TRANSLATION_KEYS.HOME.HERO.LATEST_NEWS),
-    icon: 'mdi-newspaper',
-    color: 'primary',
-    to: '/community',
-    size: 'lg'
-  },
-  {
-    label: t(TRANSLATION_KEYS.HOME.HERO.CONTRIBUTE),
-    icon: 'mdi-pencil',
-    color: 'secondary',
-    to: '/contribute',
-    outline: false,
-    size: 'lg'
-  }
-];
+// Local interfaces for component data
+interface StatItem {
+  label: string;
+  value: string | number;
+  icon: string;
+  color: string;
+  description?: string;
+}
 
-interface QuickLink {
+interface QuickLinkItem {
+  id: string;
   title: string;
   description: string;
   icon: string;
@@ -57,8 +50,38 @@ interface QuickLink {
   link: string;
 }
 
-const quickLinks: QuickLink[] = [
+// Community stats for BaseStatsGrid
+const homepageStats = computed<StatItem[]>(() => [
   {
+    label: t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.HOUSEHOLDS),
+    value: '500+',
+    icon: 'mdi-home',
+    color: 'primary'
+  },
+  {
+    label: t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.LAKES),
+    value: '16',
+    icon: 'mdi-waves',
+    color: 'blue'
+  },
+  {
+    label: t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.YEARS),
+    value: '25+',
+    icon: 'mdi-calendar',
+    color: 'green'
+  },
+  {
+    label: t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.ISSUES_PER_YEAR),
+    value: '12',
+    icon: 'mdi-newspaper',
+    color: 'orange'
+  }
+]);
+
+// Quick links data for BaseContentList
+const quickLinksContent = computed<QuickLinkItem[]>(() => [
+  {
+    id: 'news-updates',
     title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.NEWS_UPDATES.TITLE),
     description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.NEWS_UPDATES.DESCRIPTION),
     icon: 'mdi-newspaper',
@@ -66,6 +89,7 @@ const quickLinks: QuickLink[] = [
     link: '/community'
   },
   {
+    id: 'classifieds-ads',
     title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CLASSIFIEDS_ADS.TITLE),
     description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CLASSIFIEDS_ADS.DESCRIPTION),
     icon: 'mdi-bulletin-board',
@@ -73,6 +97,7 @@ const quickLinks: QuickLink[] = [
     link: '/community'
   },
   {
+    id: 'community-calendar',
     title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.COMMUNITY_CALENDAR.TITLE),
     description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.COMMUNITY_CALENDAR.DESCRIPTION),
     icon: 'mdi-calendar',
@@ -80,6 +105,7 @@ const quickLinks: QuickLink[] = [
     link: '/calendar'
   },
   {
+    id: 'issue-archive',
     title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ISSUE_ARCHIVE.TITLE),
     description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ISSUE_ARCHIVE.DESCRIPTION),
     icon: 'mdi-bookshelf',
@@ -87,6 +113,7 @@ const quickLinks: QuickLink[] = [
     link: '/archive'
   },
   {
+    id: 'contribute',
     title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CONTRIBUTE.TITLE),
     description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.CONTRIBUTE.DESCRIPTION),
     icon: 'mdi-pencil',
@@ -94,13 +121,32 @@ const quickLinks: QuickLink[] = [
     link: '/contribute'
   },
   {
+    id: 'about-contact',
     title: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ABOUT_CONTACT.TITLE),
     description: t(TRANSLATION_KEYS.HOME.QUICK_LINKS.ABOUT_CONTACT.DESCRIPTION),
     icon: 'mdi-comment-question',
     color: 'info',
     link: '/about'
   }
-];
+]);
+
+// Featured events for BaseContentList
+const featuredEvents = computed(() =>
+  contentStore.events.slice(0, 2).map(event => ({
+    ...event,
+    formattedDate: formatEventDate(event)
+  }))
+);
+
+// Featured classifieds for BaseContentList
+const featuredClassifieds = computed(() =>
+  contentStore.classifieds.slice(0, 2).map(classified => ({
+    ...classified,
+    shortDescription: classified.description.length > 50
+      ? classified.description.substring(0, 50) + '...'
+      : classified.description
+  }))
+);
 </script>
 
 <template>
@@ -127,9 +173,25 @@ const quickLinks: QuickLink[] = [
         <p class="text-h5 text-weight-light q-mb-lg">{{ t(TRANSLATION_KEYS.HOME.HERO.SUBTITLE) }}</p>
 
         <!-- Actions -->
-        <div class="">
-          <q-btn v-for="action in heroActions" :key="action.label" :label="action.label" :icon="action.icon"
-            :color="action.color" :to="action.to" size="lg" unelevated class="q-px-lg" />
+        <div class="q-gutter-md">
+          <q-btn
+            :label="t(TRANSLATION_KEYS.HOME.HERO.LATEST_NEWS)"
+            icon="mdi-newspaper"
+            color="primary"
+            to="/community"
+            size="lg"
+            unelevated
+            class="q-px-lg"
+          />
+          <q-btn
+            :label="t(TRANSLATION_KEYS.HOME.HERO.CONTRIBUTE)"
+            icon="mdi-pencil"
+            color="secondary"
+            to="/contribute"
+            size="lg"
+            unelevated
+            class="q-px-lg"
+          />
         </div>
       </div>
     </div>
@@ -141,7 +203,7 @@ const quickLinks: QuickLink[] = [
         <div class="col-12 col-md-10 col-lg-8">
           <div class="text-h5 text-center q-mb-lg">{{ t(TRANSLATION_KEYS.HOME.QUICK_LINKS.SECTION_TITLE) }}</div>
           <div class="row q-col-gutter-md">
-            <div class="col-12 col-sm-6 col-md-4" v-for="item in quickLinks" :key="item.title">
+            <div class="col-12 col-sm-6 col-md-4" v-for="item in quickLinksContent" :key="item.id">
               <q-card :class="cardClasses" class="cursor-pointer full-height" @click="$router.push(item.link)" v-ripple>
                 <q-card-section class="text-center q-pa-lg">
                   <q-icon :name="item.icon" size="3em" :color="item.color" class="q-mb-md" />
@@ -159,6 +221,7 @@ const quickLinks: QuickLink[] = [
         <div class="col-12 col-md-10 col-lg-8">
           <div class="text-h5 text-center q-mb-lg">{{ t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.LATEST_UPDATES) }}</div>
           <div class="row q-col-gutter-md">
+            <!-- Upcoming Events -->
             <div class="col-12 col-md-6">
               <q-card :class="cardClasses">
                 <q-card-section>
@@ -167,10 +230,10 @@ const quickLinks: QuickLink[] = [
                     {{ t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.UPCOMING_EVENTS) }}
                   </div>
                   <q-list separator>
-                    <q-item v-for="event in contentStore.events.slice(0, 2)" :key="event.id">
+                    <q-item v-for="event in featuredEvents" :key="event.id">
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ event.title }}</q-item-label>
-                        <q-item-label caption>{{ formatEventDate(event) }}</q-item-label>
+                        <q-item-label caption>{{ event.formattedDate }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -181,6 +244,7 @@ const quickLinks: QuickLink[] = [
               </q-card>
             </div>
 
+            <!-- Recent Classifieds -->
             <div class="col-12 col-md-6">
               <q-card :class="cardClasses">
                 <q-card-section>
@@ -189,11 +253,10 @@ const quickLinks: QuickLink[] = [
                     {{ t(TRANSLATION_KEYS.HOME.CONTENT_PREVIEW.RECENT_CLASSIFIEDS) }}
                   </div>
                   <q-list separator>
-                    <q-item v-for="classified in contentStore.classifieds.slice(0, 2)" :key="classified.id">
+                    <q-item v-for="classified in featuredClassifieds" :key="classified.id">
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ classified.title }}</q-item-label>
-                        <q-item-label caption>{{ classified.description.length > 50 ?
-                          classified.description.substring(0, 50) + '...' : classified.description }}</q-item-label>
+                        <q-item-label caption>{{ classified.shortDescription }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -213,24 +276,11 @@ const quickLinks: QuickLink[] = [
           <q-card flat :class="cardClasses">
             <q-card-section>
               <div class="text-h6 text-center q-mb-md">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.TITLE) }}</div>
-              <div class="row text-center">
-                <div class="col-3">
-                  <div class="text-h4 text-primary">500+</div>
-                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.HOUSEHOLDS) }}</div>
-                </div>
-                <div class="col-3">
-                  <div class="text-h4 text-blue">16</div>
-                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.LAKES) }}</div>
-                </div>
-                <div class="col-3">
-                  <div class="text-h4 text-green">25+</div>
-                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.YEARS) }}</div>
-                </div>
-                <div class="col-3">
-                  <div class="text-h4 text-orange">12</div>
-                  <div class="text-caption">{{ t(TRANSLATION_KEYS.HOME.COMMUNITY_STATS.ISSUES_PER_YEAR) }}</div>
-                </div>
-              </div>
+              <BaseStatsGrid
+                :stats="homepageStats"
+                :columns="4"
+                card-style="minimal"
+              />
             </q-card-section>
           </q-card>
         </div>
