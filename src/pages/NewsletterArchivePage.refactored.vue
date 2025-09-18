@@ -206,11 +206,11 @@
               :empty-message="getEmptyMessage()"
             >
               <template #item="{ item }">
-                <NewsletterCard 
-                  :newsletter="item" 
+                <NewsletterCard
+                  :newsletter="item"
                   :show-admin-controls="isAdmin"
-                  @metadata-updated="onNewsletterMetadataUpdated" 
-                  @refresh-needed="onRefreshNeeded" 
+                  @metadata-updated="onNewsletterMetadataUpdated"
+                  @refresh-needed="onRefreshNeeded"
                 />
               </template>
             </BaseContentList>
@@ -241,11 +241,11 @@
                 :empty-message="`No newsletters found for ${yearGroup.year}`"
               >
                 <template #item="{ item }">
-                  <NewsletterCard 
-                    :newsletter="item" 
+                  <NewsletterCard
+                    :newsletter="item"
                     :show-admin-controls="isAdmin"
-                    @metadata-updated="onNewsletterMetadataUpdated" 
-                    @refresh-needed="onRefreshNeeded" 
+                    @metadata-updated="onNewsletterMetadataUpdated"
+                    @refresh-needed="onRefreshNeeded"
                   />
                 </template>
               </BaseContentList>
