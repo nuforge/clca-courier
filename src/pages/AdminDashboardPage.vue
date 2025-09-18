@@ -27,292 +27,22 @@
       </div>
 
       <!-- Statistics Overview -->
-      <div class="row q-col-gutter-md q-mb-lg">
-        <div class="col-12 col-md-3">
-          <q-card class="text-center">
-            <q-card-section>
-              <q-icon :name="getContentIcon('article').icon" :color="getContentIcon('article').color" size="2rem" />
-              <div class="text-h5 q-mt-sm">{{ stats.totalContent }}</div>
-              <div class="text-caption text-grey-6">Total Content</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-3">
-          <q-card class="text-center">
-            <q-card-section>
-              <q-icon :name="getStatusIcon('pending').icon" :color="getStatusIcon('pending').color" size="2rem" />
-              <div class="text-h5 q-mt-sm">{{ stats.pendingReviews }}</div>
-              <div class="text-caption text-grey-6">Pending Reviews</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-3">
-          <q-card class="text-center">
-            <q-card-section>
-              <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" size="2rem" />
-              <div class="text-h5 q-mt-sm">{{ stats.publishedContent }}</div>
-              <div class="text-caption text-grey-6">Published</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-3">
-          <q-card class="text-center">
-            <q-card-section>
-                                          <q-icon :name="getContentIcon('notification').icon" :color="getContentIcon('notification').color" size="2rem" />
-              <div class="text-h5 q-mt-sm">{{ stats.newsletters }}</div>
-              <div class="text-caption text-grey-6">Newsletters</div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
+      <BaseStatsGrid
+        :stats="adminStats"
+        :loading="isLoadingStats"
+        :columns="4"
+        class="q-mb-lg"
+        @stat-click="handleStatClick"
+        @refresh="refreshStats"
+      />
 
       <!-- Main Admin Functions -->
-      <div class="row q-col-gutter-md">
-        <!-- Content Management -->
-        <div class="col-12 col-md-6">
-          <q-card class="full-height">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">
-                <q-icon :name="getContentIcon('announcement').icon" class="q-mr-sm" />
-                Content Management
-              </div>
-              <p class="text-body2 text-grey-6">
-                Review and manage user-submitted content
-              </p>
-              <div class="q-col-gutter-sm">
-                <q-btn
-                  outline
-                  color="primary"
-                  :icon="UI_ICONS.eye"
-                  label="Review Content"
-                  to="/admin/content"
-                  class="full-width"
-                />
-                <div class="row q-gutter-sm q-px-none">
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="orange"
-                      :icon="getStatusIcon('pending').icon"
-                      :label="`${stats.pendingReviews} Pending`"
-                      size="sm"
-                      to="/admin/content?tab=pending"
-                      class="full-width"
-                    />
-                  </div>
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="positive"
-                      :icon="getStatusIcon('published').icon"
-                      :label="`${stats.publishedContent} Published`"
-                      size="sm"
-                      to="/admin/content?tab=published"
-                      class="full-width"
-                    />
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Newsletter Management -->
-        <div class="col-12 col-md-6">
-          <q-card class="full-height">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">
-                <q-icon :name="getContentIcon('newsletter').icon" class="q-mr-sm" />
-                Newsletter Management
-              </div>
-              <p class="text-body2 text-grey-6">
-                Manage newsletter archive and publications
-              </p>
-              <div class="q-col-gutter-sm">
-                <q-btn
-                outline
-                  color="secondary"
-                  :icon="UI_ICONS.edit"
-                  label="Manage Newsletters"
-                  to="/admin/newsletters"
-                  class="full-width"
-                />
-                <div class="row q-gutter-sm q-px-none">
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="info"
-                      :icon="UI_ICONS.upload"
-                      label="Upload PDF"
-                      size="sm"
-                      @click="showUploadDialog = true"
-                      class="full-width"
-                    />
-                  </div>
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="accent"
-                      :icon="UI_ICONS.cog"
-                      label="Settings"
-                      size="sm"
-                      @click="showNewsletterSettings = true"
-                      class="full-width"
-                    />
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Site Configuration -->
-        <div class="col-12 col-md-6">
-          <q-card class="full-height">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">
-                <q-icon :name="UI_ICONS.palette" class="q-mr-sm" />
-                Site Configuration
-              </div>
-              <p class="text-body2 text-grey-6">
-                Manage themes, categories, and site-wide settings
-              </p>
-                            <div class="q-col-gutter-sm">
-                <q-btn
-                outline
-                  color="grey-6"
-                  :icon="UI_ICONS.paletteOutline"
-                  label="Theme Editor"
-                  to="/admin/theme"
-                  class="full-width"
-                />
-                <div class="row q-gutter-sm q-px-none">
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="brown"
-                      :icon="UI_ICONS.tagMultiple"
-                      label="Quick Categories"
-                      size="sm"
-                      @click="showCategoriesDialog = true"
-                      class="full-width"
-                    />
-                  </div>
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="deep-purple"
-                      :icon="UI_ICONS.colorFill"
-                      label="Quick Colors"
-                      size="sm"
-                      @click="showColorsDialog = true"
-                      class="full-width"
-                    />
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Canva Integration Demo -->
-        <div class="col-12 col-md-6">
-          <q-card class="full-height">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">
-                <q-icon :name="UI_ICONS.palette" class="q-mr-sm" />
-                Canva Integration Demo
-              </div>
-              <p class="text-body2 text-grey-6">
-                Test and demonstrate Canva Connect API features
-              </p>
-              <div class="q-col-gutter-sm">
-                <q-btn
-                  outline
-                  color="accent"
-                  :icon="UI_ICONS.autoFix"
-                  label="Canva Demo"
-                  to="/admin/canva-demo"
-                  class="full-width"
-                />
-                <div class="row q-gutter-sm q-px-none">
-                  <div class="col">
-                    <q-btn
-                      flat
-                      color="purple"
-                      :icon="UI_ICONS.autoFix"
-                      label="Autofill Test"
-                      size="sm"
-                      to="/admin/canva-demo#autofill"
-                      class="full-width"
-                    />
-                  </div>
-                  <div class="col">
-                    <q-btn
-                      flat
-                      color="indigo"
-                      :icon="UI_ICONS.download"
-                      label="Export Test"
-                      size="sm"
-                      to="/admin/canva-demo#export"
-                      class="full-width"
-                    />
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- User Management -->
-        <div class="col-12 col-md-6">
-          <q-card class="full-height">
-            <q-card-section>
-              <div class="text-h6 q-mb-md">
-                <q-icon :name="UI_ICONS.accountGroup" class="q-mr-sm" />
-                User Management
-              </div>
-              <p class="text-body2 text-grey-6">
-                Manage user accounts and permissions
-              </p>
-              <div class="q-col-gutter-sm">
-                <q-btn
-                outline
-                  color="info"
-                  :icon="UI_ICONS.accountCog"
-                  label="Manage Users"
-                  @click="showUserManagement = true"
-                  class="full-width"
-                />
-                <div class="row q-gutter-sm q-px-none">
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="green"
-                      :icon="UI_ICONS.accountPlus"
-                      label="Add Admin"
-                      size="sm"
-                      @click="showAddAdminDialog = true"
-                      class="full-width"
-                    />
-                  </div>
-                  <div class="col">
-                    <q-btn
-                    flat
-                      color="purple"
-                      :icon="UI_ICONS.accountKey"
-                      label="Roles"
-                      size="sm"
-                      @click="showRolesDialog = true"
-                      class="full-width"
-                    />
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
+      <BaseActionToolbar
+        :sections="actionSections"
+        :columns="2"
+        :loading="isLoadingStats"
+        @action-click="handleActionClick"
+      />
 
       <!-- Recent Activity -->
       <q-card class="q-mt-lg">
@@ -445,15 +175,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import CategoriesDialog from '../components/admin/CategoriesDialog.vue';
 import ColorsDialog from '../components/admin/ColorsDialog.vue';
+import BaseStatsGrid from '../components/BaseStatsGrid.vue';
+import BaseActionToolbar from '../components/BaseActionToolbar.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { UI_ICONS } from '../constants/ui-icons';
+
+// Component interfaces
+interface StatItem {
+  label: string;
+  value: string | number;
+  icon: string;
+  color: string;
+  description?: string;
+}
+
+interface ActionButton {
+  label: string;
+  icon: string;
+  color: string;
+  style?: 'outline' | 'flat';
+  size?: 'sm' | 'md';
+  to?: string;
+  action?: string;
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+interface ActionSection {
+  title: string;
+  titleIcon: string;
+  description: string;
+  primaryAction: ActionButton;
+  secondaryActions: ActionButton[];
+}
 
 const $q = useQuasar();
 const { getContentIcon, getStatusIcon } = useSiteTheme();
@@ -542,6 +303,238 @@ const getActivityColor = (type: string): string => {
     case 'user': return 'info';
     case 'system': return 'warning';
     default: return 'grey';
+  }
+};
+
+// Computed properties for base components
+const adminStats = computed((): StatItem[] => {
+  const contentIcon = getContentIcon('article');
+  const pendingIcon = getStatusIcon('pending');
+  const publishedIcon = getStatusIcon('published');
+  const notificationIcon = getContentIcon('notification');
+
+  return [
+    {
+      label: 'Total Content',
+      value: stats.value.totalContent,
+      icon: contentIcon.icon,
+      color: contentIcon.color,
+      description: 'Total content items'
+    },
+    {
+      label: 'Pending Reviews',
+      value: stats.value.pendingReviews,
+      icon: pendingIcon.icon,
+      color: pendingIcon.color,
+      description: 'Content awaiting review'
+    },
+    {
+      label: 'Published',
+      value: stats.value.publishedContent,
+      icon: publishedIcon.icon,
+      color: publishedIcon.color,
+      description: 'Published content'
+    },
+    {
+      label: 'Newsletters',
+      value: stats.value.newsletters,
+      icon: notificationIcon.icon,
+      color: notificationIcon.color,
+      description: 'Total newsletters'
+    }
+  ];
+});
+
+const actionSections = computed((): ActionSection[] => {
+  const announcementIcon = getContentIcon('announcement');
+  const newsletterIcon = getContentIcon('newsletter');
+  const pendingIcon = getStatusIcon('pending');
+  const publishedIcon = getStatusIcon('published');
+
+  return [
+    {
+      title: 'Content Management',
+      titleIcon: announcementIcon.icon,
+      description: 'Review and manage user-submitted content',
+      primaryAction: {
+        label: 'Review Content',
+        icon: UI_ICONS.eye,
+        color: 'primary',
+        style: 'outline',
+        to: '/admin/content'
+      },
+      secondaryActions: [
+        {
+          label: `${stats.value.pendingReviews} Pending`,
+          icon: pendingIcon.icon,
+          color: 'orange',
+          style: 'flat',
+          size: 'sm',
+          to: '/admin/content?tab=pending'
+        },
+        {
+          label: `${stats.value.publishedContent} Published`,
+          icon: publishedIcon.icon,
+          color: 'positive',
+          style: 'flat',
+          size: 'sm',
+          to: '/admin/content?tab=published'
+        }
+      ]
+    },
+    {
+      title: 'Newsletter Management',
+      titleIcon: newsletterIcon.icon,
+      description: 'Manage newsletter archive and publications',
+      primaryAction: {
+        label: 'Manage Newsletters',
+        icon: UI_ICONS.edit,
+        color: 'secondary',
+        style: 'outline',
+        to: '/admin/newsletters'
+      },
+      secondaryActions: [
+        {
+          label: 'Upload PDF',
+          icon: UI_ICONS.upload,
+          color: 'info',
+          style: 'flat',
+          size: 'sm',
+          action: 'showUploadDialog'
+        },
+        {
+          label: 'Settings',
+          icon: UI_ICONS.cog,
+          color: 'accent',
+          style: 'flat',
+          size: 'sm',
+          action: 'showNewsletterSettings'
+        }
+      ]
+    },
+    {
+      title: 'Site Configuration',
+      titleIcon: UI_ICONS.palette,
+      description: 'Manage themes, categories, and site-wide settings',
+      primaryAction: {
+        label: 'Theme Editor',
+        icon: UI_ICONS.paletteOutline,
+        color: 'grey-6',
+        style: 'outline',
+        to: '/admin/theme'
+      },
+      secondaryActions: [
+        {
+          label: 'Quick Categories',
+          icon: UI_ICONS.tagMultiple,
+          color: 'brown',
+          style: 'flat',
+          size: 'sm',
+          action: 'showCategoriesDialog'
+        },
+        {
+          label: 'Quick Colors',
+          icon: UI_ICONS.colorFill,
+          color: 'deep-purple',
+          style: 'flat',
+          size: 'sm',
+          action: 'showColorsDialog'
+        }
+      ]
+    },
+    {
+      title: 'Canva Integration Demo',
+      titleIcon: UI_ICONS.palette,
+      description: 'Test and demonstrate Canva Connect API features',
+      primaryAction: {
+        label: 'Canva Demo',
+        icon: UI_ICONS.autoFix,
+        color: 'accent',
+        style: 'outline',
+        to: '/admin/canva-demo'
+      },
+      secondaryActions: [
+        {
+          label: 'Autofill Test',
+          icon: UI_ICONS.autoFix,
+          color: 'purple',
+          style: 'flat',
+          size: 'sm',
+          to: '/admin/canva-demo#autofill'
+        },
+        {
+          label: 'Export Test',
+          icon: UI_ICONS.download,
+          color: 'indigo',
+          style: 'flat',
+          size: 'sm',
+          to: '/admin/canva-demo#export'
+        }
+      ]
+    },
+    {
+      title: 'User Management',
+      titleIcon: UI_ICONS.accountGroup,
+      description: 'Manage user accounts and permissions',
+      primaryAction: {
+        label: 'Manage Users',
+        icon: UI_ICONS.accountCog,
+        color: 'info',
+        style: 'outline',
+        action: 'showUserManagement'
+      },
+      secondaryActions: [
+        {
+          label: 'Add Admin',
+          icon: UI_ICONS.accountPlus,
+          color: 'green',
+          style: 'flat',
+          size: 'sm',
+          action: 'showAddAdminDialog'
+        },
+        {
+          label: 'Roles',
+          icon: UI_ICONS.accountKey,
+          color: 'purple',
+          style: 'flat',
+          size: 'sm',
+          action: 'showRolesDialog'
+        }
+      ]
+    }
+  ];
+});
+
+// Event handlers
+const handleStatClick = (stat: StatItem) => {
+  logger.info('Stat clicked:', stat.label);
+};
+
+const handleActionClick = (action: ActionButton) => {
+  switch (action.action) {
+    case 'showUploadDialog':
+      showUploadDialog.value = true;
+      break;
+    case 'showNewsletterSettings':
+      showNewsletterSettings.value = true;
+      break;
+    case 'showCategoriesDialog':
+      showCategoriesDialog.value = true;
+      break;
+    case 'showColorsDialog':
+      showColorsDialog.value = true;
+      break;
+    case 'showUserManagement':
+      showUserManagement.value = true;
+      break;
+    case 'showAddAdminDialog':
+      showAddAdminDialog.value = true;
+      break;
+    case 'showRolesDialog':
+      showRolesDialog.value = true;
+      break;
+    default:
+      logger.info('Action clicked:', action.label);
   }
 };
 
