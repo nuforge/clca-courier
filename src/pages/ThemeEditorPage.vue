@@ -447,7 +447,7 @@ import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { useTheme } from '../composables/useTheme';
-import { resolveColor, DEFAULT_SITE_THEME, getCategoryTheme, getStatusTheme } from '../config/site-theme.config';
+import { resolveColor, DEFAULT_SITE_THEME } from '../config/site-theme.config';
 import { logger } from '../utils/logger';
 import { UI_ICONS } from '../constants/ui-icons';
 import ColorPicker from '../components/theme/ColorPicker.vue';
@@ -554,11 +554,6 @@ const resolvePreviewColor = (colorRef: string): string => {
   }
 };
 
-// Preview icon resolution functions that use editable theme for live preview
-const getPreviewCategoryIcon = (contentType: string, category: string): string => {
-  const categoryTheme = getCategoryTheme(contentType, category, editableTheme.value);
-  return categoryTheme.icon;
-};
 
 const getDefaultColorForContentType = (type: string): string => {
   const defaultColors = DEFAULT_SITE_THEME.colors.contentTypes as Record<string, string>;
