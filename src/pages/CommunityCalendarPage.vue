@@ -17,6 +17,23 @@
           </p>
         </div>
         <div class="col-auto">
+          <!-- 🚩 FEATURE FLAG TOGGLE: Developer Only -->
+          <q-btn
+            v-if="isDevelopment"
+            flat
+            round
+            :icon="useNewCalendar ? 'mdi-test-tube-off' : 'mdi-test-tube'"
+            @click="useNewCalendar = !useNewCalendar"
+            :color="useNewCalendar ? 'positive' : 'orange'"
+            class="q-mr-sm"
+          >
+            <q-tooltip>
+              {{ useNewCalendar ? 'Switch to OLD Calendar' : 'Switch to NEW BaseCalendar' }}
+              <br />
+              <small>Week 1 Migration Test</small>
+            </q-tooltip>
+          </q-btn>
+
           <q-btn
             flat
             round
@@ -52,11 +69,6 @@
       <div class="row q-col-gutter-lg">
         <!-- Left Column: Calendar and Events List -->
         <div class="col-12 col-lg-8">
-          <!-- Calendar Grid -->
-          <q-card flat class="calendar-grid shadow-1 q-mb-md">
-            <q-card-section class="q-pa-none">
-
-
           <!-- Calendar Toolbar -->
           <q-card flat class="q-mb-md">
             <q-card-section class="q-pa-md">
@@ -65,6 +77,13 @@
                 <div class="row items-center q-gutter-sm">
                   <div class="text-h6">
                     {{ monthName }} {{ calendarState.currentYear }}
+                    <!-- Implementation Status Badge -->
+                    <q-badge
+                      v-if="isDevelopment"
+                      :color="useNewCalendar ? 'positive' : 'orange'"
+                      :label="useNewCalendar ? 'NEW BaseCalendar' : 'OLD Implementation'"
+                      class="q-ml-sm"
+                    />
                   </div>
                   <q-chip
                     v-if="filteredEventsCount > 0"
@@ -132,7 +151,11 @@
             </q-card-section>
           </q-card>
 
-              <!-- Calendar Component -->
+          <!-- 🚩 CONDITIONAL CALENDAR IMPLEMENTATION -->
+          <!-- OLD Implementation -->
+          <q-card v-if="!useNewCalendar" flat class="calendar-grid shadow-1 q-mb-md">
+            <q-card-section class="q-pa-none">
+              <!-- Original Calendar Component -->
               <q-date
                 :key="calendarKey"
                 v-model="calendarModel"
@@ -153,6 +176,19 @@
               />
             </q-card-section>
           </q-card>
+
+          <!-- NEW BaseCalendar Implementation -->
+          <BaseCalendar
+            v-else
+            :events="calendarEvents"
+            :selected-date="selectedDateModel"
+            :default-year-month="defaultYearMonth"
+            :get-event-color-for-date="getEventColorForDate"
+            :loading="isLoading"
+            @date-select="onDateSelect"
+            @navigation="onCalendarNavigation"
+            class="q-mb-md"
+          />
 
           <q-card flat class="shadow-1 sticky-details-pane">
             <q-card-section>
@@ -312,6 +348,7 @@ import { useQuasar } from 'quasar';
 import { useCalendarContent } from '../composables/useCalendarContent';
 import type { CalendarEvent } from '../services/calendar-content.service';
 import EventsListSection from '../components/calendar/EventsListSection.vue';
+import BaseCalendar from '../components/BaseCalendar.vue';
 import { logger } from '../utils/logger';
 import { formatDate, getCurrentYear, getCurrentMonth, parseDateOnly, isPast, isFuture } from '../utils/date-formatter';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
@@ -356,6 +393,12 @@ const showFeaturedOnly = ref(false);
 const selectedEvent = ref<CalendarEvent | null>(null);
 const calendarRef = ref();
 const isNavigating = ref(false); // Flag to track when we're navigating months
+
+// 🚩 FEATURE FLAG: Week 1 Component Architecture Migration
+const useNewCalendar = ref(false); // Toggle between old and new BaseCalendar implementation
+
+// Development environment check (simplified for feature flag testing)
+const isDevelopment = ref(true); // Set to false in production build
 
 // Expansion panel state management
 const expansionState = ref<Record<string, boolean>>({}); // Track which days are manually closed
