@@ -17,23 +17,6 @@
           </p>
         </div>
         <div class="col-auto">
-          <!-- 🚩 FEATURE FLAG TOGGLE: Developer Only -->
-          <q-btn
-            v-if="isDevelopment"
-            flat
-            round
-            :icon="useNewCalendar ? 'mdi-test-tube-off' : 'mdi-test-tube'"
-            @click="useNewCalendar = !useNewCalendar"
-            :color="useNewCalendar ? 'positive' : 'orange'"
-            class="q-mr-sm"
-          >
-            <q-tooltip>
-              {{ useNewCalendar ? 'Switch to OLD Calendar' : 'Switch to NEW BaseCalendar' }}
-              <br />
-              <small>Week 1 Migration Test</small>
-            </q-tooltip>
-          </q-btn>
-
           <q-btn
             flat
             round
@@ -77,13 +60,6 @@
                 <div class="row items-center q-gutter-sm">
                   <div class="text-h6">
                     {{ monthName }} {{ calendarState.currentYear }}
-                    <!-- Implementation Status Badge -->
-                    <q-badge
-                      v-if="isDevelopment"
-                      :color="useNewCalendar ? 'positive' : 'orange'"
-                      :label="useNewCalendar ? 'NEW BaseCalendar' : 'OLD Implementation'"
-                      class="q-ml-sm"
-                    />
                   </div>
                   <q-chip
                     v-if="filteredEventsCount > 0"
@@ -151,35 +127,8 @@
             </q-card-section>
           </q-card>
 
-          <!-- 🚩 CONDITIONAL CALENDAR IMPLEMENTATION -->
-          <!-- OLD Implementation -->
-          <q-card v-if="!useNewCalendar" flat class="calendar-grid shadow-1 q-mb-md">
-            <q-card-section class="q-pa-none">
-              <!-- Original Calendar Component -->
-              <q-date
-                :key="calendarKey"
-                v-model="calendarModel"
-                :events="calendarEvents"
-                :event-color="getEventColorForDate"
-                today-btn
-                class="full-width"
-                @update:model-value="onDateSelect"
-                @navigation="onCalendarNavigation"
-                landscape
-                :default-year-month="defaultYearMonth"
-                :navigation-min-year-month="`2020/01`"
-                :navigation-max-year-month="`2030/12`"
-                flat
-                emit-immediately
-                :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
-                ref="calendarRef"
-              />
-            </q-card-section>
-          </q-card>
-
-          <!-- NEW BaseCalendar Implementation -->
+          <!-- Calendar Implementation -->
           <BaseCalendar
-            v-else
             :events="calendarEvents"
             :selected-date="selectedDateModel"
             :default-year-month="defaultYearMonth"
@@ -391,14 +340,9 @@ const todayFormatted = `${getCurrentYear()}/${getCurrentMonth().toString().padSt
 const selectedDateModel = ref<string | null>(todayFormatted);
 const showFeaturedOnly = ref(false);
 const selectedEvent = ref<CalendarEvent | null>(null);
-const calendarRef = ref();
 const isNavigating = ref(false); // Flag to track when we're navigating months
 
-// 🚩 FEATURE FLAG: Week 1 Component Architecture Migration
-const useNewCalendar = ref(false); // Toggle between old and new BaseCalendar implementation
-
-// Development environment check (simplified for feature flag testing)
-const isDevelopment = ref(true); // Set to false in production build
+// Calendar implementation using BaseCalendar component
 
 // Expansion panel state management
 const expansionState = ref<Record<string, boolean>>({}); // Track which days are manually closed
@@ -491,34 +435,9 @@ const isExpansionOpen = (date: string): boolean => {
   }
 };
 
-// Reactive state to force calendar updates
-const calendarUpdateTrigger = ref(0);
-
-// Computed for calendar view to force updates when month/year changes
-const calendarKey = computed(() => {
-  // Force complete re-render when month/year changes
-  const monthYear = `${calendarState.value.currentYear}-${calendarState.value.currentMonth}`;
-  return `calendar-${monthYear}-${calendarUpdateTrigger.value}`;
-});
-
 const defaultYearMonth = computed(() =>
   `${calendarState.value.currentYear}/${calendarState.value.currentMonth.toString().padStart(2, '0')}`
 );
-
-// Force calendar to update when month/year changes
-const calendarModel = computed({
-  get: () => selectedDateModel.value,
-  set: (value) => {
-    // Only update the selected date model if we're not navigating months
-    // This prevents the calendar from changing the selected date during navigation
-    if (!isNavigating.value) {
-      selectedDateModel.value = value;
-      logger.debug('🗓️ Updated selectedDateModel from user selection:', value);
-    } else {
-      logger.debug('🗓️ Ignored selectedDateModel update during navigation:', value);
-    }
-  }
-});
 
 
 // Methods
@@ -555,16 +474,6 @@ const onCalendarNavigation = (view: { year: number; month: number }) => {
     isNavigating.value = false;
     logger.debug('🗓️ Navigation flag cleared, selected date preserved:', currentSelectedDate);
   });
-};
-
-// Method to force calendar to update its view
-const forceCalendarUpdate = () => {
-  logger.debug('🗓️ Forcing calendar update for month:', calendarState.value.currentMonth);
-
-  // Force complete re-render by incrementing the trigger
-  calendarUpdateTrigger.value += 1;
-
-  logger.debug('🗓️ Calendar trigger incremented to:', calendarUpdateTrigger.value);
 };
 
 const onDateSelect = (date: string | string[] | null) => {
@@ -857,9 +766,6 @@ watch(() => [calendarState.value.currentYear, calendarState.value.currentMonth],
   logger.debug('🗓️ Month/Year changed:', { year, month });
   // Note: We intentionally do NOT change the selected date when navigating months
   // This allows users to keep their selected date when browsing different months
-
-  // Force calendar to update its view when month changes
-  forceCalendarUpdate();
 });
 
 // Watch monthName changes

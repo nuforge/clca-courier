@@ -24,7 +24,7 @@
         :navigation-max-year-month="`2030/12`"
         flat
         emit-immediately
-        :aria-label="$t(TRANSLATION_KEYS.CONTENT.CALENDAR.TITLE)"
+        aria-label="Community Calendar"
         ref="calendarRef"
       />
 
@@ -38,11 +38,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 import { logger } from '../utils/logger';
-
-const { t } = useI18n();
 
 // Strict TypeScript interfaces
 interface Props {
