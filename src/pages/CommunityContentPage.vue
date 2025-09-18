@@ -188,7 +188,9 @@ watch(contentType, (newType: string) => {
     logger.warn('Failed to update URL query params:', error);
   });
 });
-</script><template>
+</script>
+
+<template>
   <q-page padding>
     <div class="q-pa-md">
       <div class="row justify-center">
