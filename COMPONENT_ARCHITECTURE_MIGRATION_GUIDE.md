@@ -30,16 +30,16 @@ This document outlines the migration strategy for transforming the CLCA Courier 
 
 #### Medium Priority
 
-5. **IndexPage.vue** (241 lines)
-6. **NewsletterDetailsPage.vue** (496 lines)
-7. **SettingsPage.vue** (461 lines)
-8. **AboutContactPage.vue** (404 lines)
+1. **IndexPage.vue** (241 lines)
+2. **NewsletterDetailsPage.vue** (496 lines)
+3. **SettingsPage.vue** (461 lines)
+4. **AboutContactPage.vue** (404 lines)
 
 #### Lower Priority
 
-9. **TermsOfServicePage.vue** (279 lines)
-10. **PrivacyPolicyPage.vue** (218 lines)
-11. **AccessibilityPage.vue** (300 lines)
+1. **TermsOfServicePage.vue** (279 lines)
+2. **PrivacyPolicyPage.vue** (218 lines)
+3. **AccessibilityPage.vue** (300 lines)
 
 ## Target Architecture: 10 Base Components
 
@@ -205,42 +205,50 @@ interface BasePreviewPanelProps {
 
 ## Configuration-Driven Approach
 
-### Content Filter Configuration
+> **⚠️ WARNING**: Start with simple, minimal configurations that meet the needs of 2-3 pages. Avoid building complex, abstract configuration systems upfront. Generalize only after validating patterns across multiple use cases.
+
+### Simple Content Filter Configuration (Start Here)
 
 ```typescript
-const contentFilterConfig: FilterConfig = {
-  search: { 
-    placeholder: 'Search content...',
-    debounce: 300 
+// ✅ START SIMPLE: Basic filter configuration for 2-3 pages
+const simpleFilterConfig = {
+  search: {
+    placeholder: 'Search...',
+    debounce: 300
   },
   filters: [
-    { 
-      key: 'category', 
-      type: 'select', 
-      options: categories,
+    {
+      key: 'category',
+      type: 'select',
+      options: ['news', 'events', 'classifieds'],
       label: 'Category'
     },
-    { 
-      key: 'dateRange', 
-      type: 'date-range',
-      label: 'Date Range'
-    },
-    { 
-      key: 'status', 
-      type: 'multi-select', 
-      options: statuses,
+    {
+      key: 'status',
+      type: 'select',
+      options: ['published', 'draft'],
       label: 'Status'
     }
   ],
-  sorting: { 
+  sorting: {
     options: [
       { value: 'date', label: 'Date' },
-      { value: 'title', label: 'Title' },
-      { value: 'author', label: 'Author' }
+      { value: 'title', label: 'Title' }
     ],
     default: 'date'
   }
 };
+
+// ❌ AVOID: Complex configuration system upfront
+// const complexFilterConfig: FilterConfig = {
+//   search: { placeholder: 'Search content...', debounce: 300 },
+//   filters: [
+//     { key: 'category', type: 'select', options: categories, label: 'Category' },
+//     { key: 'dateRange', type: 'date-range', label: 'Date Range' },
+//     { key: 'status', type: 'multi-select', options: statuses, label: 'Status' }
+//   ],
+//   sorting: { options: [...], default: 'date' }
+// };
 ```
 
 ### Statistics Configuration
@@ -297,60 +305,136 @@ const bulkActions: BulkAction[] = [
 ];
 ```
 
-## Migration Strategy
+## Migration Strategy: Incremental Page-by-Page Approach
 
-### Phase 1: Create Base Components (Weeks 1-2)
+> **⚠️ CRITICAL**: This strategy prioritizes immediate value delivery and risk mitigation by building components as needed for each page, rather than creating all base components upfront.
 
-1. **Week 1**: Create core content components
-   - `BaseContentCard.vue`
-   - `BaseContentList.vue`
-   - `BaseContentFilters.vue`
+### Phase 1: High-Priority Page Refactoring (Weeks 1-4)
 
-2. **Week 2**: Create layout components
-   - `BaseStatsGrid.vue`
-   - `BaseActionToolbar.vue`
-   - `BaseTabbedContent.vue`
-   - `BaseDialog.vue`
+#### Week 1: CommunityCalendarPage.vue Refactoring
 
-### Phase 2: Create Specialized Components (Week 3)
+**Goal**: Refactor the most complex page first to establish patterns and validate component design
 
-3. **Week 3**: Create specialized components
-   - `BaseCalendar.vue`
-   - `BaseFormStepper.vue`
-   - `BasePreviewPanel.vue`
+**Components to Create**:
 
-### Phase 3: Refactor High-Priority Pages (Weeks 4-5)
+- `BaseCalendar.vue` - Calendar display and interaction
+- `BaseContentCard.vue` - Event card display (simplified version)
 
-4. **Week 4**: Refactor complex pages
-   - `CommunityCalendarPage.vue` → Use `BaseCalendar`, `BaseContentCard`, `BaseContentList`
-   - `ThemeEditorPage.vue` → Use `BaseTabbedContent`, `BasePreviewPanel`
+**Testing Strategy**:
 
-5. **Week 5**: Refactor remaining high-priority pages
-   - `NewsletterArchivePage.vue` → Use `BaseContentFilters`, `BaseContentList`
-   - `AdminDashboardPage.vue` → Use `BaseStatsGrid`, `BaseActionToolbar`
+- Create feature flag: `useNewCalendarComponents`
+- Run old and new implementations side-by-side
+- User acceptance testing with real calendar data
+- Performance comparison (render time, memory usage)
 
-### Phase 4: Refactor Medium-Priority Pages (Week 6)
+**Definition of Done**:
 
-6. **Week 6**: Refactor medium-priority pages
-   - `IndexPage.vue` → Use `BaseContentCard`, `BaseStatsGrid`
-   - `NewsletterDetailsPage.vue` → Use `BaseContentCard`, `BaseActionToolbar`
-   - `SettingsPage.vue` → Use `BaseTabbedContent`
-   - `AboutContactPage.vue` → Use `BaseContentCard`
+- [ ] `BaseCalendar.vue` created with strict TypeScript interfaces
+- [ ] `BaseContentCard.vue` created for event display
+- [ ] Feature flag allows switching between old/new implementations
+- [ ] All existing calendar functionality preserved
+- [ ] Unit tests for both components
+- [ ] Performance metrics documented
+- [ ] Old components archived (not deleted)
 
-### Phase 5: Refactor Low-Priority Pages (Week 7)
+#### Week 2: ThemeEditorPage.vue Refactoring
 
-7. **Week 7**: Refactor simple pages
-   - `TermsOfServicePage.vue` → Use `BaseContentCard`
-   - `PrivacyPolicyPage.vue` → Use `BaseContentCard`
-   - `AccessibilityPage.vue` → Use `BaseContentCard`
+**Goal**: Refactor theme editor to use tabbed content and preview components
 
-### Phase 6: Cleanup and Optimization (Week 8)
+**Components to Create**:
 
-8. **Week 8**: Remove old components and optimize
-   - Delete unused component files
-   - Update imports across the codebase
-   - Performance testing and optimization
-   - Documentation updates
+- `BaseTabbedContent.vue` - Tabbed interface wrapper
+- `BasePreviewPanel.vue` - Live preview display
+
+**Testing Strategy**:
+
+- Feature flag: `useNewThemeEditor`
+- Side-by-side comparison of theme editing functionality
+- Test all theme customization features
+- Validate preview accuracy
+
+#### Week 3: NewsletterArchivePage.vue Refactoring
+
+**Goal**: Refactor newsletter archive with unified content listing
+
+**Components to Create**:
+
+- `BaseContentList.vue` - Unified content listing (builds on Week 1's BaseContentCard)
+- `BaseContentFilters.vue` - Simple filtering interface (start minimal)
+
+**Testing Strategy**:
+
+- Feature flag: `useNewNewsletterArchive`
+- Compare filtering and sorting functionality
+- Test pagination and performance with large datasets
+- Validate search functionality
+
+#### Week 4: AdminDashboardPage.vue Refactoring
+
+**Goal**: Refactor admin dashboard with statistics and action components
+
+**Components to Create**:
+
+- `BaseStatsGrid.vue` - Statistics display
+- `BaseActionToolbar.vue` - Action buttons and controls
+
+**Testing Strategy**:
+
+- Feature flag: `useNewAdminDashboard`
+- Compare admin functionality and permissions
+- Test all admin actions and bulk operations
+- Validate statistics accuracy
+
+### Phase 2: Medium-Priority Page Refactoring (Weeks 5-6)
+
+#### Week 5: IndexPage.vue and NewsletterDetailsPage.vue
+
+**Components to Reuse**:
+
+- `BaseContentCard.vue` (from Week 1)
+- `BaseStatsGrid.vue` (from Week 4)
+- `BaseActionToolbar.vue` (from Week 4)
+
+**Testing Strategy**:
+
+- Feature flags for each page
+- Side-by-side functionality comparison
+- Performance testing
+
+#### Week 6: SettingsPage.vue and AboutContactPage.vue
+
+**Components to Reuse**:
+
+- `BaseTabbedContent.vue` (from Week 2)
+- `BaseContentCard.vue` (from Week 1)
+
+### Phase 3: Low-Priority Page Refactoring (Week 7)
+
+#### Week 7: Simple Pages Refactoring
+
+**Pages**: `TermsOfServicePage.vue`, `PrivacyPolicyPage.vue`, `AccessibilityPage.vue`
+
+**Components to Reuse**:
+
+- `BaseContentCard.vue` (from Week 1)
+
+### Phase 4: Cleanup and Optimization (Week 8)
+
+#### Week 8: Archive and Optimize
+
+**Archive Strategy**:
+
+- Move all old components to `src/components/archive/`
+- Document archived components and their replacement mappings
+- Keep archived components for one full development cycle
+- Remove archived components only after 4+ weeks of stable operation
+
+**Optimization Tasks**:
+
+- Update imports across the codebase
+- Performance testing and optimization
+- Documentation updates
+- Bundle size analysis
 
 ## Implementation Guidelines
 
@@ -433,30 +517,54 @@ interface BaseComponentProps<T> {
 }
 ```
 
-#### 3. Quasar Component Usage
+#### 3. Quasar Component Usage & Styling Rules
+
+> **🚨 CRITICAL RULE**: NO CUSTOM CSS ALLOWED in base components. Use ONLY Quasar utility classes and component props.
 
 ```vue
 <template>
-  <!-- Use Quasar components consistently -->
-  <q-page padding>
-    <q-card>
-      <q-card-section>
-        <q-input
-          v-model="searchQuery"
-          label="Search"
-          outlined
-          dense
-          clearable
-        >
-          <template v-slot:prepend>
-            <q-icon name="search" />
-          </template>
-        </q-input>
+  <!-- ✅ CORRECT: Use Quasar components and utility classes -->
+  <q-page class="q-pa-md">
+    <q-card class="q-mb-md">
+      <q-card-section class="q-pa-md">
+        <div class="row q-gutter-md">
+          <div class="col-12 col-md-6">
+            <q-input
+              v-model="searchQuery"
+              label="Search"
+              outlined
+              dense
+              clearable
+              class="q-mb-sm"
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </div>
+        </div>
       </q-card-section>
     </q-card>
   </q-page>
 </template>
+
+<style>
+/* ❌ FORBIDDEN: Custom CSS in base components */
+/* .custom-styles { color: red; } */
+
+/* ✅ ALLOWED: Only Quasar utility classes */
+/* Use: q-pa-md, q-mb-sm, text-h6, row, col, q-gutter-md, etc. */
+</style>
 ```
+
+**Mandatory Quasar Utility Classes**:
+
+- **Spacing**: `q-pa-md`, `q-ma-sm`, `q-mb-lg`, `q-pt-xs`
+- **Typography**: `text-h6`, `text-body1`, `text-caption`
+- **Layout**: `row`, `col`, `col-12`, `col-md-6`
+- **Gutters**: `q-gutter-md`, `q-gutter-sm`
+- **Colors**: `text-primary`, `bg-positive`, `text-negative`
+- **Display**: `flex`, `inline-flex`, `block`, `inline-block`
 
 #### 4. Error Handling
 
@@ -508,54 +616,102 @@ const handleAction = async (action: string, item: ContentDoc) => {
 - Easier onboarding for new developers
 - Better code reusability
 
-## Migration Checklist
+## Definition of Done Checklist
 
 ### For Each Page Migration
 
-- [ ] Identify components to extract
-- [ ] Create configuration objects
-- [ ] Implement base components
-- [ ] Update page to use base components
-- [ ] Test functionality
-- [ ] Remove old component files
-- [ ] Update imports
-- [ ] Update documentation
+- [ ] **Analysis**: Identify components to extract from page
+- [ ] **Design**: Create minimal configuration objects (avoid over-engineering)
+- [ ] **Implementation**: Build base components with strict TypeScript
+- [ ] **Feature Flag**: Create feature flag for side-by-side testing
+- [ ] **Testing**: Run old and new implementations simultaneously
+- [ ] **Validation**: All existing functionality preserved
+- [ ] **Performance**: Document performance metrics
+- [ ] **Archive**: Move old components to `src/components/archive/`
+- [ ] **Update**: Update imports and documentation
+- [ ] **User Testing**: Complete user acceptance testing
 
 ### For Each Base Component
 
-- [ ] Define TypeScript interfaces
-- [ ] Implement Vue 3 Composition API
-- [ ] Use Quasar components consistently
-- [ ] Add proper error handling
-- [ ] Write unit tests
-- [ ] Document props and events
-- [ ] Create usage examples
+- [ ] **Structure**: Built with `<script setup lang="ts">`
+- [ ] **Types**: Props and Emits are strictly typed (no `any` types)
+- [ ] **Components**: Uses Quasar components exclusively
+- [ ] **Styling**: Styled ONLY with Quasar utility classes (no custom CSS)
+- [ ] **Error Handling**: Proper error handling with logger utility
+- [ ] **Testing**: Unit tests for key interactions and prop validation
+- [ ] **Integration**: Successfully integrated into at least one page
+- [ ] **Documentation**: Props, events, and usage examples documented
+- [ ] **Performance**: Component render time <50ms
+- [ ] **Accessibility**: Proper ARIA labels and keyboard navigation
 
-## Risk Mitigation
+## Risk Mitigation & Testing Strategy
 
 ### Functionality Preservation
 
-- **Maintain all existing functionality** during migration
-- **Test each component** before removing old code
-- **Keep old components** until new ones are fully tested
-- **Use feature flags** for gradual rollout
-- **Archive Obsolete Code** archive, remove, and document obsolete code
+- **✅ Feature Flags**: Use feature flags for side-by-side testing
+- **✅ Archive Strategy**: Move old components to `src/components/archive/` (don't delete)
+- **✅ Gradual Rollout**: Test new components for 4+ weeks before archiving old ones
+- **✅ User Acceptance**: Complete user acceptance testing for each page
+- **✅ Performance Monitoring**: Track render times and bundle size changes
 
-### Code Quality
+### Testing & Verification Process
 
-- **Follow TypeScript strict mode** guidelines
-- **Use ESLint and Prettier** for code consistency
-- **Write unit tests** for all base components
-- **Document all changes** thoroughly
-- **Avoid Custom CSS** stick to Quasar component and follow theme
-- **File Architecture** rename files to best standards
+#### Side-by-Side Testing Protocol
 
-### Performance
+1. **Create Feature Flag**:
 
-- **Monitor bundle size** during migration
-- **Test performance** of new components
-- **Optimize imports** and lazy loading
-- **Use Vue DevTools** for debugging
+   ```typescript
+   const useNewComponents = ref(false); // Toggle between old/new
+   ```
+
+2. **Implement Both Versions**:
+
+   ```vue
+   <template>
+     <div>
+       <!-- Old Implementation -->
+       <OldComponent v-if="!useNewComponents" />
+       
+       <!-- New Implementation -->
+       <BaseComponent v-else />
+     </div>
+   </template>
+   ```
+
+3. **Validation Checklist**:
+
+   - [ ] All existing functionality works identically
+   - [ ] Performance metrics are equal or better
+   - [ ] User experience is consistent
+   - [ ] No regressions in edge cases
+   - [ ] Error handling works correctly
+
+#### Archive Strategy (Safety Net)
+
+```bash
+# Archive old components (don't delete)
+mkdir -p src/components/archive/
+mv src/components/OldComponent.vue src/components/archive/
+
+# Document the mapping
+# src/components/archive/README.md
+# OldComponent.vue -> BaseComponent.vue (Week 1)
+```
+
+### Code Quality Enforcement
+
+- **🚨 TypeScript Strict Mode**: NEVER use `any` types
+- **🚨 Quasar-Only Styling**: NO custom CSS in base components
+- **🚨 Professional Logging**: Use `logger` utility, NO console statements
+- **🚨 ESLint Compliance**: 0 warnings, 0 errors
+- **🚨 Unit Testing**: 100% coverage for base components
+
+### Performance Monitoring
+
+- **Bundle Size**: Monitor with `npm run build` analysis
+- **Render Time**: Target <50ms per component
+- **Memory Usage**: Track with Vue DevTools
+- **Lazy Loading**: Implement for large components
 
 ## Success Metrics
 
@@ -585,4 +741,4 @@ The key to success is maintaining functionality throughout the migration process
 
 ---
 
-**Next Steps**: Begin with Phase 1 implementation, starting with `BaseContentCard.vue` and `BaseContentList.vue` components.
+**Next Steps**: Begin with Week 1 implementation, refactoring `CommunityCalendarPage.vue` and creating `BaseCalendar.vue` and `BaseContentCard.vue` components as needed.
