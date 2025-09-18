@@ -46,7 +46,7 @@ interface ActionSection {
   secondaryActions: ActionButton[];
 }
 
-interface LanguageListItem {
+interface LanguageListItem extends Record<string, unknown> {
   id: string;
   title: string;
   description: string;
@@ -435,20 +435,20 @@ const handleStatClick = (stat: StatItem) => {
                   <template #item="{ item }">
                     <q-item
                       clickable
-                      @click="handleLanguageSelect(item)"
-                      :class="item.isActive ? 'bg-primary text-white' : ''"
+                      @click="handleLanguageSelect(item as LanguageListItem)"
+                      :class="(item as LanguageListItem).isActive ? 'bg-primary text-white' : ''"
                       class="q-mb-xs rounded-borders"
                     >
                       <q-item-section avatar>
-                        <span class="text-h6">{{ item.flag }}</span>
+                        <span class="text-h6">{{ (item as LanguageListItem).flag }}</span>
                       </q-item-section>
                       <q-item-section>
                         <q-item-label>{{ item.title }}</q-item-label>
-                        <q-item-label caption :class="item.isActive ? 'text-grey-3' : 'text-grey-6'">
+                        <q-item-label caption :class="(item as LanguageListItem).isActive ? 'text-grey-3' : 'text-grey-6'">
                           {{ item.description }}
                         </q-item-label>
                       </q-item-section>
-                      <q-item-section side v-if="item.isActive">
+                      <q-item-section side v-if="(item as LanguageListItem).isActive">
                         <q-icon name="check" color="white" />
                       </q-item-section>
                     </q-item>

@@ -43,7 +43,7 @@ interface ActionSection {
   secondaryActions: ActionButton[];
 }
 
-interface AboutListItem {
+interface AboutListItem extends Record<string, unknown> {
   id: string;
   title: string;
   description: string;
@@ -350,13 +350,18 @@ const handleActionClick = (action: ActionButton) => {
 // Handle stats click (optional - could show additional info)
 const handleStatClick = (stat: StatItem) => {
   // Optional: Could show detailed community information
-  $q.notify({
+  const notifyOptions: Record<string, unknown> = {
     message: `${stat.label}: ${stat.value}`,
-    caption: stat.description,
     color: 'info',
     icon: stat.icon,
     timeout: 3000
-  });
+  };
+
+  if (stat.description) {
+    notifyOptions.caption = stat.description;
+  }
+
+  $q.notify(notifyOptions);
 };
 </script>
 
@@ -439,15 +444,15 @@ const handleStatClick = (stat: StatItem) => {
                     <q-icon name="mdi-eye" class="q-mr-sm" />
                     {{ t(TRANSLATION_KEYS.ABOUT.WHAT_WE_COVER) }}
                   </div>
-                  <BaseContentList
-                    :items="coverageAreas"
-                    variant="grid"
-                    :loading="false"
-                  >
-                    <template #item="{ item }">
-                      <q-card :class="cardClasses" class="full-height">
-                        <q-card-section class="text-center">
-                          <q-icon :name="item.icon" :color="item.color" size="2rem" />
+                        <BaseContentList
+                          :items="coverageAreas"
+                          variant="grid"
+                          :loading="false"
+                        >
+                          <template #item="{ item }">
+                            <q-card :class="cardClasses" class="full-height">
+                              <q-card-section class="text-center">
+                                <q-icon :name="(item as AboutListItem).icon" :color="(item as AboutListItem).color" size="2rem" />
                           <div class="text-subtitle1 q-mt-sm q-mb-xs">{{ item.title }}</div>
                           <div class="text-caption text-grey-6">{{ item.description }}</div>
                         </q-card-section>
@@ -471,9 +476,9 @@ const handleStatClick = (stat: StatItem) => {
                     <q-card :class="cardClasses" class="full-height">
                       <q-card-section class="text-center">
                         <q-avatar
-                          :color="item.color"
+                          :color="(item as AboutListItem).color"
                           text-color="white"
-                          :icon="item.avatar"
+                          :icon="(item as AboutListItem).avatar"
                           size="xl"
                           class="q-mb-md"
                         />
@@ -511,7 +516,7 @@ const handleStatClick = (stat: StatItem) => {
                           <template #item="{ item }">
                             <q-item>
                               <q-item-section side>
-                                <q-icon :name="item.icon" :color="item.color" />
+                                <q-icon :name="(item as AboutListItem).icon" :color="(item as AboutListItem).color" />
                               </q-item-section>
                               <q-item-section>
                                 <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
