@@ -156,6 +156,79 @@ export default {
     load_users_failed: 'Failed to load users',
     task_updated: 'Task updated successfully',
     task_update_failed: 'Failed to update task'
+  },
+
+  // Real-time monitoring
+  realTimeMonitor: {
+    title: 'Real-Time Task Monitor',
+    connected: 'Connected',
+    connecting: 'Connecting',
+    disconnected: 'Disconnected',
+    pauseRefresh: 'Pause Auto Refresh',
+    startRefresh: 'Start Auto Refresh',
+    manualRefresh: 'Manual Refresh',
+    overview: 'Task Overview',
+    totalTasks: 'Total Tasks',
+    unassigned: 'Unassigned',
+    overdue: 'Overdue',
+    approaching: 'Approaching Deadline',
+    statusDistribution: 'Status Distribution',
+    volunteerWorkload: 'Volunteer Workload',
+    activeTasks: 'active tasks',
+    completed: 'completed',
+    active: 'active',
+    avgTime: 'avg time',
+    noVolunteers: 'No volunteers with active tasks',
+    recentTasks: 'Recent Tasks',
+    recentActivity: 'Recent Activity',
+    noActivity: 'No recent activity',
+    by: 'by',
+    retry: 'Retry',
+    refreshSuccess: 'Data refreshed successfully',
+    refreshError: 'Failed to refresh data',
+    connectionError: 'Failed to connect to real-time updates',
+    taskCompleted: '{category} task completed',
+    taskAssigned: '{category} task assigned',
+    taskCreated: '{category} task created'
+  },
+
+  // Deadline management
+  deadlines: {
+    approaching: 'Approaching Deadline',
+    overdue: 'Overdue',
+    onTrack: 'On Track',
+    critical: 'Critical',
+    requestExtension: 'Request Extension',
+    extensionRequested: 'Extension requested',
+    extensionApproved: 'Extension approved',
+    extensionRejected: 'Extension rejected',
+    reason: 'Reason for extension',
+    newDeadline: 'New deadline',
+    currentDeadline: 'Current deadline',
+    extensionReason: 'Please provide a reason for the deadline extension',
+    submitExtension: 'Submit Extension Request',
+    cancelExtension: 'Cancel',
+    extensionSuccess: 'Extension request submitted successfully',
+    extensionError: 'Failed to submit extension request',
+    invalidDeadline: 'New deadline must be after current deadline',
+    reasonRequired: 'Extension reason is required'
+  },
+
+  // Notification types
+  notificationTypes: {
+    task_assigned: 'Task Assigned',
+    task_reassigned: 'Task Reassigned',
+    task_completed: 'Task Completed',
+    task_claimed: 'Task Claimed',
+    task_unclaimed: 'Task Available',
+    deadline_approaching: 'Deadline Approaching',
+    task_overdue: 'Task Overdue',
+    task_escalated: 'Task Escalated',
+    tasks_reassigned: 'Tasks Reassigned',
+    content_published: 'Content Published',
+    system_announcement: 'System Announcement',
+    welcome: 'Welcome',
+    skill_request: 'Skills Needed'
   }
 };
 

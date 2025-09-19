@@ -305,5 +305,83 @@ service cloud.firestore {
     match /generation_progress/{progressId} {
       allow read, write: if isAuthenticated();
     }
+
+    // Notifications collection - Enhanced for volunteer workflow system
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can update their own notifications (mark as read, delete)
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // System (Cloud Functions) can create notifications
+      // Moderators and administrators can create system-wide notifications
+      allow create: if isAuthenticated() && (
+        // Allow creation if it's for the authenticated user (self-notifications)
+        request.resource.data.userId == request.auth.uid ||
+        // Allow moderators and administrators to create notifications
+        canManageRoles(request.auth.uid)
+      );
+      
+      // Administrators can read all notifications for system monitoring
+      allow read: if isAuthenticated() && getUserRole(request.auth.uid) == 'administrator';
+    }
+
+    // Deadline extension requests collection
+    match /deadlineExtensions/{requestId} {
+      // Users can read their own extension requests
+      allow read: if isAuthenticated() && resource.data.requestedBy == request.auth.uid;
+      
+      // Users can create extension requests for their own tasks
+      allow create: if isAuthenticated() && request.resource.data.requestedBy == request.auth.uid;
+      
+      // Moderators and administrators can read and update all extension requests
+      allow read, update: if isAuthenticated() && canManageRoles(request.auth.uid);
+    }
+
+    // Task statistics collection (read-only for performance)
+    match /taskStatistics/{statisticsId} {
+      // Authenticated users can read task statistics
+      allow read: if isAuthenticated();
+      
+      // Only system (Cloud Functions) can write statistics
+      allow write: if false; // Prevent client-side writes
+    }
+
+    // Volunteer performance metrics collection
+    match /volunteerMetrics/{userId} {
+      // Users can read their own metrics
+      allow read: if isAuthenticated() && userId == request.auth.uid;
+      
+      // Moderators and administrators can read all metrics
+      allow read: if isAuthenticated() && canManageRoles(request.auth.uid);
+      
+      // Only system can write metrics
+      allow write: if false; // Prevent client-side writes
+    }
+
+    // Task assignment logs collection (audit trail)
+    match /taskAssignmentLogs/{logId} {
+      // Moderators and administrators can read assignment logs
+      allow read: if isAuthenticated() && canManageRoles(request.auth.uid);
+      
+      // Users can read logs related to their tasks
+      allow read: if isAuthenticated() && (
+        resource.data.assignedTo == request.auth.uid ||
+        resource.data.assignedBy == request.auth.uid
+      );
+      
+      // Only system can write logs
+      allow write: if false; // Prevent client-side writes
+    }
+
+    // Real-time task monitoring collection
+    match /taskMonitoring/{monitoringId} {
+      // Authenticated users can read monitoring data
+      allow read: if isAuthenticated();
+      
+      // Only system can write monitoring data
+      allow write: if false; // Prevent client-side writes
+    }
   }
 }
