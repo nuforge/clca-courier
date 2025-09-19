@@ -207,46 +207,8 @@ class ContentSubmissionService {
     );
   }
 
-  /**
-   * Create content with task feature (volunteer tasks, community needs).
-   * Convenience method for common task creation pattern.
-   *
-   * @param title - Task title
-   * @param description - Task description
-   * @param category - Task category (e.g., 'printing', 'setup', 'cleanup')
-   * @param qty - Quantity needed
-   * @param unit - Unit of measurement
-   * @param additionalFeatures - Additional features to include
-   * @param additionalTags - Additional tags beyond content-type:task
-   * @returns The ID of the created content document
-   */
-  async createTask(
-    title: string,
-    description: string,
-    category: string,
-    qty: number,
-    unit: string,
-    additionalFeatures: Partial<ContentFeatures> = {},
-    additionalTags: string[] = []
-  ): Promise<string> {
-    const features: Partial<ContentFeatures> = {
-      'feat:task': {
-        category,
-        qty,
-        unit,
-        status: 'unclaimed'
-      },
-      ...additionalFeatures
-    };
-
-    return this.createContent(
-      title,
-      description,
-      'task',
-      features,
-      additionalTags
-    );
-  }
+  // ⚠️ LEGACY createTask() method removed - replaced by volunteer workflow task system
+  // New task creation will be handled by the TaskService with skill-based assignment
 
   /**
    * Create content with location feature (location-based content).

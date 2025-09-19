@@ -176,6 +176,19 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
     }
 
+    // Helper function to check if user has task assignment permissions
+    function canManageTasks(uid) {
+      let userProfile = get(/databases/$(database)/documents/userProfiles/$(uid));
+      return userProfile.data.get('preferences', {}).get('taskAssignments', false) == true;
+    }
+
+    // Helper function to validate task status transitions
+    function isValidTaskStatusTransition(currentStatus, newStatus) {
+      return (currentStatus == 'unclaimed' && newStatus == 'claimed') ||
+             (currentStatus == 'claimed' && newStatus in ['unclaimed', 'in-progress', 'completed']) ||
+             (currentStatus == 'in-progress' && newStatus in ['claimed', 'completed']);
+    }
+
     // ContentDoc collection - NEW UNIFIED CONTENT ARCHITECTURE
     match /content/{contentId} {
       // Allow anyone to read published content (public access)
@@ -183,6 +196,10 @@ service cloud.firestore {
       
       // Allow authenticated users with editor+ role to read ALL content (admin interface)
       allow read: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
+      
+      // Allow contributors+ to read content with tasks for volunteer workflow
+      allow read: if isAuthenticated() && hasRole(request.auth.uid, 'contributor') && 
+        'feat:task' in resource.data.features;
       
       // Allow authors to read their own content regardless of status
       allow read: if isAuthenticated() && request.auth.uid == resource.data.authorId;
@@ -194,15 +211,82 @@ service cloud.firestore {
       
       // Allow authors to update their own content, editors+ to change status
       allow update: if isAuthenticated() && (
-        // Authors can update their own content but not change status
+        // Authors can update their own content but not change status or tasks
         (request.auth.uid == resource.data.authorId && 
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])) ||
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'features.feat:task'])) ||
+        
         // Editors+ can update status and moderate content
-        hasRole(request.auth.uid, 'editor')
+        hasRole(request.auth.uid, 'editor') ||
+        
+        // Volunteer task management permissions
+        (isValidTaskUpdate(request.auth.uid, resource.data, request.resource.data))
       );
       
       // Allow editors+ to delete content
       allow delete: if isAuthenticated() && hasRole(request.auth.uid, 'editor');
+    }
+
+    // Helper function to validate task updates
+    function isValidTaskUpdate(uid, currentData, newData) {
+      let affectedKeys = currentData.diff(newData).affectedKeys();
+      
+      // Only allow task-related changes
+      if (!affectedKeys.hasOnly(['features.feat:task', 'timestamps.updated'])) {
+        return false;
+      }
+      
+      // Check if user can manage tasks
+      if (!canManageTasks(uid)) {
+        return false;
+      }
+      
+      let currentTask = currentData.features.get('feat:task', null);
+      let newTask = newData.features.get('feat:task', null);
+      
+      // Task must exist
+      if (currentTask == null || newTask == null) {
+        return false;
+      }
+      
+      // Administrators and moderators can make any task changes
+      if (canManageRoles(uid)) {
+        return true;
+      }
+      
+      // Contributors can only make specific changes
+      return isValidVolunteerTaskUpdate(uid, currentTask, newTask);
+    }
+
+    // Helper function to validate volunteer task updates
+    function isValidVolunteerTaskUpdate(uid, currentTask, newTask) {
+      // Check valid status transition
+      if (!isValidTaskStatusTransition(currentTask.status, newTask.status)) {
+        return false;
+      }
+      
+      // Case 1: Claiming an unclaimed task
+      if (currentTask.status == 'unclaimed' && newTask.status == 'claimed') {
+        return newTask.assignedTo == uid &&
+               newTask.category == currentTask.category &&
+               newTask.priority == currentTask.priority &&
+               newTask.estimatedTime == currentTask.estimatedTime;
+      }
+      
+      // Case 2: Assigned user updating their own task
+      if (currentTask.assignedTo == uid) {
+        // Can update status but not reassign to someone else
+        return newTask.assignedTo == uid &&
+               newTask.category == currentTask.category &&
+               newTask.priority == currentTask.priority &&
+               newTask.estimatedTime == currentTask.estimatedTime;
+      }
+      
+      // Case 3: Releasing a claimed task (unclaim)
+      if (currentTask.status == 'claimed' && newTask.status == 'unclaimed' && currentTask.assignedTo == uid) {
+        return !('assignedTo' in newTask) || newTask.assignedTo == null;
+      }
+      
+      return false;
     }
 
     // App configuration collection - Public read for templates, admin write only

@@ -69,20 +69,28 @@ export interface ContentFeatures {
   };
 
   /**
-   * Task feature for actionable community items.
-   * Enables task claiming, tracking, and completion workflow.
+   * Task feature for volunteer workflow system.
+   * Enables editorial workflow with skill-based assignment and time tracking.
    */
   'feat:task'?: {
-    /** Category of the task (e.g., 'printing', 'setup', 'cleanup') */
-    category: string;
-    /** Quantity needed for the task */
-    qty: number;
-    /** Unit of measurement for the quantity */
-    unit: string;
+    /** Category of editorial task */
+    category: 'review' | 'layout' | 'fact-check' | 'approve' | 'print';
+    /** Estimated time to complete task in minutes */
+    estimatedTime: number;
+    /** Firebase Auth UID of user assigned to this task (optional) */
+    assignedTo?: string;
     /** Current status of the task */
-    status: 'unclaimed' | 'claimed' | 'completed';
-    /** Firebase Auth UID of user who claimed the task (optional) */
-    claimedBy?: string;
+    status: 'unclaimed' | 'claimed' | 'in-progress' | 'completed';
+    /** Optional detailed instructions for the task */
+    instructions?: string;
+    /** Optional due date for task completion */
+    dueDate?: Timestamp;
+    /** Priority level for task scheduling */
+    priority: 'low' | 'medium' | 'high';
+    /** When the task was created */
+    createdAt: Timestamp;
+    /** When the task was last updated */
+    updatedAt: Timestamp;
   };
 
   /**

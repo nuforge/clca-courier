@@ -125,6 +125,84 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "features.feat:task.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "features.feat:task.assignedTo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "features.feat:task.assignedTo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "features.feat:task.category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.priority",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "features.feat:task.dueDate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "features.feat:task.status",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

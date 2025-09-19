@@ -171,6 +171,153 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Task Management Dialog -->
+    <q-dialog v-model="showTaskManagement" maximized>
+      <q-card>
+        <q-bar class="bg-purple text-white">
+          <div class="text-h6">
+            <q-icon :name="UI_ICONS.assignment" class="q-mr-sm" />
+            Volunteer Task Management
+          </div>
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+
+        <q-card-section class="q-pa-md">
+          <TaskList
+            title="All Editorial Tasks"
+            subtitle="Manage volunteer workflow tasks and assignments"
+            :show-actions="false"
+            :show-admin-actions="true"
+            :show-statistics="true"
+            :auto-refresh="true"
+            :refresh-interval="30000"
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Volunteer Workloads Dialog -->
+    <q-dialog v-model="showVolunteerWorkloads">
+      <q-card style="min-width: 600px; max-width: 800px">
+        <q-card-section>
+          <div class="text-h6">
+            <q-icon :name="UI_ICONS.accountGroup" class="q-mr-sm" />
+            Volunteer Workloads
+          </div>
+          <div class="text-subtitle2 text-grey-6">
+            Monitor volunteer activity and task distribution
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <!-- Task Statistics Summary -->
+          <div v-if="taskStats" class="row q-gutter-md q-mb-lg">
+            <div class="col">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <div class="text-h5 text-blue">{{ taskStats.inProgressTasks }}</div>
+                  <div class="text-body2">Active Tasks</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <div class="text-h5 text-orange">{{ taskStats.unclaimedTasks }}</div>
+                  <div class="text-body2">Unclaimed</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <div class="text-h5 text-positive">{{ taskStats.completedTasks }}</div>
+                  <div class="text-body2">Completed</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col">
+              <q-card flat bordered>
+                <q-card-section class="text-center">
+                  <div class="text-h5 text-negative">{{ taskStats.overdueTasks }}</div>
+                  <div class="text-body2">Overdue</div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+
+          <!-- Category Breakdown -->
+          <div v-if="taskStats" class="q-mb-lg">
+            <div class="text-subtitle1 q-mb-md">Tasks by Category</div>
+            <div class="row q-gutter-sm">
+              <div
+                v-for="(count, category) in taskStats.tasksByCategory"
+                :key="category"
+                class="col-auto"
+              >
+                <q-chip
+                  :label="`${category}: ${count}`"
+                  color="primary"
+                  text-color="white"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Priority Breakdown -->
+          <div v-if="taskStats" class="q-mb-lg">
+            <div class="text-subtitle1 q-mb-md">Tasks by Priority</div>
+            <div class="row q-gutter-sm">
+              <q-chip
+                :label="`High: ${taskStats.tasksByPriority.high}`"
+                color="negative"
+                text-color="white"
+              />
+              <q-chip
+                :label="`Medium: ${taskStats.tasksByPriority.medium}`"
+                color="orange"
+                text-color="white"
+              />
+              <q-chip
+                :label="`Low: ${taskStats.tasksByPriority.low}`"
+                color="blue-grey"
+                text-color="white"
+              />
+            </div>
+          </div>
+
+          <!-- Average Completion Time -->
+          <div v-if="taskStats && taskStats.averageCompletionTime > 0" class="q-mb-lg">
+            <div class="text-subtitle1 q-mb-sm">Performance Metrics</div>
+            <q-card flat bordered>
+              <q-card-section>
+                <div class="row items-center">
+                  <div class="col">
+                    <div class="text-body2">Average Completion Time</div>
+                  </div>
+                  <div class="col-auto">
+                    <div class="text-h6 text-primary">
+                      {{ Math.round(taskStats.averageCompletionTime) }} min
+                    </div>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="grey" v-close-popup />
+          <q-btn
+            color="primary"
+            label="View All Tasks"
+            @click="showTaskManagement = true; showVolunteerWorkloads = false"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -178,14 +325,17 @@
 import { ref, onMounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { firestoreService } from '../services/firebase-firestore.service';
+import { taskService } from '../services/task.service';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
 import CategoriesDialog from '../components/admin/CategoriesDialog.vue';
 import ColorsDialog from '../components/admin/ColorsDialog.vue';
 import BaseStatsGrid from '../components/BaseStatsGrid.vue';
 import BaseActionToolbar from '../components/BaseActionToolbar.vue';
+import TaskList from '../components/TaskList.vue';
 import { useSiteTheme } from '../composables/useSiteTheme';
 import { UI_ICONS } from '../constants/ui-icons';
+import type { TaskStatistics } from '../services/task.service';
 
 // Component interfaces
 interface StatItem {
@@ -228,6 +378,8 @@ const stats = ref({
   newsletters: 0,
 });
 
+const taskStats = ref<TaskStatistics | null>(null);
+
 const recentActivity = ref<Array<{
   id: string;
   type: string;
@@ -243,6 +395,8 @@ const showNewsletterSettings = ref(false);
 const showUserManagement = ref(false);
 const showAddAdminDialog = ref(false);
 const showRolesDialog = ref(false);
+const showTaskManagement = ref(false);
+const showVolunteerWorkloads = ref(false);
 
 // Methods
 const refreshStats = async () => {
@@ -256,6 +410,14 @@ const refreshStats = async () => {
 
     // Get newsletter statistics (future: from newsletter service)
     stats.value.newsletters = 24; // Placeholder value
+
+    // Get task statistics
+    try {
+      taskStats.value = await taskService.getTaskStatistics();
+    } catch (error) {
+      logger.warn('Failed to load task statistics', { error });
+      taskStats.value = null;
+    }
 
     // Get recent activity (sample data)
     recentActivity.value = [
@@ -313,7 +475,7 @@ const adminStats = computed((): StatItem[] => {
   const publishedIcon = getStatusIcon('published');
   const notificationIcon = getContentIcon('notification');
 
-  return [
+  const baseStats = [
     {
       label: 'Total Content',
       value: stats.value.totalContent,
@@ -343,6 +505,28 @@ const adminStats = computed((): StatItem[] => {
       description: 'Total newsletters'
     }
   ];
+
+  // Add task statistics if available
+  if (taskStats.value) {
+    baseStats.push(
+      {
+        label: 'Active Tasks',
+        value: taskStats.value.unclaimedTasks + taskStats.value.inProgressTasks,
+        icon: UI_ICONS.assignment,
+        color: 'blue',
+        description: 'Unclaimed and in-progress tasks'
+      },
+      {
+        label: 'Overdue Tasks',
+        value: taskStats.value.overdueTasks,
+        icon: UI_ICONS.warning,
+        color: 'negative',
+        description: 'Tasks past due date'
+      }
+    );
+  }
+
+  return baseStats;
 });
 
 const actionSections = computed((): ActionSection[] => {
@@ -501,6 +685,36 @@ const actionSections = computed((): ActionSection[] => {
           action: 'showRolesDialog'
         }
       ]
+    },
+    {
+      title: 'Volunteer Task Management',
+      titleIcon: UI_ICONS.assignment,
+      description: 'Manage editorial workflow tasks and volunteer assignments',
+      primaryAction: {
+        label: 'Task Dashboard',
+        icon: UI_ICONS.dashboard,
+        color: 'purple',
+        style: 'outline',
+        action: 'showTaskManagement'
+      },
+      secondaryActions: [
+        {
+          label: `${taskStats.value?.unclaimedTasks || 0} Unclaimed`,
+          icon: UI_ICONS.assignment,
+          color: 'orange',
+          style: 'flat',
+          size: 'sm',
+          action: 'showTaskManagement'
+        },
+        {
+          label: 'Volunteer Workloads',
+          icon: UI_ICONS.accountGroup,
+          color: 'blue',
+          style: 'flat',
+          size: 'sm',
+          action: 'showVolunteerWorkloads'
+        }
+      ]
     }
   ];
 });
@@ -532,6 +746,12 @@ const handleActionClick = (action: ActionButton) => {
       break;
     case 'showRolesDialog':
       showRolesDialog.value = true;
+      break;
+    case 'showTaskManagement':
+      showTaskManagement.value = true;
+      break;
+    case 'showVolunteerWorkloads':
+      showVolunteerWorkloads.value = true;
       break;
     default:
       logger.info('Action clicked:', action.label);

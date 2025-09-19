@@ -14,6 +14,7 @@ import content from './content';
 import newsletter from './newsletter';
 import auth from './auth';
 import pages from './pages';
+import tasks from './tasks';
 import { canva } from './canva';
 import { dates, search, errors, success, settings, footer } from './additional';
 
@@ -41,6 +42,9 @@ export default {
 
   // Page content
   pages,
+
+  // Task management system
+  tasks,
 
   // Date and time
   dates,

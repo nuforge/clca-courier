@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "clca-courier-27aed"
-  }
+    "default": "clca-courier-27aed",
+    "staging": "clca-courier-27aed"
+  },
+  "targets": {},
+  "etags": {}
 }
