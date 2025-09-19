@@ -188,5 +188,43 @@ export default {
     pdfGenerationHint: 'This will create a PDF from the current layout'
   },
 
-  preview: 'Preview'
+  preview: 'Preview',
+
+  // User Profile Editor
+  profile: {
+    editor: {
+      title: 'Edit Your Profile',
+      description: 'Update your volunteer profile information and preferences',
+      basicInfo: 'Basic Information',
+      displayName: 'Display Name',
+      displayNameRequired: 'Display name is required',
+      availability: 'Availability',
+      tags: 'Your Skills & Interests',
+      tagsDescription: 'Add tags to help us match you with relevant volunteer opportunities. Use format: category:value (e.g., skill:writing)',
+      newTag: 'Add a tag',
+      tagPlaceholder: 'e.g., skill:writing, language:spanish',
+      addTag: 'Add Tag',
+      currentTags: 'Your current tags:',
+      suggestedTags: 'Suggested tags:',
+      tagRequired: 'Tag cannot be empty',
+      tagFormatInvalid: 'Tag must be in format: category:value (e.g., skill:writing)',
+      tagExists: 'This tag already exists',
+      preferences: 'Volunteer Preferences',
+      taskAssignments: 'Receive task assignments',
+      emailNotifications: 'Email notifications',
+      pushNotifications: 'Push notifications',
+      saveSuccess: 'Profile updated successfully',
+      saveError: 'Failed to save profile. Please try again.',
+      unsavedChanges: 'You have unsaved changes that will be lost.'
+    },
+    availability: {
+      regular: 'Regular (Weekly)',
+      occasional: 'Occasional (Monthly)',
+      onCall: 'On-call (As needed)'
+    }
+  },
+
+  // Confirmation messages
+  confirmCancel: 'Confirm Cancel',
+  unsavedChanges: 'You have unsaved changes. Do you want to continue?'
 };

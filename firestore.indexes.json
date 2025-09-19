@@ -111,6 +111,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "userProfiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tags",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "availability",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

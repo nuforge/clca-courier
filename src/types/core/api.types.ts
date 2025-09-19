@@ -117,27 +117,14 @@ export interface AuthToken {
 
 /**
  * Authentication state
+ * Note: UserProfile is imported from firebase-firestore.service.ts to avoid duplication
  */
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user?: UserProfile;
+  user?: import('../services/firebase-firestore.service').UserProfile;
   token?: AuthToken;
   permissions?: string[];
-}
-
-/**
- * User profile
- */
-export interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  avatar?: string;
-  roles: string[];
-  preferences: Record<string, unknown>;
-  lastLogin: number;
-  createdAt: number;
 }
 
 /**

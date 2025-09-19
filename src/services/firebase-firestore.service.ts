@@ -96,7 +96,7 @@ export interface UserContent {
   };
 }
 
-// User profile interface - Updated for enhanced role system
+// User profile interface - Updated for enhanced role system with volunteer workflow support
 export interface UserProfile {
   uid: string;
   email: string;
@@ -111,10 +111,14 @@ export interface UserProfile {
   approvalDate?: string;
   createdAt: string;
   lastLoginAt: string;
+  // Volunteer workflow additions - namespaced tags for skills, languages, interests
+  tags: string[]; // ['skill:writing', 'language:german', 'interest:technology']
+  availability: 'regular' | 'occasional' | 'on-call';
   preferences: {
     emailNotifications: boolean;
     pushNotifications: boolean;
     preferredCategories: string[];
+    taskAssignments?: boolean; // Optional for backward compatibility
   };
 }
 
@@ -797,6 +801,15 @@ class FirebaseFirestoreService {
       const docRef = doc(firestore, this.COLLECTIONS.USER_PROFILES, profile.uid);
       await safeSetDoc(docRef, {
         ...profile,
+        // Initialize volunteer workflow fields with defaults for backward compatibility
+        tags: profile.tags || [],
+        availability: profile.availability || 'occasional',
+        preferences: {
+          emailNotifications: profile.preferences?.emailNotifications ?? true,
+          pushNotifications: profile.preferences?.pushNotifications ?? true,
+          preferredCategories: profile.preferences?.preferredCategories || [],
+          taskAssignments: profile.preferences?.taskAssignments ?? true,
+        },
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
       });
