@@ -5,9 +5,16 @@ This document outlines the implementation plan for a tag-based volunteer workflo
 
 ## Implementation Queries
 
+### 0. Alignment With Current System (Read First)
+- Keep roles/permissions exactly as implemented today; tags are additive metadata on `userProfiles` and do not replace roles.
+- Use Cloud Functions v2 APIs (consistent with `functions/src/index.ts`).
+- Keep existing `firestore.rules` read restrictions for `userProfiles` (owner-only; moderators/administrators can read all). Only allow owners to change tags/availability; never allow client to change `role`, `permissions`, `isApproved`.
+- Prefer extending existing types where they already live (see references below) instead of introducing new type files.
+
 ### 1. User Profile Enhancement
 ```typescript
-// Extend UserProfile interface in user.types.ts
+// Extend existing UserProfile where it already lives:
+// src/services/firebase-firestore.service.ts (UserProfile)
 export interface UserProfile {
   uid: string;
   email: string;
@@ -83,60 +90,81 @@ export const userUtils = {
 
 ### 4. Firebase Security Rules Update
 ```javascript
-// Update firestore.rules
+// Align with existing firestore.rules patterns
+// Keep current read policy:
+// - Owner can read own profile
+// - Moderators/administrators can read any profile
 match /userProfiles/{userId} {
-  allow read: if request.auth != null;
-  allow write: if request.auth != null && request.auth.uid == userId
-    && request.resource.data.keys().hasAll(['tags', 'availability'])
-    && request.resource.data.size() == 2;
-  allow write: if hasRole(request.auth.uid, 'administrator');
+  // Keep existing owner-only update but forbid changing restricted fields
+  allow update: if isOwner(userId) &&
+    !resource.data.diff(request.resource.data).affectedKeys()
+      .hasAny(['role', 'permissions', 'isApproved', 'approvedBy', 'approvalDate']);
+
+  // Optional hardening (if desired): validate tags format and availability values
+  // return request.resource.data.tags is list &&
+  //        request.resource.data.tags.all(tag is string &&
+  //             tag.matches('^[a-z]+:[a-z0-9_-]+$')) &&
+  //        request.resource.data.availability in ['regular','occasional','on-call'];
 }
 ```
 
-### 5. Cloud Function for Task Assignment
+### 4a. Firestore Indexes (Required for Performance)
+```json
+// Add to firestore.indexes.json
+{
+  "indexes": [
+    {
+      "collectionGroup": "userProfiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tags", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "availability", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+```
+
+### 5. Cloud Function for Task Assignment (v2 API)
 ```typescript
-// Create task-assignment.ts in functions/src
+// functions/src/task-assignment.ts
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+
+const db = getFirestore();
+
 export const onContentCreated = onDocumentCreated('content/{contentId}', async (event) => {
   const snapshot = event.data;
   if (!snapshot) return;
-  
-  const content = snapshot.data();
-  const contentId = event.params.contentId;
-  const requiredSkills = content.tags.filter((tag: string) => tag.startsWith('skill:'));
-  
+
+  const content = snapshot.data() as { title?: string; tags?: string[] } | undefined;
+  const contentId = event.params.contentId as string;
+  const requiredSkills = (content?.tags || []).filter((tag) => tag.startsWith('skill:'));
   if (requiredSkills.length === 0) return;
-  
-  let assignedUserId: string | null = null;
-  
+
+  // Use indexed queries (see 4a) and prefer small fan-out
   for (const skillTag of requiredSkills) {
     const usersSnapshot = await db.collection('userProfiles')
       .where('tags', 'array-contains', skillTag)
       .where('availability', 'in', ['regular', 'occasional'])
+      .limit(1)
       .get();
 
     if (!usersSnapshot.empty) {
-      const user = usersSnapshot.docs[0].data() as UserProfile;
-      assignedUserId = user.uid;
+      const user = usersSnapshot.docs[0].data() as { uid: string };
+      await snapshot.ref.update({
+        'features.feat:task': {
+          category: 'review',
+          estimatedTime: 5,
+          assignedTo: user.uid,
+          status: 'claimed',
+          priority: 'medium',
+        },
+      });
+      // TODO: integrate with existing notification system (email or in-app)
       break;
     }
-  }
-  
-  if (assignedUserId) {
-    await snapshot.ref.update({
-      'features.feat:task': {
-        category: 'review',
-        estimatedTime: 5,
-        assignedTo: assignedUserId,
-        status: 'claimed',
-        priority: 'medium',
-      }
-    });
-    
-    // Send notification
-    await sendNotification(assignedUserId, 'task_assigned', {
-      contentId,
-      title: content.title
-    });
   }
 });
 ```
@@ -196,6 +224,12 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
   </q-card>
 </template>
 ```
+
+Implementation note:
+- When storing dates like task `dueDate`, use a consistent strategy with `src/utils/date-formatter.ts`:
+  - For creation timestamps: use `getCurrentTimestamp()`.
+  - For displaying dates: use `formatDate`/`formatDateTime`.
+  - If persisting as strings, prefer ISO via `toISOString()` or date-only via `toISODateString()`; otherwise store as Firestore `Timestamp`.
 
 ### 7. Tests
 ```typescript
@@ -280,3 +314,30 @@ describe('userUtils', () => {
 7. User availability changes during task assignment
 
 This implementation plan builds on your existing architecture while adding the volunteer workflow capabilities you need, using a tag-based system that integrates seamlessly with your ContentDoc model.
+
+---
+
+## Integration Notes (Specific Files)
+
+- firestore.rules
+  - Keep existing owner-only read and update restrictions for `userProfiles`.
+  - Ensure updates from the client cannot change `role`, `permissions`, or `isApproved`.
+  - Optionally add tag format validation and availability enum checks (see section 4).
+
+- src/utils/date-formatter.ts
+  - Use `getCurrentTimestamp()` for created/updated fields.
+  - Use `toISODateString()` for date-only fields shown in UI (avoids timezone drift).
+  - Use `formatDate`/`formatDateTime` in all new components displaying dates.
+
+- src/stores/user-roles.store.ts
+  - Roles remain the source of truth for privileged actions (e.g., approve/publish).
+  - Tags must not be interpreted as roles; use tags only for discovery/assignment.
+  - When gating task actions (claim/complete/approve), consult `getUserRole()` and role configs.
+
+---
+
+## Kickoff Prompt For Next Session (Based on .github/copilot/ROLES.md)
+
+"Research-first task: Implement Week 1 of the Volunteer Workflow.
+
+1) Scan codebase to confirm current UserProfile type location and shape, firestore rules for userProfiles, and existing profile UI. 2) Propose minimal, backward-compatible edits to add `tags` and `availability` (no role/permission changes). 3) Add indexes for `userProfiles.tags` (array-contains) + `availability`. 4) Build `UserProfileEditor` section for tags and availability with Quasar components. 5) Wire save flow to Firestore with strict error handling and tests. Constraints: follow TypeScript strict mode, no console.log (use logger), no custom CSS, use date-formatter for any dates, maintain terminal safety in commands, and do not alter authentication/role flows. Deliverables: PR with code + tests, updated docs in 03_FINAL_WORKFLOW_SYSTEM.md, and a brief risk/rollback note."
