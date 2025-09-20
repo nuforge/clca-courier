@@ -248,7 +248,7 @@ const getTagIcon = (tag: string): string => {
     interest: 'favorite',
     default: 'local_offer'
   };
-  return iconMap[namespace] || iconMap.default;
+  return (iconMap[namespace as keyof typeof iconMap] ?? iconMap.default) as string;
 };
 
 const validateTag = (tag: string): string | null => {

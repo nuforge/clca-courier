@@ -322,7 +322,7 @@ class TaskService {
       }
 
       // Update task status
-      const updateData: Record<string, unknown> = {
+      const updateData: Record<string, any> = {
         'features.feat:task.status': status,
         'features.feat:task.updatedAt': serverTimestamp(),
         'timestamps.updated': serverTimestamp()

@@ -224,8 +224,8 @@
           v-for="task in paginatedTasks"
           :key="task.taskId"
           :task-details="task"
-          :show-actions="showActions"
-          :show-admin-actions="showAdminActions"
+          :show-actions="showActions ?? true"
+          :show-admin-actions="showAdminActions ?? false"
           @task-updated="handleTaskUpdated"
           @view-content="handleViewContent"
         />
@@ -240,8 +240,8 @@
         >
           <TaskCard
             :task-details="task"
-            :show-actions="showActions"
-            :show-admin-actions="showAdminActions"
+            :show-actions="showActions ?? true"
+            :show-admin-actions="showAdminActions ?? false"
             @task-updated="handleTaskUpdated"
             @view-content="handleViewContent"
           />
@@ -278,7 +278,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { taskService } from '../services/task.service';

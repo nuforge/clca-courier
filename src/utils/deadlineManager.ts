@@ -693,10 +693,4 @@ class DeadlineManager {
 // Export singleton instance
 export const deadlineManager = new DeadlineManager();
 
-// Export types for use in components
-export type {
-  DeadlineConfig,
-  DeadlineExtensionRequest,
-  DeadlineStatus,
-  UrgencyLevel
-};
+// Types are already exported above with their interface declarations

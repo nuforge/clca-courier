@@ -369,11 +369,8 @@ class ContentSubmissionService {
       if (!taskFeature.category || taskFeature.category.trim().length === 0) {
         errors.push('Task feature requires a category');
       }
-      if (!taskFeature.qty || taskFeature.qty <= 0) {
-        errors.push('Task feature requires a positive quantity');
-      }
-      if (!taskFeature.unit || taskFeature.unit.trim().length === 0) {
-        errors.push('Task feature requires a unit');
+      if (!taskFeature.estimatedTime || taskFeature.estimatedTime <= 0) {
+        errors.push('Task feature requires a positive estimated time');
       }
     }
 

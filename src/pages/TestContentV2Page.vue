@@ -149,7 +149,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { useQuasar } from 'quasar';
 import { logger } from '../utils/logger';
 import { contentSubmissionService } from '../services/content-submission.service';
@@ -291,10 +291,12 @@ const createSampleTask = async () => {
 
     const taskFeatures: Partial<ContentFeatures> = {
       'feat:task': {
-        category: 'printing',
-        qty: 50,
-        unit: 'flyers',
-        status: 'unclaimed'
+        category: 'print',
+        estimatedTime: 30,
+        status: 'unclaimed',
+        priority: 'medium',
+        createdAt: serverTimestamp() as Timestamp,
+        updatedAt: serverTimestamp() as Timestamp
       }
     };
 
@@ -344,10 +346,12 @@ const createSampleHybrid = async () => {
         address: '456 Lake Drive, Community, TX 75001'
       },
       'feat:task': {
-        category: 'snacks',
-        qty: 3,
-        unit: 'volunteers',
-        status: 'unclaimed'
+        category: 'review',
+        estimatedTime: 15,
+        status: 'unclaimed',
+        priority: 'low',
+        createdAt: serverTimestamp() as Timestamp,
+        updatedAt: serverTimestamp() as Timestamp
       }
     };
 

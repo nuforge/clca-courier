@@ -836,6 +836,23 @@ class FirebaseFirestoreService {
     }
   }
 
+  async getUserProfiles(): Promise<UserProfile[]> {
+    try {
+      const collectionRef = collection(firestore, this.COLLECTIONS.USER_PROFILES);
+      const querySnapshot = await getDocs(collectionRef);
+
+      const profiles: UserProfile[] = [];
+      querySnapshot.forEach((doc) => {
+        profiles.push(doc.data() as UserProfile);
+      });
+
+      return profiles;
+    } catch (error) {
+      logger.error('Error getting user profiles:', error);
+      throw error;
+    }
+  }
+
   async updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
     try {
       const docRef = doc(firestore, this.COLLECTIONS.USER_PROFILES, uid);

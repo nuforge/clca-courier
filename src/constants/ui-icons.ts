@@ -84,6 +84,12 @@ export const UI_ICONS = {
   quantity: 'mdi-counter',
   date: 'mdi-calendar-clock',
 
+  // Volunteer Workflow
+  assignment: 'mdi-clipboard-account',
+  play: 'mdi-play',
+  chartLine: 'mdi-chart-line',
+  dashboard: 'mdi-view-dashboard',
+
   // Settings
   cog: 'mdi-cog',
   tools: 'mdi-tools',

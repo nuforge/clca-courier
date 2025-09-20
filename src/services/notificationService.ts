@@ -33,7 +33,7 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
-import { firestore as db, functions } from '../config/firebase.config';
+import { firestore as db, firebaseFunctions } from '../config/firebase.config';
 import { firebaseAuthService } from './firebase-auth.service';
 import { firestoreService } from './firebase-firestore.service';
 import { logger } from '../utils/logger';
@@ -310,7 +310,7 @@ class NotificationService {
         data,
         read: false,
         channels: allowedChannels,
-        deepLink,
+        ...(deepLink && { deepLink }),
         createdAt: serverTimestamp() as Timestamp,
         expiresAt,
         metadata: {
@@ -791,7 +791,7 @@ class NotificationService {
       }
 
       // Call Cloud Function to send email
-      const sendEmail = httpsCallable(functions, 'sendNotificationEmail');
+      const sendEmail = httpsCallable(firebaseFunctions, 'sendNotificationEmail');
 
       await sendEmail({
         notificationId,
@@ -834,10 +834,4 @@ class NotificationService {
 // Export singleton instance
 export const notificationService = new NotificationService();
 
-// Export types for use in components
-export type {
-  Notification,
-  NotificationType,
-  NotificationPriority,
-  NotificationChannel
-};
+// Types are already exported above with their interface/type declarations

@@ -122,7 +122,7 @@ export interface AuthToken {
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user?: import('../services/firebase-firestore.service').UserProfile;
+  user?: import('../../services/firebase-firestore.service').UserProfile;
   token?: AuthToken;
   permissions?: string[];
 }

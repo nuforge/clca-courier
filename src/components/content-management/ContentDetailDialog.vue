@@ -81,7 +81,7 @@
               <q-card-section>
                 <div class="text-body2">
                   <strong>Task:</strong> {{ content.features['feat:task']?.category }} -
-                  {{ content.features['feat:task']?.qty }} {{ content.features['feat:task']?.unit }}
+                  {{ content.features['feat:task']?.estimatedTime }} {{ $t('content.task.minutes') }}
                   <div class="text-caption">Status: {{ content.features['feat:task']?.status }}</div>
                 </div>
               </q-card-section>

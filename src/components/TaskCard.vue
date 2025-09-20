@@ -500,7 +500,7 @@ const saveTaskChanges = async () => {
     // Update task details
     const updatedTask = { ...props.taskDetails };
     updatedTask.task.status = selectedStatus.value;
-    updatedTask.task.assignedTo = selectedUser.value || undefined;
+    updatedTask.task.assignedTo = selectedUser.value;
     emit('taskUpdated', updatedTask);
 
     showManageTaskDialog.value = false;

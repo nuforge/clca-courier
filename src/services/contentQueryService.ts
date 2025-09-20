@@ -302,7 +302,7 @@ class ContentQueryService {
         filteredContent = filteredContent.filter(doc => {
           const contentTypeTag = doc.tags.find(tag => tag.startsWith('content-type:'));
           const contentType = contentTypeTag ? contentTypeTag.split(':')[1] : 'unknown';
-          return types.includes(contentType);
+          return types.includes(contentType || 'unknown');
         });
       }
 
@@ -598,7 +598,10 @@ class ContentQueryService {
           }
 
           if (task.status === 'completed') {
-            stats.volunteerWorkload[task.assignedTo].completedTasks++;
+            const volunteer = stats.volunteerWorkload[task.assignedTo];
+            if (volunteer) {
+              volunteer.completedTasks++;
+            }
 
             // Calculate completion time if we have both creation and completion dates
             if (task.createdAt && content.timestamps.updated) {
@@ -606,7 +609,10 @@ class ContentQueryService {
               completionTimes.push(completionTimeHours);
             }
           } else {
-            stats.volunteerWorkload[task.assignedTo].activeTasks++;
+            const volunteer = stats.volunteerWorkload[task.assignedTo];
+            if (volunteer) {
+              volunteer.activeTasks++;
+            }
           }
         }
 
@@ -624,8 +630,10 @@ class ContentQueryService {
       Object.keys(stats.volunteerWorkload).forEach(volunteerId => {
         const volunteerTimes = completionTimes; // This would need to be filtered per volunteer in a real implementation
         if (volunteerTimes.length > 0) {
-          stats.volunteerWorkload[volunteerId].averageTime =
+          if (stats.volunteerWorkload[volunteerId]) {
+            stats.volunteerWorkload[volunteerId].averageTime =
             volunteerTimes.reduce((sum, time) => sum + time, 0) / volunteerTimes.length;
+          }
         }
       });
 
@@ -789,8 +797,8 @@ class ContentQueryService {
 
       if (tasksWithDeadlines.length > 0) {
         const earliestTask = tasksWithDeadlines[0];
-        const task = earliestTask.features['feat:task'];
-        if (task?.dueDate) {
+        const task = earliestTask?.features['feat:task'];
+        if (task?.dueDate && earliestTask) {
           nextDeadline = {
             contentId: earliestTask.id,
             title: earliestTask.title,
@@ -803,7 +811,7 @@ class ContentQueryService {
         activeTasks: activeTasks.length,
         completedThisMonth: completedTasks.length,
         averageCompletionTime,
-        nextDeadline
+        ...(nextDeadline && { nextDeadline })
       };
 
     } catch (error) {
@@ -847,11 +855,4 @@ class ContentQueryService {
 // Export singleton instance
 export const contentQueryService = new ContentQueryService();
 
-// Export types for use in components
-export type {
-  TaskContentFilters,
-  TaskContentSorting,
-  ContentPagination,
-  TaskStatistics,
-  VolunteerTaskView
-};
+// Types are already exported above with their interface declarations

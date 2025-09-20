@@ -162,6 +162,14 @@ class TaskAssignmentLogic {
       // Select the best candidate
       const bestCandidate = qualifiedCandidates[0];
 
+      if (!bestCandidate) {
+        return {
+          success: false,
+          reason: 'No qualified candidates found for automatic assignment',
+          candidates: []
+        };
+      }
+
       // Perform actual assignment if not dry run
       if (!dryRun) {
         await taskService.assignTask(contentId, bestCandidate.userProfile.uid, 'automatic');
@@ -487,10 +495,5 @@ class TaskAssignmentLogic {
 // Export singleton instance
 export const taskAssignmentLogic = new TaskAssignmentLogic();
 
-// Export types for use in other modules
-export type {
-  VolunteerCandidate,
-  TaskAssignmentResult,
-  AssignmentConfig
-};
+// Types are already exported above with their interface declarations
 

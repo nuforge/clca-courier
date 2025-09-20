@@ -98,8 +98,10 @@
     <!-- Task Sections -->
     <BaseTabbedContent
       :tabs="taskTabs"
+      :active-tab="activeTab"
       :loading="isLoading"
       content-class="q-pa-none"
+      @update:active-tab="activeTab = $event"
     >
       <!-- My Active Tasks -->
       <template #my-tasks>
@@ -360,7 +362,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { taskService } from '../services/task.service';
@@ -384,6 +386,7 @@ const $q = useQuasar();
 // State
 const isLoading = ref(false);
 const isRefreshing = ref(false);
+const activeTab = ref('my-tasks');
 const myTasks = ref<{
   claimed: TaskDetails[];
   inProgress: TaskDetails[];
@@ -610,7 +613,7 @@ const removeSkill = async (skill: string) => {
   }
 };
 
-const updateAvailability = async (availability: string) => {
+const updateAvailability = async (availability: 'regular' | 'occasional' | 'on-call') => {
   if (!userProfile.value) return;
 
   try {
