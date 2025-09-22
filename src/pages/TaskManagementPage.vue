@@ -22,7 +22,7 @@
             <q-card-section>
               <q-icon :name="UI_ICONS.assignment" color="blue" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ taskStats.inProgressTasks }}</div>
-              <div class="text-caption text-grey-6">{{ $t('taskManagement.stats.activeTasks') }}</div>
+              <div class="text-caption text-grey-6">{{ $t('pages.taskManagement.stats.activeTasks') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -31,7 +31,7 @@
             <q-card-section>
               <q-icon :name="UI_ICONS.assignment" color="orange" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ taskStats.unclaimedTasks }}</div>
-              <div class="text-caption text-grey-6">{{ $t('taskManagement.stats.unclaimed') }}</div>
+              <div class="text-caption text-grey-6">{{ $t('pages.taskManagement.stats.unclaimed') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -40,7 +40,7 @@
             <q-card-section>
               <q-icon :name="UI_ICONS.checkCircle" color="positive" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ taskStats.completedTasks }}</div>
-              <div class="text-caption text-grey-6">{{ $t('taskManagement.stats.completed') }}</div>
+              <div class="text-caption text-grey-6">{{ $t('pages.taskManagement.stats.completed') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -49,7 +49,7 @@
             <q-card-section>
               <q-icon :name="UI_ICONS.warning" color="negative" size="2rem" />
               <div class="text-h5 q-mt-sm">{{ taskStats.overdueTasks }}</div>
-              <div class="text-caption text-grey-6">{{ $t('taskManagement.stats.overdue') }}</div>
+              <div class="text-caption text-grey-6">{{ $t('pages.taskManagement.stats.overdue') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -78,8 +78,8 @@
           <div v-if="taskStats">
             <!-- Category Breakdown -->
             <div class="q-mb-lg">
-              <div class="text-subtitle1 q-mb-md">{{ $t('taskManagement.tasksByCategory') }}</div>
-              <div class="row q-gutter-sm">
+              <div class="text-subtitle1 q-mb-md">{{ $t('pages.taskManagement.tasksByCategory') }}</div>
+              <div class="row q-col-gutter-sm">
                 <div
                   v-for="(count, category) in taskStats.tasksByCategory"
                   :key="category"
@@ -96,20 +96,20 @@
 
             <!-- Priority Breakdown -->
             <div class="q-mb-lg">
-              <div class="text-subtitle1 q-mb-md">{{ $t('taskManagement.tasksByPriority') }}</div>
+              <div class="text-subtitle1 q-mb-md">{{ $t('pages.taskManagement.tasksByPriority') }}</div>
               <div class="row q-gutter-sm">
                 <q-chip
-                  :label="`${$t('taskManagement.priority.high')}: ${taskStats.tasksByPriority.high}`"
+                  :label="`${$t('tasks.priority.high')}: ${taskStats.tasksByPriority.high}`"
                   color="negative"
                   text-color="white"
                 />
                 <q-chip
-                  :label="`${$t('taskManagement.priority.medium')}: ${taskStats.tasksByPriority.medium}`"
+                  :label="`${$t('tasks.priority.medium')}: ${taskStats.tasksByPriority.medium}`"
                   color="orange"
                   text-color="white"
                 />
                 <q-chip
-                  :label="`${$t('taskManagement.priority.low')}: ${taskStats.tasksByPriority.low}`"
+                  :label="`${$t('tasks.priority.low')}: ${taskStats.tasksByPriority.low}`"
                   color="blue-grey"
                   text-color="white"
                 />
@@ -118,12 +118,12 @@
 
             <!-- Performance Metrics -->
             <div v-if="taskStats.averageCompletionTime > 0" class="q-mb-lg">
-              <div class="text-subtitle1 q-mb-sm">{{ $t('taskManagement.performanceMetrics') }}</div>
+              <div class="text-subtitle1 q-mb-sm">{{ $t('pages.taskManagement.performanceMetrics') }}</div>
               <q-card flat bordered>
                 <q-card-section>
                   <div class="row items-center">
                     <div class="col">
-                      <div class="text-body2">{{ $t('taskManagement.averageCompletionTime') }}</div>
+                      <div class="text-body2">{{ $t('pages.taskManagement.averageCompletionTime') }}</div>
                     </div>
                     <div class="col-auto">
                       <div class="text-h6 text-primary">
@@ -147,10 +147,10 @@
           <div class="text-center q-pa-lg">
             <q-icon name="analytics" size="4rem" class="text-grey-5" />
             <div class="text-h6 q-mt-md text-grey-6">
-              {{ $t('taskManagement.analytics.comingSoon') }}
+              {{ $t('pages.taskManagement.analytics.comingSoon') }}
             </div>
             <div class="text-body2 text-grey-6">
-              {{ $t('taskManagement.analytics.description') }}
+              {{ $t('pages.taskManagement.analytics.description') }}
             </div>
           </div>
         </template>
@@ -160,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { taskService } from '../services/task.service';
@@ -181,26 +181,26 @@ const taskStats = ref<TaskStatistics | null>(null);
 const activeTab = ref('all-tasks');
 
 // Tab configuration
-const taskTabs: TabConfig[] = [
+const taskTabs = computed((): TabConfig[] => [
   {
     name: 'all-tasks',
-    label: t('taskManagement.tabs.allTasks'),
+    label: t('pages.taskManagement.tabs.allTasks'),
     icon: UI_ICONS.assignment,
     description: 'View and manage all editorial tasks'
   },
   {
     name: 'workloads',
-    label: t('taskManagement.tabs.workloads'),
+    label: t('pages.taskManagement.tabs.workloads'),
     icon: UI_ICONS.accountGroup,
     description: 'Monitor volunteer workloads and distribution'
   },
   {
     name: 'analytics',
-    label: t('taskManagement.tabs.analytics'),
+    label: t('pages.taskManagement.tabs.analytics'),
     icon: UI_ICONS.chartLine,
     description: 'Task analytics and performance metrics'
   }
-];
+]);
 
 // Methods
 const refreshTaskStats = async () => {
@@ -212,7 +212,7 @@ const refreshTaskStats = async () => {
     logger.error('Failed to load task statistics', { error });
     $q.notify({
       type: 'negative',
-      message: t('taskManagement.errors.loadStatsFailed'),
+      message: t('pages.taskManagement.errors.loadStatsFailed'),
       position: 'top',
     });
   } finally {

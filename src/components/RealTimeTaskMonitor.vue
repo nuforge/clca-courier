@@ -49,7 +49,7 @@
       <div class="text-subtitle1 q-mb-md">
         {{ $t('volunteer.realTimeMonitor.overview') }}
       </div>
-      <div class="row q-gutter-md">
+      <div class="row q-col-gutter-md">
         <div class="col-12 col-sm-6 col-md-3">
           <q-card flat bordered class="bg-blue-1">
             <q-card-section class="text-center">

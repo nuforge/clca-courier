@@ -48,6 +48,7 @@ export default {
   retry: 'Retry',
   clearSelection: 'Clear Selection',
   by: 'By',
+  minutes: 'minutes',
   backToTop: 'Back to Top',
   page: 'Page',
   pages: 'Pages',

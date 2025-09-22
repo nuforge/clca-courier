@@ -30,7 +30,7 @@
     <!-- Filters and Search -->
     <q-card flat bordered class="q-mb-lg">
       <q-card-section>
-        <div class="row q-gutter-md">
+        <div class="row q-col-gutter-md">
           <!-- Search -->
           <div class="col-12 col-md-4">
             <q-input
@@ -149,7 +149,7 @@
     </q-card>
 
     <!-- Task Statistics -->
-    <div class="row q-gutter-md q-mb-lg" v-if="showStatistics">
+    <div class="row q-col-gutter-md q-mb-lg" v-if="showStatistics">
       <div class="col-12 col-md-3">
         <q-card flat class="text-center">
           <q-card-section>
@@ -232,7 +232,7 @@
       </div>
 
       <!-- Grid View -->
-      <div v-else class="row q-gutter-md">
+      <div v-else class="row q-col-gutter-md">
         <div
           v-for="task in paginatedTasks"
           :key="task.taskId"

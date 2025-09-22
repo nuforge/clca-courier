@@ -3,7 +3,7 @@
   Reusable statistics display grid for admin dashboards
 -->
 <template>
-  <div class="row q-col-gutter-md">
+  <div class="row q-gutter-md">
     <div
       v-for="stat in stats"
       :key="stat.label"
