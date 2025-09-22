@@ -5,84 +5,38 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center q-mb-lg">
-        <div class="col">
-          <h4 class="q-my-none">
-            <q-icon :name="UI_ICONS.cog" class="q-mr-sm" />
-            Admin Dashboard
-          </h4>
-          <p class="text-body2 q-my-none">
-            Central hub for site administration and management
-          </p>
-        </div>
-        <div class="col-auto">
-          <q-btn
-            color="primary"
-            :icon="UI_ICONS.refresh"
-            label="Refresh Stats"
-            @click="refreshStats"
-            :loading="isLoadingStats"
-          />
-        </div>
-      </div>
+      <AdminHeaderSection
+        title="Admin Dashboard"
+        subtitle="Central hub for site administration and management"
+        :icon="UI_ICONS.cog"
+        :loading="isLoadingStats"
+        @refresh="refreshStats"
+      />
 
       <!-- Statistics Overview -->
-      <BaseStatsGrid
-        :stats="adminStats"
+      <AdminStatsOverview
+        :stats="stats"
+        :task-stats="taskStats"
         :loading="isLoadingStats"
         :columns="4"
-        class="q-mb-lg"
         @stat-click="handleStatClick"
         @refresh="refreshStats"
       />
 
       <!-- Main Admin Functions -->
-      <BaseActionToolbar
-        :sections="actionSections"
-        :columns="2"
+      <AdminActionsSection
+        :stats="stats"
+        :task-stats="taskStats"
         :loading="isLoadingStats"
+        :columns="2"
         @action-click="handleActionClick"
       />
 
       <!-- Recent Activity -->
-      <q-card class="q-mt-lg">
-        <q-card-section>
-          <div class="text-h6 q-mb-md">
-            <q-icon :name="UI_ICONS.timeline" class="q-mr-sm" />
-            Recent Activity
-          </div>
-          <q-list>
-            <q-item
-              v-for="activity in recentActivity"
-              :key="activity.id"
-              clickable
-            >
-              <q-item-section avatar>
-                <q-icon :name="getActivityIcon(activity.type)" :color="getActivityColor(activity.type)" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ activity.description }}</q-item-label>
-                <q-item-label caption>{{ formatDateTime(activity.timestamp) }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-chip
-                  :color="getActivityColor(activity.type)"
-                  text-color="white"
-                  size="sm"
-                >
-                  {{ activity.type }}
-                </q-chip>
-              </q-item-section>
-            </q-item>
-
-            <q-item v-if="recentActivity.length === 0">
-              <q-item-section>
-                <q-item-label class="text-grey-6">No recent activity</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
-      </q-card>
+      <AdminRecentActivity
+        :activities="recentActivity"
+        @activity-click="handleActivityClick"
+      />
     </div>
 
     <!-- Categories Management Dialog -->
@@ -172,178 +126,30 @@
       </q-card>
     </q-dialog>
 
-    <!-- Task Management Dialog -->
-    <q-dialog v-model="showTaskManagement" maximized>
-      <q-card>
-        <q-bar class="bg-purple text-white">
-          <div class="text-h6">
-            <q-icon :name="UI_ICONS.assignment" class="q-mr-sm" />
-            Volunteer Task Management
-          </div>
-          <q-space />
-          <q-btn dense flat icon="close" v-close-popup />
-        </q-bar>
-
-        <q-card-section class="q-pa-md">
-          <TaskList
-            title="All Editorial Tasks"
-            subtitle="Manage volunteer workflow tasks and assignments"
-            :show-actions="false"
-            :show-admin-actions="true"
-            :show-statistics="true"
-            :auto-refresh="true"
-            :refresh-interval="30000"
-          />
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <!-- Volunteer Workloads Dialog -->
-    <q-dialog v-model="showVolunteerWorkloads">
-      <q-card style="min-width: 600px; max-width: 800px">
-        <q-card-section>
-          <div class="text-h6">
-            <q-icon :name="UI_ICONS.accountGroup" class="q-mr-sm" />
-            Volunteer Workloads
-          </div>
-          <div class="text-subtitle2 text-grey-6">
-            Monitor volunteer activity and task distribution
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <!-- Task Statistics Summary -->
-          <div v-if="taskStats" class="row q-gutter-md q-mb-lg">
-            <div class="col">
-              <q-card flat bordered>
-                <q-card-section class="text-center">
-                  <div class="text-h5 text-blue">{{ taskStats.inProgressTasks }}</div>
-                  <div class="text-body2">Active Tasks</div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div class="col">
-              <q-card flat bordered>
-                <q-card-section class="text-center">
-                  <div class="text-h5 text-orange">{{ taskStats.unclaimedTasks }}</div>
-                  <div class="text-body2">Unclaimed</div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div class="col">
-              <q-card flat bordered>
-                <q-card-section class="text-center">
-                  <div class="text-h5 text-positive">{{ taskStats.completedTasks }}</div>
-                  <div class="text-body2">Completed</div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div class="col">
-              <q-card flat bordered>
-                <q-card-section class="text-center">
-                  <div class="text-h5 text-negative">{{ taskStats.overdueTasks }}</div>
-                  <div class="text-body2">Overdue</div>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-
-          <!-- Category Breakdown -->
-          <div v-if="taskStats" class="q-mb-lg">
-            <div class="text-subtitle1 q-mb-md">Tasks by Category</div>
-            <div class="row q-gutter-sm">
-              <div
-                v-for="(count, category) in taskStats.tasksByCategory"
-                :key="category"
-                class="col-auto"
-              >
-                <q-chip
-                  :label="`${category}: ${count}`"
-                  color="primary"
-                  text-color="white"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Priority Breakdown -->
-          <div v-if="taskStats" class="q-mb-lg">
-            <div class="text-subtitle1 q-mb-md">Tasks by Priority</div>
-            <div class="row q-gutter-sm">
-              <q-chip
-                :label="`High: ${taskStats.tasksByPriority.high}`"
-                color="negative"
-                text-color="white"
-              />
-              <q-chip
-                :label="`Medium: ${taskStats.tasksByPriority.medium}`"
-                color="orange"
-                text-color="white"
-              />
-              <q-chip
-                :label="`Low: ${taskStats.tasksByPriority.low}`"
-                color="blue-grey"
-                text-color="white"
-              />
-            </div>
-          </div>
-
-          <!-- Average Completion Time -->
-          <div v-if="taskStats && taskStats.averageCompletionTime > 0" class="q-mb-lg">
-            <div class="text-subtitle1 q-mb-sm">Performance Metrics</div>
-            <q-card flat bordered>
-              <q-card-section>
-                <div class="row items-center">
-                  <div class="col">
-                    <div class="text-body2">Average Completion Time</div>
-                  </div>
-                  <div class="col-auto">
-                    <div class="text-h6 text-primary">
-                      {{ Math.round(taskStats.averageCompletionTime) }} min
-                    </div>
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn flat label="Close" color="grey" v-close-popup />
-          <q-btn
-            color="primary"
-            label="View All Tasks"
-            @click="showTaskManagement = true; showVolunteerWorkloads = false"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { firestoreService } from '../services/firebase-firestore.service';
 import { taskService } from '../services/task.service';
 import { logger } from '../utils/logger';
-import { formatDateTime } from '../utils/date-formatter';
 import CategoriesDialog from '../components/admin/CategoriesDialog.vue';
 import ColorsDialog from '../components/admin/ColorsDialog.vue';
-import BaseStatsGrid from '../components/BaseStatsGrid.vue';
-import BaseActionToolbar from '../components/BaseActionToolbar.vue';
-import TaskList from '../components/TaskList.vue';
-import { useSiteTheme } from '../composables/useSiteTheme';
+import AdminHeaderSection from '../components/admin/AdminHeaderSection.vue';
+import AdminStatsOverview from '../components/admin/AdminStatsOverview.vue';
+import AdminActionsSection from '../components/admin/AdminActionsSection.vue';
+import AdminRecentActivity from '../components/admin/AdminRecentActivity.vue';
 import { UI_ICONS } from '../constants/ui-icons';
 import type { TaskStatistics } from '../services/task.service';
 
-// Component interfaces
-interface StatItem {
-  label: string;
-  value: string | number;
-  icon: string;
-  color: string;
-  description?: string;
+// Component interfaces for activity items
+interface ActivityItem {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: string;
 }
 
 interface ActionButton {
@@ -358,16 +164,7 @@ interface ActionButton {
   loading?: boolean;
 }
 
-interface ActionSection {
-  title: string;
-  titleIcon: string;
-  description: string;
-  primaryAction: ActionButton;
-  secondaryActions: ActionButton[];
-}
-
 const $q = useQuasar();
-const { getContentIcon, getStatusIcon } = useSiteTheme();
 
 // State
 const isLoadingStats = ref(false);
@@ -380,12 +177,7 @@ const stats = ref({
 
 const taskStats = ref<TaskStatistics | null>(null);
 
-const recentActivity = ref<Array<{
-  id: string;
-  type: string;
-  description: string;
-  timestamp: string;
-}>>([]);
+const recentActivity = ref<ActivityItem[]>([]);
 
 // Dialog states
 const showCategoriesDialog = ref(false);
@@ -395,8 +187,6 @@ const showNewsletterSettings = ref(false);
 const showUserManagement = ref(false);
 const showAddAdminDialog = ref(false);
 const showRolesDialog = ref(false);
-const showTaskManagement = ref(false);
-const showVolunteerWorkloads = ref(false);
 
 // Methods
 const refreshStats = async () => {
@@ -448,250 +238,13 @@ const refreshStats = async () => {
   }
 };
 
-const getActivityIcon = (type: string): string => {
-  switch (type) {
-    case 'content': return UI_ICONS.documentPlus;
-    case 'newsletter': return UI_ICONS.bookPlus;
-    case 'user': return UI_ICONS.accountPlus;
-    case 'system': return UI_ICONS.cog;
-    default: return UI_ICONS.info;
-  }
-};
-
-const getActivityColor = (type: string): string => {
-  switch (type) {
-    case 'content': return 'primary';
-    case 'newsletter': return 'secondary';
-    case 'user': return 'info';
-    case 'system': return 'warning';
-    default: return 'grey';
-  }
-};
-
-// Computed properties for base components
-const adminStats = computed((): StatItem[] => {
-  const contentIcon = getContentIcon('article');
-  const pendingIcon = getStatusIcon('pending');
-  const publishedIcon = getStatusIcon('published');
-  const notificationIcon = getContentIcon('notification');
-
-  const baseStats = [
-    {
-      label: 'Total Content',
-      value: stats.value.totalContent,
-      icon: contentIcon.icon,
-      color: contentIcon.color,
-      description: 'Total content items'
-    },
-    {
-      label: 'Pending Reviews',
-      value: stats.value.pendingReviews,
-      icon: pendingIcon.icon,
-      color: pendingIcon.color,
-      description: 'Content awaiting review'
-    },
-    {
-      label: 'Published',
-      value: stats.value.publishedContent,
-      icon: publishedIcon.icon,
-      color: publishedIcon.color,
-      description: 'Published content'
-    },
-    {
-      label: 'Newsletters',
-      value: stats.value.newsletters,
-      icon: notificationIcon.icon,
-      color: notificationIcon.color,
-      description: 'Total newsletters'
-    }
-  ];
-
-  // Add task statistics if available
-  if (taskStats.value) {
-    baseStats.push(
-      {
-        label: 'Active Tasks',
-        value: taskStats.value.unclaimedTasks + taskStats.value.inProgressTasks,
-        icon: UI_ICONS.assignment,
-        color: 'blue',
-        description: 'Unclaimed and in-progress tasks'
-      },
-      {
-        label: 'Overdue Tasks',
-        value: taskStats.value.overdueTasks,
-        icon: UI_ICONS.warning,
-        color: 'negative',
-        description: 'Tasks past due date'
-      }
-    );
-  }
-
-  return baseStats;
-});
-
-const actionSections = computed((): ActionSection[] => {
-  const announcementIcon = getContentIcon('announcement');
-  const newsletterIcon = getContentIcon('newsletter');
-  const pendingIcon = getStatusIcon('pending');
-  const publishedIcon = getStatusIcon('published');
-
-  return [
-    {
-      title: 'Content Management',
-      titleIcon: announcementIcon.icon,
-      description: 'Review and manage user-submitted content',
-      primaryAction: {
-        label: 'Review Content',
-        icon: UI_ICONS.eye,
-        color: 'primary',
-        style: 'outline',
-        to: '/admin/content'
-      },
-      secondaryActions: [
-        {
-          label: `${stats.value.pendingReviews} Pending`,
-          icon: pendingIcon.icon,
-          color: 'orange',
-          style: 'flat',
-          size: 'sm',
-          to: '/admin/content?tab=pending'
-        },
-        {
-          label: `${stats.value.publishedContent} Published`,
-          icon: publishedIcon.icon,
-          color: 'positive',
-          style: 'flat',
-          size: 'sm',
-          to: '/admin/content?tab=published'
-        }
-      ]
-    },
-    {
-      title: 'Newsletter Management',
-      titleIcon: newsletterIcon.icon,
-      description: 'Manage newsletter archive and publications',
-      primaryAction: {
-        label: 'Manage Newsletters',
-        icon: UI_ICONS.edit,
-        color: 'secondary',
-        style: 'outline',
-        to: '/admin/newsletters'
-      },
-      secondaryActions: [
-        {
-          label: 'Upload PDF',
-          icon: UI_ICONS.upload,
-          color: 'info',
-          style: 'flat',
-          size: 'sm',
-          action: 'showUploadDialog'
-        },
-        {
-          label: 'Settings',
-          icon: UI_ICONS.cog,
-          color: 'accent',
-          style: 'flat',
-          size: 'sm',
-          action: 'showNewsletterSettings'
-        }
-      ]
-    },
-    {
-      title: 'Site Configuration',
-      titleIcon: UI_ICONS.palette,
-      description: 'Manage themes, categories, and site-wide settings',
-      primaryAction: {
-        label: 'Theme Editor',
-        icon: UI_ICONS.paletteOutline,
-        color: 'grey-6',
-        style: 'outline',
-        to: '/admin/theme'
-      },
-      secondaryActions: [
-        {
-          label: 'Quick Categories',
-          icon: UI_ICONS.tagMultiple,
-          color: 'brown',
-          style: 'flat',
-          size: 'sm',
-          action: 'showCategoriesDialog'
-        },
-        {
-          label: 'Quick Colors',
-          icon: UI_ICONS.colorFill,
-          color: 'deep-purple',
-          style: 'flat',
-          size: 'sm',
-          action: 'showColorsDialog'
-        }
-      ]
-    },
-    {
-      title: 'User Management',
-      titleIcon: UI_ICONS.accountGroup,
-      description: 'Manage user accounts and permissions',
-      primaryAction: {
-        label: 'Manage Users',
-        icon: UI_ICONS.accountCog,
-        color: 'info',
-        style: 'outline',
-        action: 'showUserManagement'
-      },
-      secondaryActions: [
-        {
-          label: 'Add Admin',
-          icon: UI_ICONS.accountPlus,
-          color: 'green',
-          style: 'flat',
-          size: 'sm',
-          action: 'showAddAdminDialog'
-        },
-        {
-          label: 'Roles',
-          icon: UI_ICONS.accountKey,
-          color: 'purple',
-          style: 'flat',
-          size: 'sm',
-          action: 'showRolesDialog'
-        }
-      ]
-    },
-    {
-      title: 'Volunteer Task Management',
-      titleIcon: UI_ICONS.assignment,
-      description: 'Manage editorial workflow tasks and volunteer assignments',
-      primaryAction: {
-        label: 'Task Dashboard',
-        icon: UI_ICONS.dashboard,
-        color: 'purple',
-        style: 'outline',
-        action: 'showTaskManagement'
-      },
-      secondaryActions: [
-        {
-          label: `${taskStats.value?.unclaimedTasks || 0} Unclaimed`,
-          icon: UI_ICONS.assignment,
-          color: 'orange',
-          style: 'flat',
-          size: 'sm',
-          action: 'showTaskManagement'
-        },
-        {
-          label: 'Volunteer Workloads',
-          icon: UI_ICONS.accountGroup,
-          color: 'blue',
-          style: 'flat',
-          size: 'sm',
-          action: 'showVolunteerWorkloads'
-        }
-      ]
-    }
-  ];
-});
-
 // Event handlers
-const handleStatClick = (stat: StatItem) => {
-  logger.info('Stat clicked:', stat.label);
+const handleStatClick = (stat: unknown) => {
+  logger.info('Stat clicked:', stat);
+};
+
+const handleActivityClick = (activity: ActivityItem) => {
+  logger.info('Activity clicked:', activity.type, activity.id);
 };
 
 const handleActionClick = (action: ActionButton) => {
@@ -716,12 +269,6 @@ const handleActionClick = (action: ActionButton) => {
       break;
     case 'showRolesDialog':
       showRolesDialog.value = true;
-      break;
-    case 'showTaskManagement':
-      showTaskManagement.value = true;
-      break;
-    case 'showVolunteerWorkloads':
-      showVolunteerWorkloads.value = true;
       break;
     default:
       logger.info('Action clicked:', action.label);

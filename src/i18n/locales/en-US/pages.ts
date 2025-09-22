@@ -525,5 +525,32 @@ export default {
     layoutSaved: 'Layout saved successfully',
     layoutLoadError: 'Failed to load layout data',
     noIssueSelected: 'No issue selected for layout design'
+  },
+
+  taskManagement: {
+    title: 'Task Management',
+    subtitle: 'Manage volunteer workflow tasks and assignments',
+    tabs: {
+      allTasks: 'All Tasks',
+      workloads: 'Workloads',
+      analytics: 'Analytics'
+    },
+    stats: {
+      activeTasks: 'Active Tasks',
+      unclaimed: 'Unclaimed',
+      completed: 'Completed',
+      overdue: 'Overdue'
+    },
+    tasksByCategory: 'Tasks by Category',
+    tasksByPriority: 'Tasks by Priority',
+    performanceMetrics: 'Performance Metrics',
+    averageCompletionTime: 'Average Completion Time',
+    analytics: {
+      comingSoon: 'Analytics Coming Soon',
+      description: 'Task analytics and performance metrics will be available here'
+    },
+    errors: {
+      loadStatsFailed: 'Failed to load task statistics'
+    }
   }
 };
