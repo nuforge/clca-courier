@@ -627,36 +627,6 @@ const actionSections = computed((): ActionSection[] => {
       ]
     },
     {
-      title: 'Canva Integration Demo',
-      titleIcon: UI_ICONS.palette,
-      description: 'Test and demonstrate Canva Connect API features',
-      primaryAction: {
-        label: 'Canva Demo',
-        icon: UI_ICONS.autoFix,
-        color: 'accent',
-        style: 'outline',
-        to: '/admin/canva-demo'
-      },
-      secondaryActions: [
-        {
-          label: 'Autofill Test',
-          icon: UI_ICONS.autoFix,
-          color: 'purple',
-          style: 'flat',
-          size: 'sm',
-          to: '/admin/canva-demo#autofill'
-        },
-        {
-          label: 'Export Test',
-          icon: UI_ICONS.download,
-          color: 'indigo',
-          style: 'flat',
-          size: 'sm',
-          to: '/admin/canva-demo#export'
-        }
-      ]
-    },
-    {
       title: 'User Management',
       titleIcon: UI_ICONS.accountGroup,
       description: 'Manage user accounts and permissions',

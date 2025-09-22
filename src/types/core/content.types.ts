@@ -125,6 +125,22 @@ export interface ContentFeatures {
 }
 
 /**
+ * Task feature type for volunteer workflow system.
+ * Extracted from ContentFeatures for reuse in forms and components.
+ */
+export interface TaskFeature {
+  category: 'review' | 'layout' | 'fact-check' | 'approve' | 'print';
+  estimatedTime: number;
+  assignedTo?: string;
+  status: 'unclaimed' | 'claimed' | 'in-progress' | 'completed';
+  instructions?: string;
+  dueDate?: Timestamp;
+  priority: 'low' | 'medium' | 'high';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
  * Utility functions for working with ContentDoc objects and their features.
  * Provides type-safe access patterns and mechanical operations.
  */
