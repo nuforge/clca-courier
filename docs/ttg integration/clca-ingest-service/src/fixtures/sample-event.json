@@ -1,0 +1,45 @@
+{
+  "id": "ttg:event:4567",
+  "title": "Friday Board Game Night",
+  "description": "Bring your favorites; RSVP on TTG.",
+  "status": "published",
+  "tags": [
+    "content-type:event",
+    "event-type:game-night",
+    "game-id:game-1234",
+    "system:ttg"
+  ],
+  "features": {
+    "feat:event/v1": {
+      "startTime": "2025-10-10T19:00:00Z",
+      "endTime": "2025-10-10T22:00:00Z",
+      "location": "Arcade Pub",
+      "minPlayers": 1,
+      "maxPlayers": 5
+    },
+    "feat:game/v1": {
+      "gameId": "game-1234",
+      "gameName": "Terraforming Mars",
+      "genre": "strategy",
+      "playerCount": "1-5"
+    }
+  },
+  "rsvpSummary": {
+    "yes": 12,
+    "no": 1,
+    "maybe": 2,
+    "waitlist": 0,
+    "capacity": 20
+  },
+  "images": [
+    {
+      "url": "https://ttg-cdn.example.com/events/4567/photo1.jpg",
+      "caption": "Game setup"
+    }
+  ],
+  "ownerSystem": "ttg",
+  "originalId": "event:4567",
+  "ownerUrl": "https://ttg.example.com/events/4567",
+  "createdAt": "2025-09-21T10:00:00Z",
+  "updatedAt": "2025-09-21T10:05:00Z"
+}

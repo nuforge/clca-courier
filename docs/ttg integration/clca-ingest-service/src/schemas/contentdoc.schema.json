@@ -1,0 +1,180 @@
+{
+  "$id": "https://example.org/schemas/contentdoc.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ContentDoc",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "status",
+    "tags",
+    "features",
+    "ownerSystem",
+    "createdAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "pending",
+        "archived",
+        "deleted"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "rsvpSummary": {
+      "type": "object",
+      "properties": {
+        "yes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maybe": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "waitlist": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capacity": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "ownerSystem": {
+      "type": "string"
+    },
+    "originalId": {
+      "type": "string"
+    },
+    "ownerUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "feat:event/v1": {
+      "type": "object",
+      "required": [
+        "startTime",
+        "endTime"
+      ],
+      "properties": {
+        "startTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string"
+        },
+        "minPlayers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxPlayers": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "feat:game/v1": {
+      "type": "object",
+      "required": [
+        "gameId",
+        "gameName"
+      ],
+      "properties": {
+        "gameId": {
+          "type": "string"
+        },
+        "gameName": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "playerCount": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
