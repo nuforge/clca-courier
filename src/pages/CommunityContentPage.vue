@@ -5,7 +5,7 @@ import { useRoleAuth } from '../composables/useRoleAuth';
 import { useRoute, useRouter } from 'vue-router';
 import type { ContentDoc } from '../types/core/content.types';
 import { logger } from '../utils/logger';
-import UnifiedContentList from '../components/UnifiedContentList.vue';
+import ContentList from '../components/ContentList.vue';
 import { normalizeDate } from '../utils/date-formatter';
 import { contentUtils } from '../types/core/content.types';
 
@@ -329,7 +329,7 @@ watch(contentType, (newType: string) => {
           <!-- Featured Content Section -->
           <div v-if="!isLoading && featuredContent.length > 0" class="q-col-gutter-sm">
             <div class="text-h5">Featured Content</div>
-            <UnifiedContentList
+            <ContentList
               :items="featuredContent"
               @item-click="showItemDetail"
             />
@@ -346,7 +346,7 @@ watch(contentType, (newType: string) => {
 
             <div class="text-h5">News & Updates</div>
 
-            <UnifiedContentList
+            <ContentList
               :items="filteredContent"
               :variant="viewMode"
               empty-message="No content found"
