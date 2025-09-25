@@ -3,7 +3,6 @@ import admin from 'firebase-admin';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import contentSchema from './schemas/contentdoc.schema.json';
-import { v4 as uuidv4 } from 'uuid';
 
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);

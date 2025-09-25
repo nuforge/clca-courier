@@ -1,30 +1,5 @@
 # CLCA Courier - AI Coding Instructions
 
-## 🚨 PRODUCTION READY - CRITICAL BUG FIXES COMPLETE
-
-### ✅ ALL PHASES COMPLETE + CRITICAL FIXES (September 11, 2025)
-
-**PRODUCTION-READY CODEBASE ACHIEVED - COMPREHENSIVE REFACTORING & COMMUNITY FEATURES COMPLETE**
-**+ CANVA INTEGRATION COMPLETE + CRITICAL RECURSIVE UPDATE BUGS FIXED**
-
-### ⚡ LATEST ACHIEVEMENTS (January 15, 2025)
-- **✅ COMPREHENSIVE ERROR PREVENTION TEST SUITE COMPLETE**: 56 passing tests covering all critical error scenarios
-- **✅ CORS ERROR PREVENTION IMPLEMENTED**: Specific tests and handling for Cloud Functions CORS policy violations
-- **✅ RATE LIMITING PREVENTION**: Avatar caching with exponential backoff to prevent 429 errors
-- **✅ FIRESTORE INDEX ERROR HANDLING**: Missing index detection with helpful developer guidance
-- **✅ SERVICE FAILURE RESILIENCE**: Cross-service error boundaries and circuit breaker patterns
-- **✅ FIREBASE TESTING COMPLIANCE**: Following official Firebase testing patterns and best practices
-- **🚧 REFACTOR DATA STRUCTURE**: ContentDoc architecture work in progress - foundation components implemented
-
-#### Foundation Architecture ✅ (Phases 1-5)
-
-- ✅ **Type System Unified**: Single `UnifiedNewsletter` interface across entire codebase
-- ✅ **Property Standardization**: All `downloadUrl`, `publicationDate`, `pageCount` conversions completed
-- ✅ **Build System Stabilized**: 0 TypeScript compilation errors, clean production builds
-- ✅ **Component Integration**: All Vue components updated to use unified types
-- ✅ **Service Layer Unified**: Consistent Firebase-first service architecture
-- 🚧 **ContentDoc Architecture**: Foundation work begun, migration in progress
-
 #### Code Quality & Professional Standards ✅ (Phases 6-8)
 
 - ✅ **Professional Logging**: Centralized logger utility (`src/utils/logger.ts`) replacing all console statements
@@ -35,7 +10,7 @@
 
 #### UI/UX Improvements & Filter Enhancements ✅ (Phase 9)
 
-- ✅ **Date Sorting Fixed**: Custom chronological sort function implementation
+- ✅ **Date Sorting Fixed**: @utils/date-formater.ts
 - ✅ **Word Count Calculations**: Fixed to use full extracted text content
 - ✅ **WorkflowToolbar Expandable**: Smooth expand/collapse with persistent state
 - ✅ **Month-Based Filtering**: Precise month dropdown replacing season filtering
@@ -177,16 +152,11 @@
 
 **AI MUST REFUSE TO PROCEED IF ANY OF THESE ARE VIOLATED:**
 
-- **❌ WRONG DEV COMMAND**: ALWAYS use `npm run dev` for Quasar projects, NEVER `quasar dev`
+- **❌ ANY TYPES**: FORBIDDEN in ALL contexts - use `Record<string, unknown>`, `string | undefined`, proper interfaces @/types
 - **❌ WRONG LINT COMMAND**: ALWAYS use `npm run lint` for ESLint checking, NEVER any other lint command
-- **❌ RE-DOWNLOADING PROCESSED FILES**: NEVER download/fetch a PDF file that was just processed during import - USE THE ORIGINAL FILE DATA
 - **❌ Hash Mode Routing**: Always use history mode (`/archive` not `/#/archive`) - configured in `quasar.config.ts`
 - **❌ Hardcoded Data Lists**: No static arrays, JSON files for content, or fake data - use dynamic discovery only
 - **❌ Path Assumptions**: Always verify file/directory existence using tools like `list_dir`, `file_search`, `grep_search` before implementation
-- **❌ Mass PDF Processing**: Avoid calling `lightweightNewsletterService.getNewsletters()` during sync operations
-- **❌ Multiple Terminals**: NEVER create new terminals with `run_in_terminal` when one exists - check existing terminals first
-- **❌ Background Processes**: NEVER use `isBackground=true` unless explicitly requested by user for servers
-- **❌ ANY TYPES**: FORBIDDEN in ALL contexts - use `Record<string, unknown>`, `string | undefined`, proper interfaces
 - **❌ Floating Promises**: Always handle async calls with `await`, `.catch()`, `.then()`, or explicit `void` operator
 - **❌ Floating Promises**: 'npm run type-check' will not work. Nor will 'grep' or 'rm' or any commands for linux?
 - **❌ Feature Removal Without Understanding**: NEVER remove working functionality or 'simplify' a requested feature without fully understanding the requirements

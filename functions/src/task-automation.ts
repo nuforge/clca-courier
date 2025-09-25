@@ -15,8 +15,9 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { logger } from 'firebase-functions/logger';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import * as functions from 'firebase-functions';
+import { Timestamp } from 'firebase/firestore';
 import type { ContentDoc, ContentFeatures } from '../../src/types/core/content.types';
 
 // Initialize Firebase Admin if not already initialized
@@ -88,7 +89,7 @@ async function findAvailableVolunteers(
   excludeUserId?: string
 ): Promise<Array<{ uid: string; tags: string[]; availability: string; displayName: string }>> {
   try {
-    logger.info('Finding available volunteers', {
+    functions.logger.info('Finding available volunteers', {
       requiredSkills,
       excludeUserId
     });
@@ -125,14 +126,14 @@ async function findAvailableVolunteers(
       });
     }
 
-    logger.info('Found volunteers', {
+    functions.logger.info('Found volunteers', {
       count: volunteers.length,
       volunteers: volunteers.map(v => ({ uid: v.uid, displayName: v.displayName, availability: v.availability }))
     });
 
     return volunteers;
   } catch (error) {
-    logger.error('Failed to find available volunteers', {
+    functions.logger.error('Failed to find available volunteers', {
       error: error instanceof Error ? error.message : 'Unknown error',
       requiredSkills
     });
@@ -152,7 +153,7 @@ async function getVolunteerWorkload(userId: string): Promise<number> {
 
     return activeTasksQuery.size;
   } catch (error) {
-    logger.error('Failed to get volunteer workload', {
+    functions.logger.error('Failed to get volunteer workload', {
       error: error instanceof Error ? error.message : 'Unknown error',
       userId
     });
@@ -194,7 +195,7 @@ function calculateTaskDeadline(category: string): Timestamp {
 export const onContentCreated = onDocumentCreated('content/{contentId}', async (event) => {
   const snapshot = event.data;
   if (!snapshot) {
-    logger.warn('No snapshot data in content creation event');
+    functions.logger.warn('No snapshot data in content creation event');
     return;
   }
 
@@ -202,7 +203,7 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
   const content = snapshot.data() as ContentDoc;
 
   try {
-    logger.info('Processing new content for task automation', {
+    functions.logger.info('Processing new content for task automation', {
       contentId,
       title: content.title,
       authorId: content.authorId,
@@ -212,7 +213,7 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
 
     // Only create tasks for draft content that doesn't already have a task
     if (content.status !== 'draft' || content.features['feat:task']) {
-      logger.info('Skipping task creation', {
+      functions.logger.info('Skipping task creation', {
         contentId,
         status: content.status,
         hasTask: !!content.features['feat:task']
@@ -224,7 +225,7 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
     const contentType = getContentType(content);
     const requiredSkills = getRequiredSkills(content);
 
-    logger.info('Creating editorial task', {
+    functions.logger.info('Creating editorial task', {
       contentId,
       contentType,
       requiredSkills
@@ -263,7 +264,7 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
 
       if (bestVolunteer) {
         assignedTo = bestVolunteer.volunteer.uid;
-        logger.info('Assigned task to volunteer', {
+        functions.logger.info('Assigned task to volunteer', {
           contentId,
           assignedTo,
           volunteerName: bestVolunteer.volunteer.displayName,
@@ -296,7 +297,7 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
       'timestamps.updated': FieldValue.serverTimestamp()
     });
 
-    logger.info('Task created successfully', {
+    functions.logger.info('Task created successfully', {
       contentId,
       category: taskCategory,
       assignedTo: assignedTo || 'unassigned',
@@ -315,7 +316,7 @@ export const onContentCreated = onDocumentCreated('content/{contentId}', async (
     }
 
   } catch (error) {
-    logger.error('Failed to create automatic task', {
+    functions.logger.error('Failed to create automatic task', {
       contentId,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
@@ -348,7 +349,7 @@ export const onUserProfileUpdated = onDocumentUpdated('userProfiles/{userId}', a
       return;
     }
 
-    logger.info('User profile changed, checking for task reassignment', {
+    functions.logger.info('User profile changed, checking for task reassignment', {
       userId,
       oldAvailability: beforeData.availability,
       newAvailability: afterData.availability,
@@ -361,7 +362,7 @@ export const onUserProfileUpdated = onDocumentUpdated('userProfiles/{userId}', a
     }
 
   } catch (error) {
-    logger.error('Failed to process user profile update for task reassignment', {
+    functions.logger.error('Failed to process user profile update for task reassignment', {
       userId,
       error: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -379,7 +380,7 @@ async function reassignUserTasks(userId: string, reason: string): Promise<void> 
       .where('features.feat:task.status', 'in', ['claimed', 'in-progress'])
       .get();
 
-    logger.info('Found tasks to reassign', {
+    functions.logger.info('Found tasks to reassign', {
       userId,
       taskCount: userTasksQuery.size,
       reason
@@ -426,7 +427,7 @@ async function reassignUserTasks(userId: string, reason: string): Promise<void> 
         updateData['features.feat:task.assignedTo'] = newAssignee;
         updateData['features.feat:task.status'] = 'claimed';
 
-        logger.info('Reassigning task to new volunteer', {
+        functions.logger.info('Reassigning task to new volunteer', {
           contentId: taskDoc.id,
           oldAssignee: userId,
           newAssignee,
@@ -447,7 +448,7 @@ async function reassignUserTasks(userId: string, reason: string): Promise<void> 
         updateData['features.feat:task.assignedTo'] = FieldValue.delete();
         updateData['features.feat:task.status'] = 'unclaimed';
 
-        logger.warn('No available volunteers for reassignment', {
+        functions.logger.warn('No available volunteers for reassignment', {
           contentId: taskDoc.id,
           requiredSkills,
           reason
@@ -466,7 +467,7 @@ async function reassignUserTasks(userId: string, reason: string): Promise<void> 
     }
 
   } catch (error) {
-    logger.error('Failed to reassign user tasks', {
+    functions.logger.error('Failed to reassign user tasks', {
       userId,
       reason,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -480,11 +481,10 @@ async function reassignUserTasks(userId: string, reason: string): Promise<void> 
  */
 export const monitorTaskDeadlines = onSchedule('every day 09:00', async () => {
   try {
-    logger.info('Starting daily deadline monitoring');
+    functions.logger.info('Starting daily deadline monitoring');
 
     const now = new Date();
     const oneDayFromNow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
-    const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
 
     // Find tasks with approaching deadlines
     const approachingDeadlinesQuery = await db.collection('content')
@@ -509,7 +509,7 @@ export const monitorTaskDeadlines = onSchedule('every day 09:00', async () => {
       }
     });
 
-    logger.info('Found tasks with deadline issues', {
+    functions.logger.info('Found tasks with deadline issues', {
       approachingCount: approachingTasks.length,
       overdueCount: overdueTasks.length
     });
@@ -547,7 +547,7 @@ export const monitorTaskDeadlines = onSchedule('every day 09:00', async () => {
       }
     }
 
-    logger.info('Deadline monitoring completed', {
+    functions.logger.info('Deadline monitoring completed', {
       notificationsSent: approachingTasks.length + overdueTasks.length,
       escalations: overdueTasks.filter(t => {
         const hoursOverdue = (now.getTime() - t.task.dueDate!.toDate().getTime()) / (60 * 60 * 1000);
@@ -556,7 +556,7 @@ export const monitorTaskDeadlines = onSchedule('every day 09:00', async () => {
     });
 
   } catch (error) {
-    logger.error('Failed to monitor task deadlines', {
+    functions.logger.error('Failed to monitor task deadlines', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -590,14 +590,14 @@ async function escalateOverdueTask(
       });
     }
 
-    logger.info('Task escalated to administrators', {
+    functions.logger.info('Task escalated to administrators', {
       contentId,
       assignedTo: task.assignedTo,
       hoursOverdue: Math.floor(hoursOverdue)
     });
 
   } catch (error) {
-    logger.error('Failed to escalate overdue task', {
+    functions.logger.error('Failed to escalate overdue task', {
       contentId,
       error: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -626,14 +626,14 @@ async function sendTaskNotification(
       expiresAt: Timestamp.fromDate(new Date(Date.now() + (30 * 24 * 60 * 60 * 1000))) // 30 days
     });
 
-    logger.info('Task notification sent', {
+    functions.logger.info('Task notification sent', {
       userId,
       type: notificationType,
       data: notificationData
     });
 
   } catch (error) {
-    logger.error('Failed to send task notification', {
+    functions.logger.error('Failed to send task notification', {
       userId,
       type: notificationType,
       error: error instanceof Error ? error.message : 'Unknown error'

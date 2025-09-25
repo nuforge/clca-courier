@@ -553,22 +553,15 @@ export const getAvailableTemplatesList = onCall(async (request: any) => {
 /**
  * TTG Integration - Content Ingestion API
  * Accepts ContentDoc-formatted content from external systems (like TTG)
- * 
- * This function follows CLCA architecture patterns:
- * - Uses CLCA ContentDoc schema from src/types/core/content.types.ts
- * - Stores content in the 'content' collection with proper status workflow
- * - Implements authentication via service tokens
- * - Supports idempotency via ownerSystem + originalId
- * - Follows Firebase Functions v2 patterns with proper CORS
  */
 export const ingestContent = onRequest({
   memory: '512MiB',
   cors: true
 }, async (req, res) => {
-  // Set CORS headers following CLCA patterns
+  // Set CORS headers
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, X-Service-Token');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, x-service-token');
 
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -581,104 +574,87 @@ export const ingestContent = onRequest({
   }
 
   try {
-    // Service token authentication (following CLCA security patterns)
-    const token = req.header('X-Service-Token');
+    // Service token validation
+    const token = req.header('x-service-token');
     if (!token || token !== process.env.TTG_INGEST_TOKEN) {
-      res.status(401).json({ error: 'Unauthorized - Invalid service token' });
+      res.status(401).json({ error: 'Unauthorized' });
       return;
     }
 
-    // Validate payload structure
+    // Basic payload validation
     const payload = req.body;
     if (!payload || typeof payload !== 'object') {
-      res.status(400).json({ error: 'Invalid payload - must be JSON object' });
+      res.status(400).json({ error: 'Invalid payload' });
       return;
     }
 
-    // Validate required ContentDoc fields (following CLCA ContentDoc schema)
+    // Validate required ContentDoc fields
     const { id, title, status, tags, features, ownerSystem, originalId, updatedAt } = payload;
     if (!id || !title || !status || !tags || !features || !ownerSystem || !originalId || !updatedAt) {
       res.status(400).json({ 
         error: 'Missing required ContentDoc fields',
-        required: ['id', 'title', 'status', 'tags', 'features', 'ownerSystem', 'originalId', 'updatedAt'],
-        received: Object.keys(payload)
+        required: ['id', 'title', 'status', 'tags', 'features', 'ownerSystem', 'originalId', 'updatedAt']
       });
       return;
     }
 
-    // Validate ContentDoc schema compliance
-    if (!Array.isArray(tags) || typeof features !== 'object') {
-      res.status(400).json({
-        error: 'Invalid ContentDoc format - tags must be array, features must be object'
-      });
-      return;
-    }
-
-    // Idempotency check using ownerSystem + originalId (CLCA pattern)
-    const existingQuery = await db
+    // Idempotency check using ownerSystem + originalId
+    const existing = await db
       .collection('content')
       .where('ownerSystem', '==', ownerSystem)
       .where('originalId', '==', originalId)
       .limit(1)
       .get();
 
-    if (!existingQuery.empty) {
-      const existingDoc = existingQuery.docs[0];
+    if (!existing.empty) {
+      const existingDoc = existing.docs[0];
       const existingData = existingDoc.data();
       
-      // Compare timestamps to determine if update is needed
-      const existingTimestamp = new Date(existingData.updatedAt || 0).getTime();
-      const incomingTimestamp = new Date(updatedAt).getTime();
-      
-      if (existingTimestamp >= incomingTimestamp) {
+      // Compare timestamps to see if this is newer
+      if (new Date(existingData.updatedAt).getTime() >= new Date(updatedAt).getTime()) {
         res.status(200).json({ 
           status: 'noop', 
           id: existingDoc.id,
-          message: 'Content is up to date',
-          lastUpdated: existingData.updatedAt
+          message: 'Content is up to date'
         });
         return;
       }
       
-      // Update existing content with new data
+      // Update existing content
       await existingDoc.ref.update({
         ...payload,
-        lastIngestedAt: FieldValue.serverTimestamp(),
-        ingestedFrom: ownerSystem
+        lastIngestedAt: FieldValue.serverTimestamp()
       });
       
       res.status(200).json({ 
         status: 'updated', 
         id: existingDoc.id,
-        message: 'Content updated successfully',
-        updatedAt: updatedAt
+        message: 'Content updated successfully'
       });
-      return;
+    } else {
+      // Create new content
+      const docRef = await db.collection('content').add({
+        ...payload,
+        lastIngestedAt: FieldValue.serverTimestamp(),
+        // Convert string timestamps to Firestore timestamps for querying
+        'timestamps.created': payload.timestamps?.created ? 
+          new Date(payload.timestamps.created) : FieldValue.serverTimestamp(),
+        'timestamps.updated': payload.timestamps?.updated ? 
+          new Date(payload.timestamps.updated) : FieldValue.serverTimestamp(),
+      });
+      
+      res.status(201).json({ 
+        status: 'created', 
+        id: docRef.id,
+        message: 'Content created successfully'
+      });
     }
 
-    // Create new content document (following CLCA content workflow)
-    const docRef = await db.collection('content').add({
-      ...payload,
-      // Add CLCA-specific metadata
-      lastIngestedAt: FieldValue.serverTimestamp(),
-      ingestedFrom: ownerSystem,
-      createdAt: FieldValue.serverTimestamp(),
-      // Ensure status is valid for CLCA workflow (pending -> approved -> published)
-      status: status === 'published' ? 'published' : 'pending'
-    });
-    
-    res.status(201).json({ 
-      status: 'created', 
-      id: docRef.id,
-      message: 'Content created successfully',
-      docId: docRef.id
-    });
-
   } catch (error) {
-    console.error('TTG content ingestion error:', error);
+    console.error('Ingestion error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -686,18 +662,12 @@ export const ingestContent = onRequest({
 /**
  * TTG Integration - Public Content API
  * Returns published content with filtering and pagination
- * 
- * This function follows CLCA architecture patterns:
- * - Uses same query patterns as CLCA public content access
- * - Implements pagination and filtering like CLCA content services
- * - Returns content in CLCA-compatible format
- * - Supports caching headers for performance
  */
 export const getPublishedContent = onRequest({
   memory: '256MiB',
   cors: true
 }, async (req, res) => {
-  // Set CORS headers following CLCA patterns
+  // Set CORS headers
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -721,15 +691,15 @@ export const getPublishedContent = onRequest({
       startAfter 
     } = req.query;
 
-    const queryLimit = Math.min(50, parseInt(limit as string, 10) || 25);
+    const queryLimit = Math.min(50, parseInt(limit as string, 10));
     
-    // Build query following CLCA patterns (only published content for public API)
+    // Build query
     let query = db.collection('content')
       .where('status', '==', 'published')
-      .orderBy('updatedAt', 'desc')
+      .orderBy('timestamps.updated', 'desc')
       .limit(queryLimit);
 
-    // Filter by ownerSystem if specified
+    // Filter by system if specified
     if (system) {
       query = query.where('ownerSystem', '==', system);
     }
@@ -748,7 +718,7 @@ export const getPublishedContent = onRequest({
       ...doc.data()
     })) as Array<{ id: string; tags?: string[]; [key: string]: unknown }>;
 
-    // Post-process filtering (for fields that can't be efficiently indexed)
+    // Post-process filtering (for fields that can't be indexed easily)
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags.map(t => String(t)) : [String(tags)];
       items = items.filter(item => 
@@ -764,26 +734,21 @@ export const getPublishedContent = onRequest({
       );
     }
 
-    // Set cache headers for performance (following CLCA caching patterns)
-    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
+    // Set cache headers
+    res.setHeader('Cache-Control', 'public, max-age=60');
     
     res.status(200).json({ 
       items,
       count: items.length,
       hasMore: snapshot.docs.length === queryLimit,
-      nextCursor: items.length > 0 ? items[items.length - 1].id : null,
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        queryLimit,
-        totalReturned: items.length
-      }
+      nextCursor: items.length > 0 ? items[items.length - 1].id : null
     });
 
   } catch (error) {
-    console.error('TTG public content API error:', error);
+    console.error('Public API error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

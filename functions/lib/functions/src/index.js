@@ -5,6 +5,9 @@
  * This function generates PDF newsletters from approved content submissions
  * using Puppeteer for HTML to PDF conversion.
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPublishedContent = exports.ingestContent = exports.getAvailableTemplatesList = exports.testTemplate = exports.previewTemplate = exports.generateNewsletter = exports.generateNewsletterHttp = void 0;
 const https_1 = require("firebase-functions/v2/https");
@@ -12,8 +15,8 @@ const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
 const auth_1 = require("firebase-admin/auth");
-const puppeteer_core_1 = require("puppeteer-core");
-const chromium_1 = require("@sparticuz/chromium");
+const puppeteer_core_1 = __importDefault(require("puppeteer-core"));
+const chromium_1 = __importDefault(require("@sparticuz/chromium"));
 const pdf_lib_1 = require("pdf-lib");
 const template_engine_1 = require("./template-engine");
 // Initialize Firebase Admin
@@ -651,3 +654,4 @@ exports.getPublishedContent = (0, https_1.onRequest)({
         });
     }
 });
+//# sourceMappingURL=index.js.map
