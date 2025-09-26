@@ -24,7 +24,7 @@ import {
   sortByDateAsc,
   formatTimeString
 } from '../utils/date-formatter';
-import type { ContentDoc } from '../types/core/content.types';
+import type { ContentDoc, ContentStatus } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
 
 /**
@@ -38,7 +38,7 @@ export interface CalendarEvent {
   authorName: string;
   authorEmail?: string;
   tags: string[];
-  status: 'draft' | 'published' | 'archived' | 'rejected' | 'deleted';
+  status: ContentStatus;
 
   // Date feature data
   eventDate: string; // ISO 8601 date string
@@ -70,7 +70,7 @@ export interface CalendarEventFilters {
   contentTypes?: string[]; // Filter by content-type tags
   featured?: boolean;
   tags?: string[];
-  status?: ('draft' | 'published' | 'archived' | 'rejected' | 'deleted')[];
+  status?: ContentStatus[];
 }
 
 class CalendarContentService {

@@ -5,6 +5,7 @@
 
 import type { MongoAbility } from '@casl/ability';
 import type { UserRoleType } from './user-roles.types';
+import type { ContentStatus } from './content.types';
 
 /**
  * Available actions that can be performed on resources
@@ -69,7 +70,7 @@ export interface ContentResource extends BaseResource {
   type: 'article' | 'announcement' | 'event' | 'classified' | 'photo';
   title: string;
   authorId: string;
-  status: 'pending' | 'approved' | 'rejected' | 'published' | 'draft';
+  status: ContentStatus;
   featured?: boolean;
   categoryId?: string;
 }

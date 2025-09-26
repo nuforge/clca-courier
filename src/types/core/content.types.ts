@@ -9,6 +9,12 @@
 import { Timestamp, type GeoPoint } from 'firebase/firestore';
 
 /**
+ * Content status types - Single source of truth for all content status values
+ * Used throughout the application for type safety and consistency
+ */
+export type ContentStatus = 'draft' | 'pending' | 'published' | 'archived' | 'rejected' | 'deleted';
+
+/**
  * The single, canonical interface for all content in the system.
  * Represents a base content entity that can have various features attached.
  *
@@ -37,7 +43,7 @@ export interface ContentDoc {
   features: ContentFeatures;
 
   /** Publication status of the content */
-  status: 'draft' | 'pending' | 'published' | 'archived' | 'rejected' | 'deleted';
+  status: ContentStatus;
 
   /** Timestamp tracking for content lifecycle */
   timestamps: {

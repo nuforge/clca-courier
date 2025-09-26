@@ -31,6 +31,7 @@ import { sortByDateDesc, sortByDateAsc } from '../utils/date-formatter';
 import type { NewsletterDocument } from '../types/core/newsletter.types';
 import type { CanvaDesign } from '../services/canva/types';
 import type { UnifiedNewsletter } from '../types/core/newsletter.types';
+import type { ContentStatus } from '../types/core/content.types';
 
 // Use the canonical UnifiedNewsletter interface
 export type NewsletterMetadata = UnifiedNewsletter;
@@ -45,7 +46,7 @@ export interface UserContent {
   authorName: string;
   authorEmail: string;
   submissionDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'published';
+  status: ContentStatus;
   featured?: boolean; // Optional featured flag for highlighted content
   reviewedBy?: string; // Editor UID
   reviewDate?: string;
