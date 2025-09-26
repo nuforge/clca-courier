@@ -19,6 +19,7 @@ import {
 import { firestore } from '../config/firebase.config';
 import { firestoreService } from './firebase-firestore.service';
 import { logger } from '../utils/logger';
+import { USER_ROLES } from '../constants/role-constants';
 import type {
   UserRoleType,
   Permission,
@@ -49,7 +50,7 @@ const COLLECTIONS = {
  */
 const DEFAULT_ROLE_CONFIGS: Record<UserRoleType, UserRoleConfig> = {
   member: {
-    role: 'member',
+    role: USER_ROLES.MEMBER,
     permissions: ['content:read', 'newsletter:read', 'theme:read', 'theme:update'],
     displayName: 'Member',
     description: 'Authenticated community member with basic access',
@@ -61,7 +62,7 @@ const DEFAULT_ROLE_CONFIGS: Record<UserRoleType, UserRoleConfig> = {
     requiredApproval: false,
   },
   contributor: {
-    role: 'contributor',
+    role: USER_ROLES.CONTRIBUTOR,
     permissions: [
       'content:read', 'content:create', 'content:update',
       'newsletter:read', 'design:create',
@@ -77,7 +78,7 @@ const DEFAULT_ROLE_CONFIGS: Record<UserRoleType, UserRoleConfig> = {
     requiredApproval: true,
   },
   canva_contributor: {
-    role: 'canva_contributor',
+    role: USER_ROLES.CANVA_CONTRIBUTOR,
     permissions: [
       'content:read', 'content:create', 'content:update',
       'newsletter:read', 'design:create', 'design:canva', 'design:export',
@@ -93,7 +94,7 @@ const DEFAULT_ROLE_CONFIGS: Record<UserRoleType, UserRoleConfig> = {
     requiredApproval: true,
   },
   editor: {
-    role: 'editor',
+    role: USER_ROLES.EDITOR,
     permissions: [
       'content:read', 'content:create', 'content:update', 'content:approve',
       'newsletter:read', 'newsletter:create', 'newsletter:update', 'newsletter:publish',
@@ -110,7 +111,7 @@ const DEFAULT_ROLE_CONFIGS: Record<UserRoleType, UserRoleConfig> = {
     requiredApproval: true,
   },
   moderator: {
-    role: 'moderator',
+    role: USER_ROLES.MODERATOR,
     permissions: [
       'content:read', 'content:create', 'content:update', 'content:approve', 'content:publish',
       'newsletter:read', 'newsletter:create', 'newsletter:update',
@@ -129,7 +130,7 @@ const DEFAULT_ROLE_CONFIGS: Record<UserRoleType, UserRoleConfig> = {
     requiredApproval: true,
   },
   administrator: {
-    role: 'administrator',
+    role: USER_ROLES.ADMINISTRATOR,
     permissions: [
       // All permissions - full system access
       'content:read', 'content:create', 'content:update', 'content:delete', 'content:approve', 'content:publish',
@@ -313,13 +314,13 @@ class UserRoleService {
       }
 
       // Default role for new users
-      const defaultRole: UserRoleType = 'member';
+      const defaultRole: UserRoleType = USER_ROLES.MEMBER;
       this.userRoleCache.set(userId, defaultRole);
       return defaultRole;
     } catch (error) {
       logger.error(`Failed to get user role for ${userId}:`, error);
       // Return default role on error
-      return 'member';
+      return USER_ROLES.MEMBER;
     }
   }
 

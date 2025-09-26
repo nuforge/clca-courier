@@ -28,6 +28,7 @@ import { firebaseAuthService } from './firebase-auth.service';
 import { firebaseContentService } from './firebase-content.service';
 import { firestoreService } from './firebase-firestore.service';
 import { logger } from '../utils/logger';
+import { isAdmin } from '../constants/role-constants';
 import { getCurrentTimestamp, toISOString } from '../utils/date-formatter';
 import { userUtils } from '../utils/userUtils';
 import type { ContentDoc, ContentFeatures } from '../types/core/content.types';
@@ -316,7 +317,7 @@ class TaskService {
       if (task.assignedTo && task.assignedTo !== updateUserId) {
         // Check if user has admin permissions
         const userProfile = await firestoreService.getUserProfile(currentUser.uid);
-        if (!userProfile || !['moderator', 'administrator'].includes(userProfile.role)) {
+        if (!userProfile || !isAdmin(userProfile.role)) {
           throw new Error('Only assigned user or administrators can update task status');
         }
       }

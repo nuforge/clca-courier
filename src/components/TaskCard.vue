@@ -229,6 +229,7 @@ import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { taskService } from '../services/task.service';
 import { firestoreService } from '../services/firebase-firestore.service';
+import { isContentManager } from '../constants/role-constants';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 import { logger } from '../utils/logger';
 import { formatDateTime } from '../utils/date-formatter';
@@ -461,7 +462,7 @@ const showManageDialog = async () => {
     availableUsers.value = profiles.filter(p =>
       p.isApproved &&
       p.preferences?.taskAssignments &&
-      ['contributor', 'canva_contributor', 'editor', 'moderator', 'administrator'].includes(p.role)
+      isContentManager(p.role)
     );
 
     selectedUser.value = task.value.assignedTo || '';

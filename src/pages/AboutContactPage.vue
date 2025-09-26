@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useTheme } from '../composables/useTheme'
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys'
+import { USER_ROLES } from '../constants/role-constants'
 
 // Import Base Components for Maximum Reuse
 import BaseTabbedContent from '../components/BaseTabbedContent.vue'
@@ -181,7 +182,7 @@ const editorialTeam = computed<AboutListItem[]>(() => [
     icon: 'mdi-account-edit',
     color: 'primary',
     type: 'team',
-    role: 'editor',
+    role: USER_ROLES.EDITOR,
     avatar: 'mdi-account-edit'
   },
   {

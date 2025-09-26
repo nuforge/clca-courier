@@ -4,6 +4,7 @@
  */
 
 import { AbilityBuilder, createMongoAbility } from '@casl/ability';
+import { USER_ROLES } from '../constants/role-constants';
 import type {
   Action,
   Subject,
@@ -23,32 +24,32 @@ export function createAbilityForRole(
   try {
     // Apply role-specific rules
     switch (role) {
-      case 'member':
+      case USER_ROLES.MEMBER:
         defineMemberPermissions(can, cannot, userId);
         break;
-      case 'contributor':
+      case USER_ROLES.CONTRIBUTOR:
         defineMemberPermissions(can, cannot, userId);
         defineContributorPermissions(can, cannot, userId);
         break;
-      case 'canva_contributor':
+      case USER_ROLES.CANVA_CONTRIBUTOR:
         defineMemberPermissions(can, cannot, userId);
         defineContributorPermissions(can, cannot, userId);
         defineCanvaContributorPermissions(can, cannot, userId);
         break;
-      case 'editor':
+      case USER_ROLES.EDITOR:
         defineMemberPermissions(can, cannot, userId);
         defineContributorPermissions(can, cannot, userId);
         defineCanvaContributorPermissions(can, cannot, userId);
         defineEditorPermissions(can, cannot);
         break;
-      case 'moderator':
+      case USER_ROLES.MODERATOR:
         defineMemberPermissions(can, cannot, userId);
         defineContributorPermissions(can, cannot, userId);
         defineCanvaContributorPermissions(can, cannot, userId);
         defineEditorPermissions(can, cannot);
         defineModeratorPermissions(can, cannot);
         break;
-      case 'administrator':
+      case USER_ROLES.ADMINISTRATOR:
         defineAdministratorPermissions(can);
         break;
       default:
@@ -209,8 +210,8 @@ function defineModeratorPermissions(
 
   // Role management
   can('read', 'Role');
-  can('assign', 'Role', { roleType: { $in: ['member', 'contributor', 'canva_contributor', 'editor'] } });
-  cannot('assign', 'Role', { roleType: { $in: ['moderator', 'administrator'] } });
+  can('assign', 'Role', { roleType: { $in: [USER_ROLES.MEMBER, USER_ROLES.CONTRIBUTOR, USER_ROLES.CANVA_CONTRIBUTOR, USER_ROLES.EDITOR] } });
+  cannot('assign', 'Role', { roleType: { $in: [USER_ROLES.MODERATOR, USER_ROLES.ADMINISTRATOR] } });
 
   // Content moderation
   can('moderate', 'Content');

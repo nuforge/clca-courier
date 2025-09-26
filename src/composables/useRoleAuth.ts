@@ -8,9 +8,12 @@ import { useFirebase } from './useFirebase';
 import { firestoreService } from '../services/firebase-firestore.service';
 import type { UserProfile } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
+import { USER_ROLES, LEGACY_ROLES } from '../constants/role-constants';
 
 // Legacy role type for backward compatibility
-export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export const useRoleAuth = () => {
+export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';
+
+export const useRoleAuth = () => {
   const router = useRouter();
   const { auth } = useFirebase();
 
@@ -21,11 +24,11 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
   // Computed role checks
   const isAuthenticated = computed(() => auth.isAuthenticated.value);
   const isAuthLoading = computed(() => auth.isLoading.value);
-  const userRole = computed(() => userProfile.value?.role || 'reader');
-  const isAdmin = computed(() => userRole.value === 'admin');
-  const isEditor = computed(() => userRole.value === 'editor' || userRole.value === 'admin');
+  const userRole = computed(() => userProfile.value?.role || LEGACY_ROLES.READER);
+  const isAdmin = computed(() => userRole.value === LEGACY_ROLES.ADMIN);
+  const isEditor = computed(() => userRole.value === USER_ROLES.EDITOR || userRole.value === LEGACY_ROLES.ADMIN);
   const isContributor = computed(() =>
-    ['contributor', 'editor', 'admin'].includes(userRole.value)
+    [USER_ROLES.CONTRIBUTOR, USER_ROLES.EDITOR, LEGACY_ROLES.ADMIN].includes(userRole.value as any)
   );
 
   // Check if we're ready to make authorization decisions
@@ -47,15 +50,15 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
     // Extended hierarchy supporting both legacy and new roles
     const roleHierarchy: Record<string, number> = {
       // Legacy roles
-      'reader': 0,
-      'contributor': 1,
-      'editor': 2,
-      'admin': 3,
+      [LEGACY_ROLES.READER]: 0,
+      [USER_ROLES.CONTRIBUTOR]: 1,
+      [USER_ROLES.EDITOR]: 2,
+      [LEGACY_ROLES.ADMIN]: 3,
       // New roles
-      'member': 0,          // Same as reader
-      'canva_contributor': 2, // Between contributor and editor
-      'moderator': 3,       // Same as admin
-      'administrator': 4,   // Highest level
+      [USER_ROLES.MEMBER]: 0,          // Same as reader
+      [USER_ROLES.CANVA_CONTRIBUTOR]: 2, // Between contributor and editor
+      [USER_ROLES.MODERATOR]: 3,       // Same as admin
+      [USER_ROLES.ADMINISTRATOR]: 4,   // Highest level
     };
 
     const currentRole = userRole.value;
@@ -75,18 +78,63 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
     isLoading.value = true;
     try {
       const profile = await firestoreService.getUserProfile(auth.currentUser.value.uid);
-      userProfile.value = profile;
-      logger.debug('User profile loaded:', {
-        uid: auth.currentUser.value.uid,
-        role: profile?.role,
-        email: auth.currentUser.value.email
-      });
 
-      // Log detailed role information for debugging
       if (profile) {
+        userProfile.value = profile;
+        logger.debug('User profile loaded:', {
+          uid: auth.currentUser.value.uid,
+          role: profile?.role,
+          email: auth.currentUser.value.email
+        });
         logger.info(`User ${profile.email} has role: ${profile.role}`);
       } else {
-        logger.warn(`No profile found for user ${auth.currentUser.value.email}, defaulting to reader role`);
+        // No profile found - create one with contributor role
+        logger.warn(`No profile found for user ${auth.currentUser.value.email}, creating contributor profile`);
+
+        const newProfile: Omit<UserProfile, 'createdAt' | 'lastLoginAt'> = {
+          uid: auth.currentUser.value.uid,
+          email: auth.currentUser.value.email || '',
+          displayName: auth.currentUser.value.displayName || auth.currentUser.value.email?.split('@')[0] || 'User',
+          role: USER_ROLES.CONTRIBUTOR,
+          permissions: [
+            'content:read',
+            'content:create',
+            'content:update',
+            'newsletter:read',
+            'design:create',
+            'theme:read',
+            'theme:update'
+          ],
+          isApproved: true,
+          approvedBy: 'system',
+          approvalDate: new Date().toISOString(),
+          tags: [],
+          availability: 'regular' as const,
+          preferences: {
+            emailNotifications: true,
+            pushNotifications: true,
+            preferredCategories: [],
+            taskAssignments: false
+          }
+        };
+
+        // Only add photoURL if it exists
+        if (auth.currentUser.value.photoURL) {
+          newProfile.photoURL = auth.currentUser.value.photoURL;
+        }
+
+        // Create the profile in Firestore
+        await firestoreService.createUserProfile(newProfile);
+
+        // Create complete profile for local state
+        const completeProfile: UserProfile = {
+          ...newProfile,
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        };
+        userProfile.value = completeProfile;
+
+        logger.success(`Created contributor profile for user ${auth.currentUser.value.email}`);
       }
     } catch (error) {
       logger.error('Error loading user profile:', error);
@@ -133,16 +181,16 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
   };
 
   // Page protection wrapper - use the simple requireRole method
-  const requireAdmin = (redirectTo: string = '/') => requireRole('admin', redirectTo);
-  const requireEditor = (redirectTo: string = '/') => requireRole('editor', redirectTo);
-  const requireContributor = (redirectTo: string = '/') => requireRole('contributor', redirectTo);
+  const requireAdmin = (redirectTo: string = '/') => requireRole(LEGACY_ROLES.ADMIN, redirectTo);
+  const requireEditor = (redirectTo: string = '/') => requireRole(USER_ROLES.EDITOR, redirectTo);
+  const requireContributor = (redirectTo: string = '/') => requireRole(USER_ROLES.CONTRIBUTOR, redirectTo);
 
   // Utility to check if current route is protected
   const isCurrentRouteProtected = (): { isProtected: boolean; requiredRole?: UserRole } => {
     const currentRoute = router.currentRoute.value;
     const protectedRoutes = [
-      { path: '/admin/content', requiredRole: 'editor' as UserRole },
-      { path: '/admin', requiredRole: 'admin' as UserRole },
+      { path: '/admin/content', requiredRole: USER_ROLES.CONTRIBUTOR as UserRole },
+      { path: '/admin', requiredRole: LEGACY_ROLES.ADMIN as UserRole },
     ];
 
     const routeRule = protectedRoutes.find(rule =>
@@ -222,8 +270,8 @@ export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';export cons
 
       const currentRoute = router.currentRoute.value;
       const protectedRoutes = [
-        { path: '/admin/content', requiredRole: 'editor' as UserRole },
-        { path: '/admin', requiredRole: 'admin' as UserRole },
+        { path: '/admin/content', requiredRole: USER_ROLES.CONTRIBUTOR as UserRole },
+        { path: '/admin', requiredRole: LEGACY_ROLES.ADMIN as UserRole },
       ];
 
       // Find if current route requires specific permissions

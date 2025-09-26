@@ -258,6 +258,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
+import { canUseCanva, USER_ROLES, LEGACY_ROLES } from '../constants/role-constants';
 import { useCanvaExport } from '../composables/useCanvaExport';
 import { firebaseContentService } from '../services/firebase-content.service';
 import { firebaseAuthService } from '../services/firebase-auth.service';
@@ -301,21 +302,25 @@ const canBulkArchive = computed(() => isEditor.value);
 const canPublishContent = computed(() => isEditor.value);
 const canUnpublishContent = computed(() => isEditor.value);
 const canRestoreContent = computed(() => isEditor.value);
-const canExportCanva = computed(() => ['canva_contributor', 'editor', 'moderator', 'administrator'].includes(userRole.value));
+const canExportCanva = computed(() => canUseCanva(userRole.value));
+
+// Note: All authenticated users can now access the page (temporary fix)
 
 // Dynamic page description based on user role
 const getPageDescription = () => {
   switch (userRole.value) {
-    case 'member':
+    case LEGACY_ROLES.READER:
+      return 'View published content and manage your submissions';
+    case USER_ROLES.MEMBER:
       return t('content.memberDescription') || 'View published content and your submissions';
-    case 'contributor':
+    case USER_ROLES.CONTRIBUTOR:
       return t('content.contributorDescription') || 'Manage your content submissions and view published content';
-    case 'canva_contributor':
+    case USER_ROLES.CANVA_CONTRIBUTOR:
       return t('content.canvaContributorDescription') || 'Create and manage content with Canva integration';
-    case 'editor':
+    case USER_ROLES.EDITOR:
       return t('content.editorDescription') || 'Review, approve, and manage user-submitted content for publication';
-    case 'moderator':
-    case 'administrator':
+    case USER_ROLES.MODERATOR:
+    case USER_ROLES.ADMINISTRATOR:
       return t('content.adminDescription') || 'Full content management with administrative controls';
     default:
       return t('content.managementDescription') || 'Review, approve, and manage user-submitted content for publication';

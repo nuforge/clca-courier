@@ -7,6 +7,7 @@
  */
 
 import { logger } from './logger';
+import { isContentManager } from '../constants/role-constants';
 import { userUtils } from './userUtils';
 import { getCurrentTimestamp } from './date-formatter';
 import { firestoreService } from '../services/firebase-firestore.service';
@@ -265,7 +266,7 @@ class TaskAssignmentLogic {
         profile.isApproved &&
         profile.preferences?.taskAssignments &&
         profile.tags && profile.tags.length > 0 &&
-        ['contributor', 'canva_contributor', 'editor', 'moderator', 'administrator'].includes(profile.role)
+        isContentManager(profile.role)
       );
 
     } catch (error) {

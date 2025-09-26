@@ -7,6 +7,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { userRoleService } from '../services/user-role.service';
 import { logger } from '../utils/logger';
+import { USER_ROLES } from '../constants/role-constants';
 import type {
   UserRoleType,
   UserRoleConfig,
@@ -73,7 +74,7 @@ export const useUserRolesStore = defineStore('userRoles', () => {
       return role;
     } catch (err) {
       logger.error(`Failed to get user role for ${userId}:`, err);
-      return 'member'; // Default role
+      return USER_ROLES.MEMBER; // Default role
     }
   };
 
@@ -237,12 +238,12 @@ export const useUserRolesStore = defineStore('userRoles', () => {
     }
 
     // Administrator can assign any role except administrator
-    if (assignerRole === 'administrator') {
+    if (assignerRole === USER_ROLES.ADMINISTRATOR) {
       return true;
     }
 
     // Moderator can assign roles below their level
-    if (assignerRole === 'moderator') {
+    if (assignerRole === USER_ROLES.MODERATOR) {
       return targetConfig.hierarchy < assignerConfig.hierarchy;
     }
 

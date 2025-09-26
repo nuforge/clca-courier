@@ -12,6 +12,7 @@ import {
 } from '../services/firebase-newsletter.service';
 import { type NewsletterMetadata, firestoreService } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
+import { LEGACY_ROLES } from '../constants/role-constants';
 
 export interface ArchiveFilters extends NewsletterSearchFilters {
   query?: string;
@@ -82,7 +83,7 @@ export function useFirebaseNewsletterArchive() {
       unsubscribe.value = null;
     }
 
-    const mode = includeUnpublished ? 'admin' : 'public';
+    const mode = includeUnpublished ? LEGACY_ROLES.ADMIN : 'public';
     currentMode.value = mode;
 
     logger.info(`Setting up ${mode} newsletter subscription for archive...`);
@@ -291,7 +292,7 @@ export function useFirebaseNewsletterArchive() {
       error.value = null;
 
       logger.info(
-        `Initializing reactive subscription for ${includeUnpublished ? 'admin' : 'public'} mode...`,
+        `Initializing reactive subscription for ${includeUnpublished ? LEGACY_ROLES.ADMIN : 'public'} mode...`,
       );
 
       // Setup reactive subscription instead of one-time loading

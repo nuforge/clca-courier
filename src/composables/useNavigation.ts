@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { firebaseAuthService } from '../services/firebase-auth.service';
 import { firestoreService } from '../services/firebase-firestore.service';
+import { LEGACY_ROLES } from '../constants/role-constants';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 export const useNavigation = () => {
@@ -18,7 +19,7 @@ export const useNavigation = () => {
     if (user) {
       try {
         const profile = await firestoreService.getUserProfile(user.uid);
-        hasAdminProfile.value = !!(profile && profile.role === 'admin');
+        hasAdminProfile.value = !!(profile && profile.role === LEGACY_ROLES.ADMIN);
       } catch {
         hasAdminProfile.value = false;
       }

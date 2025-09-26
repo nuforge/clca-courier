@@ -295,6 +295,13 @@ export default {
 
   management: 'Content Management',
   managementDescription: 'Review, approve, and manage user-submitted content for publication',
+
+  // Role-based page descriptions
+  memberDescription: 'View published content and your submissions',
+  contributorDescription: 'Manage your content submissions and view published content',
+  canvaContributorDescription: 'Create and manage content with Canva integration',
+  editorDescription: 'Review, approve, and manage user-submitted content for publication',
+  adminDescription: 'Full content management with administrative controls',
   submitted: 'Submitted',
   attachments: 'Attachments',
   reviewNotes: 'Review Notes',

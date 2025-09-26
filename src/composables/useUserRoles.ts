@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router';
 import { useFirebase } from './useFirebase';
 import { userRoleService } from '../services/user-role.service';
 import { logger } from '../utils/logger';
+import { USER_ROLES } from '../constants/role-constants';
 import type {
   UserRoleType,
   Permission,
@@ -22,7 +23,7 @@ export function useUserRoles() {
   const { auth } = useFirebase();
 
   // Reactive state
-  const userRole = ref<UserRoleType>('member');
+  const userRole = ref<UserRoleType>(USER_ROLES.MEMBER);
   const roleConfig = ref<UserRoleConfig | null>(null);
   const dashboardConfig = ref<DashboardConfig | null>(null);
   const isLoading = ref(false);
@@ -34,12 +35,12 @@ export function useUserRoles() {
   const currentUser = computed(() => auth.currentUser.value);
 
   // Role hierarchy checks
-  const isMember = computed(() => hasRoleHierarchy(userRole.value, 'member'));
-  const isContributor = computed(() => hasRoleHierarchy(userRole.value, 'contributor'));
-  const isCanvaContributor = computed(() => hasRoleHierarchy(userRole.value, 'canva_contributor'));
-  const isEditor = computed(() => hasRoleHierarchy(userRole.value, 'editor'));
-  const isModerator = computed(() => hasRoleHierarchy(userRole.value, 'moderator'));
-  const isAdministrator = computed(() => userRole.value === 'administrator');
+  const isMember = computed(() => hasRoleHierarchy(userRole.value, USER_ROLES.MEMBER));
+  const isContributor = computed(() => hasRoleHierarchy(userRole.value, USER_ROLES.CONTRIBUTOR));
+  const isCanvaContributor = computed(() => hasRoleHierarchy(userRole.value, USER_ROLES.CANVA_CONTRIBUTOR));
+  const isEditor = computed(() => hasRoleHierarchy(userRole.value, USER_ROLES.EDITOR));
+  const isModerator = computed(() => hasRoleHierarchy(userRole.value, USER_ROLES.MODERATOR));
+  const isAdministrator = computed(() => userRole.value === USER_ROLES.ADMINISTRATOR);
 
   // Check if we're ready to make authorization decisions
   const isReady = computed(() => {
@@ -51,7 +52,7 @@ export function useUserRoles() {
    */
   const loadUserRole = async (): Promise<void> => {
     if (!isAuthenticated.value || !currentUser.value) {
-      userRole.value = 'member';
+      userRole.value = USER_ROLES.MEMBER;
       roleConfig.value = null;
       dashboardConfig.value = null;
       return;
@@ -223,7 +224,7 @@ export function useUserRoles() {
       if (authenticated) {
         void loadUserRole();
       } else {
-        userRole.value = 'member';
+        userRole.value = USER_ROLES.MEMBER;
         roleConfig.value = null;
         dashboardConfig.value = null;
       }
