@@ -379,6 +379,21 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true;
 
+    // Clear any pending auto-save to prevent duplicate creation
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+    }
+
+    if (draftId.value) {
+      // For now, we'll create new content but log the issue
+      // TODO: Implement proper updateContent method to avoid duplicates
+      logger.warn('Creating new content instead of updating existing draft - this may create duplicates', {
+        draftId: draftId.value
+      });
+    }
+
+    // Create final content submission
     const contentId = await contentSubmissionService.createContent(
       previewContentDoc.value.title,
       previewContentDoc.value.description,
@@ -413,7 +428,8 @@ watch(
   () => wizardState.value.basicData,
   () => {
     // Don't trigger auto-save if we're currently saving, submitting, or initializing features
-    if (!isSaving.value && !isSubmitting.value && !isInitializingFeatures.value) {
+    // Also don't auto-save if we're on the final step (preview) to prevent duplicate creation
+    if (!isSaving.value && !isSubmitting.value && !isInitializingFeatures.value && currentStep.value < 4) {
       debouncedAutoSave();
     }
   },
@@ -424,7 +440,8 @@ watch(
   () => wizardState.value.features,
   () => {
     // Don't trigger auto-save if we're currently saving, submitting, or initializing features
-    if (!isSaving.value && !isSubmitting.value && !isInitializingFeatures.value) {
+    // Also don't auto-save if we're on the final step (preview) to prevent duplicate creation
+    if (!isSaving.value && !isSubmitting.value && !isInitializingFeatures.value && currentStep.value < 4) {
       debouncedAutoSave();
     }
   },
