@@ -14,11 +14,6 @@ export const USER_ROLES = {
   ADMINISTRATOR: 'administrator' as const,
 } as const;
 
-// Legacy role support (for backward compatibility)
-export const LEGACY_ROLES = {
-  READER: 'reader' as const,
-  ADMIN: 'admin' as const,
-} as const;
 
 // Role hierarchy mapping
 export const ROLE_HIERARCHY: Record<string, number> = {
@@ -28,9 +23,6 @@ export const ROLE_HIERARCHY: Record<string, number> = {
   [USER_ROLES.EDITOR]: 4,
   [USER_ROLES.MODERATOR]: 5,
   [USER_ROLES.ADMINISTRATOR]: 6,
-  // Legacy roles
-  [LEGACY_ROLES.READER]: 0,
-  [LEGACY_ROLES.ADMIN]: 3,
 } as const;
 
 // Role arrays for common checks

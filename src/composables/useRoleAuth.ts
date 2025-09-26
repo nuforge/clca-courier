@@ -8,10 +8,10 @@ import { useFirebase } from './useFirebase';
 import { firestoreService } from '../services/firebase-firestore.service';
 import type { UserProfile } from '../services/firebase-firestore.service';
 import { logger } from '../utils/logger';
-import { USER_ROLES, LEGACY_ROLES } from '../constants/role-constants';
+import { USER_ROLES } from '../constants/role-constants';
 
-// Legacy role type for backward compatibility
-export type UserRole = 'reader' | 'contributor' | 'editor' | 'admin';
+// Current role type
+export type UserRole = 'member' | 'contributor' | 'canva_contributor' | 'editor' | 'moderator' | 'administrator';
 
 export const useRoleAuth = () => {
   const router = useRouter();
@@ -24,11 +24,11 @@ export const useRoleAuth = () => {
   // Computed role checks
   const isAuthenticated = computed(() => auth.isAuthenticated.value);
   const isAuthLoading = computed(() => auth.isLoading.value);
-  const userRole = computed(() => userProfile.value?.role || LEGACY_ROLES.READER);
-  const isAdmin = computed(() => userRole.value === LEGACY_ROLES.ADMIN);
-  const isEditor = computed(() => userRole.value === USER_ROLES.EDITOR || userRole.value === LEGACY_ROLES.ADMIN);
+  const userRole = computed(() => userProfile.value?.role || USER_ROLES.MEMBER);
+  const isAdmin = computed(() => userRole.value === USER_ROLES.ADMINISTRATOR);
+  const isEditor = computed(() => userRole.value === USER_ROLES.EDITOR || userRole.value === USER_ROLES.ADMINISTRATOR);
   const isContributor = computed(() =>
-    [USER_ROLES.CONTRIBUTOR, USER_ROLES.EDITOR, LEGACY_ROLES.ADMIN].includes(userRole.value as any)
+    [USER_ROLES.CONTRIBUTOR, USER_ROLES.EDITOR, USER_ROLES.ADMINISTRATOR].includes(userRole.value as any)
   );
 
   // Check if we're ready to make authorization decisions
@@ -45,20 +45,16 @@ export const useRoleAuth = () => {
     return !isLoading.value;
   });
 
-  // Role hierarchy checks - supports both legacy and new roles
+  // Role hierarchy checks
   const hasRole = (requiredRole: UserRole): boolean => {
-    // Extended hierarchy supporting both legacy and new roles
+    // Current role hierarchy
     const roleHierarchy: Record<string, number> = {
-      // Legacy roles
-      [LEGACY_ROLES.READER]: 0,
-      [USER_ROLES.CONTRIBUTOR]: 1,
-      [USER_ROLES.EDITOR]: 2,
-      [LEGACY_ROLES.ADMIN]: 3,
-      // New roles
-      [USER_ROLES.MEMBER]: 0,          // Same as reader
-      [USER_ROLES.CANVA_CONTRIBUTOR]: 2, // Between contributor and editor
-      [USER_ROLES.MODERATOR]: 3,       // Same as admin
-      [USER_ROLES.ADMINISTRATOR]: 4,   // Highest level
+      [USER_ROLES.MEMBER]: 1,
+      [USER_ROLES.CONTRIBUTOR]: 2,
+      [USER_ROLES.CANVA_CONTRIBUTOR]: 3,
+      [USER_ROLES.EDITOR]: 4,
+      [USER_ROLES.MODERATOR]: 5,
+      [USER_ROLES.ADMINISTRATOR]: 6,
     };
 
     const currentRole = userRole.value;
@@ -181,7 +177,7 @@ export const useRoleAuth = () => {
   };
 
   // Page protection wrapper - use the simple requireRole method
-  const requireAdmin = (redirectTo: string = '/') => requireRole(LEGACY_ROLES.ADMIN, redirectTo);
+  const requireAdmin = (redirectTo: string = '/') => requireRole(USER_ROLES.ADMINISTRATOR, redirectTo);
   const requireEditor = (redirectTo: string = '/') => requireRole(USER_ROLES.EDITOR, redirectTo);
   const requireContributor = (redirectTo: string = '/') => requireRole(USER_ROLES.CONTRIBUTOR, redirectTo);
 
@@ -190,7 +186,7 @@ export const useRoleAuth = () => {
     const currentRoute = router.currentRoute.value;
     const protectedRoutes = [
       { path: '/admin/content', requiredRole: USER_ROLES.CONTRIBUTOR as UserRole },
-      { path: '/admin', requiredRole: LEGACY_ROLES.ADMIN as UserRole },
+      { path: '/admin', requiredRole: USER_ROLES.ADMINISTRATOR as UserRole },
     ];
 
     const routeRule = protectedRoutes.find(rule =>
@@ -271,7 +267,7 @@ export const useRoleAuth = () => {
       const currentRoute = router.currentRoute.value;
       const protectedRoutes = [
         { path: '/admin/content', requiredRole: USER_ROLES.CONTRIBUTOR as UserRole },
-        { path: '/admin', requiredRole: LEGACY_ROLES.ADMIN as UserRole },
+        { path: '/admin', requiredRole: USER_ROLES.ADMINISTRATOR as UserRole },
       ];
 
       // Find if current route requires specific permissions

@@ -22,7 +22,7 @@ import {
 } from '../services/firebase-storage.service';
 import { contentSubmissionService } from '../services/content-submission.service';
 import { logger } from '../utils/logger';
-import { LEGACY_ROLES } from '../constants/role-constants';
+import { USER_ROLES } from '../constants/role-constants';
 
 export function useFirebaseAuth() {
   const authState = ref<AuthState>({
@@ -442,7 +442,7 @@ export function useFirebaseUserProfile() {
       // SECURITY: Force role to 'reader' for new users - admin roles must be set server-side
       const secureProfile = {
         ...profile,
-        role: LEGACY_ROLES.READER as UserRole, // Always default to reader
+        role: USER_ROLES.MEMBER as UserRole, // Always default to member
         permissions: ['read'], // Basic permissions only
         isApproved: false, // Require approval
       };

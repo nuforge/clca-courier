@@ -15,7 +15,7 @@ import { firebaseAuthService } from './firebase-auth.service';
 import { dateManagementService } from './date-management.service';
 import { generatePdfThumbnail } from '../utils/pdfThumbnailGenerator';
 import { logger } from '../utils/logger';
-import { LEGACY_ROLES } from '../constants/role-constants';
+import { USER_ROLES } from '../constants/role-constants';
 
 export interface NewsletterSearchFilters {
   year?: number;
@@ -1021,8 +1021,8 @@ class FirebaseNewsletterService {
         isPublished: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        createdBy: LEGACY_ROLES.ADMIN,
-        updatedBy: LEGACY_ROLES.ADMIN,
+        createdBy: USER_ROLES.ADMINISTRATOR,
+        updatedBy: USER_ROLES.ADMINISTRATOR,
         actions: {
           canView: true,
           canDownload: true,

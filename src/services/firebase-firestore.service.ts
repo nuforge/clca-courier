@@ -103,9 +103,8 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL?: string;
-  // Enhanced role system - backward compatible with legacy roles
-  role: 'member' | 'contributor' | 'canva_contributor' | 'editor' | 'moderator' | 'administrator' |
-        'reader' | 'admin'; // Legacy roles for backward compatibility
+  // Current role system
+  role: 'member' | 'contributor' | 'canva_contributor' | 'editor' | 'moderator' | 'administrator';
   permissions: string[];
   isApproved: boolean;
   approvedBy?: string;

@@ -258,7 +258,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
-import { canUseCanva, USER_ROLES, LEGACY_ROLES } from '../constants/role-constants';
+import { canUseCanva, USER_ROLES } from '../constants/role-constants';
 import { useCanvaExport } from '../composables/useCanvaExport';
 import { firebaseContentService } from '../services/firebase-content.service';
 import { firebaseAuthService } from '../services/firebase-auth.service';
@@ -309,8 +309,6 @@ const canExportCanva = computed(() => canUseCanva(userRole.value));
 // Dynamic page description based on user role
 const getPageDescription = () => {
   switch (userRole.value) {
-    case LEGACY_ROLES.READER:
-      return 'View published content and manage your submissions';
     case USER_ROLES.MEMBER:
       return t('content.memberDescription') || 'View published content and your submissions';
     case USER_ROLES.CONTRIBUTOR:
