@@ -272,7 +272,7 @@ import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const $q = useQuasar();
 const { t } = useI18n();
-const { requireContributor, isAuthReady, userRole, isEditor, isAdmin } = useRoleAuth();
+const { requireContributor, isAuthReady, userRole, isEditor } = useRoleAuth();
 const { getStatusIcon, getContentIcon } = useSiteTheme();
 const { exportDesignForPrint, downloadDesign, isExporting, cleanup: cleanupCanvaExport } = useCanvaExport();
 
