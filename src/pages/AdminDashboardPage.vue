@@ -18,7 +18,7 @@
         :stats="stats"
         :task-stats="taskStats"
         :loading="isLoadingStats"
-        :columns="4"
+        :columns="6"
         @stat-click="handleStatClick"
         @refresh="refreshStats"
       />

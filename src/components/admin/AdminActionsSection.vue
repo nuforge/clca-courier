@@ -138,37 +138,6 @@ const actionSections = computed((): ActionSection[] => {
       ]
     },
     {
-      id: 'site',
-      title: 'Site Configuration',
-      titleIcon: UI_ICONS.palette,
-      description: 'Manage themes, categories, and site-wide settings',
-      primaryAction: {
-        label: 'Theme Editor',
-        icon: UI_ICONS.paletteOutline,
-        color: 'grey-6',
-        style: 'outline' as const,
-        to: '/admin/theme'
-      },
-      secondaryActions: [
-        {
-          label: 'Quick Categories',
-          icon: UI_ICONS.tagMultiple,
-          color: 'brown',
-          style: 'flat' as const,
-          size: 'sm' as const,
-          action: 'showCategoriesDialog'
-        },
-        {
-          label: 'Quick Colors',
-          icon: UI_ICONS.colorFill,
-          color: 'deep-purple',
-          style: 'flat' as const,
-          size: 'sm' as const,
-          action: 'showColorsDialog'
-        }
-      ]
-    },
-    {
       id: 'user',
       title: 'User Management',
       titleIcon: UI_ICONS.accountGroup,

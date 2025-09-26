@@ -114,7 +114,7 @@ class ContentSubmissionService {
         authorName: currentUser.displayName || 'Unknown User',
         tags,
         features,
-        status: 'published', // New content starts as published for immediate visibility
+        status: 'draft', // New content starts as draft for review
         timestamps: {
           created: serverTimestamp() as Timestamp,
           updated: serverTimestamp() as Timestamp,

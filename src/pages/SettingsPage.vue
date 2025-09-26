@@ -7,6 +7,7 @@ import { useTimeFormat } from '../composables/useTimeFormat';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
+import { UI_ICONS } from '../constants/ui-icons';
 import type { SupportedLocale } from '../i18n/utils/locale-detector';
 
 // Import Base Components for Maximum Reuse
@@ -154,6 +155,37 @@ const languageOptions = computed<LanguageListItem[]>(() =>
 
 // 4. Settings Management Actions for BaseActionToolbar
 const settingsActions = computed<ActionSection[]>(() => [
+    {
+      id: 'site',
+      title: 'Site Theme Editor',
+      titleIcon: UI_ICONS.palette,
+      description: 'Manage themes, categories, and site-wide settings',
+      primaryAction: {
+        label: 'Theme Editor',
+        icon: UI_ICONS.paletteOutline,
+        color: 'grey-6',
+        style: 'outline' as const,
+        to: '/settings/theme'
+      },
+      secondaryActions: [
+        {
+          label: 'Quick Categories',
+          icon: UI_ICONS.tagMultiple,
+          color: 'brown',
+          style: 'flat' as const,
+          size: 'sm' as const,
+          action: 'showCategoriesDialog'
+        },
+        {
+          label: 'Quick Colors',
+          icon: UI_ICONS.colorFill,
+          color: 'deep-purple',
+          style: 'flat' as const,
+          size: 'sm' as const,
+          action: 'showColorsDialog'
+        }
+      ]
+    },
   {
     title: t(TRANSLATION_KEYS.SETTINGS_PAGE.SETTINGS_MANAGEMENT),
     titleIcon: 'mdi-cog',
@@ -181,7 +213,7 @@ const settingsActions = computed<ActionSection[]>(() => [
         style: 'outline'
       }
     ]
-  }
+  },
 ]);
 
 // Methods

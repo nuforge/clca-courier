@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 
-
 onMounted(() => {
   // Prevent unwanted scrolling on tablet devices
   const preventOverscroll = (e: TouchEvent) => {
