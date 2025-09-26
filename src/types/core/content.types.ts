@@ -37,7 +37,7 @@ export interface ContentDoc {
   features: ContentFeatures;
 
   /** Publication status of the content */
-  status: 'draft' | 'published' | 'archived' | 'rejected' | 'deleted';
+  status: 'draft' | 'pending' | 'published' | 'archived' | 'rejected' | 'deleted';
 
   /** Timestamp tracking for content lifecycle */
   timestamps: {

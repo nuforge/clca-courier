@@ -204,6 +204,65 @@ export class FirebaseContentService {
   }
 
   /**
+   * Update existing content with new data (for draft editing and submission)
+   */
+  async updateContent(
+    contentId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      features?: ContentDoc['features'];
+      tags?: string[];
+      status?: ContentDoc['status'];
+    }
+  ): Promise<void> {
+    try {
+      logger.debug('Updating content', { contentId, updateKeys: Object.keys(updates) });
+
+      const contentDoc = doc(db, this.collectionName, contentId);
+      const updateData: Record<string, unknown> = {
+        'timestamps.updated': serverTimestamp() as Timestamp
+      };
+
+      // Add fields that are being updated
+      if (updates.title !== undefined) {
+        updateData.title = updates.title;
+      }
+      if (updates.description !== undefined) {
+        updateData.description = updates.description;
+      }
+      if (updates.features !== undefined) {
+        updateData.features = updates.features;
+      }
+      if (updates.tags !== undefined) {
+        updateData.tags = updates.tags;
+      }
+      if (updates.status !== undefined) {
+        updateData.status = updates.status;
+
+        // Add published timestamp when status changes to published
+        if (updates.status === 'published') {
+          updateData['timestamps.published'] = serverTimestamp() as Timestamp;
+        }
+      }
+
+      await updateDoc(contentDoc, updateData);
+
+      logger.info('Content updated successfully', {
+        contentId,
+        updateKeys: Object.keys(updates)
+      });
+    } catch (error) {
+      logger.error('Failed to update content', {
+        contentId,
+        updateKeys: Object.keys(updates),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Subscribe to real-time content updates
    */
   subscribeToPublishedContent(callback: (content: ContentDoc[]) => void): Unsubscribe {
@@ -238,11 +297,11 @@ export class FirebaseContentService {
   }
 
   /**
-   * Subscribe to all content (admin access)
+   * Subscribe to all content (admin access) with proper draft privacy
    */
-  subscribeToAllContent(callback: (content: ContentDoc[]) => void): Unsubscribe {
+  subscribeToAllContent(callback: (content: ContentDoc[]) => void, currentUserId?: string): Unsubscribe {
     try {
-      logger.debug('Setting up admin subscription to all content');
+      logger.debug('Setting up admin subscription to all content with draft privacy', { currentUserId });
 
       const contentCollection = collection(db, this.collectionName);
       const allContentQuery = query(
@@ -251,16 +310,28 @@ export class FirebaseContentService {
       );
 
       const unsubscribe = onSnapshot(allContentQuery, (querySnapshot) => {
-        const content = this.convertSnapshotToContentDocs(querySnapshot);
+        const allContent = this.convertSnapshotToContentDocs(querySnapshot);
 
-        logger.debug('Real-time admin content update received', {
-          count: content.length
+        // Filter drafts to only show user's own drafts
+        const filteredContent = allContent.filter(content => {
+          if (content.status === 'draft') {
+            // Only show draft if it belongs to the current user
+            return content.authorId === currentUserId;
+          }
+          // Show all non-draft content (pending, published, archived, etc.)
+          return true;
         });
 
-        callback(content);
+        logger.debug('Real-time admin content update received with draft filtering', {
+          totalCount: allContent.length,
+          filteredCount: filteredContent.length,
+          draftsHidden: allContent.length - filteredContent.length
+        });
+
+        callback(filteredContent);
       });
 
-      logger.info('Admin content subscription established');
+      logger.info('Admin content subscription established with draft privacy');
       return unsubscribe;
     } catch (error) {
       logger.error('Failed to setup admin content subscription', {

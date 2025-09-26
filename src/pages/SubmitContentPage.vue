@@ -294,7 +294,16 @@ const saveAsDraft = async () => {
     if (draftId.value) {
       // Update existing draft
       logger.debug('Updating existing draft', { draftId: draftId.value });
-      // TODO: Implement update draft method in service
+
+      await contentSubmissionService.updateContent(draftId.value, {
+        title: previewContentDoc.value.title,
+        description: previewContentDoc.value.description,
+        features: validFeatures,
+        additionalTags: [],
+        status: 'draft' // Keep as draft
+      });
+
+      logger.debug('Updated existing draft', { draftId: draftId.value });
     } else {
       // Create new draft with filtered features
       const id = await contentSubmissionService.createContent(
@@ -379,30 +388,45 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true;
 
-    // Clear any pending auto-save to prevent duplicate creation
+    // Clear any pending auto-save to prevent conflicts
     if (autoSaveTimer) {
       clearTimeout(autoSaveTimer);
       autoSaveTimer = null;
     }
 
+    let contentId: string;
+
     if (draftId.value) {
-      // For now, we'll create new content but log the issue
-      // TODO: Implement proper updateContent method to avoid duplicates
-      logger.warn('Creating new content instead of updating existing draft - this may create duplicates', {
-        draftId: draftId.value
+      // Update existing draft instead of creating new content
+      logger.debug('Updating existing draft for final submission', { draftId: draftId.value });
+
+      await contentSubmissionService.updateContent(draftId.value, {
+        title: previewContentDoc.value.title,
+        description: previewContentDoc.value.description,
+        features: wizardState.value.features,
+        additionalTags: [], // No additional tags for now
+        status: 'pending' // Submit for review
       });
+
+      contentId = draftId.value;
+      logger.info('Draft updated successfully for submission', { contentId });
+    } else {
+      // No existing draft, create new content with pending status
+      contentId = await contentSubmissionService.createContent(
+        previewContentDoc.value.title,
+        previewContentDoc.value.description,
+        wizardState.value.contentType!,
+        wizardState.value.features,
+        []
+      );
+
+      // Update to pending status for review
+      await contentSubmissionService.updateContent(contentId, {
+        status: 'pending'
+      });
+
+      logger.info('New content created and submitted for review', { contentId });
     }
-
-    // Create final content submission
-    const contentId = await contentSubmissionService.createContent(
-      previewContentDoc.value.title,
-      previewContentDoc.value.description,
-      wizardState.value.contentType!,
-      wizardState.value.features,
-      []
-    );
-
-    logger.success('Content submitted successfully', { contentId });
 
     $q.notify({
       type: 'positive',

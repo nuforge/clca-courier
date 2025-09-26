@@ -34,6 +34,15 @@
             <div class="col">
               <q-card class="text-center">
                 <q-card-section>
+                  <q-icon name="pending" color="amber" size="md" class="q-mb-sm" />
+                  <div class="text-h6 text-amber">{{ pendingContent.length }}</div>
+                  <div class="text-caption">Pending Review</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col">
+              <q-card class="text-center">
+                <q-card-section>
                   <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" size="md" class="q-mb-sm" />
                   <div class="text-h6 text-blue">{{ publishedContent.length }}</div>
                   <div class="text-caption">{{ t(TRANSLATION_KEYS.CONTENT.STATUS.PUBLISHED) }}</div>
@@ -107,6 +116,10 @@
                 <q-icon :name="getStatusIcon('draft').icon" :color="getStatusIcon('draft').color" class="q-mr-sm" />
                 Draft ({{ draftContent.length }})
               </q-tab>
+              <q-tab name="pending">
+                <q-icon name="pending" color="amber" class="q-mr-sm" />
+                Pending ({{ pendingContent.length }})
+              </q-tab>
               <q-tab name="published">
                 <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" class="q-mr-sm" />
                 {{ t(TRANSLATION_KEYS.CONTENT.STATUS.PUBLISHED) }} ({{ publishedContent.length }})
@@ -142,6 +155,16 @@
               <!-- Draft Content -->
               <q-tab-panel name="draft">
                 <ContentDocTable :content="draftContent" :selected="selectedContent"
+                  @update:selected="selectedContent = $event" @publish="publishContent" @archive="archiveContent"
+                  @reject="rejectContent" @delete="deleteContent" @view="viewContent" @toggle-featured="toggleFeaturedStatus"
+                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
+                  show-publish-actions />
+              </q-tab-panel>
+
+              <!-- Pending Content -->
+              <q-tab-panel name="pending">
+                <ContentDocTable :content="pendingContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @publish="publishContent" @archive="archiveContent"
                   @reject="rejectContent" @delete="deleteContent" @view="viewContent" @toggle-featured="toggleFeaturedStatus"
                   :show-canva-export="true" :is-exporting-content="isExporting"
@@ -234,6 +257,7 @@ import { useQuasar } from 'quasar';
 import { useRoleAuth } from '../composables/useRoleAuth';
 import { useCanvaExport } from '../composables/useCanvaExport';
 import { firebaseContentService } from '../services/firebase-content.service';
+import { firebaseAuthService } from '../services/firebase-auth.service';
 import type { ContentDoc } from '../types/core/content.types';
 import { contentUtils } from '../types/core/content.types';
 import { logger } from '../utils/logger';
@@ -278,6 +302,10 @@ const draftContent = computed(() =>
   allContent.value.filter(item => item.status === 'draft')
 );
 
+const pendingContent = computed(() =>
+  allContent.value.filter(item => item.status === 'pending')
+);
+
 const publishedContent = computed(() =>
   allContent.value.filter(item => item.status === 'published')
 );
@@ -298,14 +326,18 @@ const deletedContent = computed(() =>
 const loadAllContent = () => {
   isLoading.value = true;
   try {
-    // Load all content using the new ContentDoc service
-    // Note: This will need to be implemented in firebaseContentService
-    // For now, we'll use a subscription to get all content
+    // Get current user for draft filtering
+    const currentUser = firebaseAuthService.getCurrentUser();
+    const currentUserId = currentUser?.uid;
+
+    logger.debug('Loading content with draft privacy filtering', { currentUserId });
+
+    // Load all content using the new ContentDoc service with draft privacy
     const unsubscribe = firebaseContentService.subscribeToAllContent((content) => {
       allContent.value = content;
       selectedContent.value = [];
-      logger.success(`Loaded ${content.length} content items`);
-    });
+      logger.success(`Loaded ${content.length} content items with draft privacy`);
+    }, currentUserId);
 
     // Store unsubscribe function for cleanup
     if (typeof unsubscribe === 'function') {

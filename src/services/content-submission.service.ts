@@ -7,7 +7,7 @@
 import {
   createContentDoc
 } from '../types/core/content.types';
-import type { ContentFeatures } from '../types/core/content.types';
+import type { ContentFeatures, ContentDoc } from '../types/core/content.types';
 import { logger } from '../utils/logger';
 import { firebaseContentService } from './firebase-content.service';
 import { firestoreService } from './firebase-firestore.service';
@@ -495,7 +495,7 @@ class ContentSubmissionService {
       description?: string;
       features?: Partial<ContentFeatures>;
       additionalTags?: string[];
-      status?: 'draft' | 'published' | 'archived';
+      status?: ContentDoc['status'];
     }
   ): Promise<void> {
     logger.debug('Updating content', {
@@ -525,16 +525,26 @@ class ContentSubmissionService {
         }
       }
 
-      // TODO: Implementation depends on FirebaseContentService having an update method
-      // For now, we'll use the status update method if only status is being changed
+      // Use the new updateContent method from firebaseContentService
       if (updates.status && Object.keys(updates).length === 1) {
+        // Simple status update
         await firebaseContentService.updateContentStatus(contentId, updates.status);
       } else {
-        logger.warn('Full content updates not yet implemented', {
-          contentId,
-          updates: Object.keys(updates)
+        // Full content update including title, description, features, tags, and/or status
+        const updateData: Record<string, unknown> = {};
+        if (updates.title !== undefined) updateData.title = updates.title;
+        if (updates.description !== undefined) updateData.description = updates.description;
+        if (updates.features !== undefined) updateData.features = updates.features;
+        if (updates.additionalTags !== undefined) updateData.tags = updates.additionalTags;
+        if (updates.status !== undefined) updateData.status = updates.status;
+
+        await firebaseContentService.updateContent(contentId, updateData as {
+          title?: string;
+          description?: string;
+          features?: ContentDoc['features'];
+          tags?: string[];
+          status?: ContentDoc['status'];
         });
-        throw new Error('Full content updates not yet implemented - only status updates are supported');
       }
 
       logger.info('Content updated successfully', {
