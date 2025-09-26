@@ -61,7 +61,8 @@ class ContentSubmissionService {
     description: string,
     contentType: string,
     features: Partial<ContentFeatures> = {},
-    additionalTags: string[] = []
+    additionalTags: string[] = [],
+    status: ContentDoc['status'] = 'draft'
   ): Promise<string> {
     logger.debug('Creating new content with composable architecture', {
       title: title.substring(0, 50),
@@ -114,7 +115,7 @@ class ContentSubmissionService {
         authorName: currentUser.displayName || 'Unknown User',
         tags,
         features,
-        status: 'draft', // New content starts as draft for review
+        status, // Use the provided status parameter
         timestamps: {
           created: serverTimestamp() as Timestamp,
           updated: serverTimestamp() as Timestamp,

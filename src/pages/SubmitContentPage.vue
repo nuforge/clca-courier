@@ -397,7 +397,7 @@ const handleSubmit = async () => {
     let contentId: string;
 
     if (draftId.value) {
-      // Update existing draft instead of creating new content
+      // Update existing draft to pending status
       logger.debug('Updating existing draft for final submission', { draftId: draftId.value });
 
       await contentSubmissionService.updateContent(draftId.value, {
@@ -411,19 +411,17 @@ const handleSubmit = async () => {
       contentId = draftId.value;
       logger.info('Draft updated successfully for submission', { contentId });
     } else {
-      // No existing draft, create new content with pending status
+      // No existing draft, create new content directly with pending status
+      logger.debug('Creating new content with pending status for submission');
+
       contentId = await contentSubmissionService.createContent(
         previewContentDoc.value.title,
         previewContentDoc.value.description,
         wizardState.value.contentType!,
         wizardState.value.features,
-        []
+        [],
+        'pending' // Create directly with pending status
       );
-
-      // Update to pending status for review
-      await contentSubmissionService.updateContent(contentId, {
-        status: 'pending'
-      });
 
       logger.info('New content created and submitted for review', { contentId });
     }

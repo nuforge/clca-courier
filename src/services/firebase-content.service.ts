@@ -20,6 +20,7 @@ import {
   serverTimestamp,
   type QuerySnapshot,
   type DocumentData,
+  type UpdateData,
   // type DocumentSnapshot,
   type Unsubscribe,
   type Timestamp
@@ -220,7 +221,7 @@ export class FirebaseContentService {
       logger.debug('Updating content', { contentId, updateKeys: Object.keys(updates) });
 
       const contentDoc = doc(db, this.collectionName, contentId);
-      const updateData: Record<string, unknown> = {
+      const updateData: UpdateData<ContentDoc> = {
         'timestamps.updated': serverTimestamp() as Timestamp
       };
 

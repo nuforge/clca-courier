@@ -1,6 +1,6 @@
 <!--
   Content Management Page
-  Admin interface for viewing and managing user-submitted content
+  Role-based interface for viewing and managing user-submitted content
 -->
 <template>
   <q-page padding>
@@ -15,7 +15,7 @@
                 {{ t('content.management') || 'Content Management' }}
               </div>
               <p class="text-center text-body1">
-                {{ t('content.managementDescription') || 'Review, approve, and manage user-submitted content for publication' }}
+                {{ getPageDescription() }}
               </p>
             </q-card-section>
           </q-card>
@@ -49,7 +49,8 @@
                 </q-card-section>
               </q-card>
             </div>
-            <div class="col">
+            <!-- Show additional stats only for editors+ -->
+            <div v-if="canViewArchivedContent" class="col">
               <q-card class="text-center">
                 <q-card-section>
                   <q-icon :name="getStatusIcon('archived').icon" :color="getStatusIcon('archived').color" size="md" class="q-mb-sm" />
@@ -58,7 +59,7 @@
                 </q-card-section>
               </q-card>
             </div>
-            <div class="col">
+            <div v-if="canViewRejectedContent" class="col">
               <q-card class="text-center">
                 <q-card-section>
                   <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" size="md" class="q-mb-sm" />
@@ -67,7 +68,7 @@
                 </q-card-section>
               </q-card>
             </div>
-            <div class="col">
+            <div v-if="canViewDeletedContent" class="col">
               <q-card class="text-center">
                 <q-card-section>
                   <q-icon :name="getStatusIcon('deleted').icon" :color="getStatusIcon('deleted').color" size="md" class="q-mb-sm" />
@@ -79,18 +80,18 @@
           </div>
 
           <!-- Action Toolbar -->
-          <q-card class="q-mb-lg">
+          <q-card class="q-mb-lg" v-if="canViewActionToolbar">
             <q-card-section>
               <div class="row items-center q-col-gutter-md">
                 <div class="col-auto">
                   <q-btn color="primary" :icon="UI_ICONS.refresh" label="Refresh" @click="loadAllContent"
                     :loading="isLoading" />
                 </div>
-                <div class="col-auto">
+                <div v-if="canBulkPublish" class="col-auto">
                   <q-btn color="positive" :icon="UI_ICONS.checkAll" label="Bulk Publish" @click="showBulkPublishDialog"
                     :disable="selectedContent.length === 0" />
                 </div>
-                <div class="col-auto">
+                <div v-if="canBulkArchive" class="col-auto">
                   <q-btn color="negative" :icon="UI_ICONS.rejectAll" label="Bulk Archive"
                     @click="showBulkArchiveDialog" :disable="selectedContent.length === 0" outline />
                 </div>
@@ -124,15 +125,15 @@
                 <q-icon :name="getStatusIcon('published').icon" :color="getStatusIcon('published').color" class="q-mr-sm" />
                 {{ t(TRANSLATION_KEYS.CONTENT.STATUS.PUBLISHED) }} ({{ publishedContent.length }})
               </q-tab>
-              <q-tab name="archived">
+              <q-tab v-if="canViewArchivedContent" name="archived">
                 <q-icon :name="getStatusIcon('archived').icon" :color="getStatusIcon('archived').color" class="q-mr-sm" />
                 Archived ({{ archivedContent.length }})
               </q-tab>
-              <q-tab name="rejected">
+              <q-tab v-if="canViewRejectedContent" name="rejected">
                 <q-icon :name="getStatusIcon('rejected').icon" :color="getStatusIcon('rejected').color" class="q-mr-sm" />
                 Rejected ({{ rejectedContent.length }})
               </q-tab>
-              <q-tab name="deleted">
+              <q-tab v-if="canViewDeletedContent" name="deleted">
                 <q-icon :name="getStatusIcon('deleted').icon" :color="getStatusIcon('deleted').color" class="q-mr-sm" />
                 Deleted ({{ deletedContent.length }})
               </q-tab>
@@ -147,9 +148,11 @@
                   @update:selected="selectedContent = $event" @publish="publishContent" @unpublish="unpublishContent"
                   @archive="archiveContent" @restore="restoreContent" @reject="rejectContent" @delete="deleteContent"
                   @view="viewContent" @toggle-featured="toggleFeaturedStatus" @toggle-newsletter-ready="toggleNewsletterReady"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-publish-actions show-unpublish-actions show-restore-actions />
+                  :show-publish-actions="canPublishContent"
+                  :show-unpublish-actions="canUnpublishContent"
+                  :show-restore-actions="canRestoreContent" />
               </q-tab-panel>
 
               <!-- Draft Content -->
@@ -157,9 +160,9 @@
                 <ContentDocTable :content="draftContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @publish="publishContent" @archive="archiveContent"
                   @reject="rejectContent" @delete="deleteContent" @view="viewContent" @toggle-featured="toggleFeaturedStatus"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-publish-actions />
+                  :show-publish-actions="canPublishContent" />
               </q-tab-panel>
 
               <!-- Pending Content -->
@@ -167,9 +170,9 @@
                 <ContentDocTable :content="pendingContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @publish="publishContent" @archive="archiveContent"
                   @reject="rejectContent" @delete="deleteContent" @view="viewContent" @toggle-featured="toggleFeaturedStatus"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-publish-actions />
+                  :show-publish-actions="canPublishContent" />
               </q-tab-panel>
 
               <!-- Published Content -->
@@ -177,37 +180,37 @@
                 <ContentDocTable :content="publishedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @unpublish="unpublishContent" @archive="archiveContent" @view="viewContent"
                   @toggle-featured="toggleFeaturedStatus" @toggle-newsletter-ready="toggleNewsletterReady"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-unpublish-actions />
+                  :show-unpublish-actions="canUnpublishContent" />
               </q-tab-panel>
 
               <!-- Archived Content -->
-              <q-tab-panel name="archived">
+              <q-tab-panel v-if="canViewArchivedContent" name="archived">
                 <ContentDocTable :content="archivedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @restore="restoreContent" @view="viewContent"
                   @toggle-featured="toggleFeaturedStatus"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-restore-actions />
+                  :show-restore-actions="canRestoreContent" />
               </q-tab-panel>
 
-              <q-tab-panel name="rejected">
+              <q-tab-panel v-if="canViewRejectedContent" name="rejected">
                 <ContentDocTable :content="rejectedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @restore="restoreContent" @view="viewContent"
                   @toggle-featured="toggleFeaturedStatus"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-restore-actions />
+                  :show-restore-actions="canRestoreContent" />
               </q-tab-panel>
 
-              <q-tab-panel name="deleted">
+              <q-tab-panel v-if="canViewDeletedContent" name="deleted">
                 <ContentDocTable :content="deletedContent" :selected="selectedContent"
                   @update:selected="selectedContent = $event" @restore="restoreContent" @view="viewContent"
                   @toggle-featured="toggleFeaturedStatus"
-                  :show-canva-export="true" :is-exporting-content="isExporting"
+                  :show-canva-export="canExportCanva" :is-exporting-content="isExporting"
                   @export-for-print="handleExportForPrint" @download-design="handleDownloadDesign"
-                  show-restore-actions />
+                  :show-restore-actions="canRestoreContent" />
               </q-tab-panel>
             </q-tab-panels>
           </q-card>
@@ -269,7 +272,7 @@ import { TRANSLATION_KEYS } from '../i18n/utils/translation-keys';
 
 const $q = useQuasar();
 const { t } = useI18n();
-const { requireEditor, isAuthReady } = useRoleAuth();
+const { requireContributor, isAuthReady, userRole, isEditor, isAdmin } = useRoleAuth();
 const { getStatusIcon, getContentIcon } = useSiteTheme();
 const { exportDesignForPrint, downloadDesign, isExporting, cleanup: cleanupCanvaExport } = useCanvaExport();
 
@@ -282,11 +285,43 @@ const activeTab = ref('all');
 // Watch for authentication readiness and check authorization
 watch(isAuthReady, (ready: boolean) => {
   if (ready) {
-    if (!requireEditor()) {
+    if (!requireContributor()) {
       // Redirect handled by useRoleAuth
     }
   }
 }, { immediate: true });
+
+// Role-based computed properties
+const canViewArchivedContent = computed(() => isEditor.value);
+const canViewRejectedContent = computed(() => isEditor.value);
+const canViewDeletedContent = computed(() => isEditor.value);
+const canViewActionToolbar = computed(() => isEditor.value);
+const canBulkPublish = computed(() => isEditor.value);
+const canBulkArchive = computed(() => isEditor.value);
+const canPublishContent = computed(() => isEditor.value);
+const canUnpublishContent = computed(() => isEditor.value);
+const canRestoreContent = computed(() => isEditor.value);
+const canExportCanva = computed(() => ['canva_contributor', 'editor', 'moderator', 'administrator'].includes(userRole.value));
+
+// Dynamic page description based on user role
+const getPageDescription = () => {
+  switch (userRole.value) {
+    case 'member':
+      return t('content.memberDescription') || 'View published content and your submissions';
+    case 'contributor':
+      return t('content.contributorDescription') || 'Manage your content submissions and view published content';
+    case 'canva_contributor':
+      return t('content.canvaContributorDescription') || 'Create and manage content with Canva integration';
+    case 'editor':
+      return t('content.editorDescription') || 'Review, approve, and manage user-submitted content for publication';
+    case 'moderator':
+    case 'administrator':
+      return t('content.adminDescription') || 'Full content management with administrative controls';
+    default:
+      return t('content.managementDescription') || 'Review, approve, and manage user-submitted content for publication';
+  }
+};
+
 const autoRefresh = ref(false);
 let refreshInterval: number | null = null;
 
