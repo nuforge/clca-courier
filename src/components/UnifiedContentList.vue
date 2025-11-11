@@ -62,7 +62,6 @@ function handleItemDelete(item: ContentDoc): void {
         @delete="handleItemDelete"
       />
     </div>
-    csdsadsadsadadsad
     <!-- Empty State for Grid -->
     <div v-if="props.items.length === 0" class="col-12">
       <q-card >
